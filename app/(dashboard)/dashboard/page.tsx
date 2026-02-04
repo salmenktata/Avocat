@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import EcheancesWidget from '@/components/echeances/EcheancesWidget'
+import RevenusWidget from '@/components/dashboard/RevenusWidget'
+import DossiersParWorkflowWidget from '@/components/dashboard/DossiersParWorkflowWidget'
+import ActiviteRecenteWidget from '@/components/dashboard/ActiviteRecenteWidget'
+import TimeTrackingWidget from '@/components/dashboard/TimeTrackingWidget'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -10,11 +14,17 @@ export default async function DashboardPage() {
 
   if (!user) return null
 
-  // Récupérer les statistiques réelles
+  // Récupérer toutes les données
   const { data: clients } = await supabase
     .from('clients')
     .select('id')
     .eq('user_id', user.id)
+
+  const { data: dossiers } = await supabase
+    .from('dossiers')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
 
   const { data: dossiersActifs } = await supabase
     .from('dossiers')
@@ -24,9 +34,36 @@ export default async function DashboardPage() {
 
   const { data: factures } = await supabase
     .from('factures')
-    .select('statut, montant_ttc')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  const { data: documents } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  const { data: echeances } = await supabase
+    .from('echeances')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  const { data: timeEntries } = await supabase
+    .from('time_entries')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('date', { ascending: false })
+
+  const { data: templates } = await supabase
+    .from('templates')
+    .select('id')
     .eq('user_id', user.id)
 
+  // Calculs des statistiques
   const facturesImpayees = factures?.filter((f) => f.statut === 'IMPAYEE') || []
   const montantImpaye = facturesImpayees.reduce(
     (acc, f) => acc + parseFloat(f.montant_ttc || 0),
@@ -43,12 +80,27 @@ export default async function DashboardPage() {
     .eq('statut', 'actif')
     .lte('date_echeance', dans7Jours.toISOString().split('T')[0])
 
+  // Time tracking ce mois
+  const debutMois = new Date()
+  debutMois.setDate(1)
+  debutMois.setHours(0, 0, 0, 0)
+
+  const timeEntriesCeMois = timeEntries?.filter((e) => {
+    const dateEntree = new Date(e.date)
+    return dateEntree >= debutMois
+  }) || []
+
+  const tempsTotal = timeEntriesCeMois.reduce((acc, e) => acc + (e.duree_minutes || 0), 0)
+  const heuresTotal = Math.floor(tempsTotal / 60)
+
   const stats = {
     clients: clients?.length || 0,
     dossiersActifs: dossiersActifs?.length || 0,
     echeancesCritiques: echeancesCritiques?.length || 0,
     montantImpaye: montantImpaye.toFixed(3),
     facturesImpayees: facturesImpayees.length,
+    templates: templates?.length || 0,
+    heuresCeMois: heuresTotal,
   }
 
   return (
@@ -56,11 +108,11 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
         <p className="mt-2 text-gray-600">
-          Vue d'ensemble de votre activité juridique
+          Vue d&apos;ensemble de votre activité juridique
         </p>
       </div>
 
-      {/* Statistiques */}
+      {/* Statistiques principales */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/dossiers"
@@ -182,117 +234,188 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Widgets */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Échéances urgentes */}
-        <EcheancesWidget />
-
-        {/* Actions rapides */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            ⚡ Actions rapides
-          </h2>
-          <div className="grid gap-3">
-            <Link
-              href="/clients/new"
-              className="flex items-center gap-3 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
-            >
-              <div className="rounded-full bg-blue-100 p-2">
-                <svg
-                  className="h-5 w-5 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Nouveau client</p>
-                <p className="text-sm text-gray-500">Ajouter un client à votre portefeuille</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/dossiers/new"
-              className="flex items-center gap-3 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
-            >
-              <div className="rounded-full bg-indigo-100 p-2">
-                <svg
-                  className="h-5 w-5 text-indigo-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Nouveau dossier</p>
-                <p className="text-sm text-gray-500">Ouvrir un nouveau dossier</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/factures/new"
-              className="flex items-center gap-3 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
-            >
-              <div className="rounded-full bg-green-100 p-2">
-                <svg
-                  className="h-5 w-5 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Nouvelle facture</p>
-                <p className="text-sm text-gray-500">Créer une facture pour un client</p>
-              </div>
-            </Link>
+      {/* Statistiques secondaires */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Link
+          href="/time-tracking"
+          className="rounded-lg border bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center gap-3">
+            <div className="rounded-full bg-purple-100 p-2">
+              <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Heures ce mois</p>
+              <p className="text-lg font-bold text-purple-600">{stats.heuresCeMois}h</p>
+            </div>
           </div>
-        </div>
+        </Link>
+
+        <Link
+          href="/templates"
+          className="rounded-lg border bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center gap-3">
+            <div className="rounded-full bg-green-100 p-2">
+              <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Templates</p>
+              <p className="text-lg font-bold text-green-600">{stats.templates}</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          href="/documents"
+          className="rounded-lg border bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center gap-3">
+            <div className="rounded-full bg-yellow-100 p-2">
+              <svg className="h-5 w-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Documents</p>
+              <p className="text-lg font-bold text-yellow-600">{documents?.length || 0}</p>
+            </div>
+          </div>
+        </Link>
       </div>
 
-      {/* Modules disponibles */}
-      <div className="rounded-lg border border-green-200 bg-green-50 p-6">
-        <h2 className="text-lg font-semibold text-green-900 mb-3">
-          ✅ Modules disponibles
+      {/* Widgets principaux */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Revenus et facturation */}
+        <RevenusWidget factures={factures || []} />
+
+        {/* Dossiers par workflow */}
+        <DossiersParWorkflowWidget dossiers={dossiers || []} />
+      </div>
+
+      {/* Widgets secondaires */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Time tracking */}
+        <TimeTrackingWidget timeEntries={timeEntries || []} />
+
+        {/* Échéances urgentes */}
+        <EcheancesWidget />
+      </div>
+
+      {/* Activité récente */}
+      <ActiviteRecenteWidget
+        dossiers={dossiers || []}
+        factures={factures || []}
+        documents={documents || []}
+        echeances={echeances || []}
+      />
+
+      {/* Actions rapides */}
+      <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          ⚡ Actions rapides
         </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-md bg-white px-3 py-2 text-sm text-center">
-            ✅ Clients
-          </div>
-          <div className="rounded-md bg-white px-3 py-2 text-sm text-center">
-            ✅ Dossiers
-          </div>
-          <div className="rounded-md bg-white px-3 py-2 text-sm text-center">
-            ✅ Factures
-          </div>
-          <div className="rounded-md bg-white px-3 py-2 text-sm text-center">
-            ✅ Échéances
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Link
+            href="/clients/new"
+            className="flex items-center gap-3 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="rounded-full bg-blue-100 p-2">
+              <svg
+                className="h-5 w-5 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900 text-sm">Nouveau client</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/dossiers/new"
+            className="flex items-center gap-3 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="rounded-full bg-indigo-100 p-2">
+              <svg
+                className="h-5 w-5 text-indigo-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900 text-sm">Nouveau dossier</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/factures/new"
+            className="flex items-center gap-3 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="rounded-full bg-green-100 p-2">
+              <svg
+                className="h-5 w-5 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900 text-sm">Nouvelle facture</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/templates/new"
+            className="flex items-center gap-3 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="rounded-full bg-purple-100 p-2">
+              <svg
+                className="h-5 w-5 text-purple-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900 text-sm">Nouveau template</p>
+            </div>
+          </Link>
         </div>
-        <p className="mt-3 text-sm text-green-700">
-          Votre plateforme de gestion juridique est opérationnelle. D'autres fonctionnalités seront ajoutées prochainement (Time Tracking, Documents, Templates).
-        </p>
       </div>
     </div>
   )
