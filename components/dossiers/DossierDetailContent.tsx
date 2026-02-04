@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import WorkflowSteps from './WorkflowSteps'
+import WorkflowVisualizer from '../workflows/WorkflowVisualizer'
 import ActionsList from './ActionsList'
 import AddActionForm from './AddActionForm'
 import DossierForm from './DossierForm'
@@ -72,11 +72,11 @@ export default function DossierDetailContent({
         {activeTab === 'workflow' && (
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Workflow - {dossier.type_procedure}
+              Workflow de la procédure
             </h2>
-            <WorkflowSteps
-              currentEtapeId={dossier.workflow_etape_actuelle || 'ASSIGNATION'}
-              onEtapeClick={updatingEtape ? undefined : handleEtapeChange}
+            <WorkflowVisualizer
+              workflowId={dossier.type_procedure || 'civil_premiere_instance'}
+              etapeActuelleId={dossier.workflow_etape_actuelle || 'ASSIGNATION'}
             />
           </div>
         )}

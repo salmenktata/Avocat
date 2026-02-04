@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { dossierSchema, type DossierFormData } from '@/lib/validations/dossier'
 import { createDossierAction, updateDossierAction } from '@/app/actions/dossiers'
-import { WORKFLOW_CIVIL } from '@/lib/workflows/civil'
+import { WORKFLOWS_DISPONIBLES, getWorkflowById } from '@/lib/workflows/workflows-config'
 
 interface DossierFormProps {
   initialData?: any
@@ -30,15 +30,28 @@ export default function DossierForm({
     handleSubmit,
     formState: { errors },
     setValue,
+    watch,
   } = useForm<DossierFormData>({
     resolver: zodResolver(dossierSchema),
     defaultValues: initialData || {
       client_id: preselectedClientId || '',
-      type_procedure: 'CIVIL',
+      type_procedure: 'civil_premiere_instance',
       statut: 'ACTIF',
       workflow_etape_actuelle: 'ASSIGNATION',
     },
   })
+
+  // Surveiller le type de procédure pour mettre à jour l'étape par défaut
+  const typeProcedure = watch('type_procedure')
+
+  useEffect(() => {
+    if (typeProcedure && !isEditing) {
+      const workflow = getWorkflowById(typeProcedure)
+      if (workflow && workflow.etapes.length > 0) {
+        setValue('workflow_etape_actuelle', workflow.etapes[0].id)
+      }
+    }
+  }, [typeProcedure, setValue, isEditing])
 
   useEffect(() => {
     if (preselectedClientId) {
@@ -130,12 +143,11 @@ export default function DossierForm({
             {...register('type_procedure')}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
-            <option value="CIVIL">Civil</option>
-            <option value="COMMERCIAL">Commercial</option>
-            <option value="PENAL">Pénal</option>
-            <option value="ADMINISTRATIF">Administratif</option>
-            <option value="SOCIAL">Social</option>
-            <option value="AUTRE">Autre</option>
+            {WORKFLOWS_DISPONIBLES.map((workflow) => (
+              <option key={workflow.id} value={workflow.id}>
+                {workflow.nom}
+              </option>
+            ))}
           </select>
           {errors.type_procedure && (
             <p className="mt-1 text-sm text-red-600">
@@ -229,7 +241,7 @@ export default function DossierForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Date d'ouverture
+            Date d&apos;ouverture
           </label>
           <input
             type="date"
@@ -279,11 +291,14 @@ export default function DossierForm({
             {...register('workflow_etape_actuelle')}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
-            {WORKFLOW_CIVIL.etapes.map((etape) => (
-              <option key={etape.id} value={etape.id}>
-                {etape.nom}
-              </option>
-            ))}
+            {(() => {
+              const workflow = getWorkflowById(typeProcedure || 'civil_premiere_instance')
+              return workflow?.etapes.map((etape) => (
+                <option key={etape.id} value={etape.id}>
+                  {etape.libelle}
+                </option>
+              )) || []
+            })()}
           </select>
         </div>
       </div>

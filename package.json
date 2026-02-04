@@ -6,7 +6,7 @@
   "author": "Avocat Team",
   "license": "UNLICENSED",
   "scripts": {
-    "dev": "next dev -p 7001",
+    "dev": "next dev -p 7002",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

@@ -3,7 +3,13 @@ import { z } from 'zod'
 export const dossierSchema = z.object({
   client_id: z.string().uuid('Client invalide'),
   numero_dossier: z.string().min(3, 'Le numéro de dossier doit contenir au moins 3 caractères'),
-  type_procedure: z.enum(['CIVIL', 'COMMERCIAL', 'PENAL', 'ADMINISTRATIF', 'SOCIAL', 'AUTRE'], {
+  type_procedure: z.enum([
+    'civil_premiere_instance',
+    'divorce',
+    'commercial',
+    'refere',
+    'autre'
+  ], {
     required_error: 'Le type de procédure est requis',
   }),
   objet: z.string().min(5, "L'objet doit contenir au moins 5 caractères"),
