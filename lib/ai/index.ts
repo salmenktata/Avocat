@@ -123,3 +123,23 @@ export {
   type UsageLog,
   type UsageStats,
 } from './usage-tracker'
+
+// Base de connaissances
+export {
+  uploadKnowledgeDocument,
+  indexKnowledgeDocument,
+  indexPendingDocuments,
+  searchKnowledgeBase,
+  searchKnowledgeBaseFulltext,
+  listKnowledgeDocuments,
+  getKnowledgeDocument,
+  updateKnowledgeDocument,
+  deleteKnowledgeDocument,
+  getKnowledgeBaseStats,
+  CATEGORY_LABELS,
+  type KnowledgeBaseCategory,
+  type KnowledgeBaseDocument,
+  type KnowledgeBaseUploadInput,
+  type KnowledgeBaseSearchResult,
+  type KnowledgeBaseStats,
+} from './knowledge-base-service'

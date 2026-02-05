@@ -42,7 +42,8 @@
     "cabinet": "المكتب",
     "notifications": "الإشعارات",
     "cloudStorage": "التخزين السحابي",
-    "messaging": "المراسلة"
+    "messaging": "المراسلة",
+    "knowledgeBase": "قاعدة المعرفة"
   },
   "breadcrumbs": {
     "home": "الرئيسية",
@@ -252,7 +253,7 @@
     "missed": "فائت",
     "noDeadlines": "لا توجد مواعيد",
     "daysRemaining": "{count} يوم متبقي",
-    "overdue": "متأخر بـ {count} يوم",
+    "overdue": "متأخر",
     "overdueTitle": "متأخر",
     "totalActive": "إجمالي النشط",
     "critical3Days": "حرجة (3 أيام)",
@@ -723,5 +724,73 @@
   },
   "currency": {
     "tnd": "دينار"
+  },
+  "knowledgeBase": {
+    "title": "قاعدة المعرفة القانونية",
+    "subtitle": "إدارة الوثائق المرجعية لإثراء استجابات المساعد القانوني",
+    "addDocument": "إضافة وثيقة",
+    "documents": "الوثائق",
+    "indexed": "مفهرسة",
+    "pending": "في الانتظار",
+    "chunks": "أجزاء",
+    "referenceDocuments": "الوثائق المرجعية",
+    "noDocuments": "لا توجد وثائق",
+    "emptyDescription": "قاعدة المعرفة فارغة. أضف وثائق مرجعية.",
+    "searchPlaceholder": "بحث...",
+    "allCategories": "جميع الفئات",
+    "allStatuses": "جميع الحالات",
+    "indexedOnly": "مفهرسة",
+    "notIndexedOnly": "غير مفهرسة",
+    "documentsCount": "{count} وثيقة من {total}",
+    "addedOn": "أُضيف في",
+    "reindex": "إعادة الفهرسة",
+    "index": "فهرسة",
+    "delete": "حذف",
+    "confirmDelete": "حذف \"{title}\"؟",
+    "categories": {
+      "jurisprudence": "اجتهاد قضائي",
+      "code": "قانون",
+      "doctrine": "فقه",
+      "modele": "نموذج وثيقة",
+      "autre": "أخرى"
+    },
+    "categoryDescriptions": {
+      "jurisprudence": "قرارات قضائية، أحكام",
+      "code": "قوانين، نصوص تنظيمية",
+      "doctrine": "مقالات، تعليقات، دراسات",
+      "modele": "نماذج، قوالب جاهزة",
+      "autre": "وثائق مرجعية أخرى"
+    },
+    "uploadForm": {
+      "title": "إضافة وثيقة إلى قاعدة المعرفة",
+      "category": "الفئة",
+      "categoryRequired": "الفئة *",
+      "selectCategory": "اختر فئة...",
+      "documentTitle": "العنوان",
+      "titleRequired": "العنوان *",
+      "titlePlaceholder": "مثال: مجلة الالتزامات والعقود",
+      "description": "الوصف",
+      "descriptionPlaceholder": "وصف اختياري للوثيقة...",
+      "file": "الملف (PDF، DOCX، TXT)",
+      "fileRequired": "الملف *",
+      "dragAndDrop": "اسحب ملفاً هنا أو",
+      "clickToBrowse": "انقر للتصفح",
+      "supportedFormats": "PDF، DOCX، DOC، TXT (الحد الأقصى 50 ميجابايت)",
+      "autoIndex": "فهرسة تلقائية للبحث الدلالي",
+      "cancel": "إلغاء",
+      "add": "إضافة الوثيقة",
+      "uploading": "جاري الرفع...",
+      "unsupportedFormat": "صيغة غير مدعومة. استخدم PDF أو DOCX أو DOC أو TXT.",
+      "fileTooLarge": "الملف كبير جداً. الحد الأقصى: 50 ميجابايت.",
+      "success": "تمت إضافة الوثيقة بنجاح"
+    },
+    "info": {
+      "title": "معلومات مهمة",
+      "sharedDocuments": "الوثائق المضافة هنا متاحة لجميع المستخدمين عبر المساعد القانوني قاضية",
+      "autoIndexing": "تتم الفهرسة تلقائياً لتمكين البحث الدلالي في المحتوى",
+      "supportedFormats": "الصيغ المدعومة: PDF، DOCX، DOC، TXT",
+      "arabicPreferred": "يُفضل إضافة النصوص العربية للاستفادة من البحث باللغة العربية"
+    },
+    "byCategory": "التوزيع حسب الفئة"
   }
 }

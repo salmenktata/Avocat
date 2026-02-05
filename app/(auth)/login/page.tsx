@@ -20,29 +20,61 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
+    console.log('🔐 [LOGIN] Début connexion...')
+    console.log('🔐 [LOGIN] Email:', email)
+
     try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-        callbackUrl: '/dashboard',
+      // 1. Obtenir le CSRF token
+      console.log('🔐 [LOGIN] Récupération CSRF token...')
+      const csrfRes = await fetch('/api/auth/csrf')
+      console.log('🔐 [LOGIN] CSRF Response status:', csrfRes.status)
+      const csrfData = await csrfRes.json()
+      const csrfToken = csrfData.csrfToken
+      console.log('🔐 [LOGIN] CSRF Token obtenu:', csrfToken ? '✓' : '✗')
+
+      // 2. Envoyer les credentials
+      console.log('🔐 [LOGIN] Envoi credentials...')
+      const res = await fetch('/api/auth/callback/credentials', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          csrfToken,
+          email,
+          password,
+        }),
+        redirect: 'manual',
       })
 
-      if (result?.error) {
-        setError(result.error === 'CredentialsSignin'
-          ? 'Email ou mot de passe incorrect'
-          : result.error)
-        setLoading(false)
-        return
+      console.log('🔐 [LOGIN] Response type:', res.type)
+      console.log('🔐 [LOGIN] Response status:', res.status)
+
+      // 3. Vérifier le résultat
+      if (res.type === 'opaqueredirect' || res.status === 302 || res.status === 200) {
+        console.log('🔐 [LOGIN] Auth OK, vérification session...')
+
+        const sessionRes = await fetch('/api/auth/session')
+        console.log('🔐 [LOGIN] Session status:', sessionRes.status)
+        const session = await sessionRes.json()
+        console.log('🔐 [LOGIN] Session:', session)
+
+        if (session?.user) {
+          console.log('🔐 [LOGIN] ✅ Connecté! Redirection...')
+          window.location.replace('/dashboard')
+          return
+        } else {
+          console.log('🔐 [LOGIN] ❌ Pas de session user')
+        }
       }
 
-      if (result?.ok) {
-        router.push('/dashboard')
-        router.refresh()
-      }
-    } catch (err) {
-      console.error('Erreur de connexion:', err)
-      setError(t('loginError'))
+      // Erreur d'authentification
+      console.log('🔐 [LOGIN] ❌ Échec authentification')
+      setError('Email ou mot de passe incorrect')
+      setLoading(false)
+    } catch (err: any) {
+      console.error('🔐 [LOGIN] ❌ Exception:', err)
+      setError(err?.message || 'Erreur de connexion')
       setLoading(false)
     }
   }

@@ -15,6 +15,7 @@ import {
   formatEmbeddingForPostgres,
 } from './embeddings-service'
 import { aiConfig, SYSTEM_PROMPTS, isChatEnabled } from './config'
+import { searchKnowledgeBase } from './knowledge-base-service'
 
 // =============================================================================
 // CLIENT ANTHROPIC
@@ -61,6 +62,7 @@ export interface ChatOptions {
   conversationId?: string
   maxContextChunks?: number
   includeJurisprudence?: boolean
+  includeKnowledgeBase?: boolean
   temperature?: number
 }
 
@@ -85,6 +87,7 @@ async function searchRelevantContext(
     dossierId,
     maxContextChunks = aiConfig.rag.maxResults,
     includeJurisprudence = false,
+    includeKnowledgeBase = true, // Activé par défaut
   } = options
 
   // Générer l'embedding de la question
@@ -195,6 +198,33 @@ async function searchRelevantContext(
     }
   }
 
+  // Recherche dans la base de connaissances partagée
+  if (includeKnowledgeBase) {
+    try {
+      const kbResults = await searchKnowledgeBase(question, {
+        limit: Math.ceil(maxContextChunks / 2), // Limiter à la moitié des résultats
+        threshold: aiConfig.rag.similarityThreshold - 0.05,
+      })
+
+      for (const result of kbResults) {
+        sources.push({
+          documentId: result.knowledgeBaseId,
+          documentName: `[قاعدة المعرفة] ${result.title}`,
+          chunkContent: result.chunkContent,
+          similarity: result.similarity,
+          metadata: {
+            type: 'knowledge_base',
+            category: result.category,
+            ...result.metadata,
+          },
+        })
+      }
+    } catch (error) {
+      // Log mais continuer sans la base de connaissances en cas d'erreur
+      console.error('Erreur recherche knowledge base:', error)
+    }
+  }
+
   // Trier par similarité décroissante
   return sources.sort((a, b) => b.similarity - a.similarity)
 }
@@ -208,26 +238,39 @@ async function searchRelevantContext(
  */
 function buildContextFromSources(sources: ChatSource[]): string {
   if (sources.length === 0) {
-    return 'Aucun document pertinent trouvé dans le dossier.'
+    return 'لا توجد وثائق ذات صلة. / Aucun document pertinent trouvé.'
   }
 
   const contextParts: string[] = []
 
   for (let i = 0; i < sources.length; i++) {
     const source = sources[i]
-    const isJurisprudence = (source.metadata as any)?.type === 'jurisprudence'
+    const meta = source.metadata as any
+    const sourceType = meta?.type
 
-    if (isJurisprudence) {
-      const meta = source.metadata as any
+    if (sourceType === 'jurisprudence') {
       contextParts.push(
-        `[JURISPRUDENCE ${i + 1}] ${source.documentName}\n` +
-          `Chambre: ${meta?.chamber || 'N/A'}, Date: ${meta?.date || 'N/A'}\n` +
-          `Articles cités: ${meta?.articles?.join(', ') || 'N/A'}\n\n` +
+        `[اجتهاد قضائي ${i + 1}] ${source.documentName}\n` +
+          `الغرفة: ${meta?.chamber || 'غ/م'}, التاريخ: ${meta?.date || 'غ/م'}\n` +
+          `الفصول المذكورة: ${meta?.articles?.join(', ') || 'غ/م'}\n\n` +
+          source.chunkContent
+      )
+    } else if (sourceType === 'knowledge_base') {
+      const categoryLabels: Record<string, string> = {
+        jurisprudence: 'اجتهاد قضائي',
+        code: 'قانون',
+        doctrine: 'فقه',
+        modele: 'نموذج',
+        autre: 'أخرى',
+      }
+      const categoryLabel = categoryLabels[meta?.category] || 'مرجع'
+      contextParts.push(
+        `[قاعدة المعرفة - ${categoryLabel} ${i + 1}] ${source.documentName}\n\n` +
           source.chunkContent
       )
     } else {
       contextParts.push(
-        `[DOCUMENT ${i + 1}] ${source.documentName}\n\n` + source.chunkContent
+        `[وثيقة ${i + 1}] ${source.documentName}\n\n` + source.chunkContent
       )
     }
   }

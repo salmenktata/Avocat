@@ -3,8 +3,23 @@
  * Utilise pdf-parse pour les PDF et mammoth pour les DOCX
  */
 
-import pdfParse from 'pdf-parse'
-import mammoth from 'mammoth'
+// Import dynamique pour éviter les erreurs SSR
+let pdfParse: any = null
+let mammoth: any = null
+
+async function loadPdfParse() {
+  if (!pdfParse) {
+    pdfParse = (await import('pdf-parse')).default
+  }
+  return pdfParse
+}
+
+async function loadMammoth() {
+  if (!mammoth) {
+    mammoth = (await import('mammoth')).default
+  }
+  return mammoth
+}
 
 // =============================================================================
 // TYPES
@@ -39,7 +54,8 @@ export type SupportedMimeType =
  */
 export async function extractTextFromPDF(buffer: Buffer): Promise<ParseResult> {
   try {
-    const data = await pdfParse(buffer)
+    const parser = await loadPdfParse()
+    const data = await parser(buffer)
 
     const text = cleanText(data.text)
 
@@ -71,7 +87,8 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<ParseResult> {
  */
 export async function extractTextFromDocx(buffer: Buffer): Promise<ParseResult> {
   try {
-    const result = await mammoth.extractRawText({ buffer })
+    const m = await loadMammoth()
+    const result = await m.extractRawText({ buffer })
 
     const text = cleanText(result.value)
 
@@ -92,7 +109,8 @@ export async function extractTextFromDocx(buffer: Buffer): Promise<ParseResult> 
  * Extrait le HTML d'un fichier DOCX (conserve la structure)
  */
 export async function extractHtmlFromDocx(buffer: Buffer): Promise<string> {
-  const result = await mammoth.convertToHtml({ buffer })
+  const m = await loadMammoth()
+  const result = await m.convertToHtml({ buffer })
   return result.value
 }
 

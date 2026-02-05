@@ -42,7 +42,8 @@
     "cabinet": "Cabinet",
     "notifications": "Notifications",
     "cloudStorage": "Stockage Cloud",
-    "messaging": "Messagerie"
+    "messaging": "Messagerie",
+    "knowledgeBase": "Base de connaissances"
   },
   "breadcrumbs": {
     "home": "Accueil",
@@ -252,7 +253,7 @@
     "missed": "Manquée",
     "noDeadlines": "Aucune échéance",
     "daysRemaining": "{count} jours restants",
-    "overdue": "En retard de {count} jours",
+    "overdue": "En retard",
     "overdueTitle": "En retard",
     "totalActive": "Total actives",
     "critical3Days": "Critiques (3 jours)",
@@ -723,5 +724,73 @@
   },
   "currency": {
     "tnd": "TND"
+  },
+  "knowledgeBase": {
+    "title": "Base de Connaissances Juridique",
+    "subtitle": "Gérer les documents de référence pour enrichir les réponses IA",
+    "addDocument": "Ajouter un document",
+    "documents": "Documents",
+    "indexed": "Indexés",
+    "pending": "En attente",
+    "chunks": "Chunks",
+    "referenceDocuments": "Documents de référence",
+    "noDocuments": "Aucun document",
+    "emptyDescription": "La base de connaissances est vide. Ajoutez des documents de référence.",
+    "searchPlaceholder": "Rechercher...",
+    "allCategories": "Toutes catégories",
+    "allStatuses": "Tous statuts",
+    "indexedOnly": "Indexés",
+    "notIndexedOnly": "Non indexés",
+    "documentsCount": "{count} document(s) sur {total}",
+    "addedOn": "Ajouté le",
+    "reindex": "Réindexer",
+    "index": "Indexer",
+    "delete": "Supprimer",
+    "confirmDelete": "Supprimer \"{title}\" ?",
+    "categories": {
+      "jurisprudence": "Jurisprudence",
+      "code": "Code juridique",
+      "doctrine": "Doctrine",
+      "modele": "Modèle de document",
+      "autre": "Autre"
+    },
+    "categoryDescriptions": {
+      "jurisprudence": "Décisions de justice, arrêts",
+      "code": "Codes, lois, textes réglementaires",
+      "doctrine": "Articles, commentaires, études",
+      "modele": "Templates, modèles types",
+      "autre": "Autres documents de référence"
+    },
+    "uploadForm": {
+      "title": "Ajouter un document à la base de connaissances",
+      "category": "Catégorie",
+      "categoryRequired": "Catégorie *",
+      "selectCategory": "Sélectionner une catégorie...",
+      "documentTitle": "Titre",
+      "titleRequired": "Titre *",
+      "titlePlaceholder": "Ex: Code des Obligations et Contrats (COC)",
+      "description": "Description",
+      "descriptionPlaceholder": "Description optionnelle du document...",
+      "file": "Fichier (PDF, DOCX, TXT)",
+      "fileRequired": "Fichier *",
+      "dragAndDrop": "Glissez un fichier ici ou",
+      "clickToBrowse": "cliquez pour parcourir",
+      "supportedFormats": "PDF, DOCX, DOC, TXT (max 50MB)",
+      "autoIndex": "Indexer automatiquement pour la recherche sémantique",
+      "cancel": "Annuler",
+      "add": "Ajouter le document",
+      "uploading": "Upload en cours...",
+      "unsupportedFormat": "Format non supporté. Utilisez PDF, DOCX, DOC ou TXT.",
+      "fileTooLarge": "Fichier trop volumineux. Taille maximum : 50MB.",
+      "success": "Document ajouté avec succès"
+    },
+    "info": {
+      "title": "Informations importantes",
+      "sharedDocuments": "Les documents ajoutés ici sont disponibles pour tous les utilisateurs via l'assistant juridique Qadhya",
+      "autoIndexing": "L'indexation se fait automatiquement pour permettre la recherche sémantique dans le contenu",
+      "supportedFormats": "Formats supportés : PDF, DOCX, DOC, TXT",
+      "arabicPreferred": "Privilégiez les textes en arabe pour une meilleure recherche en langue arabe"
+    },
+    "byCategory": "Répartition par catégorie"
   }
 }

@@ -84,6 +84,7 @@ import {
   Briefcase,
   Cloud,
   MessageSquare,
+  BookOpen,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -196,6 +197,7 @@ export const Icons = {
   // Legal & Professional
   gavel: Gavel,
   hash: Hash,
+  bookOpen: BookOpen,
 } as const
 
 export type IconName = keyof typeof Icons
