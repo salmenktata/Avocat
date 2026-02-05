@@ -4,9 +4,6 @@ import DossierCard from '@/components/dossiers/DossierCard'
 
 export default async function DossiersPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
 
   // Récupérer tous les dossiers avec les clients
   const { data: dossiers } = await supabase

@@ -98,31 +98,34 @@ export default function ActiviteRecenteWidget({
       ) : (
         <div className="space-y-3">
           {activitesRecentes.map((activite) => {
-            const Wrapper = activite.lien ? Link : 'div'
-            const wrapperProps = activite.lien
-              ? { href: activite.lien, className: 'block group' }
-              : { className: 'block' }
+            const content = (
+              <div className="flex items-start gap-3 rounded-lg border border-gray-100 p-3 hover:bg-gray-50 transition-colors">
+                <span
+                  className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-lg ${activite.couleur}`}
+                >
+                  {activite.icone}
+                </span>
 
-            return (
-              <Wrapper key={`${activite.type}-${activite.id}`} {...wrapperProps}>
-                <div className="flex items-start gap-3 rounded-lg border border-gray-100 p-3 hover:bg-gray-50 transition-colors">
-                  <span
-                    className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-lg ${activite.couleur}`}
-                  >
-                    {activite.icone}
-                  </span>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {activite.titre}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">{activite.description}</p>
-                    <p className="mt-1 text-xs text-gray-400">
-                      {formatRelativeTime(activite.date)}
-                    </p>
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {activite.titre}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">{activite.description}</p>
+                  <p className="mt-1 text-xs text-gray-400">
+                    {formatRelativeTime(activite.date)}
+                  </p>
                 </div>
-              </Wrapper>
+              </div>
+            )
+
+            return activite.lien ? (
+              <Link key={`${activite.type}-${activite.id}`} href={activite.lien} className="block group">
+                {content}
+              </Link>
+            ) : (
+              <div key={`${activite.type}-${activite.id}`} className="block">
+                {content}
+              </div>
             )
           })}
         </div>

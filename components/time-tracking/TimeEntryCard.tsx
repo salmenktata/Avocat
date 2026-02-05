@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteTimeEntryAction } from '@/app/actions/time-entries'
+import type { TimeEntry } from '@/types/time-tracking'
 
 interface TimeEntryCardProps {
-  entry: any
+  entry: TimeEntry
   showDossierInfo?: boolean
 }
 
@@ -106,7 +107,7 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
               </span>
             </div>
 
-            {entry.taux_horaire > 0 && (
+            {entry.taux_horaire && entry.taux_horaire > 0 && (
               <>
                 <div className="text-gray-400">•</div>
                 <div className="text-gray-600">
@@ -114,7 +115,7 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
                 </div>
                 <div className="text-gray-400">•</div>
                 <div className="font-semibold text-blue-600">
-                  {parseFloat(entry.montant_calcule || 0).toFixed(3)} TND
+                  {parseFloat(entry.montant_calcule || '0').toFixed(3)} TND
                 </div>
               </>
             )}

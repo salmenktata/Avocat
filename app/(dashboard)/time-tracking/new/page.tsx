@@ -38,7 +38,7 @@ export default async function NewTimeEntryPage({
   }
 
   // Récupérer le taux horaire par défaut du profil
-  const { data: profile } = await supabase
+  const { data: _profile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)

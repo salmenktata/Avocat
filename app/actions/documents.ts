@@ -5,6 +5,10 @@ import { revalidatePath } from 'next/cache'
 
 const BUCKET_NAME = 'dossiers-documents'
 
+interface DossierWithUserId {
+  user_id: string
+}
+
 export async function uploadDocumentAction(formData: FormData) {
   try {
     const supabase = await createClient()
@@ -48,7 +52,7 @@ export async function uploadDocumentAction(formData: FormData) {
     const storagePath = `${user.id}/${dossierId}/${fileName}`
 
     // Uploader le fichier dans Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(storagePath, file, {
         cacheControl: '3600',
@@ -116,7 +120,7 @@ export async function deleteDocumentAction(id: string) {
       return { error: 'Document introuvable' }
     }
 
-    if ((document.dossiers as any).user_id !== user.id) {
+    if ((document.dossiers as DossierWithUserId).user_id !== user.id) {
       return { error: 'Accès refusé' }
     }
 
@@ -172,7 +176,7 @@ export async function getDocumentUrlAction(id: string) {
       return { error: 'Document introuvable' }
     }
 
-    if ((document.dossiers as any).user_id !== user.id) {
+    if ((document.dossiers as DossierWithUserId).user_id !== user.id) {
       return { error: 'Accès refusé' }
     }
 
@@ -211,7 +215,7 @@ export async function updateDocumentAction(id: string, data: { categorie?: strin
       .eq('id', id)
       .single()
 
-    if (checkError || !document || (document.dossiers as any).user_id !== user.id) {
+    if (checkError || !document || (document.dossiers as unknown as DossierWithUserId).user_id !== user.id) {
       return { error: 'Document introuvable ou accès refusé' }
     }
 
@@ -276,7 +280,7 @@ export async function ensureStorageBucketAction() {
 
     if (!bucketExists) {
       // Créer le bucket s'il n'existe pas
-      const { data, error } = await supabase.storage.createBucket(BUCKET_NAME, {
+      const { error } = await supabase.storage.createBucket(BUCKET_NAME, {
         public: false,
         fileSizeLimit: 52428800, // 50 MB
       })

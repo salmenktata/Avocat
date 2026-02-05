@@ -174,7 +174,7 @@ export function GlobalKeyboardShortcuts() {
 
               <div className="mt-6 rounded-lg bg-blue-50 p-4">
                 <p className="text-sm text-blue-800">
-                  💡 Astuce : Utilisez ces raccourcis pour naviguer plus rapidement dans l'application.
+                  💡 Astuce : Utilisez ces raccourcis pour naviguer plus rapidement dans l&apos;application.
                 </p>
               </div>
             </div>

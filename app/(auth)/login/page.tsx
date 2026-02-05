@@ -19,7 +19,7 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
@@ -33,7 +33,7 @@ export default function LoginPage() {
       // Rediriger vers le dashboard
       router.push('/dashboard')
       router.refresh()
-    } catch (err) {
+    } catch {
       setError('Une erreur est survenue')
       setLoading(false)
     }

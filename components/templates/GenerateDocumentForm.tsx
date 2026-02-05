@@ -119,7 +119,7 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
 
         {dossiers.length === 0 ? (
           <p className="text-sm text-gray-500">
-            Aucun dossier disponible. Créez d'abord un dossier.
+            Aucun dossier disponible. Créez d&apos;abord un dossier.
           </p>
         ) : (
           <select

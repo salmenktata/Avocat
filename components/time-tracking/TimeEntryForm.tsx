@@ -9,7 +9,7 @@ import { createTimeEntryAction, updateTimeEntryAction } from '@/app/actions/time
 
 interface TimeEntryFormProps {
   entryId?: string
-  initialData?: any
+  initialData?: Partial<TimeEntryFormData>
   isEditing?: boolean
   dossierId: string
   tauxHoraireDefaut?: number
@@ -79,7 +79,7 @@ export default function TimeEntryForm({
         router.push('/time-tracking')
         router.refresh()
       }
-    } catch (err) {
+    } catch {
       setError('Une erreur est survenue')
       setLoading(false)
     }

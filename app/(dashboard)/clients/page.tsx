@@ -4,9 +4,6 @@ import ClientCard from '@/components/clients/ClientCard'
 
 export default async function ClientsPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
 
   // Récupérer tous les clients
   const { data: clients } = await supabase

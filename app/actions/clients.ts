@@ -3,7 +3,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { clientSchema, type ClientFormData } from '@/lib/validations/client'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+
+interface ClientData {
+  user_id: string
+  type: string
+  email?: string | null
+  telephone?: string | null
+  adresse?: string | null
+  ville?: string | null
+  notes?: string | null
+  nom?: string | null
+  prenom?: string | null
+  cin?: string | null
+  denomination?: string | null
+  registre_commerce?: string | null
+}
 
 export async function createClientAction(formData: ClientFormData) {
   try {
@@ -21,7 +35,7 @@ export async function createClientAction(formData: ClientFormData) {
     }
 
     // Préparer les données selon le type
-    const clientData: any = {
+    const clientData: ClientData = {
       user_id: user.id,
       type: validatedData.type,
       email: validatedData.email || null,
@@ -76,7 +90,7 @@ export async function updateClientAction(id: string, formData: ClientFormData) {
     }
 
     // Préparer les données selon le type
-    const clientData: any = {
+    const clientData: ClientData = {
       user_id: user.id,
       type: validatedData.type,
       email: validatedData.email || null,

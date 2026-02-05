@@ -45,7 +45,7 @@ export default function RegisterPage() {
       const supabase = createClient()
 
       // Créer le compte
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -65,7 +65,7 @@ export default function RegisterPage() {
       // Succès - rediriger vers le dashboard
       router.push('/dashboard')
       router.refresh()
-    } catch (err) {
+    } catch {
       setError('Une erreur est survenue')
       setLoading(false)
     }

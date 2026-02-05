@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import EcheanceCard from '@/components/echeances/EcheanceCard'
-import { joursRestants, niveauUrgence } from '@/lib/utils/delais-tunisie'
+import { niveauUrgence } from '@/lib/utils/delais-tunisie'
 
 export default async function EcheancesPage() {
   const supabase = await createClient()

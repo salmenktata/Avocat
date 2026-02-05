@@ -3,14 +3,15 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { stopTimerAction } from '@/app/actions/time-entries'
+import type { ActiveTimer as ActiveTimerType } from '@/types/time-tracking'
 
 interface ActiveTimerProps {
-  timer: any
+  timer: ActiveTimerType
 }
 
 export default function ActiveTimer({ timer: initialTimer }: ActiveTimerProps) {
   const router = useRouter()
-  const [timer, setTimer] = useState(initialTimer)
+  const [timer, setTimer] = useState<ActiveTimerType | null>(initialTimer)
   const [elapsed, setElapsed] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')

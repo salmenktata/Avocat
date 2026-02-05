@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { dossierSchema, type DossierFormData } from '@/lib/validations/dossier'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
 export async function createDossierAction(formData: DossierFormData) {
   try {

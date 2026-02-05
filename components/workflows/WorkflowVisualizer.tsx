@@ -1,6 +1,6 @@
 'use client'
 
-import { getWorkflowById, calculerProgression, type WorkflowTemplate } from '@/lib/workflows/workflows-config'
+import { getWorkflowById, calculerProgression } from '@/lib/workflows/workflows-config'
 
 interface WorkflowVisualizerProps {
   workflowId: string
@@ -44,7 +44,6 @@ export default function WorkflowVisualizer({ workflowId, etapeActuelleId }: Work
         {workflow.etapes.map((etape, index) => {
           const estActuelle = etape.id === etapeActuelleId
           const estTerminee = index < etapeActuelleIndex
-          const estFuture = index > etapeActuelleIndex
 
           return (
             <div

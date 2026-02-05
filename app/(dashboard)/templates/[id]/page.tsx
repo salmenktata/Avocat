@@ -30,7 +30,7 @@ export default async function TemplateDetailPage({
     redirect('/templates')
   }
 
-  const variables = Array.isArray(template.variables) ? template.variables : []
+  const variables: string[] = Array.isArray(template.variables) ? template.variables : []
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">

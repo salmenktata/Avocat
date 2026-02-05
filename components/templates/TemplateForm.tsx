@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
@@ -8,7 +8,7 @@ import { createTemplateAction, updateTemplateAction } from '@/app/actions/templa
 import { templateSchema, type TemplateFormData, TYPE_DOCUMENT_LABELS } from '@/lib/validations/template'
 
 interface TemplateFormProps {
-  initialData?: any
+  initialData?: Partial<TemplateFormData>
   templateId?: string
 }
 
@@ -51,7 +51,15 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
     return [...new Set(vars)]
   }
 
-  // Mettre à jour les variables quand le contenu change
+  // Mettre à jour les variables quand le contenu change (via watch)
+  useEffect(() => {
+    if (contenu) {
+      const newVariables = extractVariables(contenu)
+      setVariables(newVariables)
+    }
+  }, [contenu])
+
+  // Mettre à jour les variables quand le contenu change (via event)
   const handleContenuChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newVariables = extractVariables(e.target.value)
     setVariables(newVariables)
