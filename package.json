@@ -15,7 +15,11 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "test": "vitest",
     "test:watch": "vitest --watch",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "check:translations": "node scripts/check-translations.js",
+    "find:hardcoded-text": "node scripts/find-hardcoded-text.js",
+    "translations:validate": "npm run check:translations && npm run find:hardcoded-text",
+    "precommit": "npm run check:translations"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
