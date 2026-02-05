@@ -53,7 +53,20 @@
   },
   "dashboard": {
     "title": "Tableau de bord",
+    "subtitle": "Vue d'ensemble de votre activité",
     "welcome": "Bienvenue",
+    "newClient": "Nouveau client",
+    "newDossier": "Nouveau dossier",
+    "newInvoice": "Nouvelle facture",
+    "newTemplate": "Nouveau template",
+    "quickActions": "Actions rapides",
+    "activeDossiers": "Dossiers actifs",
+    "totalClients": "Total clients",
+    "upcomingDeadlines": "Échéances à venir",
+    "unpaidInvoices": "Factures impayées",
+    "hoursThisMonth": "Heures ce mois",
+    "totalTemplates": "Total templates",
+    "totalDocuments": "Total documents",
     "stats": {
       "totalClients": "Clients",
       "activeDossiers": "Dossiers actifs",
@@ -63,6 +76,7 @@
   },
   "clients": {
     "title": "Clients",
+    "subtitle": "Gérez vos clients et leurs informations",
     "newClient": "Nouveau client",
     "editClient": "Modifier le client",
     "clientDetails": "Détails du client",
@@ -81,10 +95,15 @@
     "notes": "Notes",
     "createdAt": "Créé le",
     "noClients": "Aucun client",
-    "createFirst": "Créez votre premier client pour commencer"
+    "createFirst": "Créez votre premier client pour commencer",
+    "totalClients": "Total clients",
+    "naturalPersons": "Personnes physiques",
+    "legalPersons": "Personnes morales",
+    "createFirstClient": "Créez votre premier client pour commencer"
   },
   "dossiers": {
     "title": "Dossiers",
+    "subtitle": "Gérez vos dossiers et suivez leur progression",
     "newDossier": "Nouveau dossier",
     "editDossier": "Modifier le dossier",
     "dossierDetails": "Détails du dossier",
@@ -100,6 +119,11 @@
     "documents": "Documents",
     "notes": "Notes",
     "noDossiers": "Aucun dossier",
+    "totalDossiers": "Total dossiers",
+    "activeDossiers": "Dossiers actifs",
+    "closedDossiers": "Dossiers clôturés",
+    "civilProcedures": "Procédures civiles",
+    "createFirstDossier": "Créez votre premier dossier pour commencer",
     "categories": {
       "CIVIL": "Civil",
       "COMMERCIAL": "Commercial",
@@ -116,6 +140,7 @@
   },
   "factures": {
     "title": "Factures",
+    "subtitle": "Gérez vos factures et suivez les paiements",
     "newInvoice": "Nouvelle facture",
     "invoiceNumber": "Numéro de facture",
     "date": "Date",
@@ -125,10 +150,20 @@
     "paid": "Payée",
     "pending": "En attente",
     "overdue": "En retard",
-    "noInvoices": "Aucune facture"
+    "noInvoices": "Aucune facture",
+    "totalInvoices": "Total factures",
+    "totalAmountTTC": "Montant total TTC",
+    "paidInvoices": "Factures payées",
+    "unpaidInvoices": "Factures impayées",
+    "filterByStatus": "Filtrer par statut",
+    "draft": "Brouillon",
+    "sent": "Envoyée",
+    "late": "En retard",
+    "createFirstInvoice": "Créez votre première facture pour commencer"
   },
   "echeances": {
     "title": "Échéances",
+    "subtitle": "Suivez vos échéances et délais légaux",
     "newDeadline": "Nouvelle échéance",
     "type": "Type",
     "date": "Date",
@@ -140,10 +175,25 @@
     "missed": "Manquée",
     "noDeadlines": "Aucune échéance",
     "daysRemaining": "{count} jours restants",
-    "overdue": "En retard de {count} jours"
+    "overdue": "En retard de {count} jours",
+    "totalActive": "Total actives",
+    "critical3Days": "Critiques (3 jours)",
+    "urgent7Days": "Urgentes (7 jours)",
+    "immediateAction": "Action immédiate",
+    "maxUrgency": "Urgence maximale",
+    "handleQuickly": "À traiter rapidement",
+    "hearings": "Audiences",
+    "legalDeadlines": "Délais légaux",
+    "deadlinesWillAppear": "Vos échéances apparaîtront ici",
+    "overdueSection": "En retard",
+    "criticalSection": "Critiques (≤ 3 jours)",
+    "urgentSection": "Urgentes (≤ 7 jours)",
+    "upcomingSection": "À venir (≤ 30 jours)",
+    "futureSection": "Futures (> 30 jours)"
   },
   "timeTracking": {
     "title": "Suivi du temps",
+    "subtitle": "Suivez votre temps et gérez votre facturation",
     "newEntry": "Nouvelle entrée",
     "date": "Date",
     "duration": "Durée",
@@ -154,24 +204,29 @@
     "noEntries": "Aucune entrée",
     "startTimer": "Démarrer le chrono",
     "stopTimer": "Arrêter le chrono",
-    "timerRunning": "Chronomètre en cours"
+    "timerRunning": "Chronomètre en cours",
+    "createFirstEntry": "Créez votre première entrée pour commencer"
   },
   "documents": {
     "title": "Documents",
+    "subtitle": "Gérez vos documents et pièces jointes",
     "upload": "Uploader un document",
     "fileName": "Nom du fichier",
     "fileSize": "Taille",
     "uploadedAt": "Uploadé le",
-    "noDocuments": "Aucun document"
+    "noDocuments": "Aucun document",
+    "createFirstDocument": "Uploadez votre premier document pour commencer"
   },
   "templates": {
     "title": "Templates",
+    "subtitle": "Créez et gérez vos modèles de documents",
     "newTemplate": "Nouveau template",
     "name": "Nom",
     "type": "Type",
     "content": "Contenu",
     "variables": "Variables",
-    "noTemplates": "Aucun template"
+    "noTemplates": "Aucun template",
+    "createFirstTemplate": "Créez votre premier template pour commencer"
   },
   "home": {
     "title": "Avocat",

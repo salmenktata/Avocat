@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DossierCard from '@/components/dossiers/DossierCard'
+import { getTranslations } from 'next-intl/server'
 
 export default async function DossiersPage() {
+  const t = await getTranslations('dossiers')
   const supabase = await createClient()
 
   // Récupérer tous les dossiers avec les clients
@@ -15,9 +17,9 @@ export default async function DossiersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dossiers</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
           <p className="mt-2 text-gray-600">
-            Gérez vos dossiers et suivez leur progression
+            {t('subtitle')}
           </p>
         </div>
 
@@ -25,7 +27,7 @@ export default async function DossiersPage() {
           href="/dossiers/new"
           className="rounded-md bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
-          + Nouveau dossier
+          + {t('newDossier')}
         </Link>
       </div>
 
@@ -33,7 +35,7 @@ export default async function DossiersPage() {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border bg-white p-6 shadow-sm">
           <div className="text-sm font-medium text-gray-500">
-            Total dossiers
+            {t('totalDossiers')}
           </div>
           <div className="mt-2 text-3xl font-bold text-blue-600">
             {dossiers?.length || 0}
@@ -42,7 +44,7 @@ export default async function DossiersPage() {
 
         <div className="rounded-lg border bg-white p-6 shadow-sm">
           <div className="text-sm font-medium text-gray-500">
-            Dossiers actifs
+            {t('activeDossiers')}
           </div>
           <div className="mt-2 text-3xl font-bold text-green-600">
             {dossiers?.filter((d) => d.statut === 'ACTIF').length || 0}
@@ -51,7 +53,7 @@ export default async function DossiersPage() {
 
         <div className="rounded-lg border bg-white p-6 shadow-sm">
           <div className="text-sm font-medium text-gray-500">
-            Dossiers clos
+            {t('closedDossiers')}
           </div>
           <div className="mt-2 text-3xl font-bold text-gray-600">
             {dossiers?.filter((d) => d.statut === 'CLOS').length || 0}
@@ -60,7 +62,7 @@ export default async function DossiersPage() {
 
         <div className="rounded-lg border bg-white p-6 shadow-sm">
           <div className="text-sm font-medium text-gray-500">
-            Procédures civiles
+            {t('civilProcedures')}
           </div>
           <div className="mt-2 text-3xl font-bold text-blue-600">
             {dossiers?.filter((d) => d.type_procedure === 'CIVIL').length || 0}
@@ -91,17 +93,17 @@ export default async function DossiersPage() {
             />
           </svg>
           <h3 className="mt-2 text-sm font-medium text-gray-900">
-            Aucun dossier
+            {t('noDossiers')}
           </h3>
           <p className="mt-1 text-sm text-gray-500">
-            Commencez par créer votre premier dossier
+            {t('createFirstDossier')}
           </p>
           <div className="mt-6">
             <Link
               href="/dossiers/new"
               className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              + Nouveau dossier
+              + {t('newDossier')}
             </Link>
           </div>
         </div>

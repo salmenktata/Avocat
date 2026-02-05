@@ -53,7 +53,20 @@
   },
   "dashboard": {
     "title": "لوحة التحكم",
+    "subtitle": "نظرة عامة على نشاطك",
     "welcome": "مرحبا",
+    "newClient": "عميل جديد",
+    "newDossier": "ملف جديد",
+    "newInvoice": "فاتورة جديدة",
+    "newTemplate": "نموذج جديد",
+    "quickActions": "إجراءات سريعة",
+    "activeDossiers": "الملفات النشطة",
+    "totalClients": "إجمالي العملاء",
+    "upcomingDeadlines": "المواعيد القادمة",
+    "unpaidInvoices": "الفواتير غير المدفوعة",
+    "hoursThisMonth": "الساعات هذا الشهر",
+    "totalTemplates": "إجمالي النماذج",
+    "totalDocuments": "إجمالي الوثائق",
     "stats": {
       "totalClients": "العملاء",
       "activeDossiers": "الملفات النشطة",
@@ -63,6 +76,7 @@
   },
   "clients": {
     "title": "العملاء",
+    "subtitle": "إدارة عملائك ومعلوماتهم",
     "newClient": "عميل جديد",
     "editClient": "تعديل العميل",
     "clientDetails": "تفاصيل العميل",
@@ -81,10 +95,15 @@
     "notes": "ملاحظات",
     "createdAt": "تاريخ الإنشاء",
     "noClients": "لا يوجد عملاء",
-    "createFirst": "أنشئ عميلك الأول للبدء"
+    "createFirst": "أنشئ عميلك الأول للبدء",
+    "totalClients": "إجمالي العملاء",
+    "naturalPersons": "الأشخاص الطبيعيون",
+    "legalPersons": "الأشخاص المعنويون",
+    "createFirstClient": "أنشئ عميلك الأول للبدء"
   },
   "dossiers": {
     "title": "الملفات",
+    "subtitle": "إدارة ملفاتك ومتابعة تقدمها",
     "newDossier": "ملف جديد",
     "editDossier": "تعديل الملف",
     "dossierDetails": "تفاصيل الملف",
@@ -100,6 +119,11 @@
     "documents": "الوثائق",
     "notes": "ملاحظات",
     "noDossiers": "لا توجد ملفات",
+    "totalDossiers": "إجمالي الملفات",
+    "activeDossiers": "الملفات النشطة",
+    "closedDossiers": "الملفات المغلقة",
+    "civilProcedures": "الإجراءات المدنية",
+    "createFirstDossier": "أنشئ ملفك الأول للبدء",
     "categories": {
       "CIVIL": "مدني",
       "COMMERCIAL": "تجاري",
@@ -116,6 +140,7 @@
   },
   "factures": {
     "title": "الفواتير",
+    "subtitle": "إدارة فواتيرك ومتابعة المدفوعات",
     "newInvoice": "فاتورة جديدة",
     "invoiceNumber": "رقم الفاتورة",
     "date": "التاريخ",
@@ -125,10 +150,20 @@
     "paid": "مدفوعة",
     "pending": "قيد الانتظار",
     "overdue": "متأخرة",
-    "noInvoices": "لا توجد فواتير"
+    "noInvoices": "لا توجد فواتير",
+    "totalInvoices": "إجمالي الفواتير",
+    "totalAmountTTC": "المبلغ الإجمالي شامل الضريبة",
+    "paidInvoices": "الفواتير المدفوعة",
+    "unpaidInvoices": "الفواتير غير المدفوعة",
+    "filterByStatus": "تصفية حسب الحالة",
+    "draft": "مسودة",
+    "sent": "مرسلة",
+    "late": "متأخرة",
+    "createFirstInvoice": "أنشئ فاتورتك الأولى للبدء"
   },
   "echeances": {
     "title": "المواعيد",
+    "subtitle": "تتبع مواعيدك والمواعيد القانونية",
     "newDeadline": "موعد جديد",
     "type": "النوع",
     "date": "التاريخ",
@@ -140,10 +175,25 @@
     "missed": "فائت",
     "noDeadlines": "لا توجد مواعيد",
     "daysRemaining": "{count} يوم متبقي",
-    "overdue": "متأخر بـ {count} يوم"
+    "overdue": "متأخر بـ {count} يوم",
+    "totalActive": "إجمالي النشط",
+    "critical3Days": "حرجة (3 أيام)",
+    "urgent7Days": "عاجلة (7 أيام)",
+    "immediateAction": "إجراء فوري",
+    "maxUrgency": "أقصى استعجال",
+    "handleQuickly": "للمعالجة بسرعة",
+    "hearings": "الجلسات",
+    "legalDeadlines": "المواعيد القانونية",
+    "deadlinesWillAppear": "ستظهر مواعيدك هنا",
+    "overdueSection": "متأخرة",
+    "criticalSection": "حرجة (≤ 3 أيام)",
+    "urgentSection": "عاجلة (≤ 7 أيام)",
+    "upcomingSection": "قادمة (≤ 30 يوم)",
+    "futureSection": "مستقبلية (> 30 يوم)"
   },
   "timeTracking": {
     "title": "تتبع الوقت",
+    "subtitle": "تتبع وقتك وإدارة فوترتك",
     "newEntry": "إدخال جديد",
     "date": "التاريخ",
     "duration": "المدة",
@@ -154,24 +204,29 @@
     "noEntries": "لا توجد إدخالات",
     "startTimer": "بدء المؤقت",
     "stopTimer": "إيقاف المؤقت",
-    "timerRunning": "المؤقت يعمل"
+    "timerRunning": "المؤقت يعمل",
+    "createFirstEntry": "أنشئ إدخالك الأول للبدء"
   },
   "documents": {
     "title": "الوثائق",
+    "subtitle": "إدارة وثائقك والمرفقات",
     "upload": "رفع وثيقة",
     "fileName": "اسم الملف",
     "fileSize": "الحجم",
     "uploadedAt": "تاريخ الرفع",
-    "noDocuments": "لا توجد وثائق"
+    "noDocuments": "لا توجد وثائق",
+    "createFirstDocument": "ارفع وثيقتك الأولى للبدء"
   },
   "templates": {
     "title": "النماذج",
+    "subtitle": "إنشاء وإدارة نماذج وثائقك",
     "newTemplate": "نموذج جديد",
     "name": "الاسم",
     "type": "النوع",
     "content": "المحتوى",
     "variables": "المتغيرات",
-    "noTemplates": "لا توجد نماذج"
+    "noTemplates": "لا توجد نماذج",
+    "createFirstTemplate": "أنشئ نموذجك الأول للبدء"
   },
   "home": {
     "title": "محامي",

@@ -5,8 +5,10 @@ import RevenusWidget from '@/components/dashboard/RevenusWidget'
 import DossiersParWorkflowWidget from '@/components/dashboard/DossiersParWorkflowWidget'
 import ActiviteRecenteWidget from '@/components/dashboard/ActiviteRecenteWidget'
 import TimeTrackingWidget from '@/components/dashboard/TimeTrackingWidget'
+import { getTranslations } from 'next-intl/server'
 
 export default async function DashboardPage() {
+  const t = await getTranslations('dashboard')
   const supabase = await createClient()
   const {
     data: { user },
@@ -106,9 +108,9 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
         <p className="mt-2 text-gray-600">
-          Vue d&apos;ensemble de votre activité juridique
+          {t('subtitle')}
         </p>
       </div>
 
@@ -120,7 +122,7 @@ export default async function DashboardPage() {
         >
           <div className="flex items-center">
             <div className="flex-1">
-              <div className="text-sm font-medium text-gray-500">Dossiers actifs</div>
+              <div className="text-sm font-medium text-gray-500">{t('activeDossiers')}</div>
               <div className="mt-2 text-3xl font-bold text-blue-600">
                 {stats.dossiersActifs}
               </div>
@@ -149,7 +151,7 @@ export default async function DashboardPage() {
         >
           <div className="flex items-center">
             <div className="flex-1">
-              <div className="text-sm font-medium text-gray-500">Clients</div>
+              <div className="text-sm font-medium text-gray-500">{t('clients')}</div>
               <div className="mt-2 text-3xl font-bold text-indigo-600">
                 {stats.clients}
               </div>
@@ -178,7 +180,7 @@ export default async function DashboardPage() {
         >
           <div className="flex items-center">
             <div className="flex-1">
-              <div className="text-sm font-medium text-gray-500">Échéances (7j)</div>
+              <div className="text-sm font-medium text-gray-500">{t('deadlines7Days')}</div>
               <div className="mt-2 text-3xl font-bold text-orange-600">
                 {stats.echeancesCritiques}
               </div>
@@ -207,12 +209,12 @@ export default async function DashboardPage() {
         >
           <div className="flex items-center">
             <div className="flex-1">
-              <div className="text-sm font-medium text-gray-500">Impayées</div>
+              <div className="text-sm font-medium text-gray-500">{t('unpaid')}</div>
               <div className="mt-2 text-2xl font-bold text-red-600">
                 {stats.montantImpaye} <span className="text-lg">TND</span>
               </div>
               <div className="text-xs text-gray-500">
-                {stats.facturesImpayees} facture(s)
+                {stats.facturesImpayees} {t('invoices')}
               </div>
             </div>
             <div className="rounded-full bg-red-100 p-3">
@@ -247,7 +249,7 @@ export default async function DashboardPage() {
               </svg>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Heures ce mois</p>
+              <p className="text-xs text-gray-500">{t('hoursThisMonth')}</p>
               <p className="text-lg font-bold text-purple-600">{stats.heuresCeMois}h</p>
             </div>
           </div>
@@ -264,7 +266,7 @@ export default async function DashboardPage() {
               </svg>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Templates</p>
+              <p className="text-xs text-gray-500">{t('templates')}</p>
               <p className="text-lg font-bold text-green-600">{stats.templates}</p>
             </div>
           </div>
@@ -281,7 +283,7 @@ export default async function DashboardPage() {
               </svg>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Documents</p>
+              <p className="text-xs text-gray-500">{t('documents')}</p>
               <p className="text-lg font-bold text-yellow-600">{documents?.length || 0}</p>
             </div>
           </div>
@@ -317,7 +319,7 @@ export default async function DashboardPage() {
       {/* Actions rapides */}
       <div className="rounded-lg border bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          ⚡ Actions rapides
+          {t('quickActions')}
         </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Link
@@ -340,7 +342,7 @@ export default async function DashboardPage() {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-gray-900 text-sm">Nouveau client</p>
+              <p className="font-medium text-gray-900 text-sm">{t('newClient')}</p>
             </div>
           </Link>
 
@@ -364,7 +366,7 @@ export default async function DashboardPage() {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-gray-900 text-sm">Nouveau dossier</p>
+              <p className="font-medium text-gray-900 text-sm">{t('newDossier')}</p>
             </div>
           </Link>
 
@@ -388,7 +390,7 @@ export default async function DashboardPage() {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-gray-900 text-sm">Nouvelle facture</p>
+              <p className="font-medium text-gray-900 text-sm">{t('newInvoice')}</p>
             </div>
           </Link>
 
@@ -412,7 +414,7 @@ export default async function DashboardPage() {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-gray-900 text-sm">Nouveau template</p>
+              <p className="font-medium text-gray-900 text-sm">{t('newTemplate')}</p>
             </div>
           </Link>
         </div>

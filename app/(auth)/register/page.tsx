@@ -4,8 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslations } from 'next-intl'
 
 export default function RegisterPage() {
+  const t = useTranslations('auth')
+  const tCommon = useTranslations('common')
   const router = useRouter()
   const [formData, setFormData] = useState({
     nom: '',
@@ -30,12 +33,12 @@ export default function RegisterPage() {
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
-      setError('Les mots de passe ne correspondent pas')
+      setError(t('passwordMismatch'))
       return
     }
 
     if (formData.password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères')
+      setError(t('passwordTooShort'))
       return
     }
 
@@ -66,7 +69,7 @@ export default function RegisterPage() {
       router.push('/dashboard')
       router.refresh()
     } catch {
-      setError('Une erreur est survenue')
+      setError(t('registerError'))
       setLoading(false)
     }
   }
@@ -74,8 +77,8 @@ export default function RegisterPage() {
   return (
     <div className="rounded-lg border bg-white p-8 shadow-lg">
       <div className="mb-6 text-center">
-        <h1 className="text-3xl font-bold text-blue-900">Avocat</h1>
-        <p className="mt-2 text-gray-600">Créer votre compte</p>
+        <h1 className="text-3xl font-bold text-blue-900">{tCommon('appName')}</h1>
+        <p className="mt-2 text-gray-600">{t('registerTitle')}</p>
       </div>
 
       <form onSubmit={handleRegister} className="space-y-4">
@@ -88,7 +91,7 @@ export default function RegisterPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label htmlFor="nom" className="block text-sm font-medium text-gray-700">
-              Nom *
+              {t('lastName')} *
             </label>
             <input
               id="nom"
@@ -98,13 +101,13 @@ export default function RegisterPage() {
               onChange={handleChange}
               required
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-              placeholder="Nom"
+              placeholder={t('lastName')}
             />
           </div>
 
           <div>
             <label htmlFor="prenom" className="block text-sm font-medium text-gray-700">
-              Prénom
+              {t('firstName')}
             </label>
             <input
               id="prenom"
@@ -113,14 +116,14 @@ export default function RegisterPage() {
               value={formData.prenom}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-              placeholder="Prénom"
+              placeholder={t('firstName')}
             />
           </div>
         </div>
 
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email *
+            {t('email')} *
           </label>
           <input
             id="email"
@@ -130,13 +133,13 @@ export default function RegisterPage() {
             onChange={handleChange}
             required
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-            placeholder="votre@email.com"
+            placeholder={t('emailPlaceholder')}
           />
         </div>
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Mot de passe *
+            {t('password')} *
           </label>
           <input
             id="password"
@@ -148,12 +151,12 @@ export default function RegisterPage() {
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             placeholder="••••••••"
           />
-          <p className="mt-1 text-xs text-gray-500">Minimum 6 caractères</p>
+          <p className="mt-1 text-xs text-gray-500">{t('passwordMinLength')}</p>
         </div>
 
         <div>
           <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-            Confirmer le mot de passe *
+            {t('confirmPassword')} *
           </label>
           <input
             id="confirmPassword"
@@ -172,14 +175,14 @@ export default function RegisterPage() {
           disabled={loading}
           className="w-full rounded-md bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Création...' : 'Créer mon compte'}
+          {loading ? t('registering') : t('registerButton')}
         </button>
       </form>
 
       <div className="mt-6 text-center text-sm text-gray-600">
-        Vous avez déjà un compte ?{' '}
+        {t('alreadyHaveAccount')}{' '}
         <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-          Se connecter
+          {t('loginButton')}
         </Link>
       </div>
     </div>

@@ -2,8 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import EcheanceCard from '@/components/echeances/EcheanceCard'
 import { niveauUrgence } from '@/lib/utils/delais-tunisie'
+import { getTranslations } from 'next-intl/server'
 
 export default async function EcheancesPage() {
+  const t = await getTranslations('echeances')
   const supabase = await createClient()
 
   const {
@@ -84,9 +86,9 @@ export default async function EcheancesPage() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Échéances</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Suivez vos délais et audiences pour éviter les forclusions
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -96,7 +98,7 @@ export default async function EcheancesPage() {
         <div className="rounded-lg border bg-white p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Total actives</p>
+              <p className="text-sm font-medium text-gray-600">{t('totalActive')}</p>
               <p className="mt-1 text-2xl font-semibold text-gray-900">{stats.total}</p>
             </div>
             <div className="rounded-full bg-blue-100 p-3">
@@ -120,9 +122,9 @@ export default async function EcheancesPage() {
         <div className="rounded-lg border bg-white p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Dépassées</p>
+              <p className="text-sm font-medium text-gray-600">{t('overdue')}</p>
               <p className="mt-1 text-2xl font-semibold text-red-600">{stats.depassees}</p>
-              <p className="mt-1 text-xs text-gray-500">Action immédiate requise</p>
+              <p className="mt-1 text-xs text-gray-500">{t('immediateAction')}</p>
             </div>
             <div className="rounded-full bg-red-100 p-3">
               <svg
@@ -145,9 +147,9 @@ export default async function EcheancesPage() {
         <div className="rounded-lg border bg-white p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Critiques (≤3j)</p>
+              <p className="text-sm font-medium text-gray-600">{t('critical3Days')}</p>
               <p className="mt-1 text-2xl font-semibold text-orange-600">{stats.critiques}</p>
-              <p className="mt-1 text-xs text-gray-500">Urgence maximale</p>
+              <p className="mt-1 text-xs text-gray-500">{t('maxUrgency')}</p>
             </div>
             <div className="rounded-full bg-orange-100 p-3">
               <svg
@@ -170,9 +172,9 @@ export default async function EcheancesPage() {
         <div className="rounded-lg border bg-white p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Urgentes (≤7j)</p>
+              <p className="text-sm font-medium text-gray-600">{t('urgent7Days')}</p>
               <p className="mt-1 text-2xl font-semibold text-yellow-600">{stats.urgentes}</p>
-              <p className="mt-1 text-xs text-gray-500">À traiter rapidement</p>
+              <p className="mt-1 text-xs text-gray-500">{t('handleQuickly')}</p>
             </div>
             <div className="rounded-full bg-yellow-100 p-3">
               <svg
@@ -196,10 +198,10 @@ export default async function EcheancesPage() {
       {/* Filtres */}
       <div className="flex gap-2 rounded-lg border bg-white p-4">
         <span className="inline-flex items-center rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-700">
-          Audiences ({stats.audiences})
+          {t('hearings')} ({stats.audiences})
         </span>
         <span className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
-          Délais légaux ({stats.delaisLegaux})
+          {t('legalDeadlines')} ({stats.delaisLegaux})
         </span>
       </div>
 
@@ -219,9 +221,9 @@ export default async function EcheancesPage() {
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune échéance</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">{t('noDeadlines')}</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Les échéances de vos dossiers apparaîtront ici
+            {t('deadlinesWillAppear')}
           </p>
         </div>
       ) : (
@@ -230,7 +232,7 @@ export default async function EcheancesPage() {
           {echeancesDepassees && echeancesDepassees.length > 0 && (
             <div>
               <h2 className="mb-3 text-lg font-semibold text-red-700">
-                ⚠️ Dépassées ({echeancesDepassees.length})
+                {t('overdueSection')} ({echeancesDepassees.length})
               </h2>
               <div className="grid gap-4">
                 {echeancesDepassees.map((echeance) => (
@@ -244,7 +246,7 @@ export default async function EcheancesPage() {
           {echeancesCritiques && echeancesCritiques.length > 0 && (
             <div>
               <h2 className="mb-3 text-lg font-semibold text-orange-700">
-                🔥 Critiques (≤3 jours) ({echeancesCritiques.length})
+                {t('criticalSection')} ({echeancesCritiques.length})
               </h2>
               <div className="grid gap-4">
                 {echeancesCritiques.map((echeance) => (
@@ -258,7 +260,7 @@ export default async function EcheancesPage() {
           {echeancesUrgentes && echeancesUrgentes.length > 0 && (
             <div>
               <h2 className="mb-3 text-lg font-semibold text-yellow-700">
-                ⚡ Urgentes (4-7 jours) ({echeancesUrgentes.length})
+                {t('urgentSection')} ({echeancesUrgentes.length})
               </h2>
               <div className="grid gap-4">
                 {echeancesUrgentes.map((echeance) => (
@@ -272,7 +274,7 @@ export default async function EcheancesPage() {
           {echeancesProches && echeancesProches.length > 0 && (
             <div>
               <h2 className="mb-3 text-lg font-semibold text-blue-700">
-                📋 Proches (8-15 jours) ({echeancesProches.length})
+                {t('upcomingSection')} ({echeancesProches.length})
               </h2>
               <div className="grid gap-4">
                 {echeancesProches.map((echeance) => (
@@ -286,7 +288,7 @@ export default async function EcheancesPage() {
           {echeancesNormales && echeancesNormales.length > 0 && (
             <div>
               <h2 className="mb-3 text-lg font-semibold text-gray-700">
-                📅 À venir (&gt;15 jours) ({echeancesNormales.length})
+                {t('futureSection')} ({echeancesNormales.length})
               </h2>
               <div className="grid gap-4">
                 {echeancesNormales.map((echeance) => (

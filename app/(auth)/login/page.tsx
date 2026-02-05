@@ -4,9 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslations } from 'next-intl'
 
 export default function LoginPage() {
   const router = useRouter()
+  const t = useTranslations('auth')
+  const tCommon = useTranslations('common')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -34,7 +37,7 @@ export default function LoginPage() {
       router.push('/dashboard')
       router.refresh()
     } catch {
-      setError('Une erreur est survenue')
+      setError(t('loginError'))
       setLoading(false)
     }
   }
@@ -42,8 +45,8 @@ export default function LoginPage() {
   return (
     <div className="rounded-lg border bg-white p-8 shadow-lg">
       <div className="mb-6 text-center">
-        <h1 className="text-3xl font-bold text-blue-900">Avocat</h1>
-        <p className="mt-2 text-gray-600">Connexion à votre compte</p>
+        <h1 className="text-3xl font-bold text-blue-900">{tCommon('appName')}</h1>
+        <p className="mt-2 text-gray-600">{t('loginTitle')}</p>
       </div>
 
       <form onSubmit={handleLogin} className="space-y-4">
@@ -55,7 +58,7 @@ export default function LoginPage() {
 
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email
+            {t('email')}
           </label>
           <input
             id="email"
@@ -70,7 +73,7 @@ export default function LoginPage() {
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Mot de passe
+            {t('password')}
           </label>
           <input
             id="password"
@@ -88,14 +91,14 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full rounded-md bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Connexion...' : 'Se connecter'}
+          {loading ? `${tCommon('loading')}` : t('loginButton')}
         </button>
       </form>
 
       <div className="mt-6 text-center text-sm text-gray-600">
-        Pas encore de compte ?{' '}
+        {t('noAccount')}{' '}
         <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
-          Créer un compte
+          {tCommon('register')}
         </Link>
       </div>
     </div>
