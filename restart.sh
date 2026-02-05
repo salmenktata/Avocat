@@ -19,5 +19,8 @@ else
     echo "⏩ Redémarrage rapide (cache conservé)"
 fi
 
+echo "🔐 Vérification utilisateur par défaut..."
+npm run seed
+
 echo "🚀 Démarrage du serveur..."
 npm run dev

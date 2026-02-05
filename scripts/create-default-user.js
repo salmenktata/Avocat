@@ -12,6 +12,7 @@ async function createDefaultUser() {
   });
 
   try {
+    await pool.connect();
     console.log('🔐 Création utilisateur par défaut...\n');
 
     const email = 'salmen.ktata@gmail.com';
