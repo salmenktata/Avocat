@@ -58,5 +58,12 @@ migration-report.json
 logs/
 *.log
 
-# Authentication - NextAuth configuration (ne pas ignorer)
-# app/api/auth/[...nextauth]/
+# NextAuth files (projet utilise Supabase Auth)
+app/api/auth/[...nextauth]/
+lib/auth/
+scripts/create-test-user.ts
+scripts/create-users-table.sql
+types/next-auth.d.ts
+run-migration.js
+components/providers/SessionProvider.tsx
+apply-templates-migration.js
