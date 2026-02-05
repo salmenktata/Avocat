@@ -1,8 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { generateDocumentAction } from '@/app/actions/templates'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Sparkles, Loader2, Check, AlertCircle } from 'lucide-react'
+
+interface GenerationSuggestion {
+  field: string
+  suggestion: string
+  confidence: number
+  source?: string
+}
 
 interface GenerateDocumentFormProps {
   template: any
@@ -11,10 +20,13 @@ interface GenerateDocumentFormProps {
 
 export default function GenerateDocumentForm({ template, dossiers }: GenerateDocumentFormProps) {
   const [loading, setLoading] = useState(false)
+  const [loadingAI, setLoadingAI] = useState(false)
   const [error, setError] = useState('')
   const [generatedContent, setGeneratedContent] = useState('')
   const [selectedDossier, setSelectedDossier] = useState<any>(null)
   const [variablesValues, setVariablesValues] = useState<Record<string, string>>({})
+  const [suggestions, setSuggestions] = useState<GenerationSuggestion[]>([])
+  const [aiError, setAiError] = useState('')
 
   const variables = Array.isArray(template.variables) ? template.variables : []
 
@@ -22,6 +34,8 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
   const handleDossierChange = (dossierId: string) => {
     const dossier = dossiers.find((d) => d.id === dossierId)
     setSelectedDossier(dossier)
+    setSuggestions([])
+    setAiError('')
 
     if (dossier && dossier.clients) {
       const client = dossier.clients
@@ -56,6 +70,61 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
 
   const handleVariableChange = (variable: string, value: string) => {
     setVariablesValues((prev) => ({ ...prev, [variable]: value }))
+  }
+
+  // Obtenir les suggestions IA
+  const handleGetAISuggestions = async () => {
+    if (!selectedDossier) {
+      setAiError('Veuillez d\'abord sélectionner un dossier')
+      return
+    }
+
+    setLoadingAI(true)
+    setAiError('')
+    setSuggestions([])
+
+    try {
+      const response = await fetch(`/api/templates/${template.id}/suggest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dossierId: selectedDossier.id,
+          existingVariables: variablesValues,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la récupération des suggestions')
+      }
+
+      setSuggestions(data.suggestions || [])
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      setAiError(message)
+    } finally {
+      setLoadingAI(false)
+    }
+  }
+
+  // Appliquer une suggestion
+  const applySuggestion = (field: string, suggestion: string) => {
+    setVariablesValues((prev) => ({ ...prev, [field]: suggestion }))
+    // Retirer la suggestion de la liste
+    setSuggestions((prev) => prev.filter((s) => s.field !== field))
+  }
+
+  // Appliquer toutes les suggestions
+  const applyAllSuggestions = () => {
+    const newValues = { ...variablesValues }
+    suggestions.forEach((s) => {
+      if (s.suggestion && s.suggestion !== 'À compléter') {
+        newValues[s.field] = s.suggestion
+      }
+    })
+    setVariablesValues(newValues)
+    setSuggestions([])
   }
 
   const handleGenerate = async () => {
@@ -110,6 +179,11 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
     window.URL.revokeObjectURL(url)
   }
 
+  // Obtenir la suggestion pour un champ
+  const getSuggestionForField = (field: string) => {
+    return suggestions.find((s) => s.field === field)
+  }
+
   return (
     <div className="space-y-6">
       {/* Sélection du dossier */}
@@ -142,25 +216,95 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
       {/* Remplissage des variables */}
       {selectedDossier && variables.length > 0 && (
         <div className="rounded-lg border bg-card p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-foreground mb-4">
-            2. Remplir les variables ({variables.length})
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground">
+              2. Remplir les variables ({variables.length})
+            </h2>
+
+            {/* Bouton suggestions IA */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGetAISuggestions}
+              disabled={loadingAI}
+              className="gap-2"
+            >
+              {loadingAI ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {loadingAI ? 'Analyse...' : 'Suggestions IA'}
+            </Button>
+          </div>
+
+          {/* Erreur IA */}
+          {aiError && (
+            <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              {aiError}
+            </div>
+          )}
+
+          {/* Suggestions globales */}
+          {suggestions.length > 0 && (
+            <div className="mb-4 p-3 rounded-md bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  {suggestions.length} suggestion{suggestions.length > 1 ? 's' : ''} disponible{suggestions.length > 1 ? 's' : ''}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={applyAllSuggestions}
+                  className="text-indigo-700 dark:text-indigo-300 hover:text-indigo-900"
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  Tout appliquer
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {variables.map((variable: string) => (
-              <div key={variable}>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  {variable}
-                </label>
-                <input
-                  type="text"
-                  value={variablesValues[variable] || ''}
-                  onChange={(e) => handleVariableChange(variable, e.target.value)}
-                  className="block w-full rounded-md border border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder={`Valeur pour {{${variable}}}`}
-                />
-              </div>
-            ))}
+            {variables.map((variable: string) => {
+              const suggestion = getSuggestionForField(variable)
+
+              return (
+                <div key={variable} className="space-y-1">
+                  <label className="block text-sm font-medium text-foreground">
+                    {variable}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={variablesValues[variable] || ''}
+                      onChange={(e) => handleVariableChange(variable, e.target.value)}
+                      className="block w-full rounded-md border border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      placeholder={`Valeur pour {{${variable}}}`}
+                    />
+                  </div>
+
+                  {/* Suggestion IA pour ce champ */}
+                  {suggestion && suggestion.suggestion !== 'À compléter' && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <button
+                        onClick={() => applySuggestion(variable, suggestion.suggestion)}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-1 rounded"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Suggestion: {suggestion.suggestion.substring(0, 30)}
+                        {suggestion.suggestion.length > 30 ? '...' : ''}
+                      </button>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {Math.round(suggestion.confidence * 100)}%
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

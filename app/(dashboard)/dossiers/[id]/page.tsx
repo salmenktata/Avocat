@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth/session'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import DossierDetailContent from '@/components/dossiers/DossierDetailContent'
+import ChatWidget from '@/components/dossiers/ChatWidget'
 import { getTranslations } from 'next-intl/server'
 
 interface DossierDetailPageProps {
@@ -112,6 +113,9 @@ export default async function DossierDetailPage({
             <span>{t('clientLabel')} {clientName}</span>
             {dossier.tribunal && <span>{t('tribunalLabel')} {dossier.tribunal}</span>}
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <ChatWidget dossierId={dossier.id} dossierNumero={dossier.numero} />
         </div>
       </div>
 
