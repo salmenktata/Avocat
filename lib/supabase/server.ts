@@ -60,9 +60,12 @@ export async function createClient() {
     from: (table: string) => ({
       select: (columns = '*') => {
         const queryBuilder = {
-          _query: `SELECT ${columns} FROM ${table}`,
+          _columns: columns,
+          _table: table,
           _params: [] as any[],
           _filters: [] as string[],
+          _orderBy: '' as string,
+          _limit: '' as string,
 
           eq(column: string, value: any) {
             const paramIndex = this._params.length + 1
@@ -78,41 +81,98 @@ export async function createClient() {
             return this
           },
 
+          gt(column: string, value: any) {
+            const paramIndex = this._params.length + 1
+            this._params.push(value)
+            this._filters.push(`${column} > $${paramIndex}`)
+            return this
+          },
+
+          gte(column: string, value: any) {
+            const paramIndex = this._params.length + 1
+            this._params.push(value)
+            this._filters.push(`${column} >= $${paramIndex}`)
+            return this
+          },
+
+          lt(column: string, value: any) {
+            const paramIndex = this._params.length + 1
+            this._params.push(value)
+            this._filters.push(`${column} < $${paramIndex}`)
+            return this
+          },
+
+          lte(column: string, value: any) {
+            const paramIndex = this._params.length + 1
+            this._params.push(value)
+            this._filters.push(`${column} <= $${paramIndex}`)
+            return this
+          },
+
+          in(column: string, values: any[]) {
+            if (values.length === 0) return this
+            const placeholders = values.map((_, i) => `$${this._params.length + i + 1}`)
+            this._params.push(...values)
+            this._filters.push(`${column} IN (${placeholders.join(', ')})`)
+            return this
+          },
+
+          is(column: string, value: null | boolean) {
+            if (value === null) {
+              this._filters.push(`${column} IS NULL`)
+            } else {
+              this._filters.push(`${column} IS ${value}`)
+            }
+            return this
+          },
+
           order(column: string, options?: { ascending?: boolean }) {
             const direction = options?.ascending ? 'ASC' : 'DESC'
-            this._query += ` ORDER BY ${column} ${direction}`
+            this._orderBy = ` ORDER BY ${column} ${direction}`
             return this
           },
 
           limit(count: number) {
-            this._query += ` LIMIT ${count}`
+            this._limit = ` LIMIT ${count}`
             return this
           },
 
           single() {
-            this._query += ' LIMIT 1'
+            this._limit = ' LIMIT 1'
             return this._execute(true)
           },
 
           async _execute(single = false) {
             try {
-              // Ajouter les filtres WHERE
-              if (this._filters.length > 0) {
-                this._query += ' WHERE ' + this._filters.join(' AND ')
-              }
+              // Construire requête dans le bon ordre: SELECT FROM WHERE ORDER LIMIT
+              let sql = `SELECT ${this._columns} FROM ${this._table}`
 
-              // Ajouter filtre user_id si la table en a un
-              const tablesWithUserId = ['clients', 'dossiers', 'documents', 'factures', 'echeances', 'actions', 'time_entries', 'templates']
-              if (tablesWithUserId.includes(table) && userId) {
+              // Ajouter filtre user_id si applicable
+              const tablesWithUserId = ['clients', 'dossiers', 'documents', 'factures', 'echeances', 'actions', 'time_entries', 'templates', 'profiles']
+              if (tablesWithUserId.includes(this._table) && userId) {
                 const paramIndex = this._params.length + 1
                 this._params.push(userId)
-                const separator = this._filters.length > 0 ? ' AND ' : ' WHERE '
-                this._query += `${separator}user_id = $${paramIndex}`
+                this._filters.push(`user_id = $${paramIndex}`)
               }
 
-              console.log('🔍 Query:', this._query, 'Params:', this._params)
+              // WHERE
+              if (this._filters.length > 0) {
+                sql += ' WHERE ' + this._filters.join(' AND ')
+              }
 
-              const result = await query(this._query, this._params)
+              // ORDER BY
+              if (this._orderBy) {
+                sql += this._orderBy
+              }
+
+              // LIMIT
+              if (this._limit) {
+                sql += this._limit
+              }
+
+              console.log('🔍 Query:', sql, 'Params:', this._params)
+
+              const result = await query(sql, this._params)
 
               if (single) {
                 return { data: result.rows[0] || null, error: null }
