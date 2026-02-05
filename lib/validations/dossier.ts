@@ -20,8 +20,10 @@ export const dossierSchema = z.object({
   statut: z.enum(['ACTIF', 'CLOS', 'ARCHIVE'], {
     required_error: 'Le statut est requis',
   }),
+  montant_litige: z.number().optional(),
   montant_demande: z.number().optional(),
   montant_obtenu: z.number().optional(),
+  workflow_etape_actuelle: z.string().optional(),
   notes: z.string().optional(),
 })
 

@@ -29,10 +29,9 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
     resolver: zodResolver(clientSchema),
     defaultValues: initialData
       ? {
-          type: initialData.type,
-          nom: initialData.type === 'PERSONNE_PHYSIQUE' ? initialData.nom : initialData.denomination,
+          type: initialData.type_client === 'personne_physique' ? 'PERSONNE_PHYSIQUE' : 'PERSONNE_MORALE',
+          nom: initialData.nom,
           prenom: initialData.prenom || '',
-          denomination: initialData.denomination || '',
           cin: initialData.cin || '',
           registre_commerce: initialData.registre_commerce || '',
           email: initialData.email || '',

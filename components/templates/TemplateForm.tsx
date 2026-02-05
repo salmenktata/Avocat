@@ -97,7 +97,7 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
     { label: t('helpers.tribunalVar'), value: '{{tribunal}}' },
     { label: t('helpers.dateVar'), value: '{{date}}' },
     { label: t('helpers.locationVar'), value: '{{lieu}}' },
-    { label: t('helpers.dossierNumberVar'), value: '{{numero_dossier}}' },
+    { label: t('helpers.dossierNumberVar'), value: '{{numero}}' },
   ]
 
   const insertVariable = (variable: string) => {

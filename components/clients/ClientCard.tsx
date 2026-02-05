@@ -33,9 +33,9 @@ export default function ClientCard({ client }: ClientCardProps) {
   }
 
   const displayName =
-    client.type === 'PERSONNE_PHYSIQUE'
+    client.type_client === 'personne_physique'
       ? `${client.nom} ${client.prenom || ''}`.trim()
-      : client.denomination
+      : client.nom
 
   return (
     <div className="rounded-lg border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -47,20 +47,20 @@ export default function ClientCard({ client }: ClientCardProps) {
             </h3>
             <span
               className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                client.type === 'PERSONNE_PHYSIQUE'
+                client.type_client === 'personne_physique'
                   ? 'bg-blue-100 text-blue-700'
                   : 'bg-purple-100 text-purple-700'
               }`}
             >
-              {client.type === 'PERSONNE_PHYSIQUE' ? t('clientType.physical') : t('clientType.legal')}
+              {client.type_client === 'personne_physique' ? t('clientType.physical') : t('clientType.legal')}
             </span>
           </div>
 
           <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-            {client.type === 'PERSONNE_PHYSIQUE' && client.cin && (
+            {client.type_client === 'personne_physique' && client.cin && (
               <p>CIN: {client.cin}</p>
             )}
-            {client.type === 'PERSONNE_MORALE' && client.registre_commerce && (
+            {client.type_client === 'personne_morale' && client.registre_commerce && (
               <p>RC: {client.registre_commerce}</p>
             )}
             {client.email && (

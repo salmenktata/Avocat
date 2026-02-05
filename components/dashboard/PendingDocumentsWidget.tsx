@@ -49,7 +49,6 @@ interface PendingDocument {
     type: string
     nom: string
     prenom: string
-    denomination: string
     telephone: string
   } | null
 }
@@ -173,11 +172,11 @@ export default function PendingDocumentsWidget({ dossiers }: PendingDocumentsWid
       return doc.sender_name || doc.sender_phone
     }
 
-    if (doc.clients.type === 'PERSONNE_PHYSIQUE') {
+    if (doc.clients.type === 'personne_physique') {
       return `${doc.clients.prenom} ${doc.clients.nom}`
     }
 
-    return doc.clients.denomination
+    return doc.clients.nom
   }
 
   // Si aucun document en attente, ne pas afficher le widget

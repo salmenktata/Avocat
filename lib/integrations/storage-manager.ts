@@ -236,7 +236,7 @@ export class StorageManager {
    */
   private async getClient(clientId: string) {
     const result = await query(
-      `SELECT id, nom, prenom, denomination, cin, type_client, google_drive_folder_id, google_drive_folder_url
+      `SELECT id, nom, prenom, cin, type_client, google_drive_folder_id, google_drive_folder_url
        FROM clients WHERE id = $1`,
       [clientId]
     )
@@ -310,7 +310,7 @@ export class StorageManager {
     // Créer nom dossier client
     let folderName: string
     if (client.type_client === 'personne_morale') {
-      folderName = `[${client.denomination}]`
+      folderName = `[${client.nom}]`
     } else {
       const cin = client.cin ? ` - CIN ${client.cin}` : ''
       const prenom = client.prenom ? ` ${client.prenom}` : ''

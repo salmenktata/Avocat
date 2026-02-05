@@ -71,7 +71,9 @@ export default function GlobalSearch() {
           searchResults.push({
             id: client.id,
             type: 'client',
-            title: client.denomination || `${client.nom} ${client.prenom || ''}`.trim(),
+            title: client.type_client === 'PERSONNE_PHYSIQUE'
+              ? `${client.nom} ${client.prenom || ''}`.trim()
+              : client.nom,
             subtitle: client.cin ? `CIN: ${client.cin}` : client.telephone,
             badge: client.type_client,
             url: `/dashboard/clients/${client.id}`,
@@ -85,7 +87,7 @@ export default function GlobalSearch() {
           searchResults.push({
             id: dossier.id,
             type: 'dossier',
-            title: dossier.numero_dossier,
+            title: dossier.numero,
             subtitle: dossier.objet?.substring(0, 60) + (dossier.objet?.length > 60 ? '...' : ''),
             badge: dossier.statut,
             url: `/dashboard/dossiers/${dossier.id}`,
@@ -99,7 +101,7 @@ export default function GlobalSearch() {
           searchResults.push({
             id: facture.id,
             type: 'facture',
-            title: facture.numero_facture,
+            title: facture.numero,
             subtitle: `${facture.montant_ttc} TND`,
             badge: facture.statut,
             url: `/dashboard/factures/${facture.id}`,

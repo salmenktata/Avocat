@@ -562,9 +562,9 @@ export async function POST(request: NextRequest) {
 
         if (userResult.rows.length > 0) {
           const userData = userResult.rows[0]
-          const clientName = client.type === 'PERSONNE_PHYSIQUE'
+          const clientName = client.type_client === 'personne_physique'
             ? `${client.prenom} ${client.nom}`
-            : client.denomination
+            : client.nom
 
           await notifyDocumentPendingClassification({
             lawyerEmail: userData.email,
@@ -645,9 +645,9 @@ export async function POST(request: NextRequest) {
 
         if (userResult.rows.length > 0) {
           const userData = userResult.rows[0]
-          const clientName = client.type === 'PERSONNE_PHYSIQUE'
+          const clientName = client.type_client === 'personne_physique'
             ? `${client.prenom} ${client.nom}`
-            : client.denomination
+            : client.nom
 
           // Utiliser la même notification que "plusieurs dossiers" car action similaire requise
           await notifyDocumentPendingClassification({

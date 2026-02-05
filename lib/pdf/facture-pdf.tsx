@@ -12,7 +12,7 @@ import {
 interface FacturePDFProps {
   facture: {
     id: string
-    numero_facture: string
+    numero: string
     date_emission: string
     date_echeance?: string
     date_paiement?: string
@@ -27,12 +27,9 @@ interface FacturePDFProps {
   client: {
     nom: string
     prenom?: string
-    denomination?: string
-    type: 'PERSONNE_PHYSIQUE' | 'PERSONNE_MORALE'
+    type_client: 'PERSONNE_PHYSIQUE' | 'PERSONNE_MORALE'
     cin?: string
     adresse?: string
-    ville?: string
-    code_postal?: string
     telephone?: string
     email?: string
   }
@@ -307,10 +304,7 @@ export const FacturePDF: React.FC<FacturePDFProps> = ({
   cabinet,
   langue = 'fr',
 }) => {
-  const clientNom =
-    client.type === 'PERSONNE_PHYSIQUE'
-      ? `${client.nom} ${client.prenom || ''}`.trim()
-      : client.denomination || client.nom
+  const clientNom = `${client.nom} ${client.prenom || ''}`.trim()
 
   const avocatNom = `${avocat.prenom || ''} ${avocat.nom}`.trim()
 
@@ -437,7 +431,7 @@ export const FacturePDF: React.FC<FacturePDFProps> = ({
             <View style={{ marginBottom: 8 }}>
               <Text style={styles.infoLabel}>{t.factureNumero}</Text>
               <Text style={[styles.infoValue, { fontSize: 14, color: '#2563eb' }]}>
-                {facture.numero_facture}
+                {facture.numero}
               </Text>
             </View>
             <View style={{ marginBottom: 5 }}>

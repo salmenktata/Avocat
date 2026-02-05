@@ -306,7 +306,7 @@ export async function attachPendingDocumentAction(
 
     // Vérifier que le dossier appartient à l'utilisateur
     const dossierResult = await query(
-      `SELECT id, client_id, numero_dossier as numero FROM dossiers
+      `SELECT id, client_id, numero FROM dossiers
        WHERE id = $1 AND user_id = $2
        LIMIT 1`,
       [validated.dossierId, userId]

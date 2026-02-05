@@ -286,7 +286,7 @@ export async function envoyerFactureEmailAction(factureId: string) {
     const pdfData = {
       facture: {
         id: facture.id,
-        numero_facture: facture.numero_facture,
+        numero: facture.numero,
         date_emission: facture.date_emission,
         date_echeance: facture.date_echeance,
         date_paiement: facture.date_paiement,
@@ -344,7 +344,7 @@ export async function envoyerFactureEmailAction(factureId: string) {
     }
 
     const emailData = {
-      factureNumero: facture.numero_facture,
+      factureNumero: facture.numero,
       clientNom,
       montantTTC: `${parseFloat(facture.montant_ttc).toFixed(3)} TND`,
       dateEmission: formatDate(facture.date_emission),
@@ -359,12 +359,12 @@ export async function envoyerFactureEmailAction(factureId: string) {
     const { data: emailResult, error: emailError } = await resend.emails.send({
       from: `${avocatNom} <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
       to: [facture.clients.email],
-      subject: `Facture ${facture.numero_facture}`,
+      subject: `Facture ${facture.numero}`,
       react: React.createElement(FactureEmailTemplate, emailData),
       text: FactureEmailText(emailData),
       attachments: [
         {
-          filename: `facture-${facture.numero_facture}.pdf`,
+          filename: `facture-${facture.numero}.pdf`,
           content: pdfBuffer,
         },
       ],

@@ -60,9 +60,9 @@ export default function ActiveTimer({ timer: initialTimer }: ActiveTimerProps) {
   if (!timer) return null
 
   const clientName = timer.dossiers?.clients
-    ? timer.dossiers.clients.type === 'PERSONNE_PHYSIQUE'
+    ? timer.dossiers.clients.type_client === 'PERSONNE_PHYSIQUE'
       ? `${timer.dossiers.clients.nom} ${timer.dossiers.clients.prenom || ''}`.trim()
-      : timer.dossiers.clients.denomination
+      : timer.dossiers.clients.nom
     : ''
 
   return (
@@ -79,7 +79,7 @@ export default function ActiveTimer({ timer: initialTimer }: ActiveTimerProps) {
           <h3 className="text-lg font-semibold text-foreground">{timer.description}</h3>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            📁 {timer.dossiers?.numero_dossier} - {clientName}
+            📁 {timer.dossiers?.numero} - {clientName}
           </p>
 
           <div className="mt-3 flex items-center gap-4">

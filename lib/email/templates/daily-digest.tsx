@@ -28,7 +28,7 @@ interface Audience {
 
 interface FactureImpayee {
   id: string
-  numero_facture: string
+  numero: string
   client_nom: string
   montant_ttc: string
   date_echeance: string
@@ -534,7 +534,7 @@ export const DailyDigestEmailTemplate: React.FC<DailyDigestProps> = ({
                                         color: '#111827',
                                       }}
                                     >
-                                      {facture.numero_facture}
+                                      {facture.numero}
                                     </p>
                                     <p
                                       style={{
@@ -699,7 +699,7 @@ export const DailyDigestEmailText = ({
     text += `${t.factures_title}\n`
     text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`
     facturesImpayees.forEach((facture) => {
-      text += `${facture.numero_facture}\n`
+      text += `${facture.numero}\n`
       text += `  ${facture.client_nom} • ${facture.montant_ttc}\n`
       text += `  ${facture.jours_retard} ${t.jours_retard}\n`
       text += `  ${baseUrl}/factures/${facture.id}\n\n`

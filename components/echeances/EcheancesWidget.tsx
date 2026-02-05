@@ -67,9 +67,9 @@ export default async function EcheancesWidget() {
               : 'bg-blue-100 text-blue-700'
 
           const clientName = echeance.dossiers?.clients
-            ? echeance.dossiers.clients.type === 'PERSONNE_PHYSIQUE'
+            ? echeance.dossiers.clients.type_client === 'PERSONNE_PHYSIQUE'
               ? `${echeance.dossiers.clients.nom} ${echeance.dossiers.clients.prenom || ''}`.trim()
-              : echeance.dossiers.clients.denomination
+              : echeance.dossiers.clients.nom
             : ''
 
           return (
@@ -92,7 +92,7 @@ export default async function EcheancesWidget() {
                     {echeance.titre}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground truncate">
-                    {echeance.dossiers?.numero_dossier} - {clientName}
+                    {echeance.dossiers?.numero} - {clientName}
                   </p>
                 </div>
                 <span

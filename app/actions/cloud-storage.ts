@@ -197,7 +197,7 @@ export async function toggleSyncAction(params: {
         const provider = createGoogleDriveProvider(decryptedToken)
 
         // Générer channel ID unique
-        const channelId = `${user.id}-${Date.now()}`
+        const channelId = `${userId}-${Date.now()}`
 
         // URL webhook
         const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/google-drive`

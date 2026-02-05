@@ -40,21 +40,20 @@ interface UnclassifiedDocument {
   source_type: string
   dossiers: {
     id: string
-    numero_dossier: string
+    numero: string
     objet: string
     clients: {
       id: string
       nom: string
       prenom: string
-      denomination: string
-      type: string
+      type_client: string
     }
   } | null
 }
 
 interface Dossier {
   id: string
-  numero_dossier: string
+  numero: string
   objet: string
   client_id: string
 }
@@ -250,7 +249,7 @@ export default function UnclassifiedDocumentsWidget({
                           ) : (
                             dossiers.map((dossier) => (
                               <SelectItem key={dossier.id} value={dossier.id}>
-                                Dossier {dossier.numero_dossier}
+                                Dossier {dossier.numero}
                                 {dossier.objet && ` - ${dossier.objet}`}
                               </SelectItem>
                             ))

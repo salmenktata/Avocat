@@ -83,7 +83,7 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
 
           {showDossierInfo && entry.dossiers && (
             <p className="mt-1 text-sm text-muted-foreground">
-              📁 {entry.dossiers.numero_dossier}
+              📁 {entry.dossiers.numero}
             </p>
           )}
 

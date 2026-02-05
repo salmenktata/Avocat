@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
 interface NoteHonorairesData {
   facture: {
     id: string
-    numero_facture: string
+    numero: string
     date_emission: string
     date_echeance?: string
     type_honoraires?: string
@@ -150,12 +150,9 @@ interface NoteHonorairesData {
   client: {
     nom: string
     prenom?: string
-    denomination?: string
-    type: string
+    type_client: string
     cin?: string
     adresse?: string
-    ville?: string
-    code_postal?: string
     telephone?: string
     email?: string
   }
@@ -272,10 +269,7 @@ export const NoteHonorairesPDF: React.FC<NoteHonorairesData> = ({
   const t = translations[langue]
   const isRTL = langue === 'ar'
 
-  const clientNom =
-    client.type === 'PERSONNE_PHYSIQUE'
-      ? `${client.nom} ${client.prenom || ''}`.trim()
-      : client.denomination || client.nom
+  const clientNom = `${client.nom} ${client.prenom || ''}`.trim()
 
   const avocatNom = `${avocat.prenom || ''} ${avocat.nom}`.trim()
 
@@ -373,7 +367,7 @@ export const NoteHonorairesPDF: React.FC<NoteHonorairesData> = ({
           <Text style={styles.sectionTitle}>{t.detailsNote}</Text>
           <View style={styles.row}>
             <Text style={styles.label}>{t.numero}:</Text>
-            <Text style={styles.value}>{facture.numero_facture}</Text>
+            <Text style={styles.value}>{facture.numero}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>{t.dateEmission}:</Text>

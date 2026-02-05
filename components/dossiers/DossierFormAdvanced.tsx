@@ -57,8 +57,7 @@ interface DossierFormAdvancedProps {
     id: string
     nom: string
     prenom?: string
-    denomination?: string
-    type: string
+    type_client: string
   }>
   preselectedClientId?: string
   onSubmit?: (data: DossierFormValues) => Promise<void>
@@ -81,7 +80,7 @@ export function DossierFormAdvanced({
     resolver: zodResolver(dossierFormSchema),
     defaultValues: {
       client_id: preselectedClientId || '',
-      numero_dossier: '',
+      numero: '',
       type_procedure: 'civil_premiere_instance',
       objet: '',
       description: '',
@@ -91,7 +90,7 @@ export function DossierFormAdvanced({
       numero_rg: '',
       date_ouverture: '',
       montant_litige: undefined,
-      statut: 'ACTIF',
+      statut: 'actif',
       workflow_etape_actuelle: 'ASSIGNATION',
       notes: '',
       ...initialData,
@@ -193,7 +192,7 @@ export function DossierFormAdvanced({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="numero_dossier"
+            name="numero"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Numéro de dossier *</FormLabel>
@@ -201,10 +200,10 @@ export function DossierFormAdvanced({
                   <div className="relative">
                     <Icons.hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input {...field} placeholder="2024-001" className="pl-10" />
-                    {form.formState.errors.numero_dossier && (
+                    {form.formState.errors.numero && (
                       <Icons.xCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />
                     )}
-                    {!form.formState.errors.numero_dossier && field.value && (
+                    {!form.formState.errors.numero && field.value && (
                       <Icons.checkCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
                     )}
                   </div>

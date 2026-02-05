@@ -36,9 +36,8 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
         else if (v === 'client.email') newValues[v] = client.email || ''
         else if (v === 'client.telephone') newValues[v] = client.telephone || ''
         else if (v === 'client.civilite')
-          newValues[v] = client.type === 'PERSONNE_PHYSIQUE' ? 'M./Mme' : ''
-        else if (v === 'client.denomination') newValues[v] = client.denomination || ''
-        else if (v === 'numero_dossier') newValues[v] = dossier.numero_dossier || ''
+          newValues[v] = client.type_client === 'PERSONNE_PHYSIQUE' ? 'M./Mme' : ''
+        else if (v === 'numero') newValues[v] = dossier.numero || ''
         else if (v === 'tribunal') newValues[v] = dossier.tribunal || ''
         else if (v === 'objet') newValues[v] = dossier.objet || ''
         else if (v === 'date')
@@ -104,7 +103,7 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `${template.titre} - ${selectedDossier?.numero_dossier || 'document'}.txt`
+    link.download = `${template.titre} - ${selectedDossier?.numero || 'document'}.txt`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -130,10 +129,10 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
             <option value="">-- Sélectionnez un dossier --</option>
             {dossiers.map((dossier) => (
               <option key={dossier.id} value={dossier.id}>
-                {dossier.numero_dossier} -{' '}
-                {dossier.clients?.type === 'PERSONNE_PHYSIQUE'
+                {dossier.numero} -{' '}
+                {dossier.clients?.type_client === 'PERSONNE_PHYSIQUE'
                   ? `${dossier.clients.nom} ${dossier.clients.prenom || ''}`.trim()
-                  : dossier.clients?.denomination}
+                  : dossier.clients?.nom}
               </option>
             ))}
           </select>

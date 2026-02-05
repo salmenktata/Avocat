@@ -44,14 +44,14 @@ export async function createClientAction(formData: ClientFormData) {
     // Préparer les données selon le type
     const clientData: ClientData = {
       user_id: session.user.id,
-      type_client: validatedData.type,
+      type_client: validatedData.type_client,
       email: validatedData.email || null,
       telephone: validatedData.telephone || null,
       adresse: validatedData.adresse || null,
       notes: validatedData.notes || null,
     }
 
-    if (validatedData.type === 'personne_physique') {
+    if (validatedData.type_client === 'PERSONNE_PHYSIQUE') {
       clientData.nom = validatedData.nom
       clientData.prenom = validatedData.prenom || null
       clientData.cin = validatedData.cin || null
@@ -112,14 +112,14 @@ export async function updateClientAction(id: string, formData: ClientFormData) {
     // Préparer les données selon le type
     const clientData: ClientData = {
       user_id: session.user.id,
-      type_client: validatedData.type,
+      type_client: validatedData.type_client,
       email: validatedData.email || null,
       telephone: validatedData.telephone || null,
       adresse: validatedData.adresse || null,
       notes: validatedData.notes || null,
     }
 
-    if (validatedData.type === 'personne_physique') {
+    if (validatedData.type_client === 'PERSONNE_PHYSIQUE') {
       clientData.nom = validatedData.nom
       clientData.prenom = validatedData.prenom || null
       clientData.cin = validatedData.cin || null

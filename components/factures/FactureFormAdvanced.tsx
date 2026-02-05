@@ -53,12 +53,11 @@ interface FactureFormAdvancedProps {
     id: string
     nom: string
     prenom?: string
-    denomination?: string
-    type: string
+    type_client: string
   }>
   dossiers?: Array<{
     id: string
-    numero_dossier: string
+    numero: string
     objet: string
   }>
   onSubmit?: (data: FactureFormValues) => Promise<void>

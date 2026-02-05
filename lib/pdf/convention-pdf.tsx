@@ -66,8 +66,6 @@ interface ConventionPDFData {
     adresse: string
     cin?: string
     type_client: 'PERSONNE_PHYSIQUE' | 'PERSONNE_MORALE'
-    denomination?: string
-    registre_commerce?: string
   }
 
   // Avocat
@@ -86,7 +84,7 @@ interface ConventionPDFData {
 
   // Dossier
   dossier: {
-    numero_dossier: string
+    numero: string
     objet: string
     type_procedure: string
     tribunal?: string
@@ -134,13 +132,9 @@ export const ConventionPDF: React.FC<ConventionPDFData> = ({
     }
   }
 
-  const clientNom =
-    client.type_client === 'PERSONNE_MORALE' ? client.denomination : client.nom_complet
+  const clientNom = client.nom_complet
 
-  const clientIdentification =
-    client.type_client === 'PERSONNE_MORALE'
-      ? `Registre de Commerce n° ${client.registre_commerce}`
-      : `CIN n° ${client.cin}`
+  const clientIdentification = client.cin ? `CIN n° ${client.cin}` : ''
 
   return (
     <Document>
@@ -187,7 +181,7 @@ export const ConventionPDF: React.FC<ConventionPDFData> = ({
           </Text>
           <Text style={styles.paragraph}>- Nature : {dossier.type_procedure}</Text>
           <Text style={styles.paragraph}>- Objet : {dossier.objet}</Text>
-          <Text style={styles.paragraph}>- Référence : {dossier.numero_dossier}</Text>
+          <Text style={styles.paragraph}>- Référence : {dossier.numero}</Text>
           {dossier.tribunal && <Text style={styles.paragraph}>- Tribunal : {dossier.tribunal}</Text>}
         </View>
 
