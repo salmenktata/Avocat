@@ -1,10 +1,18 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+/**
+ * Middleware Supabase pour protection des routes
+ *
+ * Protège automatiquement toutes les routes définies dans le matcher.
+ * Redirige vers /login si l'utilisateur n'est pas authentifié.
+ */
 
-export async function middleware(req: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request: req,
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
   })
 
   const supabase = createServerClient(
@@ -12,39 +20,94 @@ export async function middleware(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return req.cookies.getAll()
+        get(name: string) {
+          return request.cookies.get(name)?.value
         },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>) {
-          cookiesToSet.forEach(({ name, value, options }) => req.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request: req,
+        set(name: string, value: string, options: any) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
           })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: any) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
         },
       },
     }
   )
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  // Si l'utilisateur n'est pas connecté et essaie d'accéder au dashboard
-  if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', req.url))
+  // Si pas d'utilisateur et route protégée, rediriger vers /login
+  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Si l'utilisateur est connecté et essaie d'accéder aux pages auth
-  if (session && (req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/register'))) {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+  // Si pas d'utilisateur et route protégée, rediriger vers /login
+  if (!user && (
+    request.nextUrl.pathname.startsWith('/clients') ||
+    request.nextUrl.pathname.startsWith('/dossiers') ||
+    request.nextUrl.pathname.startsWith('/factures') ||
+    request.nextUrl.pathname.startsWith('/parametres') ||
+    request.nextUrl.pathname.startsWith('/echeances') ||
+    request.nextUrl.pathname.startsWith('/templates') ||
+    request.nextUrl.pathname.startsWith('/settings') ||
+    request.nextUrl.pathname.startsWith('/profile') ||
+    request.nextUrl.pathname.startsWith('/documents') ||
+    request.nextUrl.pathname.startsWith('/time-tracking')
+  )) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  return supabaseResponse
+  return response
 }
 
+/**
+ * Configuration du matcher
+ *
+ * Liste des routes protégées par authentification.
+ * Toute tentative d'accès sans session redirigera vers /login.
+ */
 export const config = {
-  matcher: ['/dashboard/:path*', '/login', '/register'],
+  matcher: [
+    // Routes principales protégées
+    '/dashboard/:path*',
+    '/clients/:path*',
+    '/dossiers/:path*',
+    '/factures/:path*',
+    '/parametres/:path*',
+    '/echeances/:path*',
+    '/templates/:path*',
+    '/settings/:path*',
+    '/profile/:path*',
+    '/documents/:path*',
+    '/time-tracking/:path*',
+  ],
 }
