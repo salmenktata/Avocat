@@ -58,5 +58,5 @@ migration-report.json
 logs/
 *.log
 
-# Authentication - Ne pas utiliser NextAuth, l'app utilise Supabase Auth
-app/api/auth/[...nextauth]/
+# Authentication - NextAuth configuration (ne pas ignorer)
+# app/api/auth/[...nextauth]/

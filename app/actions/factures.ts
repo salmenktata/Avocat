@@ -345,7 +345,7 @@ export async function envoyerFactureEmailAction(factureId: string) {
     }
 
     // Générer le PDF
-    const pdfBuffer = await renderToBuffer(React.createElement(FacturePDF, pdfData))
+    const pdfBuffer = await renderToBuffer(React.createElement(FacturePDF, pdfData) as any)
 
     // Préparer les données email
     const clientNom =

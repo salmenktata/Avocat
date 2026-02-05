@@ -110,7 +110,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Générer PDF
     const pdfElement = createElement(ConventionPDF, conventionData)
-    const pdfBuffer = await renderToBuffer(pdfElement)
+    const pdfBuffer = await renderToBuffer(pdfElement as any)
 
     // Retourner PDF
     return new NextResponse(pdfBuffer, {

@@ -130,7 +130,7 @@ export async function GET(
 
     // Générer le PDF
     const pdfBuffer = await renderToBuffer(
-      React.createElement(NoteHonorairesPDF, pdfData)
+      React.createElement(NoteHonorairesPDF, pdfData) as any
     )
 
     // Retourner le PDF
