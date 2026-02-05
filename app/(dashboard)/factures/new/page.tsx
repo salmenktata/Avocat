@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import FactureForm from '@/components/factures/FactureForm'
+import { getTranslations } from 'next-intl/server'
 
 export default async function NewFacturePage({
   searchParams,
@@ -10,6 +11,7 @@ export default async function NewFacturePage({
 }) {
   const supabase = await createClient()
   const params = await searchParams
+  const t = await getTranslations('factures')
 
   const {
     data: { user },
@@ -46,9 +48,9 @@ export default async function NewFacturePage({
     <div className="mx-auto max-w-4xl space-y-6">
       {/* En-tête */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Nouvelle facture</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('newInvoice')}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Créez une facture pour un client ou un dossier
+          {t('createInvoice')}
         </p>
       </div>
 
@@ -74,17 +76,17 @@ export default async function NewFacturePage({
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-yellow-800">
-                  Aucun client trouvé
+                  {t('noClientFound')}
                 </h3>
                 <p className="mt-2 text-sm text-yellow-700">
-                  Vous devez créer au moins un client avant de pouvoir créer une facture.
+                  {t('createClientFirst')}
                 </p>
                 <div className="mt-4">
                   <Link
                     href="/clients/new"
                     className="text-sm font-medium text-yellow-800 underline hover:text-yellow-900"
                   >
-                    Créer un client →
+                    {t('createClient')} →
                   </Link>
                 </div>
               </div>

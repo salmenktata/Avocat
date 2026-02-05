@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import DossierForm from '@/components/dossiers/DossierForm'
+import { getTranslations } from 'next-intl/server'
 
 interface NewDossierPageProps {
   searchParams: Promise<{ client_id?: string }>
@@ -8,6 +9,7 @@ interface NewDossierPageProps {
 export default async function NewDossierPage({ searchParams }: NewDossierPageProps) {
   const params = await searchParams
   const supabase = await createClient()
+  const t = await getTranslations('dossiers')
 
   // Récupérer tous les clients pour le formulaire
   const { data: clients } = await supabase
@@ -18,9 +20,9 @@ export default async function NewDossierPage({ searchParams }: NewDossierPagePro
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Nouveau dossier</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('newDossier')}</h1>
         <p className="mt-2 text-gray-600">
-          Créez un nouveau dossier et démarrez le workflow
+          {t('createNewDossier')}
         </p>
       </div>
 

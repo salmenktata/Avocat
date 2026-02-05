@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import TemplateForm from '@/components/templates/TemplateForm'
+import { getTranslations } from 'next-intl/server'
 
 export default async function EditTemplatePage({
   params,
@@ -10,6 +11,7 @@ export default async function EditTemplatePage({
 }) {
   const { id } = await params
   const supabase = await createClient()
+  const t = await getTranslations('templates')
 
   const {
     data: { user },
@@ -36,9 +38,9 @@ export default async function EditTemplatePage({
       {/* En-tête */}
       <div>
         <Link href={`/templates/${id}`} className="text-sm text-blue-600 hover:text-blue-700">
-          ← Retour au template
+          ← {t('backToTemplate')}
         </Link>
-        <h1 className="mt-2 text-3xl font-bold text-gray-900">Modifier le template</h1>
+        <h1 className="mt-2 text-3xl font-bold text-gray-900">{t('editTemplate')}</h1>
         <p className="mt-1 text-sm text-gray-500">{template.titre}</p>
       </div>
 

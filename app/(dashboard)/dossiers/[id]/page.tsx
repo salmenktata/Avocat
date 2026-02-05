@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import DossierDetailContent from '@/components/dossiers/DossierDetailContent'
+import { getTranslations } from 'next-intl/server'
 
 interface DossierDetailPageProps {
   params: Promise<{ id: string }>
@@ -16,6 +17,7 @@ export default async function DossierDetailPage({
   const { tab } = await searchParams
 
   const supabase = await createClient()
+  const t = await getTranslations('dossiers')
 
   // Récupérer le dossier
   const { data: dossier, error } = await supabase
@@ -91,8 +93,8 @@ export default async function DossierDetailPage({
           </div>
           <p className="mt-2 text-gray-600">{dossier.objet}</p>
           <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
-            <span>Client: {clientName}</span>
-            {dossier.tribunal && <span>Tribunal: {dossier.tribunal}</span>}
+            <span>{t('clientLabel')} {clientName}</span>
+            {dossier.tribunal && <span>{t('tribunalLabel')} {dossier.tribunal}</span>}
           </div>
         </div>
       </div>

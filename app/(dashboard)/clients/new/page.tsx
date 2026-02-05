@@ -1,12 +1,15 @@
 import ClientForm from '@/components/clients/ClientForm'
+import { getTranslations } from 'next-intl/server'
 
-export default function NewClientPage() {
+export default async function NewClientPage() {
+  const t = await getTranslations('clients')
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Nouveau client</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('newClient')}</h1>
         <p className="mt-2 text-gray-600">
-          Ajoutez un nouveau client à votre base
+          {t('addNewClient')}
         </p>
       </div>
 

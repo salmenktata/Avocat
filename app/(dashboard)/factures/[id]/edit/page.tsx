@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import FactureForm from '@/components/factures/FactureForm'
+import { getTranslations } from 'next-intl/server'
 
 export default async function EditFacturePage({
   params,
@@ -10,6 +11,7 @@ export default async function EditFacturePage({
 }) {
   const supabase = await createClient()
   const { id } = await params
+  const t = await getTranslations('factures')
 
   const {
     data: { user },
@@ -75,13 +77,13 @@ export default async function EditFacturePage({
           href={`/factures/${id}`}
           className="text-sm text-blue-600 hover:text-blue-700"
         >
-          ← Retour à la facture
+          ← {t('backToInvoice')}
         </Link>
         <h1 className="mt-2 text-3xl font-bold text-gray-900">
-          Modifier la facture {facture.numero_facture}
+          {t('editInvoice')} {facture.numero_facture}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Modifiez les informations de la facture
+          {t('editInvoiceInfo')}
         </p>
       </div>
 

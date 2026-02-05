@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import TimeEntryForm from '@/components/time-tracking/TimeEntryForm'
+import { getTranslations } from 'next-intl/server'
 
 export default async function NewTimeEntryPage({
   searchParams,
@@ -10,6 +11,7 @@ export default async function NewTimeEntryPage({
 }) {
   const supabase = await createClient()
   const params = await searchParams
+  const t = await getTranslations('timeTracking')
 
   const {
     data: { user },
@@ -55,13 +57,13 @@ export default async function NewTimeEntryPage({
           href="/time-tracking"
           className="text-sm text-blue-600 hover:text-blue-700"
         >
-          ← Retour au suivi du temps
+          ← {t('backToTimeTracking')}
         </Link>
         <h1 className="mt-2 text-3xl font-bold text-gray-900">
-          Ajouter une entrée de temps
+          {t('addTimeEntry')}
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Enregistrez le temps passé sur un dossier
+          {t('recordTime')}
         </p>
       </div>
 
@@ -83,11 +85,10 @@ export default async function NewTimeEntryPage({
           </svg>
           <div>
             <p className="text-sm font-medium text-blue-900">
-              Conseil : Utilisez le timer
+              {t('timerTip')}
             </p>
             <p className="mt-1 text-sm text-blue-700">
-              Pour un suivi automatique, démarrez un timer depuis la page d&apos;un dossier.
-              Vous pourrez l&apos;arrêter quand vous aurez terminé votre travail.
+              {t('timerTipDescription')}
             </p>
           </div>
         </div>
@@ -103,13 +104,13 @@ export default async function NewTimeEntryPage({
         ) : (
           <div>
             <p className="text-sm text-gray-700 mb-4">
-              Veuillez d&apos;abord sélectionner un dossier :
+              {t('selectDossierFirst')}
             </p>
             <Link
               href="/dossiers"
               className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
-              Voir mes dossiers →
+              {t('viewMyDossiers')} →
             </Link>
           </div>
         )}

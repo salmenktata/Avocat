@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import FactureDetailClient from '@/components/factures/FactureDetailClient'
+import { getTranslations } from 'next-intl/server'
 
 export default async function FactureDetailPage({
   params,
@@ -10,6 +11,9 @@ export default async function FactureDetailPage({
 }) {
   const supabase = await createClient()
   const { id } = await params
+  const t = await getTranslations('factures')
+  const tCommon = await getTranslations('common')
+  const tClients = await getTranslations('clients')
 
   const {
     data: { user },
@@ -65,7 +69,7 @@ export default async function FactureDetailPage({
     ? facture.clients.type === 'PERSONNE_PHYSIQUE'
       ? `${facture.clients.nom} ${facture.clients.prenom || ''}`.trim()
       : facture.clients.denomination
-    : 'Client supprimé'
+    : t('clientDeleted')
 
   const isRetard =
     facture.statut === 'IMPAYEE' &&
@@ -88,10 +92,10 @@ export default async function FactureDetailPage({
             href="/factures"
             className="text-sm text-blue-600 hover:text-blue-700"
           >
-            ← Retour aux factures
+            ← {t('backToInvoices')}
           </Link>
           <h1 className="mt-2 text-3xl font-bold text-gray-900">
-            Facture {facture.numero_facture}
+            {t('invoice')} {facture.numero_facture}
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -104,7 +108,7 @@ export default async function FactureDetailPage({
           </span>
           {isRetard && (
             <span className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
-              ⚠️ En retard
+              ⚠️ {t('lateWarning')}
             </span>
           )}
         </div>
@@ -117,17 +121,17 @@ export default async function FactureDetailPage({
           {/* Carte principale */}
           <div className="rounded-lg border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Informations facture
+              {t('invoiceInfo')}
             </h2>
 
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Numéro</p>
+                  <p className="text-sm text-gray-500">{t('number')}</p>
                   <p className="font-medium text-gray-900">{facture.numero_facture}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Date d&apos;émission</p>
+                  <p className="text-sm text-gray-500">{t('issueDate')}</p>
                   <p className="font-medium text-gray-900">
                     {new Date(facture.date_emission).toLocaleDateString('fr-FR')}
                   </p>
@@ -137,14 +141,14 @@ export default async function FactureDetailPage({
               {facture.date_echeance && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">Date d&apos;échéance</p>
+                    <p className="text-sm text-gray-500">{t('dueDate')}</p>
                     <p className="font-medium text-gray-900">
                       {new Date(facture.date_echeance).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
                   {facture.date_paiement && (
                     <div>
-                      <p className="text-sm text-gray-500">Date de paiement</p>
+                      <p className="text-sm text-gray-500">{t('paymentDate')}</p>
                       <p className="font-medium text-green-600">
                         {new Date(facture.date_paiement).toLocaleDateString('fr-FR')}
                       </p>
@@ -154,13 +158,13 @@ export default async function FactureDetailPage({
               )}
 
               <div>
-                <p className="text-sm text-gray-500">Objet</p>
+                <p className="text-sm text-gray-500">{t('object')}</p>
                 <p className="font-medium text-gray-900">{facture.objet}</p>
               </div>
 
               {facture.notes && (
                 <div>
-                  <p className="text-sm text-gray-500">Notes</p>
+                  <p className="text-sm text-gray-500">{tClients('notes')}</p>
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">
                     {facture.notes}
                   </p>
@@ -171,24 +175,24 @@ export default async function FactureDetailPage({
 
           {/* Montants */}
           <div className="rounded-lg border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Montants</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('amounts')}</h2>
 
             <div className="space-y-3">
               <div className="flex justify-between text-gray-700">
-                <span>Montant HT</span>
+                <span>{t('amountHT')}</span>
                 <span className="font-medium">
                   {parseFloat(facture.montant_ht).toFixed(3)} TND
                 </span>
               </div>
               <div className="flex justify-between text-gray-700">
-                <span>TVA ({facture.taux_tva}%)</span>
+                <span>{t('tva')} ({facture.taux_tva}%)</span>
                 <span className="font-medium">
                   {parseFloat(facture.montant_tva).toFixed(3)} TND
                 </span>
               </div>
               <div className="border-t pt-3 flex justify-between">
                 <span className="text-lg font-semibold text-gray-900">
-                  Montant TTC
+                  {t('amountTTC')}
                 </span>
                 <span className="text-2xl font-bold text-blue-600">
                   {parseFloat(facture.montant_ttc).toFixed(3)} TND
@@ -202,16 +206,16 @@ export default async function FactureDetailPage({
         <div className="space-y-6">
           {/* Informations client */}
           <div className="rounded-lg border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Client</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{tClients('client')}</h2>
             {facture.clients ? (
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-500">Nom</p>
+                  <p className="text-sm text-gray-500">{tClients('name')}</p>
                   <p className="font-medium text-gray-900">{clientName}</p>
                 </div>
                 {facture.clients.email && (
                   <div>
-                    <p className="text-sm text-gray-500">Email</p>
+                    <p className="text-sm text-gray-500">{tClients('email')}</p>
                     <a
                       href={`mailto:${facture.clients.email}`}
                       className="text-sm text-blue-600 hover:text-blue-700"
@@ -222,7 +226,7 @@ export default async function FactureDetailPage({
                 )}
                 {facture.clients.telephone && (
                   <div>
-                    <p className="text-sm text-gray-500">Téléphone</p>
+                    <p className="text-sm text-gray-500">{tClients('phone')}</p>
                     <a
                       href={`tel:${facture.clients.telephone}`}
                       className="text-sm text-blue-600 hover:text-blue-700"
@@ -233,7 +237,7 @@ export default async function FactureDetailPage({
                 )}
                 {facture.clients.adresse && (
                   <div>
-                    <p className="text-sm text-gray-500">Adresse</p>
+                    <p className="text-sm text-gray-500">{tClients('address')}</p>
                     <p className="text-sm text-gray-700">
                       {facture.clients.adresse}
                       {facture.clients.code_postal && `, ${facture.clients.code_postal}`}
@@ -246,12 +250,12 @@ export default async function FactureDetailPage({
                     href={`/clients/${facture.clients.id}`}
                     className="text-sm text-blue-600 hover:text-blue-700"
                   >
-                    Voir la fiche client →
+                    {t('viewClientFile')} →
                   </Link>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-500">Client supprimé</p>
+              <p className="text-sm text-gray-500">{t('clientDeleted')}</p>
             )}
           </div>
 
@@ -259,17 +263,17 @@ export default async function FactureDetailPage({
           {facture.dossiers && (
             <div className="rounded-lg border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Dossier lié
+                {t('linkedDossier')}
               </h2>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-500">Numéro</p>
+                  <p className="text-sm text-gray-500">{t('number')}</p>
                   <p className="font-medium text-gray-900">
                     {facture.dossiers.numero_dossier}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Objet</p>
+                  <p className="text-sm text-gray-500">{t('object')}</p>
                   <p className="text-sm text-gray-700">{facture.dossiers.objet}</p>
                 </div>
                 <div className="pt-3">
@@ -277,7 +281,7 @@ export default async function FactureDetailPage({
                     href={`/dossiers/${facture.dossiers.id}`}
                     className="text-sm text-blue-600 hover:text-blue-700"
                   >
-                    Voir le dossier →
+                    {t('viewDossier')} →
                   </Link>
                 </div>
               </div>

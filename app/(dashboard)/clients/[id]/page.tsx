@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import ClientForm from '@/components/clients/ClientForm'
+import { getTranslations } from 'next-intl/server'
 
 interface ClientDetailPageProps {
   params: Promise<{ id: string }>
@@ -10,6 +11,7 @@ interface ClientDetailPageProps {
 export default async function ClientDetailPage({ params }: ClientDetailPageProps) {
   const { id } = await params
   const supabase = await createClient()
+  const t = await getTranslations('clients')
 
   // Récupérer le client
   const { data: client, error } = await supabase
@@ -60,7 +62,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             <h1 className="text-3xl font-bold text-gray-900">{displayName}</h1>
           </div>
           <p className="mt-2 text-gray-600">
-            Informations et dossiers du client
+            {t('clientInfo')}
           </p>
         </div>
       </div>
@@ -70,7 +72,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-lg border bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Modifier les informations
+              {t('editInfo')}
             </h2>
             <ClientForm initialData={client} isEditing />
           </div>
@@ -81,23 +83,23 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
           {/* Statistiques */}
           <div className="rounded-lg border bg-white p-6 shadow-sm">
             <h3 className="text-sm font-medium text-gray-500 mb-4">
-              Statistiques
+              {t('statistics')}
             </h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Dossiers actifs</span>
+                <span className="text-sm text-gray-600">{t('activeDossiersCount')}</span>
                 <span className="text-lg font-bold text-blue-600">
                   {dossiers?.filter((d) => d.statut === 'ACTIF').length || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Dossiers clos</span>
+                <span className="text-sm text-gray-600">{t('closedDossiersCount')}</span>
                 <span className="text-lg font-bold text-gray-600">
                   {dossiers?.filter((d) => d.statut === 'CLOS').length || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Total dossiers</span>
+                <span className="text-sm text-gray-600">{t('totalDossiersCount')}</span>
                 <span className="text-lg font-bold text-gray-900">
                   {dossiers?.length || 0}
                 </span>
@@ -108,7 +110,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
           {/* Dossiers récents */}
           <div className="rounded-lg border bg-white p-6 shadow-sm">
             <h3 className="text-sm font-medium text-gray-500 mb-4">
-              Dossiers récents
+              {t('recentDossiers')}
             </h3>
             {dossiers && dossiers.length > 0 ? (
               <div className="space-y-3">
@@ -139,27 +141,27 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">Aucun dossier pour ce client</p>
+              <p className="text-sm text-gray-500">{t('noDossiers')}</p>
             )}
           </div>
 
           {/* Actions rapides */}
           <div className="rounded-lg border bg-white p-6 shadow-sm">
             <h3 className="text-sm font-medium text-gray-500 mb-4">
-              Actions rapides
+              {t('quickActions')}
             </h3>
             <div className="space-y-2">
               <Link
                 href={`/dossiers/new?client_id=${client.id}`}
                 className="block w-full rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-blue-700"
               >
-                Créer un dossier
+                {t('createDossier')}
               </Link>
               <Link
                 href={`/factures/new?client_id=${client.id}`}
                 className="block w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50"
               >
-                Créer une facture
+                {t('createInvoice')}
               </Link>
             </div>
           </div>
