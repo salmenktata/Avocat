@@ -12,7 +12,7 @@ interface DocumentUploadFormProps {
 
 export default function DocumentUploadForm({ dossierId, onSuccess }: DocumentUploadFormProps) {
   const router = useRouter()
-  const t = useTranslations('documents')
+  const t = useTranslations('documentUpload')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)

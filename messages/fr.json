@@ -626,7 +626,7 @@
       "description": "Détails de l'action..."
     }
   },
-  "documents": {
+  "documentUpload": {
     "fileTooLarge": "Le fichier est trop volumineux (maximum 50 MB)",
     "pleaseSelectFile": "Veuillez sélectionner un fichier",
     "file": "Fichier",

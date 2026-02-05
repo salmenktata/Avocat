@@ -626,7 +626,7 @@
       "description": "تفاصيل الإجراء..."
     }
   },
-  "documents": {
+  "documentUpload": {
     "fileTooLarge": "الملف كبير جداً (الحد الأقصى 50 ميغابايت)",
     "pleaseSelectFile": "يرجى اختيار ملف",
     "file": "الملف",
