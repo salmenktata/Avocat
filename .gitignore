@@ -52,6 +52,7 @@ Thumbs.db
 test-*.mjs
 test-*.js
 setup-database.js
+app/api/test-db/
 
 # VPS Deployment
 migration-report.json

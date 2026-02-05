@@ -67,7 +67,6 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "@types/google-apps-script": "^2.0.8",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
