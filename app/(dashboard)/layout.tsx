@@ -1,10 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import Breadcrumbs from '@/components/ui/Breadcrumbs'
+import { AppLayout } from '@/components/layout/AppLayout'
 import { GlobalKeyboardShortcuts } from '@/components/ui/KeyboardShortcuts'
-import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
-import { getTranslations } from 'next-intl/server'
 
 export default async function DashboardLayout({
   children,
@@ -25,104 +22,18 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single()
 
-  // Récupérer les traductions
-  const t = await getTranslations('nav')
-  const tCommon = await getTranslations('common')
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="border-b bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-8">
-              <Link href="/dashboard" className="text-2xl font-bold text-blue-900">
-                Avocat
-              </Link>
-
-              <div className="flex gap-1">
-                <Link
-                  href="/dashboard"
-                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  {t('dashboard')}
-                </Link>
-                <Link
-                  href="/clients"
-                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  {t('clients')}
-                </Link>
-                <Link
-                  href="/dossiers"
-                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  {t('dossiers')}
-                </Link>
-                <Link
-                  href="/factures"
-                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  {t('factures')}
-                </Link>
-                <Link
-                  href="/echeances"
-                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  {t('echeances')}
-                </Link>
-                <Link
-                  href="/time-tracking"
-                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  {t('timeTracking')}
-                </Link>
-                <Link
-                  href="/documents"
-                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  {t('documents')}
-                </Link>
-                <Link
-                  href="/templates"
-                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                >
-                  {t('templates')}
-                </Link>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <LanguageSwitcher />
-
-              <div className="text-sm">
-                <p className="font-medium text-gray-900">
-                  {profile?.nom} {profile?.prenom}
-                </p>
-                <p className="text-gray-500">{user.email}</p>
-              </div>
-
-              <form action="/api/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
-                >
-                  {tCommon('logout')}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Contenu */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <Breadcrumbs />
+    <>
+      <AppLayout
+        user={{
+          email: user.email!,
+          nom: profile?.nom,
+          prenom: profile?.prenom,
+        }}
+      >
         {children}
-      </main>
-
-      {/* Raccourcis clavier */}
+      </AppLayout>
       <GlobalKeyboardShortcuts />
-    </div>
+    </>
   )
 }
