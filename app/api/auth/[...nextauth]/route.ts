@@ -7,6 +7,7 @@ import NextAuth, { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcryptjs'
 import { query } from '@/lib/db/postgres'
+import { obfuscateEmail } from '@/lib/utils/security'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -29,13 +30,20 @@ export const authOptions: NextAuthOptions = {
 
           const user = result.rows[0]
           if (!user) {
+            console.log('[Auth] Login attempt failed: user not found for', obfuscateEmail(credentials.email))
             throw new Error('Email ou mot de passe incorrect')
           }
 
+          console.log('[Auth] Login attempt for user:', obfuscateEmail(credentials.email))
+
           const isPasswordValid = await compare(credentials.password, user.password_hash)
+
           if (!isPasswordValid) {
+            console.log('[Auth] Login attempt failed: invalid password for', obfuscateEmail(credentials.email))
             throw new Error('Email ou mot de passe incorrect')
           }
+
+          console.log('[Auth] Login successful for user:', obfuscateEmail(credentials.email))
 
           return {
             id: user.id,

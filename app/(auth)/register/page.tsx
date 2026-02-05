@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { useTranslations } from 'next-intl'
+import { signIn } from 'next-auth/react'
 
 export default function RegisterPage() {
   const t = useTranslations('auth')
@@ -31,45 +31,76 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
 
-    // Validation
+    // Validation côté client
     if (formData.password !== formData.confirmPassword) {
-      setError(t('passwordMismatch'))
+      setError('Les mots de passe ne correspondent pas')
       return
     }
 
-    if (formData.password.length < 6) {
-      setError(t('passwordTooShort'))
+    if (formData.password.length < 8) {
+      setError('Le mot de passe doit contenir au moins 8 caractères')
+      return
+    }
+
+    if (!formData.nom || !formData.prenom) {
+      setError('Nom et prénom sont requis')
       return
     }
 
     setLoading(true)
 
     try {
-      const supabase = createClient()
-
-      // Créer le compte
-      const { error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            nom: formData.nom,
-            prenom: formData.prenom,
-          },
+      // Appeler l'API de registration
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          nom: formData.nom,
+          prenom: formData.prenom,
+          email: formData.email,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
+        }),
       })
 
-      if (error) {
-        setError(error.message)
+      const data = await response.json()
+
+      if (!response.ok) {
+        // Gérer les erreurs de validation
+        if (data.details) {
+          const errorMessages = data.details.map((d: any) => d.message).join(', ')
+          setError(errorMessages)
+        } else {
+          setError(data.error || 'Erreur lors de la création du compte')
+        }
         setLoading(false)
         return
       }
 
-      // Succès - rediriger vers le dashboard
+      // Compte créé avec succès - connexion automatique
+      const signInResult = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      })
+
+      if (signInResult?.error) {
+        // Compte créé mais connexion échouée - rediriger vers login
+        setError('Compte créé avec succès ! Veuillez vous connecter.')
+        setTimeout(() => {
+          router.push('/login')
+        }, 2000)
+        return
+      }
+
+      // Succès total - rediriger vers le dashboard
       router.push('/dashboard')
       router.refresh()
-    } catch {
-      setError(t('registerError'))
+    } catch (error: any) {
+      console.error('Erreur registration:', error)
+      setError('Une erreur est survenue. Veuillez réessayer.')
       setLoading(false)
     }
   }
@@ -151,7 +182,9 @@ export default function RegisterPage() {
             className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             placeholder="••••••••"
           />
-          <p className="mt-1 text-xs text-muted-foreground">{t('passwordMinLength')}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Minimum 8 caractères avec majuscule, minuscule, chiffre et caractère spécial
+          </p>
         </div>
 
         <div>

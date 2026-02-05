@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Smartphone, QrCode, ExternalLink, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { FlouciUtils } from '@/lib/integrations/flouci'
 
 interface FlouciPaymentButtonProps {
@@ -44,8 +43,6 @@ export default function FlouciPaymentButton({
     commission: number
   } | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'failed' | 'expired'>('pending')
-
-  const supabase = createClient()
 
   /**
    * Créer paiement Flouci et générer QR code
@@ -99,21 +96,21 @@ export default function FlouciPaymentButton({
   const demarrerPollingStatut = (paymentId: string) => {
     const interval = setInterval(async () => {
       try {
-        const { data, error } = await supabase
-          .from('flouci_transactions')
-          .select('status')
-          .eq('flouci_payment_id', paymentId)
-          .single()
+        const response = await fetch(`/api/factures/flouci/status?payment_id=${encodeURIComponent(paymentId)}`)
 
-        if (error) throw error
+        if (!response.ok) {
+          throw new Error('Erreur récupération statut')
+        }
 
-        if (data?.status === 'completed') {
+        const data = await response.json()
+
+        if (data.status === 'completed') {
           setPaymentStatus('success')
           clearInterval(interval)
-        } else if (data?.status === 'failed') {
+        } else if (data.status === 'failed') {
           setPaymentStatus('failed')
           clearInterval(interval)
-        } else if (data?.status === 'expired') {
+        } else if (data.status === 'expired') {
           setPaymentStatus('expired')
           clearInterval(interval)
         }

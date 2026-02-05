@@ -1,17 +1,39 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import Link from 'next/link'
 import DossierCard from '@/components/dossiers/DossierCard'
 import { getTranslations } from 'next-intl/server'
 
 export default async function DossiersPage() {
   const t = await getTranslations('dossiers')
-  const supabase = await createClient()
+  const session = await getSession()
+
+  if (!session?.user?.id) return null
 
   // Récupérer tous les dossiers avec les clients
-  const { data: dossiers } = await supabase
-    .from('dossiers')
-    .select('*, clients(*)')
-    .order('created_at', { ascending: false })
+  const result = await query(
+    `SELECT d.*,
+      json_build_object(
+        'id', c.id,
+        'type_client', c.type_client,
+        'nom', c.nom,
+        'prenom', c.prenom,
+        'email', c.email,
+        'telephone', c.telephone,
+        'adresse', c.adresse,
+        'cin', c.cin,
+        'notes', c.notes,
+        'created_at', c.created_at,
+        'updated_at', c.updated_at,
+        'user_id', c.user_id
+      ) as clients
+    FROM dossiers d
+    LEFT JOIN clients c ON d.client_id = c.id
+    WHERE d.user_id = $1
+    ORDER BY d.created_at DESC`,
+    [session.user.id]
+  )
+  const dossiers = result.rows
 
   return (
     <div className="space-y-6">
@@ -47,7 +69,7 @@ export default async function DossiersPage() {
             {t('activeDossiers')}
           </div>
           <div className="mt-2 text-3xl font-bold text-green-600">
-            {dossiers?.filter((d) => d.statut === 'ACTIF').length || 0}
+            {dossiers?.filter((d) => d.statut === 'en_cours').length || 0}
           </div>
         </div>
 
@@ -56,7 +78,7 @@ export default async function DossiersPage() {
             {t('closedDossiers')}
           </div>
           <div className="mt-2 text-3xl font-bold text-muted-foreground">
-            {dossiers?.filter((d) => d.statut === 'CLOS').length || 0}
+            {dossiers?.filter((d) => d.statut === 'clos').length || 0}
           </div>
         </div>
 
@@ -65,7 +87,7 @@ export default async function DossiersPage() {
             {t('civilProcedures')}
           </div>
           <div className="mt-2 text-3xl font-bold text-blue-600">
-            {dossiers?.filter((d) => d.type_procedure === 'CIVIL').length || 0}
+            {dossiers?.filter((d) => d.type_procedure === 'civil').length || 0}
           </div>
         </div>
       </div>

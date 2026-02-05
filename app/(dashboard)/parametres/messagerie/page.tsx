@@ -3,7 +3,7 @@
  * Configuration WhatsApp Business pour réception automatique documents clients
  */
 
-import { createClient } from '@/lib/supabase/server'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import { getMessagingConfigAction } from '@/app/actions/messaging'
 import MessagingConfig from '@/components/parametres/MessagingConfig'
@@ -12,13 +12,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default async function MessagerieSettingsPage() {
-  const supabase = await createClient()
+  const session = await getSession()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/connexion')
   }
 

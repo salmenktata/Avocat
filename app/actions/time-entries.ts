@@ -1,6 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { timeEntrySchema, type TimeEntryFormData } from '@/lib/validations/time-entry'
 import { revalidatePath } from 'next/cache'
 
@@ -9,49 +10,42 @@ export async function createTimeEntryAction(formData: TimeEntryFormData) {
     // Validation
     const validatedData = timeEntrySchema.parse(formData)
 
-    // Vérifier l'authentification
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    // Vérifier que le dossier appartient à l'utilisateur
-    const { data: dossier, error: dossierError } = await supabase
-      .from('dossiers')
-      .select('id')
-      .eq('id', validatedData.dossier_id)
-      .eq('user_id', user.id)
-      .single()
+    const userId = session.user.id
 
-    if (dossierError || !dossier) {
+    // Vérifier que le dossier appartient à l'utilisateur
+    const dossierResult = await query(
+      'SELECT id FROM dossiers WHERE id = $1 AND user_id = $2',
+      [validatedData.dossier_id, userId]
+    )
+
+    if (dossierResult.rows.length === 0) {
       return { error: 'Dossier introuvable ou accès refusé' }
     }
 
     // Créer l'entrée de temps
     const timeEntryData = {
-      user_id: user.id,
+      user_id: userId,
       ...validatedData,
     }
 
-    const { data, error } = await supabase
-      .from('time_entries')
-      .insert(timeEntryData)
-      .select()
-      .single()
+    const columns = Object.keys(timeEntryData).join(', ')
+    const values = Object.values(timeEntryData)
+    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ')
 
-    if (error) {
-      console.error('Erreur création entrée temps:', error)
-      return { error: 'Erreur lors de la création de l\'entrée de temps' }
-    }
+    const result = await query(
+      `INSERT INTO time_entries (${columns}) VALUES (${placeholders}) RETURNING *`,
+      values
+    )
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${validatedData.dossier_id}`)
     revalidatePath('/time-tracking')
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur validation:', error)
     return { error: 'Données invalides' }
@@ -60,47 +54,43 @@ export async function createTimeEntryAction(formData: TimeEntryFormData) {
 
 export async function updateTimeEntryAction(id: string, formData: Partial<TimeEntryFormData>) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    // Vérifier que l'entrée existe et n'est pas facturée
-    const { data: timeEntry, error: checkError } = await supabase
-      .from('time_entries')
-      .select('id, dossier_id, facture_id')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
+    const userId = session.user.id
 
-    if (checkError || !timeEntry) {
+    // Vérifier que l'entrée existe et n'est pas facturée
+    const checkResult = await query(
+      'SELECT id, dossier_id, facture_id FROM time_entries WHERE id = $1 AND user_id = $2',
+      [id, userId]
+    )
+
+    if (checkResult.rows.length === 0) {
       return { error: 'Entrée de temps introuvable ou accès refusé' }
     }
+
+    const timeEntry = checkResult.rows[0]
 
     if (timeEntry.facture_id) {
       return { error: 'Impossible de modifier une entrée déjà facturée' }
     }
 
-    const { data, error } = await supabase
-      .from('time_entries')
-      .update(formData)
-      .eq('id', id)
-      .select()
-      .single()
+    const setClause = Object.keys(formData)
+      .map((key, i) => `${key} = $${i + 1}`)
+      .join(', ')
+    const values = [...Object.values(formData), id, userId]
 
-    if (error) {
-      console.error('Erreur mise à jour entrée temps:', error)
-      return { error: 'Erreur lors de la mise à jour' }
-    }
+    const result = await query(
+      `UPDATE time_entries SET ${setClause} WHERE id = $${values.length - 1} AND user_id = $${values.length} RETURNING *`,
+      values
+    )
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${timeEntry.dossier_id}`)
     revalidatePath('/time-tracking')
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur mise à jour:', error)
     return { error: 'Erreur lors de la mise à jour' }
@@ -109,43 +99,34 @@ export async function updateTimeEntryAction(id: string, formData: Partial<TimeEn
 
 export async function deleteTimeEntryAction(id: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    // Récupérer l'entrée pour vérifier qu'elle n'est pas facturée
-    const { data: timeEntry } = await supabase
-      .from('time_entries')
-      .select('dossier_id, facture_id')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
+    const userId = session.user.id
 
-    if (timeEntry?.facture_id) {
+    // Récupérer l'entrée pour vérifier qu'elle n'est pas facturée
+    const checkResult = await query(
+      'SELECT dossier_id, facture_id FROM time_entries WHERE id = $1 AND user_id = $2',
+      [id, userId]
+    )
+
+    if (checkResult.rows.length === 0) {
+      return { error: 'Entrée introuvable ou accès refusé' }
+    }
+
+    const timeEntry = checkResult.rows[0]
+
+    if (timeEntry.facture_id) {
       return { error: 'Impossible de supprimer une entrée déjà facturée' }
     }
 
-    const { error } = await supabase
-      .from('time_entries')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id)
+    await query('DELETE FROM time_entries WHERE id = $1 AND user_id = $2', [id, userId])
 
-    if (error) {
-      console.error('Erreur suppression entrée temps:', error)
-      return { error: 'Erreur lors de la suppression' }
-    }
-
-    if (timeEntry) {
-      revalidatePath('/dossiers')
-      revalidatePath(`/dossiers/${timeEntry.dossier_id}`)
-      revalidatePath('/time-tracking')
-    }
+    revalidatePath('/dossiers')
+    revalidatePath(`/dossiers/${timeEntry.dossier_id}`)
+    revalidatePath('/time-tracking')
 
     return { success: true }
   } catch (error) {
@@ -156,31 +137,27 @@ export async function deleteTimeEntryAction(id: string) {
 
 export async function startTimerAction(dossierId: string, description: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    // Vérifier s'il y a déjà un timer en cours
-    const { data: activeTimer } = await supabase
-      .from('time_entries')
-      .select('id')
-      .eq('user_id', user.id)
-      .is('heure_fin', null)
-      .single()
+    const userId = session.user.id
 
-    if (activeTimer) {
+    // Vérifier s'il y a déjà un timer en cours
+    const activeResult = await query(
+      'SELECT id FROM time_entries WHERE user_id = $1 AND heure_fin IS NULL',
+      [userId]
+    )
+
+    if (activeResult.rows.length > 0) {
       return { error: 'Un timer est déjà en cours. Arrêtez-le d\'abord.' }
     }
 
     // Créer une nouvelle entrée avec timer
     const now = new Date()
     const timeEntryData = {
-      user_id: user.id,
+      user_id: userId,
       dossier_id: dossierId,
       description,
       date: now.toISOString().split('T')[0],
@@ -189,20 +166,18 @@ export async function startTimerAction(dossierId: string, description: string) {
       facturable: true,
     }
 
-    const { data, error } = await supabase
-      .from('time_entries')
-      .insert(timeEntryData)
-      .select()
-      .single()
+    const columns = Object.keys(timeEntryData).join(', ')
+    const values = Object.values(timeEntryData)
+    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ')
 
-    if (error) {
-      console.error('Erreur démarrage timer:', error)
-      return { error: 'Erreur lors du démarrage du timer' }
-    }
+    const result = await query(
+      `INSERT INTO time_entries (${columns}) VALUES (${placeholders}) RETURNING *`,
+      values
+    )
 
     revalidatePath('/time-tracking')
     revalidatePath(`/dossiers/${dossierId}`)
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur démarrage timer:', error)
     return { error: 'Erreur lors du démarrage du timer' }
@@ -211,26 +186,24 @@ export async function startTimerAction(dossierId: string, description: string) {
 
 export async function stopTimerAction(id: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    // Récupérer l'entrée
-    const { data: timeEntry, error: fetchError } = await supabase
-      .from('time_entries')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
+    const userId = session.user.id
 
-    if (fetchError || !timeEntry) {
+    // Récupérer l'entrée
+    const fetchResult = await query(
+      'SELECT * FROM time_entries WHERE id = $1 AND user_id = $2',
+      [id, userId]
+    )
+
+    if (fetchResult.rows.length === 0) {
       return { error: 'Timer introuvable' }
     }
+
+    const timeEntry = fetchResult.rows[0]
 
     if (timeEntry.heure_fin) {
       return { error: 'Ce timer est déjà arrêté' }
@@ -244,24 +217,14 @@ export async function stopTimerAction(id: string) {
 
     const heureFin = now.toTimeString().split(' ')[0].substring(0, 5) // HH:MM
 
-    const { data, error } = await supabase
-      .from('time_entries')
-      .update({
-        heure_fin: heureFin,
-        duree_minutes: dureeMinutes,
-      })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Erreur arrêt timer:', error)
-      return { error: 'Erreur lors de l\'arrêt du timer' }
-    }
+    const result = await query(
+      'UPDATE time_entries SET heure_fin = $1, duree_minutes = $2 WHERE id = $3 RETURNING *',
+      [heureFin, dureeMinutes, id]
+    )
 
     revalidatePath('/time-tracking')
     revalidatePath(`/dossiers/${timeEntry.dossier_id}`)
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur arrêt timer:', error)
     return { error: 'Erreur lors de l\'arrêt du timer' }
@@ -270,41 +233,32 @@ export async function stopTimerAction(id: string) {
 
 export async function getActiveTimerAction() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    const { data, error } = await supabase
-      .from('time_entries')
-      .select(`
-        *,
-        dossiers (
-          numero_dossier,
-          objet,
-          clients (
-            nom,
-            prenom,
-            denomination,
-            type
+    const userId = session.user.id
+
+    const result = await query(
+      `SELECT te.*,
+        json_build_object(
+          'numero', d.numero,
+          'objet', d.objet,
+          'clients', json_build_object(
+            'nom', c.nom,
+            'prenom', c.prenom,
+            'type_client', c.type_client
           )
-        )
-      `)
-      .eq('user_id', user.id)
-      .is('heure_fin', null)
-      .single()
+        ) as dossiers
+      FROM time_entries te
+      LEFT JOIN dossiers d ON te.dossier_id = d.id
+      LEFT JOIN clients c ON d.client_id = c.id
+      WHERE te.user_id = $1 AND te.heure_fin IS NULL`,
+      [userId]
+    )
 
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116 = no rows found
-      console.error('Erreur récupération timer actif:', error)
-      return { error: 'Erreur lors de la récupération du timer' }
-    }
-
-    return { success: true, data: data || null }
+    return { success: true, data: result.rows[0] || null }
   } catch (error) {
     console.error('Erreur:', error)
     return { error: 'Erreur lors de la récupération du timer' }
@@ -313,29 +267,21 @@ export async function getActiveTimerAction() {
 
 export async function getTimeEntriesByDossierAction(dossierId: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    const { data, error } = await supabase
-      .from('time_entries')
-      .select('*')
-      .eq('dossier_id', dossierId)
-      .eq('user_id', user.id)
-      .order('date', { ascending: false })
-      .order('heure_debut', { ascending: false })
+    const userId = session.user.id
 
-    if (error) {
-      console.error('Erreur récupération entrées temps:', error)
-      return { error: 'Erreur lors de la récupération des entrées' }
-    }
+    const result = await query(
+      `SELECT * FROM time_entries
+       WHERE dossier_id = $1 AND user_id = $2
+       ORDER BY date DESC, heure_debut DESC`,
+      [dossierId, userId]
+    )
 
-    return { success: true, data }
+    return { success: true, data: result.rows }
   } catch (error) {
     console.error('Erreur:', error)
     return { error: 'Erreur lors de la récupération des entrées' }

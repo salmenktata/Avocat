@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { UrgentActions } from '@/components/dashboard/UrgentActions'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
@@ -17,59 +18,71 @@ export default async function DashboardPage() {
   const tActivity = await getTranslations('activity')
   const tCurrency = await getTranslations('currency')
   const locale = await getLocale()
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const session = await getSession()
 
-  if (!user) return null
+  if (!session?.user?.id) return null
+
+  const userId = session.user.id
 
   // Récupérer toutes les données
-  const { data: clients } = await supabase
-    .from('clients')
-    .select('id, nom, prenom, created_at')
-    .eq('user_id', user.id)
+  const clientsResult = await query(
+    'SELECT id, nom, prenom, created_at FROM clients WHERE user_id = $1',
+    [userId]
+  )
+  const clients = clientsResult.rows
 
-  const { data: dossiers } = await supabase
-    .from('dossiers')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  const dossiersResult = await query(
+    'SELECT * FROM dossiers WHERE user_id = $1 ORDER BY created_at DESC',
+    [userId]
+  )
+  const dossiers = dossiersResult.rows
 
-  const { data: dossiersActifs } = await supabase
-    .from('dossiers')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('statut', 'ACTIF')
+  const dossiersActifsResult = await query(
+    'SELECT id FROM dossiers WHERE user_id = $1 AND statut = $2',
+    [userId, 'en_cours']
+  )
+  const dossiersActifs = dossiersActifsResult.rows
 
-  const { data: factures } = await supabase
-    .from('factures')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  const facturesResult = await query(
+    'SELECT * FROM factures WHERE user_id = $1 ORDER BY created_at DESC',
+    [userId]
+  )
+  const factures = facturesResult.rows
 
-  const { data: documents } = await supabase
-    .from('documents')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(10)
+  const documentsResult = await query(
+    'SELECT * FROM documents WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10',
+    [userId]
+  )
+  const documents = documentsResult.rows
 
-  const { data: echeances } = await supabase
-    .from('echeances')
-    .select('*, dossiers(numero, objet)')
-    .eq('user_id', user.id)
-    .order('date_echeance', { ascending: true })
-    .limit(20)
+  // Requête avec jointure SQL pour les échéances
+  const echeancesResult = await query(
+    `SELECT
+      e.id,
+      e.titre,
+      e.description,
+      e.date_echeance,
+      e.type,
+      e.terminee,
+      e.created_at,
+      json_build_object('numero', d.numero, 'objet', d.objet) as dossier
+    FROM echeances e
+    LEFT JOIN dossiers d ON e.dossier_id = d.id
+    WHERE e.user_id = $1
+    ORDER BY e.date_echeance ASC
+    LIMIT 20`,
+    [userId]
+  )
+  const echeances = echeancesResult.rows
 
-  const { data: timeEntries } = await supabase
-    .from('time_entries')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('date', { ascending: false })
+  const timeEntriesResult = await query(
+    'SELECT * FROM time_entries WHERE user_id = $1 ORDER BY date DESC',
+    [userId]
+  )
+  const timeEntries = timeEntriesResult.rows
 
   // Calculs des statistiques
-  const facturesImpayees = factures?.filter((f) => f.statut === 'IMPAYEE') || []
+  const facturesImpayees = factures?.filter((f) => f.statut === 'envoyee' || f.statut === 'brouillon') || []
   const montantImpaye = facturesImpayees.reduce(
     (acc, f) => acc + parseFloat(f.montant_ttc || 0),
     0
@@ -79,11 +92,11 @@ export default async function DashboardPage() {
   const dans7Jours = new Date()
   dans7Jours.setDate(dans7Jours.getDate() + 7)
 
-  const { data: echeancesCritiques } = await supabase
-    .from('echeances')
-    .select('id')
-    .eq('user_id', user.id)
-    .lte('date_echeance', dans7Jours.toISOString().split('T')[0])
+  const echeancesCritiquesResult = await query(
+    'SELECT id FROM echeances WHERE user_id = $1 AND date_echeance <= $2',
+    [userId, dans7Jours.toISOString().split('T')[0]]
+  )
+  const echeancesCritiques = echeancesCritiquesResult.rows
 
   // Time tracking ce mois
   const debutMois = new Date()
@@ -230,7 +243,7 @@ export default async function DashboardPage() {
       <UnclassifiedDocumentsWidget
         dossiers={dossiers?.map((d) => ({
           id: d.id,
-          numero_dossier: d.numero,
+          numero: d.numero,
           objet: d.objet || '',
           client_id: d.client_id,
         })) || []}

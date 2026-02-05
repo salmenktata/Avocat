@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Icons } from '@/lib/icons'
@@ -45,13 +45,9 @@ const settingsCards = [
 ]
 
 export default async function SettingsPage() {
-  const supabase = await createClient()
+  const session = await getSession()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 

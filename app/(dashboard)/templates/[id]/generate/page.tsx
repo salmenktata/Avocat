@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import GenerateDocumentForm from '@/components/templates/GenerateDocumentForm'
@@ -10,38 +11,44 @@ export default async function GenerateDocumentPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const supabase = await createClient()
+  const session = await getSession()
   const t = await getTranslations('templates')
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer le template
-  const { data: template, error: templateError } = await supabase
-    .from('templates')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const templateResult = await query(
+    'SELECT * FROM templates WHERE id = $1',
+    [id]
+  )
+  const template = templateResult.rows[0]
 
-  if (templateError || !template) {
+  if (!template) {
     redirect('/templates')
   }
 
   // Récupérer les dossiers de l'utilisateur
-  const { data: dossiers, error: dossiersError } = await supabase
-    .from('dossiers')
-    .select('*, clients(*)')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-
-  if (dossiersError) {
-    console.error('Erreur chargement dossiers:', dossiersError)
-  }
+  const dossiersResult = await query(
+    `SELECT d.*,
+      json_build_object(
+        'id', c.id,
+        'type_client', c.type_client,
+        'nom', c.nom,
+        'prenom', c.prenom,
+        'email', c.email,
+        'telephone', c.telephone,
+        'created_at', c.created_at,
+        'user_id', c.user_id
+      ) as clients
+    FROM dossiers d
+    LEFT JOIN clients c ON d.client_id = c.id
+    WHERE d.user_id = $1
+    ORDER BY d.created_at DESC`,
+    [session.user.id]
+  )
+  const dossiers = dossiersResult.rows
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">

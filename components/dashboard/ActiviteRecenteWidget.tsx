@@ -33,7 +33,7 @@ export default function ActiviteRecenteWidget({
     activites.push({
       id: d.id,
       type: 'dossier',
-      titre: `Dossier ${d.numero_dossier}`,
+      titre: `Dossier ${d.numero}`,
       description: d.objet,
       date: new Date(d.created_at),
       lien: `/dossiers/${d.id}`,
@@ -47,7 +47,7 @@ export default function ActiviteRecenteWidget({
     activites.push({
       id: f.id,
       type: 'facture',
-      titre: `Facture ${f.numero_facture}`,
+      titre: `Facture ${f.numero}`,
       description: `${parseFloat(f.montant_ttc || 0).toFixed(2)} TND - ${f.statut}`,
       date: new Date(f.created_at),
       lien: `/factures/${f.id}`,

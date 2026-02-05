@@ -4,7 +4,7 @@
  * Architecture hiérarchique : Clients MonCabinet/ → [Client]/ → [Dossier juridique]/ → fichiers
  */
 
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
 import {
   createGoogleDriveProvider,
   TokenExpiredError,
@@ -47,10 +47,8 @@ export interface DossierFolderInfo {
  * Classe principale Storage Manager
  */
 export class StorageManager {
-  private supabase: ReturnType<typeof createClient>
-
   constructor() {
-    this.supabase = createClient()
+    // Plus besoin de client Supabase - on utilise query() directement
   }
 
   /**
@@ -155,15 +153,15 @@ export class StorageManager {
    * Récupérer configuration cloud utilisateur
    */
   private async getCloudConfig(userId: string) {
-    const { data, error } = await this.supabase
-      .from('cloud_providers_config')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('provider', 'google_drive')
-      .eq('enabled', true)
-      .single()
+    const result = await query(
+      `SELECT * FROM cloud_providers_config
+       WHERE user_id = $1 AND provider = 'google_drive' AND enabled = true`,
+      [userId]
+    )
 
-    if (error || !data) {
+    const data = result.rows[0]
+
+    if (!data) {
       throw new CloudStorageError(
         'Configuration Google Drive non trouvée. Veuillez connecter votre compte.',
         'CONFIG_NOT_FOUND',
@@ -200,14 +198,12 @@ export class StorageManager {
       // Mettre à jour BDD
       const newExpiresAt = new Date(Date.now() + refreshed.expiresIn * 1000)
 
-      await this.supabase
-        .from('cloud_providers_config')
-        .update({
-          access_token: refreshed.accessToken,
-          token_expires_at: newExpiresAt.toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', cloudConfig.id)
+      await query(
+        `UPDATE cloud_providers_config
+         SET access_token = $1, token_expires_at = $2, updated_at = NOW()
+         WHERE id = $3`,
+        [refreshed.accessToken, newExpiresAt.toISOString(), cloudConfig.id]
+      )
 
       console.log('[StorageManager] Token rafraîchi avec succès')
       return refreshed.accessToken
@@ -220,15 +216,15 @@ export class StorageManager {
    * Récupérer informations dossier
    */
   private async getDossier(dossierId: string) {
-    const { data, error } = await this.supabase
-      .from('dossiers')
-      .select(
-        'id, client_id, numero_dossier, objet, google_drive_folder_id, google_drive_folder_url'
-      )
-      .eq('id', dossierId)
-      .single()
+    const result = await query(
+      `SELECT id, client_id, numero, objet, google_drive_folder_id, google_drive_folder_url
+       FROM dossiers WHERE id = $1`,
+      [dossierId]
+    )
 
-    if (error || !data) {
+    const data = result.rows[0]
+
+    if (!data) {
       throw new Error(`Dossier non trouvé: ${dossierId}`)
     }
 
@@ -239,15 +235,15 @@ export class StorageManager {
    * Récupérer informations client
    */
   private async getClient(clientId: string) {
-    const { data, error } = await this.supabase
-      .from('clients')
-      .select(
-        'id, nom, prenom, denomination, cin, type, google_drive_folder_id, google_drive_folder_url'
-      )
-      .eq('id', clientId)
-      .single()
+    const result = await query(
+      `SELECT id, nom, prenom, denomination, cin, type_client, google_drive_folder_id, google_drive_folder_url
+       FROM clients WHERE id = $1`,
+      [clientId]
+    )
 
-    if (error || !data) {
+    const data = result.rows[0]
+
+    if (!data) {
       throw new Error(`Client non trouvé: ${clientId}`)
     }
 
@@ -313,7 +309,7 @@ export class StorageManager {
 
     // Créer nom dossier client
     let folderName: string
-    if (client.type === 'personne_morale') {
+    if (client.type_client === 'personne_morale') {
       folderName = `[${client.denomination}]`
     } else {
       const cin = client.cin ? ` - CIN ${client.cin}` : ''
@@ -328,14 +324,12 @@ export class StorageManager {
     })
 
     // Mettre à jour BDD client
-    await this.supabase
-      .from('clients')
-      .update({
-        google_drive_folder_id: clientFolder.folderId,
-        google_drive_folder_url: clientFolder.webViewLink,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', client.id)
+    await query(
+      `UPDATE clients
+       SET google_drive_folder_id = $1, google_drive_folder_url = $2, updated_at = NOW()
+       WHERE id = $3`,
+      [clientFolder.folderId, clientFolder.webViewLink, client.id]
+    )
 
     console.log(`[StorageManager] Dossier client créé: ${folderName}`)
 
@@ -374,7 +368,7 @@ export class StorageManager {
 
     // Créer nom dossier juridique
     const objet = dossier.objet ? ` (${dossier.objet})` : ''
-    const folderName = `Dossier ${dossier.numero_dossier}${objet}`
+    const folderName = `Dossier ${dossier.numero}${objet}`
 
     // Créer dossier juridique
     const dossierFolder = await provider.createFolder({
@@ -383,14 +377,12 @@ export class StorageManager {
     })
 
     // Mettre à jour BDD dossier
-    await this.supabase
-      .from('dossiers')
-      .update({
-        google_drive_folder_id: dossierFolder.folderId,
-        google_drive_folder_url: dossierFolder.webViewLink,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', dossier.id)
+    await query(
+      `UPDATE dossiers
+       SET google_drive_folder_id = $1, google_drive_folder_url = $2, updated_at = NOW()
+       WHERE id = $3`,
+      [dossierFolder.folderId, dossierFolder.webViewLink, dossier.id]
+    )
 
     console.log(`[StorageManager] Dossier juridique créé: ${folderName}`)
 
@@ -460,38 +452,40 @@ export class StorageManager {
     sourceType: string
     sourceMetadata?: any
   }): Promise<string> {
-    const { data, error } = await this.supabase
-      .from('documents')
-      .insert({
-        user_id: params.userId,
-        dossier_id: params.dossierId,
-        nom_fichier: params.fileName,
-        type_fichier: params.mimeType,
-        taille_fichier: params.fileSize,
-        storage_provider: 'google_drive',
-        external_file_id: params.externalFileId,
-        external_folder_client_id: params.externalFolderClientId,
-        external_folder_dossier_id: params.externalFolderDossierId,
-        external_sharing_link: params.externalSharingLink,
-        external_metadata: params.externalMetadata,
-        source_type: params.sourceType,
-        source_metadata: params.sourceMetadata || {},
-        categorie: params.categorie,
-        description: params.description,
-        needs_classification: false, // Déjà classé dans bon dossier
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select('id')
-      .single()
+    const result = await query(
+      `INSERT INTO documents (
+        user_id, dossier_id, nom_fichier, type_fichier, taille_fichier,
+        storage_provider, external_file_id, external_folder_client_id,
+        external_folder_dossier_id, external_sharing_link, external_metadata,
+        source_type, source_metadata, categorie, description, needs_classification,
+        created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())
+      RETURNING id`,
+      [
+        params.userId,
+        params.dossierId,
+        params.fileName,
+        params.mimeType,
+        params.fileSize,
+        'google_drive',
+        params.externalFileId,
+        params.externalFolderClientId,
+        params.externalFolderDossierId,
+        params.externalSharingLink,
+        JSON.stringify(params.externalMetadata),
+        params.sourceType,
+        JSON.stringify(params.sourceMetadata || {}),
+        params.categorie,
+        params.description,
+        false, // needs_classification
+      ]
+    )
 
-    if (error || !data) {
-      throw new Error(
-        `Échec création entrée document BDD: ${error?.message}`
-      )
+    if (result.rows.length === 0) {
+      throw new Error('Échec création entrée document BDD')
     }
 
-    return data.id
+    return result.rows[0].id
   }
 
   /**
@@ -501,14 +495,12 @@ export class StorageManager {
     userId: string,
     rootFolderId: string
   ): Promise<void> {
-    await this.supabase
-      .from('cloud_providers_config')
-      .update({
-        root_folder_id: rootFolderId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-      .eq('provider', 'google_drive')
+    await query(
+      `UPDATE cloud_providers_config
+       SET root_folder_id = $1, updated_at = NOW()
+       WHERE user_id = $2 AND provider = 'google_drive'`,
+      [rootFolderId, userId]
+    )
   }
 }
 

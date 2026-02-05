@@ -11,10 +11,10 @@ interface FactureCardProps {
 }
 
 const statutColors: Record<string, string> = {
-  BROUILLON: 'bg-muted text-foreground',
-  ENVOYEE: 'bg-blue-100 text-blue-700',
-  PAYEE: 'bg-green-100 text-green-700',
-  IMPAYEE: 'bg-red-100 text-red-700',
+  brouillon: 'bg-muted text-foreground',
+  envoyee: 'bg-blue-100 text-blue-700',
+  payee: 'bg-green-100 text-green-700',
+  impayee: 'bg-red-100 text-red-700',
 }
 
 export default function FactureCard({ facture }: FactureCardProps) {
@@ -80,13 +80,13 @@ export default function FactureCard({ facture }: FactureCardProps) {
   }
 
   const clientName = facture.clients
-    ? facture.clients.type === 'PERSONNE_PHYSIQUE'
+    ? facture.clients.type_client === 'personne_physique'
       ? `${facture.clients.nom} ${facture.clients.prenom || ''}`.trim()
-      : facture.clients.denomination
+      : facture.clients.nom
     : t('clientDeleted')
 
   const isRetard =
-    facture.statut === 'IMPAYEE' &&
+    facture.statut === 'impayee' &&
     facture.date_echeance &&
     new Date(facture.date_echeance) < new Date()
 
@@ -96,7 +96,7 @@ export default function FactureCard({ facture }: FactureCardProps) {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h3 className="text-lg font-semibold text-foreground">
-              {facture.numero_facture}
+              {facture.numero}
             </h3>
             <span
               className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
@@ -290,9 +290,9 @@ export default function FactureCard({ facture }: FactureCardProps) {
             </button>
           )}
 
-          {facture.statut !== 'PAYEE' && (
+          {facture.statut !== 'payee' && (
             <button
-              onClick={() => handleChangeStatut('PAYEE')}
+              onClick={() => handleChangeStatut('payee')}
               disabled={loading}
               className="w-full rounded-md bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50"
             >
@@ -300,9 +300,9 @@ export default function FactureCard({ facture }: FactureCardProps) {
             </button>
           )}
 
-          {facture.statut === 'BROUILLON' && (
+          {facture.statut === 'brouillon' && (
             <button
-              onClick={() => handleChangeStatut('ENVOYEE')}
+              onClick={() => handleChangeStatut('envoyee')}
               disabled={loading}
               className="w-full rounded-md bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
             >

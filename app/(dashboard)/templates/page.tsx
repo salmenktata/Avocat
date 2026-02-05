@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import TemplateCard from '@/components/templates/TemplateCard'
@@ -6,29 +7,21 @@ import { getTranslations } from 'next-intl/server'
 
 export default async function TemplatesPage() {
   const t = await getTranslations('templates')
-  const supabase = await createClient()
+  const session = await getSession()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer tous les templates (propres + publics)
-  const { data: templates, error } = await supabase
-    .from('templates')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('Erreur chargement templates:', error)
-  }
+  const result = await query(
+    'SELECT * FROM templates ORDER BY created_at DESC'
+  )
+  const templates = result.rows
 
   // Séparer mes templates des templates publics
-  const mesTemplates = templates?.filter((t) => t.user_id === user.id) || []
-  const templatesPublics = templates?.filter((t) => t.user_id !== user.id && t.est_public) || []
+  const mesTemplates = templates?.filter((t) => t.user_id === session.user.id) || []
+  const templatesPublics = templates?.filter((t) => t.user_id !== session.user.id && t.est_public) || []
 
   // Statistiques
   const stats = {

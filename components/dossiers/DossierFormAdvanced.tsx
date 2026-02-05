@@ -33,7 +33,7 @@ import { WORKFLOWS_DISPONIBLES, getWorkflowById } from '@/lib/workflows/workflow
 // Schéma de validation Zod
 const dossierFormSchema = z.object({
   client_id: z.string().min(1, 'Le client est obligatoire'),
-  numero_dossier: z.string().min(1, 'Le numéro de dossier est obligatoire'),
+  numero: z.string().min(1, 'Le numéro de dossier est obligatoire'),
   type_procedure: z.string().min(1, 'Le type de procédure est obligatoire'),
   objet: z.string().min(3, 'L\'objet doit contenir au moins 3 caractères'),
   description: z.string().optional(),
@@ -43,7 +43,7 @@ const dossierFormSchema = z.object({
   numero_rg: z.string().optional(),
   date_ouverture: z.string().optional(),
   montant_litige: z.number().optional(),
-  statut: z.enum(['ACTIF', 'CLOS', 'ARCHIVE']),
+  statut: z.enum(['actif', 'clos', 'archive']),
   workflow_etape_actuelle: z.string().min(1, 'L\'étape du workflow est obligatoire'),
   notes: z.string().optional(),
 })
@@ -167,9 +167,9 @@ export function DossierFormAdvanced({
                 <SelectContent>
                   {clients.map((client) => {
                     const displayName =
-                      client.type === 'PERSONNE_PHYSIQUE'
+                      client.type_client === 'personne_physique'
                         ? `${client.nom} ${client.prenom || ''}`.trim()
-                        : client.denomination
+                        : client.nom
                     return (
                       <SelectItem key={client.id} value={client.id}>
                         <div className="flex items-center gap-2">
@@ -430,19 +430,19 @@ export function DossierFormAdvanced({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="ACTIF">
+                    <SelectItem value="actif">
                       <div className="flex items-center gap-2">
                         <Icons.checkCircle className="h-4 w-4 text-green-500" />
                         <span>Actif</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="CLOS">
+                    <SelectItem value="clos">
                       <div className="flex items-center gap-2">
                         <Icons.xCircle className="h-4 w-4 text-orange-500" />
                         <span>Clôturé</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="ARCHIVE">
+                    <SelectItem value="archive">
                       <div className="flex items-center gap-2">
                         <Icons.archive className="h-4 w-4 text-gray-500" />
                         <span>Archivé</span>

@@ -4,8 +4,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { createGoogleDriveAuthProvider } from '@/lib/integrations/cloud-storage'
+import { encrypt } from '@/lib/crypto'
 
 const FRONTEND_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:7002'
 
@@ -33,18 +36,16 @@ export async function GET(request: NextRequest) {
 
   try {
     // 1. Vérifier que l'utilisateur est authentifié
-    const supabase = createClient()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    const session = await getServerSession(authOptions)
 
-    if (authError || !user) {
-      console.error('[GoogleDrive OAuth] Utilisateur non authentifié:', authError)
+    if (!session?.user?.id) {
+      console.error('[GoogleDrive OAuth] Utilisateur non authentifié')
       return NextResponse.redirect(
         `${FRONTEND_URL}/login?error=unauthorized&message=${encodeURIComponent('Veuillez vous connecter')}`
       )
     }
+
+    const userId = session.user.id
 
     // 2. Échanger code contre tokens
     console.log('[GoogleDrive OAuth] Échange code contre tokens...')
@@ -62,59 +63,64 @@ export async function GET(request: NextRequest) {
     // 4. Calculer date expiration token
     const tokenExpiresAt = new Date(Date.now() + tokens.expiresIn * 1000)
 
+    // 4.5. Chiffrer les tokens avant stockage
+    console.log('[GoogleDrive OAuth] Chiffrement des tokens...')
+    const encryptedAccessToken = await encrypt(tokens.accessToken)
+    const encryptedRefreshToken = await encrypt(tokens.refreshToken)
+
     // 5. Vérifier si configuration existe déjà
-    const { data: existingConfig } = await supabase
-      .from('cloud_providers_config')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('provider', 'google_drive')
-      .single()
+    const existingConfigResult = await query(
+      'SELECT id FROM cloud_providers_config WHERE user_id = $1 AND provider = $2',
+      [userId, 'google_drive']
+    )
 
-    if (existingConfig) {
+    if (existingConfigResult.rows.length > 0) {
       // Mettre à jour configuration existante
-      const { error: updateError } = await supabase
-        .from('cloud_providers_config')
-        .update({
-          access_token: tokens.accessToken,
-          refresh_token: tokens.refreshToken,
-          token_expires_at: tokenExpiresAt.toISOString(),
-          enabled: true,
-          default_provider: true,
-          provider_email: userInfo.email,
-          scopes: tokens.scope.split(' '),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existingConfig.id)
-
-      if (updateError) {
-        throw new Error(
-          `Échec mise à jour configuration: ${updateError.message}`
-        )
-      }
+      const existingConfigId = existingConfigResult.rows[0].id
+      await query(
+        `UPDATE cloud_providers_config SET
+          access_token = $1,
+          refresh_token = $2,
+          token_expires_at = $3,
+          enabled = $4,
+          default_provider = $5,
+          provider_email = $6,
+          scopes = $7,
+          updated_at = NOW()
+        WHERE id = $8`,
+        [
+          encryptedAccessToken,
+          encryptedRefreshToken,
+          tokenExpiresAt,
+          true,
+          true,
+          userInfo.email,
+          tokens.scope.split(' '),
+          existingConfigId
+        ]
+      )
 
       console.log('[GoogleDrive OAuth] Configuration mise à jour avec succès')
     } else {
       // Créer nouvelle configuration
-      const { error: insertError } = await supabase
-        .from('cloud_providers_config')
-        .insert({
-          user_id: user.id,
-          provider: 'google_drive',
-          access_token: tokens.accessToken,
-          refresh_token: tokens.refreshToken,
-          token_expires_at: tokenExpiresAt.toISOString(),
-          enabled: true,
-          default_provider: true,
-          root_folder_name: 'Clients MonCabinet',
-          provider_email: userInfo.email,
-          scopes: tokens.scope.split(' '),
-        })
-
-      if (insertError) {
-        throw new Error(
-          `Échec création configuration: ${insertError.message}`
-        )
-      }
+      await query(
+        `INSERT INTO cloud_providers_config (
+          user_id, provider, access_token, refresh_token, token_expires_at,
+          enabled, default_provider, root_folder_name, provider_email, scopes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [
+          userId,
+          'google_drive',
+          encryptedAccessToken,
+          encryptedRefreshToken,
+          tokenExpiresAt,
+          true,
+          true,
+          'Clients MonCabinet',
+          userInfo.email,
+          tokens.scope.split(' ')
+        ]
+      )
 
       console.log('[GoogleDrive OAuth] Configuration créée avec succès')
     }

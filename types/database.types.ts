@@ -54,6 +54,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
+          type_client: string
           nom: string
           prenom: string | null
           cin: string | null
@@ -62,8 +63,6 @@ export interface Database {
           telephone: string | null
           email: string | null
           adresse: string | null
-          ville: string | null
-          code_postal: string | null
           profession: string | null
           notes: string | null
           created_at: string
@@ -72,6 +71,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
+          type_client: string
           nom: string
           prenom?: string | null
           cin?: string | null
@@ -80,8 +80,6 @@ export interface Database {
           telephone?: string | null
           email?: string | null
           adresse?: string | null
-          ville?: string | null
-          code_postal?: string | null
           profession?: string | null
           notes?: string | null
           created_at?: string
@@ -90,6 +88,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
+          type_client?: string
           nom?: string
           prenom?: string | null
           cin?: string | null
@@ -98,8 +97,6 @@ export interface Database {
           telephone?: string | null
           email?: string | null
           adresse?: string | null
-          ville?: string | null
-          code_postal?: string | null
           profession?: string | null
           notes?: string | null
           created_at?: string
@@ -111,7 +108,7 @@ export interface Database {
           id: string
           user_id: string
           client_id: string
-          numero_dossier: string
+          numero: string
           type_procedure: string
           objet: string
           tribunal: string
@@ -130,7 +127,7 @@ export interface Database {
           id?: string
           user_id: string
           client_id: string
-          numero_dossier: string
+          numero: string
           type_procedure?: string
           objet: string
           tribunal: string
@@ -149,7 +146,7 @@ export interface Database {
           id?: string
           user_id?: string
           client_id?: string
-          numero_dossier?: string
+          numero?: string
           type_procedure?: string
           objet?: string
           tribunal?: string

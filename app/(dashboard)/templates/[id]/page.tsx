@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { TYPE_DOCUMENT_LABELS } from '@/lib/validations/template'
@@ -10,25 +11,21 @@ export default async function TemplateDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const supabase = await createClient()
+  const session = await getSession()
   const t = await getTranslations('templates')
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer le template
-  const { data: template, error } = await supabase
-    .from('templates')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const result = await query(
+    'SELECT * FROM templates WHERE id = $1',
+    [id]
+  )
+  const template = result.rows[0]
 
-  if (error || !template) {
+  if (!template) {
     redirect('/templates')
   }
 

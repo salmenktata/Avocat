@@ -21,9 +21,9 @@ import { cn } from '@/lib/utils'
 
 interface Facture {
   id: string
-  numero_facture: string
+  numero: string
   objet: string
-  statut: 'BROUILLON' | 'ENVOYEE' | 'PAYEE' | 'IMPAYEE'
+  statut: 'brouillon' | 'envoyee' | 'payee' | 'impayee'
   montant_ht: number
   montant_ttc: number
   date_emission: string
@@ -31,8 +31,7 @@ interface Facture {
   client?: {
     nom: string
     prenom?: string
-    denomination?: string
-    type: string
+    type_client: string
   }
 }
 
@@ -70,7 +69,7 @@ export function FacturesDataTable({
 
   // Vérifier si la facture est en retard
   const isOverdue = (facture: Facture) => {
-    if (!facture.date_echeance || facture.statut === 'PAYEE') return false
+    if (!facture.date_echeance || facture.statut === 'payee') return false
     const echeance = new Date(facture.date_echeance)
     return echeance < new Date()
   }
@@ -80,21 +79,21 @@ export function FacturesDataTable({
     const overdue = isOverdue(facture)
 
     const variants = {
-      BROUILLON: {
+      brouillon: {
         className: 'bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400',
         label: 'Brouillon',
       },
-      ENVOYEE: {
+      envoyee: {
         className: overdue
           ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
           : 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400',
         label: overdue ? 'En retard' : 'Envoyée',
       },
-      PAYEE: {
+      payee: {
         className: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400',
         label: 'Payée',
       },
-      IMPAYEE: {
+      impayee: {
         className: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400',
         label: 'Impayée',
       },
@@ -112,17 +111,17 @@ export function FacturesDataTable({
   // Obtenir le nom du client
   const getClientName = (client?: Facture['client']) => {
     if (!client) return 'Non assigné'
-    if (client.type === 'PERSONNE_PHYSIQUE') {
+    if (client.type_client === 'personne_physique') {
       return `${client.prenom || ''} ${client.nom}`.trim()
     }
-    return client.denomination || client.nom
+    return client.nom
   }
 
   // Gérer le marquage comme payée
   const handleMarkAsPaid = async (facture: Facture) => {
     await confirm({
       title: 'Marquer comme payée ?',
-      description: `La facture "${facture.numero_facture}" sera marquée comme payée.`,
+      description: `La facture "${facture.numero}" sera marquée comme payée.`,
       confirmLabel: 'Marquer comme payée',
       variant: 'default',
       icon: 'question',
@@ -142,7 +141,7 @@ export function FacturesDataTable({
   const handleCancel = async (facture: Facture) => {
     await confirm({
       title: 'Annuler la facture ?',
-      description: `La facture "${facture.numero_facture}" sera marquée comme annulée. Cette action ne peut pas être annulée.`,
+      description: `La facture "${facture.numero}" sera marquée comme annulée. Cette action ne peut pas être annulée.`,
       confirmLabel: 'Annuler la facture',
       variant: 'destructive',
       icon: 'danger',
@@ -162,7 +161,7 @@ export function FacturesDataTable({
   const handleDelete = async (facture: Facture) => {
     await confirm({
       title: 'Supprimer la facture ?',
-      description: `La facture "${facture.numero_facture}" sera définitivement supprimée. Cette action est irréversible.`,
+      description: `La facture "${facture.numero}" sera définitivement supprimée. Cette action est irréversible.`,
       confirmLabel: 'Supprimer définitivement',
       variant: 'destructive',
       icon: 'danger',
@@ -189,7 +188,7 @@ export function FacturesDataTable({
             <Icons.invoices className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <div className="font-medium">{facture.numero_facture}</div>
+            <div className="font-medium">{facture.numero}</div>
             <div className="text-xs text-muted-foreground">
               {formatDate(facture.date_emission)}
             </div>
@@ -220,7 +219,7 @@ export function FacturesDataTable({
       header: 'Client',
       accessor: (facture) => (
         <div className="flex items-center gap-2">
-          {facture.client?.type === 'PERSONNE_PHYSIQUE' ? (
+          {facture.client?.type_client === 'personne_physique' ? (
             <Icons.user className="h-4 w-4 text-muted-foreground" />
           ) : (
             <Icons.building className="h-4 w-4 text-muted-foreground" />
@@ -278,7 +277,7 @@ export function FacturesDataTable({
               Télécharger PDF
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {facture.statut !== 'PAYEE' && (
+            {facture.statut !== 'payee' && (
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation()
@@ -289,7 +288,7 @@ export function FacturesDataTable({
                 Marquer comme payée
               </DropdownMenuItem>
             )}
-            {facture.statut === 'BROUILLON' && (
+            {facture.statut === 'brouillon' && (
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation()

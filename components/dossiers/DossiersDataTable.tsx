@@ -21,15 +21,14 @@ import { cn } from '@/lib/utils'
 
 interface Dossier {
   id: string
-  numero_dossier: string
+  numero: string
   objet: string
-  statut: 'ACTIF' | 'CLOS' | 'ARCHIVE'
+  statut: 'actif' | 'clos' | 'archive'
   type_procedure: string
   client?: {
     nom: string
     prenom?: string
-    denomination?: string
-    type: string
+    type_client: string
   }
   created_at: string
   date_ouverture?: string
@@ -65,17 +64,17 @@ export function DossiersDataTable({
   // Obtenir le badge de statut
   const getStatusBadge = (statut: Dossier['statut']) => {
     const variants = {
-      ACTIF: {
+      actif: {
         className: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400',
         icon: Icons.checkCircle,
         label: 'Actif',
       },
-      CLOS: {
+      clos: {
         className: 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400',
         icon: Icons.xCircle,
         label: 'Clôturé',
       },
-      ARCHIVE: {
+      archive: {
         className: 'bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400',
         icon: Icons.archive,
         label: 'Archivé',
@@ -96,17 +95,17 @@ export function DossiersDataTable({
   // Obtenir le nom du client
   const getClientName = (client?: Dossier['client']) => {
     if (!client) return 'Non assigné'
-    if (client.type === 'PERSONNE_PHYSIQUE') {
+    if (client.type_client === 'personne_physique') {
       return `${client.prenom || ''} ${client.nom}`.trim()
     }
-    return client.denomination || client.nom
+    return client.nom
   }
 
   // Gérer l'archivage
   const handleArchive = async (dossier: Dossier) => {
     await confirm({
       title: 'Archiver le dossier ?',
-      description: `Le dossier "${dossier.numero_dossier}" sera déplacé vers les archives. Vous pourrez le restaurer à tout moment.`,
+      description: `Le dossier "${dossier.numero}" sera déplacé vers les archives. Vous pourrez le restaurer à tout moment.`,
       confirmLabel: 'Archiver',
       variant: 'default',
       icon: 'warning',
@@ -126,7 +125,7 @@ export function DossiersDataTable({
   const handleClose = async (dossier: Dossier) => {
     await confirm({
       title: 'Clôturer le dossier ?',
-      description: `Le dossier "${dossier.numero_dossier}" sera marqué comme clôturé. Il ne pourra plus être modifié.`,
+      description: `Le dossier "${dossier.numero}" sera marqué comme clôturé. Il ne pourra plus être modifié.`,
       confirmLabel: 'Clôturer',
       variant: 'default',
       icon: 'question',
@@ -146,7 +145,7 @@ export function DossiersDataTable({
   const handleDelete = async (dossier: Dossier) => {
     await confirm({
       title: 'Supprimer le dossier ?',
-      description: `Le dossier "${dossier.numero_dossier}" et toutes ses données associées seront définitivement supprimés. Cette action est irréversible.`,
+      description: `Le dossier "${dossier.numero}" et toutes ses données associées seront définitivement supprimés. Cette action est irréversible.`,
       confirmLabel: 'Supprimer définitivement',
       variant: 'destructive',
       icon: 'danger',
@@ -173,7 +172,7 @@ export function DossiersDataTable({
             <Icons.dossiers className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <div className="font-medium">{dossier.numero_dossier}</div>
+            <div className="font-medium">{dossier.numero}</div>
             <div className="text-xs text-muted-foreground">
               {formatDate(dossier.created_at)}
             </div>
@@ -200,7 +199,7 @@ export function DossiersDataTable({
       header: 'Client',
       accessor: (dossier) => (
         <div className="flex items-center gap-2">
-          {dossier.client?.type === 'PERSONNE_PHYSIQUE' ? (
+          {dossier.client?.type_client === 'personne_physique' ? (
             <Icons.user className="h-4 w-4 text-muted-foreground" />
           ) : (
             <Icons.building className="h-4 w-4 text-muted-foreground" />
@@ -240,7 +239,7 @@ export function DossiersDataTable({
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {dossier.statut === 'ACTIF' && (
+            {dossier.statut === 'actif' && (
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation()
@@ -251,7 +250,7 @@ export function DossiersDataTable({
                 Clôturer
               </DropdownMenuItem>
             )}
-            {dossier.statut !== 'ARCHIVE' && (
+            {dossier.statut !== 'archive' && (
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation()

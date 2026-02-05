@@ -99,9 +99,9 @@ export default function FactureForm({
             <option value="">{t('placeholders.selectClient')}</option>
             {clients.map((client) => {
               const displayName =
-                client.type === 'PERSONNE_PHYSIQUE'
+                client.type_client === 'personne_physique'
                   ? `${client.nom} ${client.prenom || ''}`.trim()
-                  : client.denomination
+                  : client.nom
               return (
                 <option key={client.id} value={client.id}>
                   {displayName}
@@ -125,7 +125,7 @@ export default function FactureForm({
             <option value="">{t('placeholders.noDossier')}</option>
             {dossiers.map((dossier) => (
               <option key={dossier.id} value={dossier.id}>
-                {dossier.numero_dossier} - {dossier.objet}
+                {dossier.numero} - {dossier.objet}
               </option>
             ))}
           </select>
@@ -244,10 +244,10 @@ export default function FactureForm({
           {...register('statut')}
           className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
         >
-          <option value="BROUILLON">{t('options.statusDraft')}</option>
-          <option value="ENVOYEE">{t('options.statusSent')}</option>
-          <option value="PAYEE">{t('options.statusPaid')}</option>
-          <option value="IMPAYEE">{t('options.statusUnpaid')}</option>
+          <option value="brouillon">{t('options.statusDraft')}</option>
+          <option value="envoyee">{t('options.statusSent')}</option>
+          <option value="payee">{t('options.statusPaid')}</option>
+          <option value="impayee">{t('options.statusUnpaid')}</option>
         </select>
         {errors.statut && (
           <p className="mt-1 text-sm text-red-600">{errors.statut.message}</p>

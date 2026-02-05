@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { GlobalKeyboardShortcuts } from '@/components/ui/KeyboardShortcuts'
@@ -9,25 +10,24 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const session = await getSession()
 
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer le profil
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const result = await query(
+    'SELECT * FROM profiles WHERE id = $1',
+    [session.user.id]
+  )
+  const profile = result.rows[0]
 
   return (
     <>
       <AppLayout
         user={{
-          email: user.email!,
+          email: session.user.email!,
           nom: profile?.nom,
           prenom: profile?.prenom,
         }}

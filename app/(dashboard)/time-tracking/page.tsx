@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ActiveTimer from '@/components/time-tracking/ActiveTimer'
@@ -7,59 +8,32 @@ import { getTranslations } from 'next-intl/server'
 
 export default async function TimeTrackingPage() {
   const t = await getTranslations('timeTracking')
-  const supabase = await createClient()
+  const session = await getSession()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
-  // Récupérer le timer actif
-  const { data: activeTimer } = await supabase
-    .from('time_entries')
-    .select(`
-      *,
-      dossiers (
-        numero_dossier,
-        objet,
-        clients (
-          nom,
-          prenom,
-          denomination,
-          type
-        )
-      )
-    `)
-    .eq('user_id', user.id)
-    .is('heure_fin', null)
-    .single()
+  // Note: La fonctionnalité de timer actif nécessite des colonnes supplémentaires
+  // (heure_debut, heure_fin) qui seront ajoutées via migration
+  const activeTimer = null
 
   // Récupérer toutes les entrées de temps
-  const { data: timeEntries, error } = await supabase
-    .from('time_entries')
-    .select(`
-      *,
-      dossiers (
-        id,
-        numero_dossier,
-        objet
-      ),
-      factures (
-        numero_facture
-      )
-    `)
-    .eq('user_id', user.id)
-    .not('heure_fin', 'is', null) // Exclure le timer actif
-    .order('date', { ascending: false })
-    .order('heure_debut', { ascending: false })
-    .limit(50)
-
-  if (error) {
-    console.error('Erreur chargement entrées temps:', error)
-  }
+  const timeEntriesResult = await query(
+    `SELECT te.*,
+      json_build_object(
+        'id', d.id,
+        'numero', d.numero,
+        'objet', d.objet
+      ) as dossiers
+    FROM time_entries te
+    LEFT JOIN dossiers d ON te.dossier_id = d.id
+    WHERE te.user_id = $1
+    ORDER BY te.date DESC
+    LIMIT 50`,
+    [session.user.id]
+  )
+  const timeEntries = timeEntriesResult.rows
 
   // Statistiques
   const aujourdhui = new Date()

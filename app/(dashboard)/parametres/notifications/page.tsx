@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import NotificationPreferencesForm from '@/components/parametres/NotificationPreferencesForm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,38 +11,26 @@ export const metadata = {
 }
 
 export default async function NotificationsPreferencesPage() {
-  const supabase = await createClient()
+  const session = await getSession()
 
-  // Vérifier authentification
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer préférences actuelles (ou créer par défaut)
-  let { data: preferences } = await supabase
-    .from('notification_preferences')
-    .select('*')
-    .eq('user_id', user.id)
-    .single()
+  const prefsResult = await query(
+    'SELECT * FROM notification_preferences WHERE user_id = $1',
+    [session.user.id]
+  )
+  let preferences = prefsResult.rows[0]
 
   // Si pas de préférences, créer avec valeurs par défaut
   if (!preferences) {
-    const { data: newPrefs, error: insertError } = await supabase
-      .from('notification_preferences')
-      .insert({
-        user_id: user.id,
-        // Valeurs par défaut déjà définies dans la migration
-      })
-      .select()
-      .single()
-
-    if (!insertError && newPrefs) {
-      preferences = newPrefs
-    }
+    const insertResult = await query(
+      'INSERT INTO notification_preferences (user_id) VALUES ($1) RETURNING *',
+      [session.user.id]
+    )
+    preferences = insertResult.rows[0]
   }
 
   return (
@@ -65,7 +54,7 @@ export default async function NotificationsPreferencesPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <NotificationPreferencesForm preferences={preferences} userId={user.id} />
+            <NotificationPreferencesForm preferences={preferences} userId={session.user.id} />
           </CardContent>
         </Card>
 

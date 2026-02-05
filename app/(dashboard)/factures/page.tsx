@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import FactureCard from '@/components/factures/FactureCard'
@@ -6,57 +7,51 @@ import { getTranslations } from 'next-intl/server'
 
 export default async function FacturesPage() {
   const t = await getTranslations('factures')
-  const supabase = await createClient()
+  const session = await getSession()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer toutes les factures avec les informations du client
-  const { data: factures, error } = await supabase
-    .from('factures')
-    .select(`
-      *,
-      clients (
-        id,
-        type,
-        nom,
-        prenom,
-        denomination
-      ),
-      dossiers (
-        id,
-        numero_dossier,
-        objet
-      )
-    `)
-    .eq('user_id', user.id)
-    .order('date_emission', { ascending: false })
-
-  if (error) {
-    console.error('Erreur chargement factures:', error)
-  }
+  const result = await query(
+    `SELECT f.*,
+      json_build_object(
+        'id', c.id,
+        'type_client', c.type_client,
+        'nom', c.nom,
+        'prenom', c.prenom
+      ) as clients,
+      json_build_object(
+        'id', d.id,
+        'numero', d.numero,
+        'objet', d.objet
+      ) as dossiers
+    FROM factures f
+    LEFT JOIN clients c ON f.client_id = c.id
+    LEFT JOIN dossiers d ON f.dossier_id = d.id
+    WHERE f.user_id = $1
+    ORDER BY f.date_emission DESC`,
+    [session.user.id]
+  )
+  const factures = result.rows
 
   // Calculer les statistiques
   const stats = {
     total: factures?.length || 0,
-    brouillon: factures?.filter((f) => f.statut === 'BROUILLON').length || 0,
-    envoyees: factures?.filter((f) => f.statut === 'ENVOYEE').length || 0,
-    payees: factures?.filter((f) => f.statut === 'PAYEE').length || 0,
-    impayees: factures?.filter((f) => f.statut === 'IMPAYEE').length || 0,
+    brouillon: factures?.filter((f) => f.statut === 'brouillon').length || 0,
+    envoyees: factures?.filter((f) => f.statut === 'envoyee').length || 0,
+    payees: factures?.filter((f) => f.statut === 'payee').length || 0,
+    impayees: factures?.filter((f) => f.statut === 'envoyee').length || 0,
     montantTotal: factures?.reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0) || 0,
-    montantPaye: factures?.filter((f) => f.statut === 'PAYEE').reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0) || 0,
-    montantImpaye: factures?.filter((f) => f.statut === 'IMPAYEE').reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0) || 0,
+    montantPaye: factures?.filter((f) => f.statut === 'payee').reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0) || 0,
+    montantImpaye: factures?.filter((f) => f.statut === 'envoyee').reduce((acc, f) => acc + parseFloat(f.montant_ttc || 0), 0) || 0,
   }
 
   // Factures en retard
   const facturesEnRetard = factures?.filter(
     (f) =>
-      f.statut === 'IMPAYEE' &&
+      f.statut === 'envoyee' &&
       f.date_echeance &&
       new Date(f.date_echeance) < new Date()
   ).length || 0

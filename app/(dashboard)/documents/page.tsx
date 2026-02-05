@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import DocumentCard from '@/components/documents/DocumentCard'
@@ -6,38 +7,33 @@ import { getTranslations } from 'next-intl/server'
 
 export default async function DocumentsPage() {
   const t = await getTranslations('documents')
-  const supabase = await createClient()
+  const session = await getSession()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer tous les documents de l'utilisateur
-  const { data: documents, error } = await supabase
-    .from('documents')
-    .select(`
-      *,
-      dossiers (
-        id,
-        numero_dossier,
-        objet,
-        clients (
-          nom,
-          prenom,
-          denomination,
-          type
+  const result = await query(
+    `SELECT doc.*,
+      json_build_object(
+        'id', d.id,
+        'numero', d.numero,
+        'objet', d.objet,
+        'clients', json_build_object(
+          'nom', c.nom,
+          'prenom', c.prenom,
+          'type_client', c.type_client
         )
-      )
-    `)
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('Erreur chargement documents:', error)
-  }
+      ) as dossiers
+    FROM documents doc
+    LEFT JOIN dossiers d ON doc.dossier_id = d.id
+    LEFT JOIN clients c ON d.client_id = c.id
+    WHERE doc.user_id = $1
+    ORDER BY doc.created_at DESC`,
+    [session.user.id]
+  )
+  const documents = result.rows
 
   // Statistiques
   const stats = {
@@ -154,10 +150,10 @@ export default async function DocumentsPage() {
                 <DocumentCard document={doc} />
                 {doc.dossiers && (
                   <div className="mt-2 text-xs text-muted-foreground pl-14">
-                    📁 {doc.dossiers.numero_dossier} -{' '}
-                    {doc.dossiers.clients?.type === 'PERSONNE_PHYSIQUE'
+                    📁 {doc.dossiers.numero} -{' '}
+                    {doc.dossiers.clients?.type_client === 'personne_physique'
                       ? `${doc.dossiers.clients.nom} ${doc.dossiers.clients.prenom || ''}`.trim()
-                      : doc.dossiers.clients?.denomination}
+                      : doc.dossiers.clients?.nom}
                   </div>
                 )}
               </div>

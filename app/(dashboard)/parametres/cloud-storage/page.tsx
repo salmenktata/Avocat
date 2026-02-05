@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import CloudStorageConfig from '@/components/parametres/CloudStorageConfig'
 
@@ -13,22 +14,18 @@ export default async function CloudStorageParametresPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const params = await searchParams
-  const supabase = await createClient()
+  const session = await getSession()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer la configuration cloud
-  const { data: cloudConfigs } = await supabase
-    .from('cloud_providers_config')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  const result = await query(
+    'SELECT * FROM cloud_providers_config WHERE user_id = $1 ORDER BY created_at DESC',
+    [session.user.id]
+  )
+  const cloudConfigs = result.rows
 
   // Sanitize tokens sensibles avant d'envoyer au client
   const sanitizedConfigs = cloudConfigs?.map((config) => ({

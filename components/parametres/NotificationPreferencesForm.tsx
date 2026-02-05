@@ -9,34 +9,18 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Loader2, Save } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { saveNotificationPreferencesAction, type NotificationPreferences } from '@/app/actions/cabinet'
 
-interface NotificationPreferences {
+interface NotificationPreferencesDB extends NotificationPreferences {
   id: string
   user_id: string
-  enabled: boolean
-  daily_digest_enabled: boolean
-  daily_digest_time: string
-  alerte_j15_enabled: boolean
-  alerte_j7_enabled: boolean
-  alerte_j3_enabled: boolean
-  alerte_j1_enabled: boolean
-  alerte_actions_urgentes: boolean
-  alerte_actions_priorite_haute: boolean
-  alerte_audiences_semaine: boolean
-  alerte_audiences_veille: boolean
-  alerte_factures_impayees: boolean
-  alerte_factures_impayees_delai_jours: number
-  alerte_delais_appel: boolean
-  alerte_delais_cassation: boolean
-  alerte_delais_opposition: boolean
-  email_format: string
-  langue_email: string
+  created_at?: string
+  updated_at?: string
 }
 
 interface Props {
-  preferences: NotificationPreferences | null
+  preferences: NotificationPreferencesDB | null
   userId: string
 }
 
@@ -44,7 +28,6 @@ export default function NotificationPreferencesForm({ preferences, userId }: Pro
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
 
   const [formData, setFormData] = useState({
     enabled: preferences?.enabled ?? true,
@@ -72,19 +55,11 @@ export default function NotificationPreferencesForm({ preferences, userId }: Pro
     setLoading(true)
 
     try {
-      const { error } = preferences
-        ? await supabase
-            .from('notification_preferences')
-            .update(formData)
-            .eq('user_id', userId)
-        : await supabase
-            .from('notification_preferences')
-            .insert({
-              user_id: userId,
-              ...formData,
-            })
+      const result = await saveNotificationPreferencesAction(formData)
 
-      if (error) throw error
+      if (result.error) {
+        throw new Error(result.error)
+      }
 
       toast({
         title: 'Préférences enregistrées',
@@ -92,11 +67,11 @@ export default function NotificationPreferencesForm({ preferences, userId }: Pro
       })
 
       router.refresh()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur sauvegarde préférences:', error)
       toast({
         title: 'Erreur',
-        description: 'Impossible de sauvegarder les préférences.',
+        description: error.message || 'Impossible de sauvegarder les préférences.',
         variant: 'destructive',
       })
     } finally {

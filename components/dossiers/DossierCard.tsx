@@ -14,9 +14,9 @@ export default function DossierCard({ dossier }: DossierCardProps) {
   const progress = getWorkflowProgress(dossier.workflow_etape_actuelle || 'ASSIGNATION')
 
   const clientName =
-    dossier.clients?.type === 'PERSONNE_PHYSIQUE'
+    dossier.clients?.type_client === 'personne_physique'
       ? `${dossier.clients.nom} ${dossier.clients.prenom || ''}`.trim()
-      : dossier.clients?.denomination || t('unknownClient')
+      : dossier.clients?.nom || t('unknownClient')
 
   return (
     <Link href={`/dossiers/${dossier.id}`}>
@@ -25,13 +25,13 @@ export default function DossierCard({ dossier }: DossierCardProps) {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-foreground">
-                {dossier.numero_dossier}
+                {dossier.numero}
               </h3>
               <span
                 className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                  dossier.statut === 'ACTIF'
+                  dossier.statut === 'actif'
                     ? 'bg-green-100 text-green-700'
-                    : dossier.statut === 'CLOS'
+                    : dossier.statut === 'clos'
                     ? 'bg-muted text-foreground'
                     : 'bg-blue-100 text-blue-700'
                 }`}

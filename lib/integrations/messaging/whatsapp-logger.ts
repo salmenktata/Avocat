@@ -3,11 +3,7 @@
  * Gère l'historique et le cache des messages/médias WhatsApp
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/supabase'
-
-type WhatsAppMessage = Database['public']['Tables']['whatsapp_messages']['Insert']
-type WhatsAppMediaCache = Database['public']['Tables']['whatsapp_media_cache']['Insert']
+import { query } from '@/lib/db/postgres'
 
 export interface LogMessageParams {
   whatsappMessageId: string
@@ -54,36 +50,35 @@ export interface SaveMediaCacheParams {
  * Crée une entrée initiale dans whatsapp_messages
  */
 export async function logIncomingMessage(
-  supabase: SupabaseClient<Database>,
   params: LogMessageParams
 ): Promise<string | null> {
   try {
-    const { data, error } = await supabase
-      .from('whatsapp_messages')
-      .insert({
-        whatsapp_message_id: params.whatsappMessageId,
-        from_phone: params.fromPhone,
-        to_phone: params.toPhone,
-        client_id: params.clientId || null,
-        user_id: params.userId || null,
-        message_type: params.messageType,
-        message_body: params.messageBody || null,
-        media_id: params.mediaId || null,
-        media_mime_type: params.mediaMimeType || null,
-        media_file_name: params.mediaFileName || null,
-        media_file_size: params.mediaFileSize || null,
-        processing_status: 'received',
-      } satisfies WhatsAppMessage)
-      .select('id')
-      .single()
+    const result = await query(
+      `INSERT INTO whatsapp_messages (
+        whatsapp_message_id, from_phone, to_phone, client_id, user_id,
+        message_type, message_body, media_id, media_mime_type,
+        media_file_name, media_file_size, processing_status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING id`,
+      [
+        params.whatsappMessageId,
+        params.fromPhone,
+        params.toPhone,
+        params.clientId || null,
+        params.userId || null,
+        params.messageType,
+        params.messageBody || null,
+        params.mediaId || null,
+        params.mediaMimeType || null,
+        params.mediaFileName || null,
+        params.mediaFileSize || null,
+        'received'
+      ]
+    )
 
-    if (error) {
-      console.error('[WhatsApp Logger] Erreur log message:', error)
-      return null
-    }
-
-    console.log('[WhatsApp Logger] Message loggé:', data.id)
-    return data.id
+    const messageId = result.rows[0]?.id
+    console.log('[WhatsApp Logger] Message loggé:', messageId)
+    return messageId || null
   } catch (error: any) {
     console.error('[WhatsApp Logger] Erreur inattendue log message:', error)
     return null
@@ -94,30 +89,51 @@ export async function logIncomingMessage(
  * Met à jour le statut d'un message WhatsApp
  */
 export async function updateMessageStatus(
-  supabase: SupabaseClient<Database>,
   params: UpdateMessageStatusParams
 ): Promise<boolean> {
   try {
-    const updateData: any = {
-      processing_status: params.status,
+    const updates: string[] = ['processing_status = $1']
+    const values: any[] = [params.status]
+    let paramIndex = 2
+
+    if (params.mediaUrl) {
+      updates.push(`media_url = $${paramIndex}`)
+      values.push(params.mediaUrl)
+      paramIndex++
+    }
+    if (params.mediaExpiresAt) {
+      updates.push(`media_expires_at = $${paramIndex}`)
+      values.push(params.mediaExpiresAt)
+      paramIndex++
+    }
+    if (params.documentId) {
+      updates.push(`document_id = $${paramIndex}`)
+      values.push(params.documentId)
+      paramIndex++
+    }
+    if (params.pendingDocumentId) {
+      updates.push(`pending_document_id = $${paramIndex}`)
+      values.push(params.pendingDocumentId)
+      paramIndex++
+    }
+    if (params.errorMessage) {
+      updates.push(`error_message = $${paramIndex}`)
+      values.push(params.errorMessage)
+      paramIndex++
+    }
+    if (params.processedAt) {
+      updates.push(`processed_at = $${paramIndex}`)
+      values.push(params.processedAt)
+      paramIndex++
     }
 
-    if (params.mediaUrl) updateData.media_url = params.mediaUrl
-    if (params.mediaExpiresAt) updateData.media_expires_at = params.mediaExpiresAt.toISOString()
-    if (params.documentId) updateData.document_id = params.documentId
-    if (params.pendingDocumentId) updateData.pending_document_id = params.pendingDocumentId
-    if (params.errorMessage) updateData.error_message = params.errorMessage
-    if (params.processedAt) updateData.processed_at = params.processedAt.toISOString()
+    values.push(params.whatsappMessageId)
 
-    const { error } = await supabase
-      .from('whatsapp_messages')
-      .update(updateData)
-      .eq('whatsapp_message_id', params.whatsappMessageId)
-
-    if (error) {
-      console.error('[WhatsApp Logger] Erreur update status:', error)
-      return false
-    }
+    await query(
+      `UPDATE whatsapp_messages SET ${updates.join(', ')}
+       WHERE whatsapp_message_id = $${paramIndex}`,
+      values
+    )
 
     console.log('[WhatsApp Logger] Status mis à jour:', params.status)
     return true
@@ -131,7 +147,6 @@ export async function updateMessageStatus(
  * Vérifie si un média est déjà en cache
  */
 export async function checkMediaCache(
-  supabase: SupabaseClient<Database>,
   params: CheckMediaCacheParams
 ): Promise<{
   cached: boolean
@@ -139,21 +154,22 @@ export async function checkMediaCache(
   isExpired?: boolean
 }> {
   try {
-    const { data, error } = await supabase
-      .from('whatsapp_media_cache')
-      .select('storage_url, is_expired')
-      .eq('media_id', params.mediaId)
-      .single()
+    const result = await query(
+      'SELECT storage_url, is_expired FROM whatsapp_media_cache WHERE media_id = $1',
+      [params.mediaId]
+    )
 
-    if (error || !data) {
+    if (result.rows.length === 0) {
       return { cached: false }
     }
 
+    const data = result.rows[0]
+
     // Mettre à jour last_accessed_at
-    await supabase
-      .from('whatsapp_media_cache')
-      .update({ last_accessed_at: new Date().toISOString() })
-      .eq('media_id', params.mediaId)
+    await query(
+      'UPDATE whatsapp_media_cache SET last_accessed_at = NOW() WHERE media_id = $1',
+      [params.mediaId]
+    )
 
     console.log('[WhatsApp Logger] Média trouvé en cache:', {
       mediaId: params.mediaId,
@@ -175,28 +191,26 @@ export async function checkMediaCache(
  * Sauvegarde un média dans le cache
  */
 export async function saveMediaCache(
-  supabase: SupabaseClient<Database>,
   params: SaveMediaCacheParams
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('whatsapp_media_cache')
-      .insert({
-        media_id: params.mediaId,
-        whatsapp_message_id: params.whatsappMessageId,
-        mime_type: params.mimeType,
-        file_name: params.fileName || null,
-        file_size: params.fileSize || null,
-        storage_bucket: params.storageBucket,
-        storage_path: params.storagePath,
-        storage_url: params.storageUrl,
-        whatsapp_url_expires_at: params.whatsappUrlExpiresAt.toISOString(),
-      } satisfies WhatsAppMediaCache)
-
-    if (error) {
-      console.error('[WhatsApp Logger] Erreur save cache:', error)
-      return false
-    }
+    await query(
+      `INSERT INTO whatsapp_media_cache (
+        media_id, whatsapp_message_id, mime_type, file_name, file_size,
+        storage_bucket, storage_path, storage_url, whatsapp_url_expires_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        params.mediaId,
+        params.whatsappMessageId,
+        params.mimeType,
+        params.fileName || null,
+        params.fileSize || null,
+        params.storageBucket,
+        params.storagePath,
+        params.storageUrl,
+        params.whatsappUrlExpiresAt
+      ]
+    )
 
     console.log('[WhatsApp Logger] Média sauvegardé en cache:', params.mediaId)
     return true
@@ -210,24 +224,16 @@ export async function saveMediaCache(
  * Met à jour le client_id et user_id d'un message après identification
  */
 export async function updateMessageClient(
-  supabase: SupabaseClient<Database>,
   whatsappMessageId: string,
   clientId: string,
   userId: string
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('whatsapp_messages')
-      .update({
-        client_id: clientId,
-        user_id: userId,
-      })
-      .eq('whatsapp_message_id', whatsappMessageId)
-
-    if (error) {
-      console.error('[WhatsApp Logger] Erreur update client:', error)
-      return false
-    }
+    await query(
+      `UPDATE whatsapp_messages SET client_id = $1, user_id = $2
+       WHERE whatsapp_message_id = $3`,
+      [clientId, userId, whatsappMessageId]
+    )
 
     console.log('[WhatsApp Logger] Client associé au message:', clientId)
     return true

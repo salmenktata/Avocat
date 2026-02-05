@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Icons } from '@/lib/icons'
 import { useToast } from '@/hooks/use-toast'
-import { createClient } from '@/lib/supabase/client'
 import { Separator } from '@/components/ui/separator'
+import { updateProfileAction, changePasswordAction, updateEmailAction } from '@/app/actions/profile'
 
 interface ProfileFormProps {
   profile: {
@@ -39,30 +39,27 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
     setIsLoading(true)
 
     try {
-      const supabase = createClient()
-
       // Mettre à jour le profil (nom, prénom)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          nom: formData.nom,
-          prenom: formData.prenom,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', profile?.id)
+      const profileResult = await updateProfileAction({
+        nom: formData.nom,
+        prenom: formData.prenom,
+      })
 
-      if (profileError) throw profileError
+      if (profileResult.error) {
+        throw new Error(profileResult.error)
+      }
 
       // Mettre à jour l'email si modifié
       if (formData.email !== userEmail) {
-        const { error: emailError } = await supabase.auth.updateUser({
-          email: formData.email,
-        })
-        if (emailError) throw emailError
+        const emailResult = await updateEmailAction(formData.email)
+
+        if (emailResult.error) {
+          throw new Error(emailResult.error)
+        }
 
         toast({
           title: 'Email mis à jour',
-          description: 'Veuillez vérifier votre nouvelle adresse email pour confirmer le changement.',
+          description: emailResult.message || 'Veuillez vous reconnecter avec votre nouvelle adresse email.',
         })
       }
 
@@ -108,13 +105,14 @@ export default function ProfileForm({ profile, userEmail }: ProfileFormProps) {
     setIsChangingPassword(true)
 
     try {
-      const supabase = createClient()
-
-      const { error } = await supabase.auth.updateUser({
-        password: formData.newPassword,
+      const result = await changePasswordAction({
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
       })
 
-      if (error) throw error
+      if (result.error) {
+        throw new Error(result.error)
+      }
 
       toast({
         title: 'Mot de passe modifié',

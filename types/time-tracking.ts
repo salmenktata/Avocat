@@ -17,7 +17,7 @@ export interface TimeEntry {
   created_at?: string
   updated_at?: string
   dossiers?: {
-    numero_dossier: string
+    numero: string
     objet: string
   }
 }
@@ -30,13 +30,12 @@ export interface ActiveTimer {
   dossier_id: string | null
   user_id: string
   dossiers?: {
-    numero_dossier?: string
+    numero?: string
     objet?: string
     clients?: {
-      type: string
+      type_client: string
       nom: string
       prenom?: string | null
-      denomination?: string | null
     }
   }
 }

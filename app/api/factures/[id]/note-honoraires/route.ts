@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
 import { NoteHonorairesPDF } from '@/lib/pdf/note-honoraires-pdf'
@@ -10,51 +12,38 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
 
     // Vérifier l'authentification
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const session = await getServerSession(authOptions)
 
-    if (!user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    // Récupérer la facture avec les relations
-    const { data: facture, error: factureError } = await supabase
-      .from('factures')
-      .select(
-        `
-        *,
-        clients (
-          id,
-          nom,
-          prenom,
-          denomination,
-          type,
-          cin,
-          adresse,
-          ville,
-          code_postal,
-          telephone,
-          email
-        )
-      `
-      )
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
+    const userId = session.user.id
 
-    if (factureError || !facture) {
+    // Récupérer la facture avec le client
+    const factureResult = await query(
+      `SELECT f.*,
+        c.id as client_id, c.nom, c.prenom, c.type_client, c.cin,
+        c.adresse, c.telephone, c.email
+       FROM factures f
+       JOIN clients c ON f.client_id = c.id
+       WHERE f.id = $1 AND f.user_id = $2`,
+      [id, userId]
+    )
+
+    if (factureResult.rows.length === 0) {
       return NextResponse.json(
         { error: 'Facture non trouvée' },
         { status: 404 }
       )
     }
 
+    const factureRow = factureResult.rows[0]
+
     // Vérifier que la facture a un type d'honoraires
-    if (!facture.type_honoraires) {
+    if (!factureRow.type_honoraires) {
       return NextResponse.json(
         { error: 'Cette facture n\'a pas de type d\'honoraires défini' },
         { status: 400 }
@@ -62,53 +51,51 @@ export async function GET(
     }
 
     // Récupérer le profil de l'avocat
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
+    const profileResult = await query(
+      'SELECT * FROM profiles WHERE id = $1',
+      [userId]
+    )
 
-    if (profileError || !profile) {
+    if (profileResult.rows.length === 0) {
       return NextResponse.json(
         { error: 'Profil avocat non trouvé' },
         { status: 404 }
       )
     }
 
+    const profile = profileResult.rows[0]
+
     // Préparer les données pour le PDF
     const pdfData = {
       facture: {
-        id: facture.id,
-        numero_facture: facture.numero_facture,
-        date_emission: facture.date_emission,
-        date_echeance: facture.date_echeance,
-        type_honoraires: facture.type_honoraires,
-        base_calcul: facture.base_calcul,
-        taux_horaire: facture.taux_horaire ? parseFloat(facture.taux_horaire) : undefined,
-        heures: facture.heures ? parseFloat(facture.heures) : undefined,
-        pourcentage_resultat: facture.pourcentage_resultat
-          ? parseFloat(facture.pourcentage_resultat)
+        id: factureRow.id,
+        numero: factureRow.numero,
+        date_emission: factureRow.date_emission,
+        date_echeance: factureRow.date_echeance,
+        type_honoraires: factureRow.type_honoraires,
+        base_calcul: factureRow.base_calcul,
+        taux_horaire: factureRow.taux_horaire ? parseFloat(factureRow.taux_horaire) : undefined,
+        heures: factureRow.heures ? parseFloat(factureRow.heures) : undefined,
+        pourcentage_resultat: factureRow.pourcentage_resultat
+          ? parseFloat(factureRow.pourcentage_resultat)
           : undefined,
-        montant_ht: parseFloat(facture.montant_ht),
-        montant_debours: parseFloat(facture.montant_debours || '0'),
-        taux_tva: parseFloat(facture.taux_tva),
-        montant_tva: parseFloat(facture.montant_tva),
-        montant_ttc: parseFloat(facture.montant_ttc),
-        provisions_recues: parseFloat(facture.provisions_recues || '0'),
-        objet: facture.objet,
-        notes: facture.notes,
+        montant_ht: parseFloat(factureRow.montant_ht),
+        montant_debours: parseFloat(factureRow.montant_debours || '0'),
+        taux_tva: parseFloat(factureRow.taux_tva),
+        montant_tva: parseFloat(factureRow.montant_tva),
+        montant_ttc: parseFloat(factureRow.montant_ttc),
+        provisions_recues: parseFloat(factureRow.provisions_recues || '0'),
+        objet: factureRow.objet,
+        notes: factureRow.notes,
       },
       client: {
-        nom: facture.clients.nom,
-        prenom: facture.clients.prenom,
-        denomination: facture.clients.denomination,
-        type: facture.clients.type,
-        cin: facture.clients.cin,
-        adresse: facture.clients.adresse,
-        ville: facture.clients.ville,
-        code_postal: facture.clients.code_postal,
-        telephone: facture.clients.telephone,
-        email: facture.clients.email,
+        nom: factureRow.nom,
+        prenom: factureRow.prenom,
+        type_client: factureRow.type_client,
+        cin: factureRow.cin,
+        adresse: factureRow.adresse,
+        telephone: factureRow.telephone,
+        email: factureRow.email,
       },
       avocat: {
         nom: profile.nom,
@@ -137,7 +124,7 @@ export async function GET(
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="note-honoraires-${facture.numero_facture}.pdf"`,
+        'Content-Disposition': `inline; filename="note-honoraires-${factureRow.numero}.pdf"`,
         'Cache-Control': 'no-store, max-age=0',
       },
     })

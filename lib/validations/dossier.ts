@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const dossierSchema = z.object({
   client_id: z.string().uuid('Client invalide'),
-  numero_dossier: z.string().min(3, 'Le numéro de dossier doit contenir au moins 3 caractères'),
+  numero: z.string().min(3, 'Le numéro de dossier doit contenir au moins 3 caractères'),
   type_procedure: z.enum([
     'civil_premiere_instance',
     'divorce',
@@ -13,17 +13,15 @@ export const dossierSchema = z.object({
     required_error: 'Le type de procédure est requis',
   }),
   objet: z.string().min(5, "L'objet doit contenir au moins 5 caractères"),
-  description: z.string().optional(),
   partie_adverse: z.string().optional(),
-  avocat_adverse: z.string().optional(),
   tribunal: z.string().optional(),
   numero_rg: z.string().optional(), // Numéro de Rôle Général
   date_ouverture: z.string().optional(),
   statut: z.enum(['ACTIF', 'CLOS', 'ARCHIVE'], {
     required_error: 'Le statut est requis',
   }),
-  workflow_etape_actuelle: z.string().optional(),
-  montant_litige: z.number().optional(),
+  montant_demande: z.number().optional(),
+  montant_obtenu: z.number().optional(),
   notes: z.string().optional(),
 })
 

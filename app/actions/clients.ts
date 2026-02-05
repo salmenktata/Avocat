@@ -1,22 +1,20 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { clientSchema, type ClientFormData } from '@/lib/validations/client'
 import { revalidatePath } from 'next/cache'
 
 interface ClientData {
   user_id: string
-  type: string
+  type_client: string
   email?: string | null
   telephone?: string | null
   adresse?: string | null
-  ville?: string | null
   notes?: string | null
   nom?: string | null
   prenom?: string | null
   cin?: string | null
-  denomination?: string | null
-  registre_commerce?: string | null
 }
 
 export async function createClientAction(formData: ClientFormData) {
@@ -25,52 +23,65 @@ export async function createClientAction(formData: ClientFormData) {
     const validatedData = clientSchema.parse(formData)
 
     // Vérifier l'authentification
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
+    // Whitelist des colonnes autorisées pour éviter SQL injection
+    const ALLOWED_INSERT_FIELDS = [
+      'user_id',
+      'type_client',
+      'email',
+      'telephone',
+      'adresse',
+      'notes',
+      'nom',
+      'prenom',
+      'cin',
+    ]
+
     // Préparer les données selon le type
     const clientData: ClientData = {
-      user_id: user.id,
-      type: validatedData.type,
+      user_id: session.user.id,
+      type_client: validatedData.type,
       email: validatedData.email || null,
       telephone: validatedData.telephone || null,
       adresse: validatedData.adresse || null,
-      ville: validatedData.ville || null,
       notes: validatedData.notes || null,
     }
 
-    if (validatedData.type === 'PERSONNE_PHYSIQUE') {
+    if (validatedData.type === 'personne_physique') {
       clientData.nom = validatedData.nom
       clientData.prenom = validatedData.prenom || null
       clientData.cin = validatedData.cin || null
     } else {
-      clientData.denomination = validatedData.nom
-      clientData.registre_commerce = validatedData.registre_commerce || null
+      clientData.nom = validatedData.nom
     }
+
+    // Filtrer uniquement les colonnes autorisées
+    const sanitizedData: any = {}
+    Object.keys(clientData).forEach((key) => {
+      if (ALLOWED_INSERT_FIELDS.includes(key)) {
+        sanitizedData[key] = (clientData as any)[key]
+      }
+    })
 
     // Créer le client
-    const { data, error } = await supabase
-      .from('clients')
-      .insert(clientData)
-      .select()
-      .single()
+    const columns = Object.keys(sanitizedData).join(', ')
+    const values = Object.values(sanitizedData)
+    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ')
 
-    if (error) {
-      console.error('Erreur création client:', error)
-      return { error: 'Erreur lors de la création du client' }
-    }
+    const result = await query(
+      `INSERT INTO clients (${columns}) VALUES (${placeholders}) RETURNING *`,
+      values
+    )
 
     revalidatePath('/clients')
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
-    console.error('Erreur validation:', error)
-    return { error: 'Données invalides' }
+    console.error('Erreur création client:', error)
+    return { error: 'Erreur lors de la création du client' }
   }
 }
 
@@ -80,127 +91,134 @@ export async function updateClientAction(id: string, formData: ClientFormData) {
     const validatedData = clientSchema.parse(formData)
 
     // Vérifier l'authentification
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
+    // Whitelist des colonnes autorisées pour éviter SQL injection
+    const ALLOWED_UPDATE_FIELDS = [
+      'user_id',
+      'type_client',
+      'email',
+      'telephone',
+      'adresse',
+      'notes',
+      'nom',
+      'prenom',
+      'cin',
+    ]
+
     // Préparer les données selon le type
     const clientData: ClientData = {
-      user_id: user.id,
-      type: validatedData.type,
+      user_id: session.user.id,
+      type_client: validatedData.type,
       email: validatedData.email || null,
       telephone: validatedData.telephone || null,
       adresse: validatedData.adresse || null,
-      ville: validatedData.ville || null,
       notes: validatedData.notes || null,
     }
 
-    if (validatedData.type === 'PERSONNE_PHYSIQUE') {
+    if (validatedData.type === 'personne_physique') {
       clientData.nom = validatedData.nom
       clientData.prenom = validatedData.prenom || null
       clientData.cin = validatedData.cin || null
-      clientData.denomination = null
-      clientData.registre_commerce = null
     } else {
-      clientData.denomination = validatedData.nom
-      clientData.registre_commerce = validatedData.registre_commerce || null
-      clientData.nom = null
+      clientData.nom = validatedData.nom
       clientData.prenom = null
       clientData.cin = null
     }
 
-    // Mettre à jour le client
-    const { data, error } = await supabase
-      .from('clients')
-      .update(clientData)
-      .eq('id', id)
-      .select()
-      .single()
+    // Filtrer uniquement les colonnes autorisées
+    const sanitizedData: any = {}
+    Object.keys(clientData).forEach((key) => {
+      if (ALLOWED_UPDATE_FIELDS.includes(key)) {
+        sanitizedData[key] = (clientData as any)[key]
+      }
+    })
 
-    if (error) {
-      console.error('Erreur mise à jour client:', error)
-      return { error: 'Erreur lors de la mise à jour du client' }
+    // Mettre à jour le client
+    const setClause = Object.keys(sanitizedData)
+      .map((key, i) => `${key} = $${i + 1}`)
+      .join(', ')
+    const values = [...Object.values(sanitizedData), id]
+
+    const result = await query(
+      `UPDATE clients SET ${setClause} WHERE id = $${values.length} AND user_id = $1 RETURNING *`,
+      values
+    )
+
+    if (result.rows.length === 0) {
+      return { error: 'Client non trouvé ou non autorisé' }
     }
 
     revalidatePath('/clients')
     revalidatePath(`/clients/${id}`)
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
-    console.error('Erreur validation:', error)
-    return { error: 'Données invalides' }
+    console.error('Erreur mise à jour client:', error)
+    return { error: 'Erreur lors de la mise à jour du client' }
   }
 }
 
 export async function deleteClientAction(id: string) {
   try {
     // Vérifier l'authentification
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
     // Vérifier si le client a des dossiers
-    const { count } = await supabase
-      .from('dossiers')
-      .select('*', { count: 'exact', head: true })
-      .eq('client_id', id)
+    const countResult = await query(
+      'SELECT COUNT(*) FROM dossiers WHERE client_id = $1',
+      [id]
+    )
+    const count = parseInt(countResult.rows[0].count)
 
-    if (count && count > 0) {
+    if (count > 0) {
       return {
         error: `Ce client a ${count} dossier(s) actif(s). Suppression impossible.`,
       }
     }
 
     // Supprimer le client
-    const { error } = await supabase.from('clients').delete().eq('id', id)
+    const result = await query(
+      'DELETE FROM clients WHERE id = $1 AND user_id = $2 RETURNING id',
+      [id, session.user.id]
+    )
 
-    if (error) {
-      console.error('Erreur suppression client:', error)
-      return { error: 'Erreur lors de la suppression du client' }
+    if (result.rows.length === 0) {
+      return { error: 'Client non trouvé ou non autorisé' }
     }
 
     revalidatePath('/clients')
     return { success: true }
   } catch (error) {
-    console.error('Erreur suppression:', error)
+    console.error('Erreur suppression client:', error)
     return { error: 'Erreur lors de la suppression' }
   }
 }
 
 export async function getClientAction(id: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('id', id)
-      .single()
+    const result = await query(
+      'SELECT * FROM clients WHERE id = $1 AND user_id = $2',
+      [id, session.user.id]
+    )
 
-    if (error) {
-      console.error('Erreur récupération client:', error)
+    if (result.rows.length === 0) {
       return { error: 'Client non trouvé' }
     }
 
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
-    console.error('Erreur récupération:', error)
+    console.error('Erreur récupération client:', error)
     return { error: 'Erreur lors de la récupération du client' }
   }
 }

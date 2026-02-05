@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
 import { headers } from 'next/headers'
 import { syncGoogleDriveToDatabase } from '@/lib/integrations/sync-service'
 
@@ -94,21 +94,22 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Récupérer configuration utilisateur à partir du channelId
-    const supabase = createClient()
-    const { data: config, error: configError } = await supabase
-      .from('cloud_providers_config')
-      .select('user_id, enabled, sync_enabled')
-      .eq('webhook_channel_id', channelId)
-      .eq('provider', 'google_drive')
-      .single()
+    const configResult = await query(
+      `SELECT user_id, enabled, sync_enabled
+       FROM cloud_providers_config
+       WHERE webhook_channel_id = $1 AND provider = $2`,
+      [channelId, 'google_drive']
+    )
 
-    if (configError || !config) {
+    if (configResult.rows.length === 0) {
       console.error('[GoogleDrive Webhook] Configuration non trouvée pour channelId:', channelId)
       return NextResponse.json(
         { error: 'Configuration non trouvée' },
         { status: 404 }
       )
     }
+
+    const config = configResult.rows[0]
 
     // Vérifier que synchronisation est activée
     if (!config.enabled || !config.sync_enabled) {

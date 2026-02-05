@@ -4,7 +4,7 @@ export const factureSchema = z
   .object({
     client_id: z.string().uuid('Client invalide'),
     dossier_id: z.string().uuid('Dossier invalide').optional(),
-    numero_facture: z.string().optional(), // Généré automatiquement
+    numero: z.string().optional(), // Généré automatiquement
     montant_ht: z.number().positive('Le montant HT doit être positif'),
     taux_tva: z.number().min(0).max(100).default(19), // TVA tunisienne = 19%
     date_emission: z.string().min(1, 'La date d\'émission est requise'),

@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import DossierDetailContent from '@/components/dossiers/DossierDetailContent'
@@ -16,45 +17,60 @@ export default async function DossierDetailPage({
   const { id } = await params
   const { tab } = await searchParams
 
-  const supabase = await createClient()
+  const session = await getSession()
   const t = await getTranslations('dossiers')
 
-  // Récupérer le dossier
-  const { data: dossier, error } = await supabase
-    .from('dossiers')
-    .select('*, clients(*)')
-    .eq('id', id)
-    .single()
+  if (!session?.user?.id) return null
 
-  if (error || !dossier) {
+  // Récupérer le dossier
+  const dossierResult = await query(
+    `SELECT d.*,
+      json_build_object(
+        'id', c.id,
+        'type_client', c.type_client,
+        'nom', c.nom,
+        'prenom', c.prenom,
+        'email', c.email,
+        'telephone', c.telephone,
+        'created_at', c.created_at,
+        'user_id', c.user_id
+      ) as clients
+    FROM dossiers d
+    LEFT JOIN clients c ON d.client_id = c.id
+    WHERE d.id = $1 AND d.user_id = $2`,
+    [id, session.user.id]
+  )
+  const dossier = dossierResult.rows[0]
+
+  if (!dossier) {
     notFound()
   }
 
   // Récupérer les actions du dossier
-  const { data: actions } = await supabase
-    .from('actions')
-    .select('*')
-    .eq('dossier_id', id)
-    .order('created_at', { ascending: false })
+  const actionsResult = await query(
+    'SELECT * FROM actions WHERE dossier_id = $1 AND user_id = $2 ORDER BY created_at DESC',
+    [id, session.user.id]
+  )
+  const actions = actionsResult.rows
 
   // Récupérer les échéances
-  const { data: echeances } = await supabase
-    .from('echeances')
-    .select('*')
-    .eq('dossier_id', id)
-    .order('date_evenement', { ascending: true })
+  const echeancesResult = await query(
+    'SELECT * FROM echeances WHERE dossier_id = $1 AND user_id = $2 ORDER BY date_evenement ASC',
+    [id, session.user.id]
+  )
+  const echeances = echeancesResult.rows
 
   // Récupérer les documents
-  const { data: documents } = await supabase
-    .from('documents')
-    .select('*')
-    .eq('dossier_id', id)
-    .order('created_at', { ascending: false })
+  const documentsResult = await query(
+    'SELECT * FROM documents WHERE dossier_id = $1 AND user_id = $2 ORDER BY created_at DESC',
+    [id, session.user.id]
+  )
+  const documents = documentsResult.rows
 
   const clientName =
-    dossier.clients?.type === 'PERSONNE_PHYSIQUE'
+    dossier.clients?.type_client === 'personne_physique'
       ? `${dossier.clients.nom} ${dossier.clients.prenom || ''}`.trim()
-      : dossier.clients?.denomination || 'Client inconnu'
+      : dossier.clients?.nom || 'Client inconnu'
 
   return (
     <div className="space-y-6">
@@ -77,13 +93,13 @@ export default async function DossierDetailPage({
               </svg>
             </Link>
             <h1 className="text-3xl font-bold text-foreground">
-              {dossier.numero_dossier}
+              {dossier.numero}
             </h1>
             <span
               className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
-                dossier.statut === 'ACTIF'
+                dossier.statut === 'en_cours'
                   ? 'bg-green-100 text-green-700'
-                  : dossier.statut === 'CLOS'
+                  : dossier.statut === 'clos'
                   ? 'bg-muted text-foreground'
                   : 'bg-blue-100 text-blue-700'
               }`}

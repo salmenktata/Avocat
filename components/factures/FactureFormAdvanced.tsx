@@ -39,7 +39,7 @@ const factureFormSchema = z.object({
   taux_tva: z.number().min(0).max(100, 'Le taux de TVA doit être entre 0 et 100'),
   date_emission: z.string().min(1, 'La date d\'émission est obligatoire'),
   date_echeance: z.string().optional(),
-  statut: z.enum(['BROUILLON', 'ENVOYEE', 'PAYEE', 'IMPAYEE']),
+  statut: z.enum(['brouillon', 'envoyee', 'payee', 'impayee']),
   notes: z.string().optional(),
 })
 
@@ -87,7 +87,7 @@ export function FactureFormAdvanced({
       taux_tva: 19,
       date_emission: new Date().toISOString().split('T')[0],
       date_echeance: '',
-      statut: 'BROUILLON',
+      statut: 'brouillon',
       notes: '',
       ...initialData,
     },
@@ -157,13 +157,13 @@ export function FactureFormAdvanced({
                   <SelectContent>
                     {clients.map((client) => {
                       const displayName =
-                        client.type === 'PERSONNE_PHYSIQUE'
+                        client.type_client === 'personne_physique'
                           ? `${client.prenom || ''} ${client.nom}`.trim()
-                          : client.denomination || client.nom
+                          : client.nom
                       return (
                         <SelectItem key={client.id} value={client.id}>
                           <div className="flex items-center gap-2">
-                            {client.type === 'PERSONNE_PHYSIQUE' ? (
+                            {client.type_client === 'personne_physique' ? (
                               <Icons.user className="h-4 w-4" />
                             ) : (
                               <Icons.building className="h-4 w-4" />
@@ -198,7 +198,7 @@ export function FactureFormAdvanced({
                       <SelectItem key={dossier.id} value={dossier.id}>
                         <div className="flex items-center gap-2">
                           <Icons.dossiers className="h-4 w-4" />
-                          <span>{dossier.numero_dossier} - {dossier.objet}</span>
+                          <span>{dossier.numero} - {dossier.objet}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -363,10 +363,10 @@ export function FactureFormAdvanced({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="BROUILLON">Brouillon</SelectItem>
-                  <SelectItem value="ENVOYEE">Envoyée</SelectItem>
-                  <SelectItem value="PAYEE">Payée</SelectItem>
-                  <SelectItem value="IMPAYEE">Impayée</SelectItem>
+                  <SelectItem value="brouillon">Brouillon</SelectItem>
+                  <SelectItem value="envoyee">Envoyée</SelectItem>
+                  <SelectItem value="payee">Payée</SelectItem>
+                  <SelectItem value="impayee">Impayée</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

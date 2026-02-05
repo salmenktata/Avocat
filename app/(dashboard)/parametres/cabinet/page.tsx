@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import CabinetForm from '@/components/parametres/CabinetForm'
 
@@ -8,22 +9,18 @@ export const metadata = {
 }
 
 export default async function CabinetParametresPage() {
-  const supabase = await createClient()
+  const session = await getSession()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer le profil avec les infos cabinet
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const result = await query(
+    'SELECT * FROM profiles WHERE id = $1',
+    [session.user.id]
+  )
+  const profile = result.rows[0]
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">

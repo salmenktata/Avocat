@@ -11,13 +11,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { query } from '@/lib/db/postgres'
 import { flouciClient, mapperStatutFlouci, FlouciUtils, type FlouciWebhookPayload } from '@/lib/integrations/flouci'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Service role pour bypass RLS
-)
 
 /**
  * POST /api/webhooks/flouci
@@ -32,9 +27,15 @@ export async function POST(request: NextRequest) {
 
     console.log('[Flouci Webhook] Payload reçu:', payload)
 
-    // 2. Valider signature (si configuré)
+    // 2. Valider signature (OBLIGATOIRE)
     const signature = request.headers.get('x-flouci-signature')
-    if (signature && !flouciClient.validateWebhookSignature(body, signature)) {
+
+    if (!signature) {
+      console.error('[Flouci Webhook] Signature manquante')
+      return NextResponse.json({ error: 'Missing signature' }, { status: 401 })
+    }
+
+    if (!flouciClient.validateWebhookSignature(body, signature)) {
       console.error('[Flouci Webhook] Signature invalide')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
@@ -45,56 +46,93 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // 4. Récupérer transaction Flouci existante
-    const { data: transaction, error: fetchError } = await supabase
-      .from('flouci_transactions')
-      .select('*, factures(numero_facture, statut)')
-      .eq('flouci_payment_id', payload.payment_id)
-      .single()
+    // 4. Récupérer transaction Flouci existante avec facture
+    const transactionResult = await query(
+      `SELECT ft.*, f.numero, f.statut as facture_statut, f.montant_ttc
+       FROM flouci_transactions ft
+       LEFT JOIN factures f ON ft.facture_id = f.id
+       WHERE ft.flouci_payment_id = $1`,
+      [payload.payment_id]
+    )
 
-    if (fetchError || !transaction) {
-      console.error('[Flouci Webhook] Transaction introuvable:', payload.payment_id, fetchError)
+    if (transactionResult.rows.length === 0) {
+      console.error('[Flouci Webhook] Transaction introuvable:', payload.payment_id)
       return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
     }
 
-    // 5. Mapper statut Flouci
+    const transaction = transactionResult.rows[0]
+
+    // 5. Valider le montant du paiement
+    if (payload.amount !== undefined && transaction.montant) {
+      const expectedAmount = parseFloat(transaction.montant)
+      const receivedAmount = parseFloat(payload.amount.toString())
+
+      // Tolérance de 0.01 TND pour gérer les arrondis
+      if (Math.abs(expectedAmount - receivedAmount) > 0.01) {
+        console.error('[Flouci Webhook] Montant invalide:', {
+          expected: expectedAmount,
+          received: receivedAmount,
+          payment_id: payload.payment_id
+        })
+        return NextResponse.json({
+          error: 'Amount mismatch',
+          expected: expectedAmount,
+          received: receivedAmount
+        }, { status: 400 })
+      }
+    }
+
+    // 6. Mapper statut Flouci
     const nouveauStatut = mapperStatutFlouci(payload.status)
 
-    // 6. Mettre à jour transaction
-    const updateData: any = {
-      status: nouveauStatut,
-      flouci_transaction_id: payload.transaction_id,
-      flouci_response: payload,
-      webhook_received_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-
-    // Si completed, ajouter date completion
+    // 7. Mettre à jour transaction
     if (nouveauStatut === 'completed') {
-      updateData.completed_at = payload.created_at || new Date().toISOString()
-    }
-
-    const { error: updateError } = await supabase
-      .from('flouci_transactions')
-      .update(updateData)
-      .eq('id', transaction.id)
-
-    if (updateError) {
-      console.error('[Flouci Webhook] Erreur mise à jour transaction:', updateError)
-      return NextResponse.json({ error: 'Update failed' }, { status: 500 })
+      await query(
+        `UPDATE flouci_transactions
+         SET status = $1,
+             flouci_transaction_id = $2,
+             flouci_response = $3,
+             webhook_received_at = NOW(),
+             completed_at = $4,
+             updated_at = NOW()
+         WHERE id = $5`,
+        [
+          nouveauStatut,
+          payload.transaction_id || null,
+          JSON.stringify(payload),
+          payload.created_at || new Date(),
+          transaction.id
+        ]
+      )
+    } else {
+      await query(
+        `UPDATE flouci_transactions
+         SET status = $1,
+             flouci_transaction_id = $2,
+             flouci_response = $3,
+             webhook_received_at = NOW(),
+             updated_at = NOW()
+         WHERE id = $4`,
+        [
+          nouveauStatut,
+          payload.transaction_id || null,
+          JSON.stringify(payload),
+          transaction.id
+        ]
+      )
     }
 
     console.log(`[Flouci Webhook] Transaction ${payload.payment_id} → ${nouveauStatut}`)
 
-    // 7. Si SUCCESS, trigger DB marquera automatiquement facture comme PAYÉE
+    // 8. Si SUCCESS, trigger DB marquera automatiquement facture comme PAYÉE
     if (nouveauStatut === 'completed') {
-      console.log(`[Flouci Webhook] ✅ Paiement réussi - Facture ${transaction.factures?.numero_facture} marquée PAYÉE (trigger auto)`)
+      console.log(`[Flouci Webhook] ✅ Paiement réussi - Facture ${transaction.numero} marquée PAYÉE (trigger auto)`)
 
       // Optionnel: Envoyer email confirmation au client
       // await envoyerEmailConfirmationPaiement(transaction.facture_id)
     }
 
-    // 8. Retourner succès à Flouci
+    // 9. Retourner succès à Flouci
     return NextResponse.json({
       success: true,
       message: 'Webhook processed',

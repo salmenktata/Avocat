@@ -15,7 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
 import { createWhatsAppMessenger } from '@/lib/integrations/messaging/whatsapp'
 import { createStorageManager } from '@/lib/integrations/storage-manager'
 import type { IncomingMessage } from '@/lib/integrations/messaging/base-messenger'
@@ -174,8 +174,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Logger message dans historique (status: received)
-    const supabaseForLog = await createClient()
-    await logIncomingMessage(supabaseForLog, {
+    await logIncomingMessage({
       whatsappMessageId: incomingMessage.messageId,
       fromPhone: incomingMessage.from,
       toPhone: incomingMessage.to || 'unknown',
@@ -205,15 +204,13 @@ export async function POST(request: NextRequest) {
 
     // Créer messenger temporaire pour download (on ne connaît pas encore le user_id)
     // On utilisera le premier phone_number_id disponible (MVP) ou une config globale
-    const { data: anyWhatsappConfig } = await (await createClient())
-      .from('messaging_webhooks_config')
-      .select('phone_number, access_token')
-      .eq('platform', 'whatsapp')
-      .eq('enabled', true)
-      .limit(1)
-      .single()
+    const anyWhatsappConfigResult = await query(
+      `SELECT phone_number, access_token FROM messaging_webhooks_config
+       WHERE platform = 'whatsapp' AND enabled = true
+       LIMIT 1`
+    )
 
-    if (!anyWhatsappConfig) {
+    if (anyWhatsappConfigResult.rows.length === 0) {
       console.error('[WhatsApp Webhook] Aucune config WhatsApp active trouvée')
       return NextResponse.json(
         { error: 'Configuration WhatsApp non disponible' },
@@ -221,8 +218,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const anyWhatsappConfig = anyWhatsappConfigResult.rows[0]
+
     // Vérifier cache média avant téléchargement
-    const cachedMedia = await checkMediaCache(supabaseForLog, {
+    const cachedMedia = await checkMediaCache({
       mediaId: incomingMessage.mediaId,
     })
 
@@ -268,22 +267,21 @@ export async function POST(request: NextRequest) {
     const mediaExpiresAt = new Date()
     mediaExpiresAt.setDate(mediaExpiresAt.getDate() + 30)
 
-    await updateMessageStatus(supabaseForLog, {
+    await updateMessageStatus({
       whatsappMessageId: incomingMessage.messageId,
       status: 'media_downloaded',
       mediaExpiresAt,
     })
 
     // 8. Identifier client via téléphone normalisé
-    const supabase = await createClient()
+    const clientResult = await query(
+      `SELECT id, nom, prenom, type_client, user_id
+       FROM clients
+       WHERE telephone_normalized = $1`,
+      [incomingMessage.from]
+    )
 
-    const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .select('id, nom, prenom, denomination, type, user_id')
-      .eq('telephone_normalized', incomingMessage.from)
-      .single()
-
-    if (clientError || !client) {
+    if (clientResult.rows.length === 0) {
       console.warn('[WhatsApp Webhook] Client non trouvé:', incomingMessage.from)
 
       // Récupérer email de l'avocat (on doit deviner l'utilisateur via autre méthode)
@@ -291,32 +289,40 @@ export async function POST(request: NextRequest) {
       // En production, il faudrait identifier l'utilisateur via le whatsappConfig.phone_number
 
       // Stocker document temporairement pour traitement ultérieur
-      const { data: pendingDoc, error: pendingError } = await supabase
-        .from('pending_documents')
-        .insert({
-          user_id: null, // Sera assigné manuellement
-          client_id: null,
-          file_name: incomingMessage.fileName || mediaResult.fileName,
-          file_type: mediaResult.mimeType,
-          file_size: mediaResult.size,
-          source_type: 'whatsapp',
-          sender_phone: incomingMessage.from,
-          sender_name: incomingMessage.fromName,
-          message_id: incomingMessage.messageId,
-          status: 'pending',
-        })
-        .select()
-        .single()
+      const pendingDocResult = await query(
+        `INSERT INTO pending_documents (
+          user_id, client_id, file_name, file_type, file_size,
+          source_type, sender_phone, sender_name, message_id, status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING id`,
+        [
+          null, // Sera assigné manuellement
+          null,
+          incomingMessage.fileName || mediaResult.fileName,
+          mediaResult.mimeType,
+          mediaResult.size,
+          'whatsapp',
+          incomingMessage.from,
+          incomingMessage.fromName || null,
+          incomingMessage.messageId,
+          'pending'
+        ]
+      )
 
-      if (pendingError) {
-        console.error('[WhatsApp Webhook] Erreur stockage pending (inconnu):', pendingError)
-      }
+      const pendingDoc = pendingDocResult.rows[0]
+
+      // Créer messenger avec la config disponible pour répondre au client
+      const messengerForUnknown = createWhatsAppMessenger({
+        phoneNumberId: anyWhatsappConfig.phone_number,
+        accessToken: anyWhatsappConfig.access_token,
+        appSecret: appSecret || '',
+      })
 
       // Marquer message comme lu
-      await messenger.markAsRead({ messageId: incomingMessage.messageId })
+      await messengerForUnknown.markAsRead({ messageId: incomingMessage.messageId })
 
       // Envoyer message au client
-      await messenger.sendTextMessage({
+      await messengerForUnknown.sendTextMessage({
         to: incomingMessage.from,
         text: `📥 Document bien reçu. Votre avocat va le traiter dans les plus brefs délais.`,
       })
@@ -327,7 +333,7 @@ export async function POST(request: NextRequest) {
       console.log('[WhatsApp Webhook] Notification email "numéro inconnu" - email avocat non disponible')
 
       // Mettre à jour status message
-      await updateMessageStatus(supabase, {
+      await updateMessageStatus({
         whatsappMessageId: incomingMessage.messageId,
         status: 'client_not_found',
         pendingDocumentId: pendingDoc?.id || undefined,
@@ -341,32 +347,34 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    const client = clientResult.rows[0]
+
     console.log('[WhatsApp Webhook] Client identifié:', {
       clientId: client.id,
-      nom: client.type === 'PERSONNE_PHYSIQUE'
+      nom: client.type_client === 'personne_physique'
         ? `${client.prenom} ${client.nom}`
-        : client.denomination,
+        : client.nom,
     })
 
     // Associer client et user au message
-    await updateMessageClient(supabase, incomingMessage.messageId, client.id, client.user_id)
+    await updateMessageClient(incomingMessage.messageId, client.id, client.user_id)
 
     // 8. Récupérer configuration WhatsApp de l'utilisateur
-    const { data: whatsappConfig, error: configError } = await supabase
-      .from('messaging_webhooks_config')
-      .select('*')
-      .eq('user_id', client.user_id)
-      .eq('platform', 'whatsapp')
-      .eq('enabled', true)
-      .single()
+    const whatsappConfigResult = await query(
+      `SELECT * FROM messaging_webhooks_config
+       WHERE user_id = $1 AND platform = 'whatsapp' AND enabled = true`,
+      [client.user_id]
+    )
 
-    if (configError || !whatsappConfig) {
+    if (whatsappConfigResult.rows.length === 0) {
       console.error('[WhatsApp Webhook] Configuration WhatsApp non trouvée pour user:', client.user_id)
       return NextResponse.json({
         success: false,
         error: 'Configuration WhatsApp non trouvée',
       }, { status: 500 })
     }
+
+    const whatsappConfig = whatsappConfigResult.rows[0]
 
     // Créer messenger avec vraie config pour envoi messages
     const messenger = createWhatsAppMessenger({
@@ -378,22 +386,15 @@ export async function POST(request: NextRequest) {
     // Média déjà téléchargé plus haut (ligne ~180)
 
     // 9. Récupérer dossiers actifs du client
-    const { data: dossiers, error: dossiersError } = await supabase
-      .from('dossiers')
-      .select('id, numero, objet')
-      .eq('client_id', client.id)
-      .eq('user_id', client.user_id)
-      .eq('statut', 'ACTIF')
+    const dossiersResult = await query(
+      `SELECT id, numero, objet
+       FROM dossiers
+       WHERE client_id = $1 AND user_id = $2 AND statut = 'en_cours'`,
+      [client.id, client.user_id]
+    )
 
-    if (dossiersError) {
-      console.error('[WhatsApp Webhook] Erreur récupération dossiers:', dossiersError)
-      return NextResponse.json({
-        success: false,
-        error: 'Erreur récupération dossiers',
-      }, { status: 500 })
-    }
-
-    const nombreDossiersActifs = dossiers?.length || 0
+    const dossiers = dossiersResult.rows
+    const nombreDossiersActifs = dossiers.length
 
     console.log('[WhatsApp Webhook] Dossiers actifs trouvés:', nombreDossiersActifs)
 
@@ -401,7 +402,7 @@ export async function POST(request: NextRequest) {
 
     if (nombreDossiersActifs === 1) {
       // ✅ CAS 1 : 1 seul dossier actif → Upload automatique
-      const dossier = dossiers![0]
+      const dossier = dossiers[0]
 
       console.log('[WhatsApp Webhook] Rattachement automatique au dossier:', dossier.numero)
 
@@ -443,16 +444,20 @@ export async function POST(request: NextRequest) {
         // Envoyer notification email à l'avocat
         try {
           // Récupérer email avocat
-          const { data: userData } = await supabase.auth.admin.getUserById(client.user_id)
+          const userResult = await query(
+            'SELECT email, nom, prenom FROM users WHERE id = $1',
+            [client.user_id]
+          )
 
-          if (userData?.user?.email) {
-            const clientName = client.type === 'PERSONNE_PHYSIQUE'
+          if (userResult.rows.length > 0) {
+            const userData = userResult.rows[0]
+            const clientName = client.type_client === 'personne_physique'
               ? `${client.prenom} ${client.nom}`
-              : client.denomination
+              : client.nom
 
             await notifyDocumentAutoAttached({
-              lawyerEmail: userData.user.email,
-              lawyerName: userData.user.user_metadata?.full_name || 'Avocat',
+              lawyerEmail: userData.email,
+              lawyerName: userData.nom && userData.prenom ? `${userData.prenom} ${userData.nom}` : 'Avocat',
               clientName,
               clientPhone: incomingMessage.from,
               documentName: incomingMessage.fileName || mediaResult.fileName,
@@ -471,7 +476,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Mettre à jour status message
-        await updateMessageStatus(supabase, {
+        await updateMessageStatus({
           whatsappMessageId: incomingMessage.messageId,
           status: 'document_created',
           documentId: uploadResult.documentId,
@@ -494,7 +499,7 @@ export async function POST(request: NextRequest) {
         })
 
         // Mettre à jour status message
-        await updateMessageStatus(supabase, {
+        await updateMessageStatus({
           whatsappMessageId: incomingMessage.messageId,
           status: 'error',
           errorMessage: `Erreur upload: ${uploadError.message}`,
@@ -516,30 +521,27 @@ export async function POST(request: NextRequest) {
       // Pour l'instant, on stocke les métadonnées dans pending_documents
       // L'upload Google Drive sera fait lors du rattachement manuel
 
-      const { data: pendingDoc, error: pendingError } = await supabase
-        .from('pending_documents')
-        .insert({
-          user_id: client.user_id,
-          client_id: client.id,
-          file_name: incomingMessage.fileName || mediaResult.fileName,
-          file_type: mediaResult.mimeType,
-          file_size: mediaResult.size,
-          source_type: 'whatsapp',
-          sender_phone: incomingMessage.from,
-          sender_name: incomingMessage.fromName,
-          message_id: incomingMessage.messageId,
-          status: 'pending',
-        })
-        .select()
-        .single()
+      const pendingDocResult = await query(
+        `INSERT INTO pending_documents (
+          user_id, client_id, file_name, file_type, file_size,
+          source_type, sender_phone, sender_name, message_id, status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING id`,
+        [
+          client.user_id,
+          client.id,
+          incomingMessage.fileName || mediaResult.fileName,
+          mediaResult.mimeType,
+          mediaResult.size,
+          'whatsapp',
+          incomingMessage.from,
+          incomingMessage.fromName || null,
+          incomingMessage.messageId,
+          'pending'
+        ]
+      )
 
-      if (pendingError) {
-        console.error('[WhatsApp Webhook] Erreur stockage pending:', pendingError)
-        return NextResponse.json({
-          success: false,
-          error: 'Erreur stockage document en attente',
-        }, { status: 500 })
-      }
+      const pendingDoc = pendingDocResult.rows[0]
 
       // Marquer message comme lu
       await messenger.markAsRead({ messageId: incomingMessage.messageId })
@@ -553,16 +555,20 @@ export async function POST(request: NextRequest) {
       // Envoyer notification email "Action requise" à l'avocat
       try {
         // Récupérer email avocat
-        const { data: userData } = await supabase.auth.admin.getUserById(client.user_id)
+        const userResult = await query(
+          'SELECT email, nom, prenom FROM users WHERE id = $1',
+          [client.user_id]
+        )
 
-        if (userData?.user?.email) {
+        if (userResult.rows.length > 0) {
+          const userData = userResult.rows[0]
           const clientName = client.type === 'PERSONNE_PHYSIQUE'
             ? `${client.prenom} ${client.nom}`
             : client.denomination
 
           await notifyDocumentPendingClassification({
-            lawyerEmail: userData.user.email,
-            lawyerName: userData.user.user_metadata?.full_name || 'Avocat',
+            lawyerEmail: userData.email,
+            lawyerName: userData.nom && userData.prenom ? `${userData.prenom} ${userData.nom}` : 'Avocat',
             clientName,
             clientPhone: incomingMessage.from,
             documentName: incomingMessage.fileName || mediaResult.fileName,
@@ -579,7 +585,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Mettre à jour status message (document en attente de rattachement)
-      await updateMessageStatus(supabase, {
+      await updateMessageStatus({
         whatsappMessageId: incomingMessage.messageId,
         status: 'document_created',
         pendingDocumentId: pendingDoc.id,
@@ -598,26 +604,27 @@ export async function POST(request: NextRequest) {
       console.log('[WhatsApp Webhook] Aucun dossier actif pour ce client')
 
       // Stocker dans pending_documents sans client_id (nécessite création dossier)
-      const { data: pendingDoc, error: pendingError } = await supabase
-        .from('pending_documents')
-        .insert({
-          user_id: client.user_id,
-          client_id: client.id,
-          file_name: incomingMessage.fileName || mediaResult.fileName,
-          file_type: mediaResult.mimeType,
-          file_size: mediaResult.size,
-          source_type: 'whatsapp',
-          sender_phone: incomingMessage.from,
-          sender_name: incomingMessage.fromName,
-          message_id: incomingMessage.messageId,
-          status: 'pending',
-        })
-        .select()
-        .single()
+      const pendingDocResult = await query(
+        `INSERT INTO pending_documents (
+          user_id, client_id, file_name, file_type, file_size,
+          source_type, sender_phone, sender_name, message_id, status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING id`,
+        [
+          client.user_id,
+          client.id,
+          incomingMessage.fileName || mediaResult.fileName,
+          mediaResult.mimeType,
+          mediaResult.size,
+          'whatsapp',
+          incomingMessage.from,
+          incomingMessage.fromName || null,
+          incomingMessage.messageId,
+          'pending'
+        ]
+      )
 
-      if (pendingError) {
-        console.error('[WhatsApp Webhook] Erreur stockage pending:', pendingError)
-      }
+      const pendingDoc = pendingDocResult.rows[0]
 
       // Marquer message comme lu
       await messenger.markAsRead({ messageId: incomingMessage.messageId })
@@ -631,17 +638,21 @@ export async function POST(request: NextRequest) {
       // Envoyer notification email "Aucun dossier actif" à l'avocat
       try {
         // Récupérer email avocat
-        const { data: userData } = await supabase.auth.admin.getUserById(client.user_id)
+        const userResult = await query(
+          'SELECT email, nom, prenom FROM users WHERE id = $1',
+          [client.user_id]
+        )
 
-        if (userData?.user?.email) {
+        if (userResult.rows.length > 0) {
+          const userData = userResult.rows[0]
           const clientName = client.type === 'PERSONNE_PHYSIQUE'
             ? `${client.prenom} ${client.nom}`
             : client.denomination
 
           // Utiliser la même notification que "plusieurs dossiers" car action similaire requise
           await notifyDocumentPendingClassification({
-            lawyerEmail: userData.user.email,
-            lawyerName: userData.user.user_metadata?.full_name || 'Avocat',
+            lawyerEmail: userData.email,
+            lawyerName: userData.nom && userData.prenom ? `${userData.prenom} ${userData.nom}` : 'Avocat',
             clientName,
             clientPhone: incomingMessage.from,
             documentName: incomingMessage.fileName || mediaResult.fileName,
@@ -658,7 +669,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Mettre à jour status message (aucun dossier actif)
-      await updateMessageStatus(supabase, {
+      await updateMessageStatus({
         whatsappMessageId: incomingMessage.messageId,
         status: 'document_created',
         pendingDocumentId: pendingDoc?.id || undefined,
@@ -677,8 +688,7 @@ export async function POST(request: NextRequest) {
     // Logger erreur si message parsé
     if (incomingMessage?.messageId) {
       try {
-        const supabaseForError = await createClient()
-        await updateMessageStatus(supabaseForError, {
+        await updateMessageStatus({
           whatsappMessageId: incomingMessage.messageId,
           status: 'error',
           errorMessage: `Erreur webhook: ${error.message}`,

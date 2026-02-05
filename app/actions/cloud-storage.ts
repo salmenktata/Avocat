@@ -4,38 +4,30 @@
 
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
 import { createGoogleDriveAuthProvider, createGoogleDriveProvider } from '@/lib/integrations/cloud-storage'
 import { z } from 'zod'
+import { decrypt } from '@/lib/crypto'
 
 /**
  * Récupérer les configurations cloud providers de l'utilisateur
  */
 export async function getCloudProvidersAction() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    const { data, error } = await supabase
-      .from('cloud_providers_config')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('[getCloudProvidersAction] Erreur:', error)
-      return { error: error.message }
-    }
+    const result = await query(
+      'SELECT * FROM cloud_providers_config WHERE user_id = $1 ORDER BY created_at DESC',
+      [session.user.id]
+    )
 
     // Masquer tokens sensibles
-    const sanitizedData = data?.map((config) => ({
+    const sanitizedData = result.rows?.map((config) => ({
       id: config.id,
       provider: config.provider,
       enabled: config.enabled,
@@ -61,12 +53,8 @@ export async function getCloudProvidersAction() {
  */
 export async function getGoogleDriveAuthUrlAction() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
@@ -74,7 +62,7 @@ export async function getGoogleDriveAuthUrlAction() {
     const provider = createGoogleDriveAuthProvider()
 
     // Générer URL OAuth avec state = user_id (pour vérification)
-    const authUrl = provider.getAuthUrl(user.id)
+    const authUrl = provider.getAuthUrl(session.user.id)
 
     return { data: { authUrl } }
   } catch (error: any) {
@@ -95,31 +83,32 @@ export async function disconnectCloudProviderAction(providerId: string) {
     // Validation
     const validated = disconnectSchema.parse({ providerId })
 
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Vérifier que le provider appartient à l'utilisateur
-    const { data: config, error: configError } = await supabase
-      .from('cloud_providers_config')
-      .select('id, provider, webhook_channel_id, webhook_resource_id, access_token')
-      .eq('id', validated.providerId)
-      .eq('user_id', user.id)
-      .single()
+    const configResult = await query(
+      `SELECT id, provider, webhook_channel_id, webhook_resource_id, access_token
+       FROM cloud_providers_config
+       WHERE id = $1 AND user_id = $2`,
+      [validated.providerId, userId]
+    )
 
-    if (configError || !config) {
+    if (configResult.rows.length === 0) {
       return { error: 'Configuration non trouvée ou accès refusé' }
     }
+
+    const config = configResult.rows[0]
 
     // Si webhook actif, le stopper d'abord
     if (config.webhook_channel_id && config.webhook_resource_id) {
       try {
-        const provider = createGoogleDriveProvider(config.access_token)
+        // Déchiffrer le token
+        const decryptedToken = await decrypt(config.access_token)
+        const provider = createGoogleDriveProvider(decryptedToken)
         await provider.stopWatching({
           channelId: config.webhook_channel_id,
           resourceId: config.webhook_resource_id,
@@ -132,14 +121,10 @@ export async function disconnectCloudProviderAction(providerId: string) {
     }
 
     // Supprimer configuration
-    const { error: deleteError } = await supabase
-      .from('cloud_providers_config')
-      .delete()
-      .eq('id', validated.providerId)
-
-    if (deleteError) {
-      return { error: deleteError.message }
-    }
+    await query(
+      'DELETE FROM cloud_providers_config WHERE id = $1',
+      [validated.providerId]
+    )
 
     console.log(`[disconnectCloudProviderAction] Provider ${config.provider} déconnecté`)
 
@@ -174,26 +159,25 @@ export async function toggleSyncAction(params: {
     // Validation
     const validated = toggleSyncSchema.parse(params)
 
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Vérifier que le provider appartient à l'utilisateur
-    const { data: config, error: configError } = await supabase
-      .from('cloud_providers_config')
-      .select('id, provider, root_folder_id, access_token, webhook_channel_id')
-      .eq('id', validated.providerId)
-      .eq('user_id', user.id)
-      .single()
+    const configResult = await query(
+      `SELECT id, provider, root_folder_id, access_token, webhook_channel_id
+       FROM cloud_providers_config
+       WHERE id = $1 AND user_id = $2`,
+      [validated.providerId, userId]
+    )
 
-    if (configError || !config) {
+    if (configResult.rows.length === 0) {
       return { error: 'Configuration non trouvée ou accès refusé' }
     }
+
+    const config = configResult.rows[0]
 
     // Préparer update
     const updateData: any = {
@@ -208,7 +192,9 @@ export async function toggleSyncAction(params: {
     // Si activation sync et pas de webhook actif, créer webhook
     if (validated.enabled && !config.webhook_channel_id && config.root_folder_id) {
       try {
-        const provider = createGoogleDriveProvider(config.access_token)
+        // Déchiffrer le token
+        const decryptedToken = await decrypt(config.access_token)
+        const provider = createGoogleDriveProvider(decryptedToken)
 
         // Générer channel ID unique
         const channelId = `${user.id}-${Date.now()}`
@@ -239,18 +225,19 @@ export async function toggleSyncAction(params: {
     // Si désactivation sync et webhook actif, le stopper
     if (!validated.enabled && config.webhook_channel_id) {
       try {
-        const provider = createGoogleDriveProvider(config.access_token)
+        // Déchiffrer le token
+        const decryptedToken = await decrypt(config.access_token)
+        const provider = createGoogleDriveProvider(decryptedToken)
 
-        const { data: webhookData } = await supabase
-          .from('cloud_providers_config')
-          .select('webhook_resource_id')
-          .eq('id', validated.providerId)
-          .single()
+        const webhookResult = await query(
+          'SELECT webhook_resource_id FROM cloud_providers_config WHERE id = $1',
+          [validated.providerId]
+        )
 
-        if (webhookData?.webhook_resource_id) {
+        if (webhookResult.rows.length > 0 && webhookResult.rows[0].webhook_resource_id) {
           await provider.stopWatching({
             channelId: config.webhook_channel_id,
-            resourceId: webhookData.webhook_resource_id,
+            resourceId: webhookResult.rows[0].webhook_resource_id,
           })
         }
 
@@ -267,14 +254,15 @@ export async function toggleSyncAction(params: {
     }
 
     // Mettre à jour configuration
-    const { error: updateError } = await supabase
-      .from('cloud_providers_config')
-      .update(updateData)
-      .eq('id', validated.providerId)
+    const setClause = Object.keys(updateData)
+      .map((key, i) => `${key} = $${i + 1}`)
+      .join(', ')
+    const values = [...Object.values(updateData), validated.providerId]
 
-    if (updateError) {
-      return { error: updateError.message }
-    }
+    await query(
+      `UPDATE cloud_providers_config SET ${setClause} WHERE id = $${values.length}`,
+      values
+    )
 
     console.log(`[toggleSyncAction] Synchronisation ${validated.enabled ? 'activée' : 'désactivée'}`)
 
@@ -303,46 +291,35 @@ export async function setDefaultCloudProviderAction(providerId: string) {
     // Validation
     const validated = setDefaultSchema.parse({ providerId })
 
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Vérifier que le provider appartient à l'utilisateur
-    const { data: config, error: configError } = await supabase
-      .from('cloud_providers_config')
-      .select('id, provider')
-      .eq('id', validated.providerId)
-      .eq('user_id', user.id)
-      .single()
+    const configResult = await query(
+      'SELECT id, provider FROM cloud_providers_config WHERE id = $1 AND user_id = $2',
+      [validated.providerId, userId]
+    )
 
-    if (configError || !config) {
+    if (configResult.rows.length === 0) {
       return { error: 'Configuration non trouvée ou accès refusé' }
     }
 
+    const config = configResult.rows[0]
+
     // Désactiver default_provider pour tous les autres providers
-    await supabase
-      .from('cloud_providers_config')
-      .update({ default_provider: false })
-      .eq('user_id', user.id)
-      .neq('id', validated.providerId)
+    await query(
+      'UPDATE cloud_providers_config SET default_provider = false WHERE user_id = $1 AND id != $2',
+      [userId, validated.providerId]
+    )
 
     // Activer default_provider pour ce provider
-    const { error: updateError } = await supabase
-      .from('cloud_providers_config')
-      .update({
-        default_provider: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', validated.providerId)
-
-    if (updateError) {
-      return { error: updateError.message }
-    }
+    await query(
+      'UPDATE cloud_providers_config SET default_provider = true, updated_at = NOW() WHERE id = $1',
+      [validated.providerId]
+    )
 
     console.log(`[setDefaultCloudProviderAction] Provider ${config.provider} défini par défaut`)
 

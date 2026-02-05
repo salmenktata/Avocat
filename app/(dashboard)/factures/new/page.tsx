@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import FactureForm from '@/components/factures/FactureForm'
@@ -9,40 +10,27 @@ export default async function NewFacturePage({
 }: {
   searchParams: Promise<{ client_id?: string; dossier_id?: string }>
 }) {
-  const supabase = await createClient()
   const params = await searchParams
+  const session = await getSession()
   const t = await getTranslations('factures')
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer tous les clients pour le formulaire
-  const { data: clients, error: clientsError } = await supabase
-    .from('clients')
-    .select('id, type, nom, prenom, denomination')
-    .eq('user_id', user.id)
-    .order('nom', { ascending: true })
-
-  if (clientsError) {
-    console.error('Erreur chargement clients:', clientsError)
-  }
+  const clientsResult = await query(
+    'SELECT id, type_client, nom, prenom FROM clients WHERE user_id = $1 ORDER BY nom ASC',
+    [session.user.id]
+  )
+  const clients = clientsResult.rows
 
   // Récupérer tous les dossiers pour le formulaire
-  const { data: dossiers, error: dossiersError } = await supabase
-    .from('dossiers')
-    .select('id, numero_dossier, objet, client_id')
-    .eq('user_id', user.id)
-    .eq('statut', 'ACTIF')
-    .order('created_at', { ascending: false })
-
-  if (dossiersError) {
-    console.error('Erreur chargement dossiers:', dossiersError)
-  }
+  const dossiersResult = await query(
+    'SELECT id, numero, objet, client_id FROM dossiers WHERE user_id = $1 AND statut = $2 ORDER BY created_at DESC',
+    [session.user.id, 'en_cours']
+  )
+  const dossiers = dossiersResult.rows
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">

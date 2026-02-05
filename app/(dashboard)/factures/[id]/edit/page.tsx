@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import FactureForm from '@/components/factures/FactureForm'
@@ -9,52 +10,38 @@ export default async function EditFacturePage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const supabase = await createClient()
   const { id } = await params
+  const session = await getSession()
   const t = await getTranslations('factures')
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer la facture
-  const { data: facture, error } = await supabase
-    .from('factures')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
+  const factureResult = await query(
+    'SELECT * FROM factures WHERE id = $1 AND user_id = $2',
+    [id, session.user.id]
+  )
+  const facture = factureResult.rows[0]
 
-  if (error || !facture) {
-    console.error('Erreur chargement facture:', error)
+  if (!facture) {
     notFound()
   }
 
   // Récupérer tous les clients
-  const { data: clients, error: clientsError } = await supabase
-    .from('clients')
-    .select('id, type, nom, prenom, denomination')
-    .eq('user_id', user.id)
-    .order('nom', { ascending: true })
-
-  if (clientsError) {
-    console.error('Erreur chargement clients:', clientsError)
-  }
+  const clientsResult = await query(
+    'SELECT id, type_client, nom, prenom FROM clients WHERE user_id = $1 ORDER BY nom ASC',
+    [session.user.id]
+  )
+  const clients = clientsResult.rows
 
   // Récupérer tous les dossiers
-  const { data: dossiers, error: dossiersError } = await supabase
-    .from('dossiers')
-    .select('id, numero_dossier, objet, client_id')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-
-  if (dossiersError) {
-    console.error('Erreur chargement dossiers:', dossiersError)
-  }
+  const dossiersResult = await query(
+    'SELECT id, numero, objet, client_id FROM dossiers WHERE user_id = $1 ORDER BY created_at DESC',
+    [session.user.id]
+  )
+  const dossiers = dossiersResult.rows
 
   // Préparer les données pour le formulaire
   const initialData = {
@@ -80,7 +67,7 @@ export default async function EditFacturePage({
           ← {t('backToInvoice')}
         </Link>
         <h1 className="mt-2 text-3xl font-bold text-foreground">
-          {t('editInvoice')} {facture.numero_facture}
+          {t('editInvoice')} {facture.numero}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {t('editInvoiceInfo')}

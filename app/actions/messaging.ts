@@ -7,7 +7,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { z } from 'zod'
 import { createStorageManager } from '@/lib/integrations/storage-manager'
 
@@ -47,30 +48,20 @@ const rejectPendingDocumentSchema = z.object({
  */
 export async function getMessagingConfigAction() {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
-    const { data, error } = await supabase
-      .from('messaging_webhooks_config')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('platform', 'whatsapp')
-      .maybeSingle()
+    const result = await query(
+      `SELECT * FROM messaging_webhooks_config
+       WHERE user_id = $1 AND platform = $2
+       LIMIT 1`,
+      [userId, 'whatsapp']
+    )
 
-    if (error) {
-      console.error('[getMessagingConfigAction] Erreur:', error)
-      return { error: 'Erreur lors de la récupération de la configuration' }
-    }
-
-    return { data }
+    return { data: result.rows[0] || null }
   } catch (error: any) {
     console.error('[getMessagingConfigAction] Exception:', error)
     return { error: error.message || 'Erreur interne serveur' }
@@ -82,90 +73,89 @@ export async function getMessagingConfigAction() {
  */
 export async function saveWhatsAppConfigAction(input: WhatsAppConfigInput) {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Valider input
     const validated = whatsappConfigSchema.parse(input)
 
     // Vérifier si config existe déjà
-    const { data: existing } = await supabase
-      .from('messaging_webhooks_config')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('platform', 'whatsapp')
-      .maybeSingle()
+    const existing = await query(
+      `SELECT id FROM messaging_webhooks_config
+       WHERE user_id = $1 AND platform = $2
+       LIMIT 1`,
+      [userId, 'whatsapp']
+    )
 
-    if (existing) {
+    if (existing.rows.length > 0) {
       // Mettre à jour config existante
-      const { data, error } = await supabase
-        .from('messaging_webhooks_config')
-        .update({
-          phone_number: validated.phoneNumber,
-          business_account_id: validated.businessAccountId,
-          phone_number_id: validated.phoneNumberId,
-          access_token: validated.accessToken,
-          webhook_verify_token: validated.webhookVerifyToken,
-          auto_attach_documents: validated.autoAttachDocuments,
-          require_confirmation: validated.requireConfirmation,
-          send_confirmation: validated.sendConfirmation,
-          enabled: validated.enabled,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id)
-        .select()
-        .single()
-
-      if (error) {
-        console.error('[saveWhatsAppConfigAction] Erreur update:', error)
-        return { error: 'Erreur lors de la mise à jour de la configuration' }
-      }
+      const result = await query(
+        `UPDATE messaging_webhooks_config SET
+          phone_number = $1,
+          business_account_id = $2,
+          phone_number_id = $3,
+          access_token = $4,
+          webhook_verify_token = $5,
+          auto_attach_documents = $6,
+          require_confirmation = $7,
+          send_confirmation = $8,
+          enabled = $9,
+          updated_at = NOW()
+         WHERE id = $10
+         RETURNING *`,
+        [
+          validated.phoneNumber,
+          validated.businessAccountId,
+          validated.phoneNumberId,
+          validated.accessToken,
+          validated.webhookVerifyToken,
+          validated.autoAttachDocuments,
+          validated.requireConfirmation,
+          validated.sendConfirmation,
+          validated.enabled,
+          existing.rows[0].id,
+        ]
+      )
 
       revalidatePath('/parametres/messagerie')
 
       return {
         success: true,
-        data,
+        data: result.rows[0],
         message: 'Configuration mise à jour avec succès',
       }
     } else {
       // Créer nouvelle config
-      const { data, error } = await supabase
-        .from('messaging_webhooks_config')
-        .insert({
-          user_id: user.id,
-          platform: 'whatsapp',
-          phone_number: validated.phoneNumber,
-          phone_number_id: validated.phoneNumberId,
-          business_account_id: validated.businessAccountId,
-          access_token: validated.accessToken,
-          webhook_verify_token: validated.webhookVerifyToken,
-          auto_attach_documents: validated.autoAttachDocuments,
-          require_confirmation: validated.requireConfirmation,
-          send_confirmation: validated.sendConfirmation,
-          enabled: validated.enabled,
-        })
-        .select()
-        .single()
-
-      if (error) {
-        console.error('[saveWhatsAppConfigAction] Erreur insert:', error)
-        return { error: 'Erreur lors de la création de la configuration' }
-      }
+      const result = await query(
+        `INSERT INTO messaging_webhooks_config (
+          user_id, platform, phone_number, phone_number_id,
+          business_account_id, access_token, webhook_verify_token,
+          auto_attach_documents, require_confirmation, send_confirmation, enabled
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         RETURNING *`,
+        [
+          userId,
+          'whatsapp',
+          validated.phoneNumber,
+          validated.phoneNumberId,
+          validated.businessAccountId,
+          validated.accessToken,
+          validated.webhookVerifyToken,
+          validated.autoAttachDocuments,
+          validated.requireConfirmation,
+          validated.sendConfirmation,
+          validated.enabled,
+        ]
+      )
 
       revalidatePath('/parametres/messagerie')
 
       return {
         success: true,
-        data,
+        data: result.rows[0],
         message: 'Configuration créée avec succès',
       }
     }
@@ -185,30 +175,19 @@ export async function saveWhatsAppConfigAction(input: WhatsAppConfigInput) {
  */
 export async function disableWhatsAppConfigAction() {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
-    const { error } = await supabase
-      .from('messaging_webhooks_config')
-      .update({
-        enabled: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', user.id)
-      .eq('platform', 'whatsapp')
-
-    if (error) {
-      console.error('[disableWhatsAppConfigAction] Erreur:', error)
-      return { error: 'Erreur lors de la désactivation de la configuration' }
-    }
+    await query(
+      `UPDATE messaging_webhooks_config SET
+        enabled = false,
+        updated_at = NOW()
+       WHERE user_id = $1 AND platform = $2`,
+      [userId, 'whatsapp']
+    )
 
     revalidatePath('/parametres/messagerie')
 
@@ -227,27 +206,17 @@ export async function disableWhatsAppConfigAction() {
  */
 export async function deleteWhatsAppConfigAction() {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
-    const { error } = await supabase
-      .from('messaging_webhooks_config')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('platform', 'whatsapp')
-
-    if (error) {
-      console.error('[deleteWhatsAppConfigAction] Erreur:', error)
-      return { error: 'Erreur lors de la suppression de la configuration' }
-    }
+    await query(
+      `DELETE FROM messaging_webhooks_config
+       WHERE user_id = $1 AND platform = $2`,
+      [userId, 'whatsapp']
+    )
 
     revalidatePath('/parametres/messagerie')
 
@@ -270,40 +239,29 @@ export async function deleteWhatsAppConfigAction() {
  */
 export async function getPendingDocumentsAction() {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
-    const { data, error } = await supabase
-      .from('pending_documents')
-      .select(`
-        *,
-        clients (
-          id,
-          type,
-          nom,
-          prenom,
-          denomination,
-          telephone
-        )
-      `)
-      .eq('user_id', user.id)
-      .eq('status', 'pending')
-      .order('received_at', { ascending: false })
+    const result = await query(
+      `SELECT pd.*,
+              json_build_object(
+                'id', c.id,
+                'type_client', c.type_client,
+                'nom', c.nom,
+                'prenom', c.prenom,
+                'telephone', c.telephone
+              ) as clients
+       FROM pending_documents pd
+       LEFT JOIN clients c ON pd.client_id = c.id
+       WHERE pd.user_id = $1 AND pd.status = $2
+       ORDER BY pd.received_at DESC`,
+      [userId, 'pending']
+    )
 
-    if (error) {
-      console.error('[getPendingDocumentsAction] Erreur:', error)
-      return { error: 'Erreur lors de la récupération des documents en attente' }
-    }
-
-    return { data }
+    return { data: result.rows }
   } catch (error: any) {
     console.error('[getPendingDocumentsAction] Exception:', error)
     return { error: error.message || 'Erreur interne serveur' }
@@ -319,16 +277,11 @@ export async function attachPendingDocumentAction(
   dossierId: string
 ) {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Valider input
     const validated = attachPendingDocumentSchema.parse({
@@ -337,31 +290,34 @@ export async function attachPendingDocumentAction(
     })
 
     // Récupérer document en attente
-    const { data: pendingDoc, error: pendingError } = await supabase
-      .from('pending_documents')
-      .select('*')
-      .eq('id', validated.pendingDocumentId)
-      .eq('user_id', user.id)
-      .eq('status', 'pending')
-      .single()
+    const pendingDocResult = await query(
+      `SELECT * FROM pending_documents
+       WHERE id = $1 AND user_id = $2 AND status = $3
+       LIMIT 1`,
+      [validated.pendingDocumentId, userId, 'pending']
+    )
 
-    if (pendingError || !pendingDoc) {
-      console.error('[attachPendingDocumentAction] Document non trouvé:', pendingError)
+    if (pendingDocResult.rows.length === 0) {
+      console.error('[attachPendingDocumentAction] Document non trouvé')
       return { error: 'Document en attente non trouvé' }
     }
 
-    // Vérifier que le dossier appartient à l'utilisateur
-    const { data: dossier, error: dossierError } = await supabase
-      .from('dossiers')
-      .select('id, client_id, numero')
-      .eq('id', validated.dossierId)
-      .eq('user_id', user.id)
-      .single()
+    const pendingDoc = pendingDocResult.rows[0]
 
-    if (dossierError || !dossier) {
-      console.error('[attachPendingDocumentAction] Dossier non trouvé:', dossierError)
+    // Vérifier que le dossier appartient à l'utilisateur
+    const dossierResult = await query(
+      `SELECT id, client_id, numero_dossier as numero FROM dossiers
+       WHERE id = $1 AND user_id = $2
+       LIMIT 1`,
+      [validated.dossierId, userId]
+    )
+
+    if (dossierResult.rows.length === 0) {
+      console.error('[attachPendingDocumentAction] Dossier non trouvé')
       return { error: 'Dossier non trouvé' }
     }
+
+    const dossier = dossierResult.rows[0]
 
     // Vérifier cohérence client (si pending_doc a un client_id)
     if (pendingDoc.client_id && pendingDoc.client_id !== dossier.client_id) {
@@ -370,19 +326,6 @@ export async function attachPendingDocumentAction(
       }
     }
 
-    // Télécharger le média depuis WhatsApp (si external_file_id est vide)
-    // NOTE : Pour l'instant, on suppose que le buffer est stocké temporairement
-    // Dans une vraie implémentation, il faudrait soit :
-    // 1. Stocker le buffer en base (base64) - NON recommandé (lourd)
-    // 2. Stocker temporairement dans filesystem - OK pour MVP
-    // 3. Re-télécharger depuis WhatsApp - PROBLÈME : expire après 30 jours
-
-    // Pour MVP, on suppose que le fichier est déjà uploadé temporairement
-    // et on va juste le déplacer vers le bon dossier Google Drive
-
-    // Si external_file_id existe, on déplace le fichier
-    // Sinon, on affiche une erreur (fichier expiré)
-
     if (!pendingDoc.external_file_id) {
       return {
         error: 'Le fichier n\'est plus disponible (média WhatsApp expiré). Demandez au client de renvoyer le document.',
@@ -390,50 +333,45 @@ export async function attachPendingDocumentAction(
     }
 
     // Créer entrée dans documents (le fichier est déjà sur Google Drive)
-    const { data: document, error: documentError } = await supabase
-      .from('documents')
-      .insert({
-        user_id: user.id,
-        dossier_id: validated.dossierId,
-        nom_fichier: pendingDoc.file_name,
-        type_fichier: pendingDoc.file_type,
-        taille_fichier: pendingDoc.file_size,
-        storage_provider: pendingDoc.storage_provider,
-        external_file_id: pendingDoc.external_file_id,
-        external_sharing_link: '', // Sera mis à jour après déplacement
-        source_type: pendingDoc.source_type,
-        source_metadata: {
+    const documentResult = await query(
+      `INSERT INTO documents (
+        user_id, dossier_id, nom_fichier, type_fichier, taille_fichier,
+        storage_provider, external_file_id, external_sharing_link,
+        source_type, source_metadata, needs_classification, classified_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+       RETURNING *`,
+      [
+        userId,
+        validated.dossierId,
+        pendingDoc.file_name,
+        pendingDoc.file_type,
+        pendingDoc.file_size,
+        pendingDoc.storage_provider,
+        pendingDoc.external_file_id,
+        '',
+        pendingDoc.source_type,
+        JSON.stringify({
           sender_phone: pendingDoc.sender_phone,
           sender_name: pendingDoc.sender_name,
           message_id: pendingDoc.message_id,
           received_at: pendingDoc.received_at,
-        },
-        needs_classification: false,
-        classified_at: new Date().toISOString(),
-      })
-      .select()
-      .single()
+        }),
+        false,
+      ]
+    )
 
-    if (documentError) {
-      console.error('[attachPendingDocumentAction] Erreur création document:', documentError)
-      return { error: 'Erreur lors de la création du document' }
-    }
+    const document = documentResult.rows[0]
 
     // Marquer pending_document comme attached
-    const { error: updateError } = await supabase
-      .from('pending_documents')
-      .update({
-        status: 'attached',
-        attached_to_dossier_id: validated.dossierId,
-        resolved_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', validated.pendingDocumentId)
-
-    if (updateError) {
-      console.error('[attachPendingDocumentAction] Erreur update pending:', updateError)
-      // Non bloquant, on continue
-    }
+    await query(
+      `UPDATE pending_documents SET
+        status = $1,
+        attached_to_dossier_id = $2,
+        resolved_at = NOW(),
+        updated_at = NOW()
+       WHERE id = $3`,
+      ['attached', validated.dossierId, validated.pendingDocumentId]
+    )
 
     revalidatePath('/dashboard')
     revalidatePath(`/dossiers/${validated.dossierId}`)
@@ -459,35 +397,24 @@ export async function attachPendingDocumentAction(
  */
 export async function rejectPendingDocumentAction(pendingDocumentId: string) {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Valider input
     const validated = rejectPendingDocumentSchema.parse({ pendingDocumentId })
 
     // Marquer comme rejected
-    const { error } = await supabase
-      .from('pending_documents')
-      .update({
-        status: 'rejected',
-        resolved_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', validated.pendingDocumentId)
-      .eq('user_id', user.id)
-
-    if (error) {
-      console.error('[rejectPendingDocumentAction] Erreur:', error)
-      return { error: 'Erreur lors du rejet du document' }
-    }
+    await query(
+      `UPDATE pending_documents SET
+        status = $1,
+        resolved_at = NOW(),
+        updated_at = NOW()
+       WHERE id = $2 AND user_id = $3`,
+      ['rejected', validated.pendingDocumentId, userId]
+    )
 
     // TODO : Supprimer fichier temporaire de Google Drive si external_file_id existe
 
@@ -513,51 +440,106 @@ export async function rejectPendingDocumentAction(pendingDocumentId: string) {
  */
 export async function getPendingDocumentsStatsAction() {
   try {
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Compter documents en attente
-    const { count: pendingCount, error: pendingError } = await supabase
-      .from('pending_documents')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'pending')
-
-    if (pendingError) {
-      console.error('[getPendingDocumentsStatsAction] Erreur pending:', pendingError)
-    }
+    const pendingResult = await query(
+      `SELECT COUNT(*) as count FROM pending_documents
+       WHERE user_id = $1 AND status = $2`,
+      [userId, 'pending']
+    )
 
     // Compter documents attachés cette semaine
     const oneWeekAgo = new Date()
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
 
-    const { count: attachedCount, error: attachedError } = await supabase
-      .from('pending_documents')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'attached')
-      .gte('resolved_at', oneWeekAgo.toISOString())
-
-    if (attachedError) {
-      console.error('[getPendingDocumentsStatsAction] Erreur attached:', attachedError)
-    }
+    const attachedResult = await query(
+      `SELECT COUNT(*) as count FROM pending_documents
+       WHERE user_id = $1 AND status = $2 AND resolved_at >= $3`,
+      [userId, 'attached', oneWeekAgo.toISOString()]
+    )
 
     return {
       data: {
-        pending: pendingCount || 0,
-        attachedThisWeek: attachedCount || 0,
+        pending: parseInt(pendingResult.rows[0]?.count || '0'),
+        attachedThisWeek: parseInt(attachedResult.rows[0]?.count || '0'),
       },
     }
   } catch (error: any) {
     console.error('[getPendingDocumentsStatsAction] Exception:', error)
+    return { error: error.message || 'Erreur interne serveur' }
+  }
+}
+
+/**
+ * Récupérer statistiques WhatsApp sur 30 jours
+ */
+export async function getWhatsAppStatsAction() {
+  try {
+    const session = await getSession()
+    if (!session?.user?.id) {
+      return { error: 'Non authentifié' }
+    }
+
+    const userId = session.user.id
+
+    // TODO: Implémenter quand la table whatsapp_messages existera
+    // Pour l'instant, retourner des stats vides
+    return {
+      data: {
+        total_messages: 0,
+        media_messages: 0,
+        documents_created: 0,
+        unknown_clients: 0,
+        errors: 0,
+        last_message_at: null,
+      },
+    }
+  } catch (error: any) {
+    console.error('[getWhatsAppStatsAction] Exception:', error)
+    return { error: error.message || 'Erreur interne serveur' }
+  }
+}
+
+/**
+ * Récupérer documents WhatsApp en attente de rattachement
+ */
+export async function getWhatsAppPendingDocsAction() {
+  try {
+    const session = await getSession()
+    if (!session?.user?.id) {
+      return { error: 'Non authentifié' }
+    }
+
+    const userId = session.user.id
+
+    const result = await query(
+      `SELECT
+        pd.id,
+        pd.nom_fichier as file_name,
+        pd.source as sender_phone,
+        pd.statut as status,
+        pd.created_at,
+        c.id as client_id,
+        c.nom as client_nom,
+        c.prenom as client_prenom
+       FROM pending_documents pd
+       LEFT JOIN clients c ON pd.user_id = c.user_id
+       WHERE pd.user_id = $1
+         AND pd.source = 'whatsapp'
+         AND pd.statut = 'pending'
+       ORDER BY pd.created_at DESC
+       LIMIT 5`,
+      [userId]
+    )
+
+    return { data: result.rows }
+  } catch (error: any) {
+    console.error('[getWhatsAppPendingDocsAction] Exception:', error)
     return { error: error.message || 'Erreur interne serveur' }
   }
 }

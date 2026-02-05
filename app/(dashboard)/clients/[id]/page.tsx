@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import ClientForm from '@/components/clients/ClientForm'
@@ -10,31 +11,33 @@ interface ClientDetailPageProps {
 
 export default async function ClientDetailPage({ params }: ClientDetailPageProps) {
   const { id } = await params
-  const supabase = await createClient()
+  const session = await getSession()
   const t = await getTranslations('clients')
 
-  // Récupérer le client
-  const { data: client, error } = await supabase
-    .from('clients')
-    .select('*')
-    .eq('id', id)
-    .single()
+  if (!session?.user?.id) return null
 
-  if (error || !client) {
+  // Récupérer le client
+  const clientResult = await query(
+    'SELECT * FROM clients WHERE id = $1 AND user_id = $2',
+    [id, session.user.id]
+  )
+  const client = clientResult.rows[0]
+
+  if (!client) {
     notFound()
   }
 
   // Récupérer les dossiers du client
-  const { data: dossiers } = await supabase
-    .from('dossiers')
-    .select('*')
-    .eq('client_id', id)
-    .order('created_at', { ascending: false })
+  const dossiersResult = await query(
+    'SELECT * FROM dossiers WHERE client_id = $1 AND user_id = $2 ORDER BY created_at DESC',
+    [id, session.user.id]
+  )
+  const dossiers = dossiersResult.rows
 
   const displayName =
-    client.type === 'PERSONNE_PHYSIQUE'
+    client.type_client === 'personne_physique'
       ? `${client.nom} ${client.prenom || ''}`.trim()
-      : client.denomination
+      : client.nom
 
   return (
     <div className="space-y-6">
@@ -89,13 +92,13 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{t('activeDossiersCount')}</span>
                 <span className="text-lg font-bold text-blue-600">
-                  {dossiers?.filter((d) => d.statut === 'ACTIF').length || 0}
+                  {dossiers?.filter((d) => d.statut === 'en_cours').length || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{t('closedDossiersCount')}</span>
                 <span className="text-lg font-bold text-muted-foreground">
-                  {dossiers?.filter((d) => d.statut === 'CLOS').length || 0}
+                  {dossiers?.filter((d) => d.statut === 'clos').length || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -122,11 +125,11 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-foreground">
-                        {dossier.numero_dossier}
+                        {dossier.numero}
                       </span>
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                          dossier.statut === 'ACTIF'
+                          dossier.statut === 'en_cours'
                             ? 'bg-green-100 text-green-700'
                             : 'bg-muted text-foreground'
                         }`}

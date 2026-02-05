@@ -39,7 +39,7 @@ export default function DossierForm({
     defaultValues: initialData || {
       client_id: preselectedClientId || '',
       type_procedure: 'civil_premiere_instance',
-      statut: 'ACTIF',
+      statut: 'actif',
       workflow_etape_actuelle: 'ASSIGNATION',
     },
   })
@@ -105,9 +105,9 @@ export default function DossierForm({
           <option value="">{t('placeholders.selectClient')}</option>
           {clients.map((client) => {
             const displayName =
-              client.type === 'PERSONNE_PHYSIQUE'
+              client.type_client === 'personne_physique'
                 ? `${client.nom} ${client.prenom || ''}`.trim()
-                : client.denomination
+                : client.nom
             return (
               <option key={client.id} value={client.id}>
                 {displayName}
@@ -127,13 +127,13 @@ export default function DossierForm({
             {t('labels.dossierNumberRequired')}
           </label>
           <input
-            {...register('numero_dossier')}
+            {...register('numero')}
             className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             placeholder={t('placeholders.enterDossierNumber')}
           />
-          {errors.numero_dossier && (
+          {errors.numero && (
             <p className="mt-1 text-sm text-red-600">
-              {errors.numero_dossier.message}
+              {errors.numero.message}
             </p>
           )}
         </div>
@@ -277,9 +277,9 @@ export default function DossierForm({
             {...register('statut')}
             className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
-            <option value="ACTIF">{t('options.statusActive')}</option>
-            <option value="CLOS">{t('options.statusClosed')}</option>
-            <option value="ARCHIVE">{t('options.statusArchived')}</option>
+            <option value="actif">{t('options.statusActive')}</option>
+            <option value="clos">{t('options.statusClosed')}</option>
+            <option value="archive">{t('options.statusArchived')}</option>
           </select>
           {errors.statut && (
             <p className="mt-1 text-sm text-red-600">{errors.statut.message}</p>

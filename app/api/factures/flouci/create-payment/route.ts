@@ -17,21 +17,21 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { flouciClient, FlouciUtils } from '@/lib/integrations/flouci'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-
     // 1. Vérifier authentification
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const session = await getServerSession(authOptions)
 
-    if (!user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
+
+    const userId = session.user.id
 
     // 2. Lire body
     const body = await request.json()
@@ -42,31 +42,36 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Vérifier que la facture existe et n'est pas déjà payée
-    const { data: facture, error: factureError } = await supabase
-      .from('factures')
-      .select('id, numero_facture, montant_ttc, statut')
-      .eq('id', facture_id)
-      .single()
+    const factureResult = await query(
+      'SELECT id, numero, montant_ttc, statut FROM factures WHERE id = $1 AND user_id = $2',
+      [facture_id, userId]
+    )
 
-    if (factureError || !facture) {
+    if (factureResult.rows.length === 0) {
       return NextResponse.json({ error: 'Facture introuvable' }, { status: 404 })
     }
 
-    if (facture.statut === 'PAYEE') {
+    const facture = factureResult.rows[0]
+
+    if (facture.statut === 'payee') {
       return NextResponse.json({ error: 'Facture déjà payée' }, { status: 400 })
     }
 
     // 4. Vérifier si un paiement Flouci existe déjà pour cette facture (non expiré)
-    const { data: existingTransaction } = await supabase
-      .from('flouci_transactions')
-      .select('flouci_payment_id, qr_code_url, payment_url, deep_link, status, expired_at')
-      .eq('facture_id', facture_id)
-      .in('status', ['pending', 'initiated'])
-      .gt('expired_at', new Date().toISOString())
-      .single()
+    const existingTransactionResult = await query(
+      `SELECT flouci_payment_id, qr_code_url, payment_url, deep_link, status, expired_at
+       FROM flouci_transactions
+       WHERE facture_id = $1
+         AND status IN ('pending', 'initiated')
+         AND expired_at > NOW()
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [facture_id]
+    )
 
-    if (existingTransaction) {
+    if (existingTransactionResult.rows.length > 0) {
       // Retourner paiement existant
+      const existingTransaction = existingTransactionResult.rows[0]
       const commission = FlouciUtils.calculerCommission(montant_ttc)
 
       return NextResponse.json({
@@ -103,26 +108,29 @@ export async function POST(request: NextRequest) {
     const paymentURL = paymentResponse.result._link || `${process.env.FLOUCI_API_URL}/payment/${paymentId}`
 
     // 6. Enregistrer transaction dans la base de données
-    const { error: insertError } = await supabase.from('flouci_transactions').insert({
-      facture_id,
-      flouci_payment_id: paymentId,
-      montant: montant_ttc,
-      commission_flouci: commission,
-      status: 'pending',
-      client_telephone,
-      client_nom,
-      qr_code_url: qrCodeURL,
-      payment_url: paymentURL,
-      deep_link: deepLink,
-      flouci_response: paymentResponse.result,
-      initiated_at: new Date().toISOString(),
-      expired_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15 minutes
-    })
+    const expiredAt = new Date(Date.now() + 15 * 60 * 1000)
 
-    if (insertError) {
-      console.error('Erreur insertion transaction Flouci:', insertError)
-      throw new Error('Erreur enregistrement transaction')
-    }
+    await query(
+      `INSERT INTO flouci_transactions (
+        facture_id, flouci_payment_id, montant, commission_flouci, status,
+        client_telephone, client_nom, qr_code_url, payment_url, deep_link,
+        flouci_response, initiated_at, expired_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), $12)`,
+      [
+        facture_id,
+        paymentId,
+        montant_ttc,
+        commission,
+        'pending',
+        client_telephone || null,
+        client_nom || null,
+        qrCodeURL,
+        paymentURL,
+        deepLink,
+        JSON.stringify(paymentResponse.result),
+        expiredAt
+      ]
+    )
 
     // 7. Retourner données paiement
     return NextResponse.json({

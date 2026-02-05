@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/command'
 import { Badge } from '@/components/ui/badge'
 import { Users, Briefcase, Receipt, FileText, Search, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 interface SearchResult {
   id: string
@@ -30,7 +29,6 @@ export default function GlobalSearch() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
 
   // Ouvrir avec Cmd+K / Ctrl+K
   useEffect(() => {

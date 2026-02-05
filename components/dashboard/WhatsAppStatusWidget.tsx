@@ -8,17 +8,19 @@
  * - Documents en attente de rattachement
  * - Taux rattachement automatique
  * - Derniers messages
+ *
+ * NOTE: Fonctionnalité WhatsApp à implémenter
  */
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { MessageSquare, Clock, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react'
+import { MessageSquare, Clock, CheckCircle2, AlertCircle, ArrowRight, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { getWhatsAppStatsAction, getWhatsAppPendingDocsAction } from '@/app/actions/messaging'
 
 interface WhatsAppStats {
   total_messages: number
@@ -33,7 +35,6 @@ interface PendingDocument {
   id: string
   file_name: string
   sender_phone: string
-  sender_name: string | null
   created_at: string
   client_id: string | null
   client_nom: string | null
@@ -51,65 +52,19 @@ export function WhatsAppStatusWidget() {
 
   async function loadData() {
     try {
-      const supabase = await createClient()
+      // Récupérer stats et documents en parallèle
+      const [statsResult, docsResult] = await Promise.all([
+        getWhatsAppStatsAction(),
+        getWhatsAppPendingDocsAction()
+      ])
 
-      // 1. Récupérer stats 30 jours
-      const { data: user } = await supabase.auth.getUser()
-      const userId = user.user?.id
-
-      if (!userId) {
-        setLoading(false)
-        return
+      if (statsResult.data) {
+        setStats(statsResult.data)
       }
 
-      const { data: statsData } = await supabase
-        .from('whatsapp_stats_30d')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
-
-      setStats(statsData || {
-        total_messages: 0,
-        media_messages: 0,
-        documents_created: 0,
-        unknown_clients: 0,
-        errors: 0,
-        last_message_at: null,
-      })
-
-      // 2. Récupérer documents en attente
-      const { data: pendingData } = await supabase
-        .from('pending_documents')
-        .select(`
-          id,
-          file_name,
-          sender_phone,
-          sender_name,
-          created_at,
-          client_id,
-          clients (
-            nom,
-            prenom
-          )
-        `)
-        .eq('user_id', userId)
-        .eq('source_type', 'whatsapp')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      const formattedPending = (pendingData || []).map((doc: any) => ({
-        id: doc.id,
-        file_name: doc.file_name,
-        sender_phone: doc.sender_phone,
-        sender_name: doc.sender_name,
-        created_at: doc.created_at,
-        client_id: doc.client_id,
-        client_nom: doc.clients?.nom,
-        client_prenom: doc.clients?.prenom,
-      }))
-
-      setPendingDocs(formattedPending)
+      if (docsResult.data) {
+        setPendingDocs(docsResult.data)
+      }
     } catch (error) {
       console.error('Erreur chargement stats WhatsApp:', error)
     } finally {
@@ -136,7 +91,7 @@ export function WhatsAppStatusWidget() {
     )
   }
 
-  if (!stats) {
+  if (!stats || stats.total_messages === 0) {
     return (
       <Card>
         <CardHeader>
@@ -145,9 +100,23 @@ export function WhatsAppStatusWidget() {
             Messages WhatsApp
           </CardTitle>
           <CardDescription>
-            Aucune donnée disponible
+            Intégration WhatsApp Business à configurer
           </CardDescription>
         </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <Settings className="h-12 w-12 text-muted-foreground/50 mb-3" />
+            <p className="text-sm text-muted-foreground mb-4">
+              Connectez votre compte WhatsApp Business pour recevoir et traiter automatiquement les documents de vos clients.
+            </p>
+            <Link href="/parametres/messagerie">
+              <Button size="sm">
+                Configurer WhatsApp
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
       </Card>
     )
   }

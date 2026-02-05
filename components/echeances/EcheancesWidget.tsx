@@ -1,39 +1,25 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { joursRestants, niveauUrgence } from '@/lib/utils/delais-tunisie'
+import { getEcheancesUrgentesAction } from '@/app/actions/echeances'
 
 export default async function EcheancesWidget() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Récupérer les échéances urgentes (7 prochains jours, limité à 5)
+  const result = await getEcheancesUrgentesAction()
 
-  if (!user) return null
+  if (result.error || !result.data) {
+    return null
+  }
 
-  // Récupérer les échéances des 7 prochains jours
+  // Filtrer pour ne garder que les 7 prochains jours et limiter à 5
   const dans7Jours = new Date()
   dans7Jours.setDate(dans7Jours.getDate() + 7)
 
-  const { data: echeances } = await supabase
-    .from('echeances')
-    .select(`
-      *,
-      dossiers (
-        id,
-        numero_dossier,
-        objet,
-        clients (
-          nom,
-          prenom,
-          denomination,
-          type
-        )
-      )
-    `)
-    .eq('statut', 'actif')
-    .lte('date_echeance', dans7Jours.toISOString().split('T')[0])
-    .order('date_echeance', { ascending: true })
-    .limit(5)
+  const echeances = result.data
+    .filter((e: any) => {
+      const dateEcheance = new Date(e.date_echeance)
+      return dateEcheance <= dans7Jours
+    })
+    .slice(0, 5)
 
   if (!echeances || echeances.length === 0) {
     return (

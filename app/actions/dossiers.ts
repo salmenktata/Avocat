@@ -1,6 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { dossierSchema, type DossierFormData } from '@/lib/validations/dossier'
 import { revalidatePath } from 'next/cache'
 
@@ -9,39 +10,33 @@ export async function createDossierAction(formData: DossierFormData) {
     // Validation
     const validatedData = dossierSchema.parse(formData)
 
-    // Vérifier l'authentification
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
+    const userId = session.user.id
+
     // Préparer les données
     const dossierData = {
-      user_id: user.id,
+      user_id: userId,
       ...validatedData,
       montant_litige: validatedData.montant_litige || null,
       date_ouverture: validatedData.date_ouverture || new Date().toISOString().split('T')[0],
       workflow_etape_actuelle: validatedData.workflow_etape_actuelle || 'ASSIGNATION',
     }
 
-    // Créer le dossier
-    const { data, error } = await supabase
-      .from('dossiers')
-      .insert(dossierData)
-      .select()
-      .single()
+    const columns = Object.keys(dossierData).join(', ')
+    const values = Object.values(dossierData)
+    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ')
 
-    if (error) {
-      console.error('Erreur création dossier:', error)
-      return { error: 'Erreur lors de la création du dossier' }
-    }
+    const result = await query(
+      `INSERT INTO dossiers (${columns}) VALUES (${placeholders}) RETURNING *`,
+      values
+    )
 
     revalidatePath('/dossiers')
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur validation:', error)
     return { error: 'Données invalides' }
@@ -53,35 +48,35 @@ export async function updateDossierAction(id: string, formData: DossierFormData)
     // Validation
     const validatedData = dossierSchema.parse(formData)
 
-    // Vérifier l'authentification
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    // Mettre à jour le dossier
-    const { data, error } = await supabase
-      .from('dossiers')
-      .update({
-        ...validatedData,
-        montant_litige: validatedData.montant_litige || null,
-      })
-      .eq('id', id)
-      .select()
-      .single()
+    const userId = session.user.id
 
-    if (error) {
-      console.error('Erreur mise à jour dossier:', error)
-      return { error: 'Erreur lors de la mise à jour du dossier' }
+    const updateData = {
+      ...validatedData,
+      montant_litige: validatedData.montant_litige || null,
+    }
+
+    const setClause = Object.keys(updateData)
+      .map((key, i) => `${key} = $${i + 1}`)
+      .join(', ')
+    const values = [...Object.values(updateData), id, userId]
+
+    const result = await query(
+      `UPDATE dossiers SET ${setClause} WHERE id = $${values.length - 1} AND user_id = $${values.length} RETURNING *`,
+      values
+    )
+
+    if (result.rows.length === 0) {
+      return { error: 'Dossier introuvable' }
     }
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${id}`)
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur validation:', error)
     return { error: 'Données invalides' }
@@ -90,31 +85,24 @@ export async function updateDossierAction(id: string, formData: DossierFormData)
 
 export async function updateDossierEtapeAction(id: string, etapeId: string) {
   try {
-    // Vérifier l'authentification
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    // Mettre à jour l'étape
-    const { data, error } = await supabase
-      .from('dossiers')
-      .update({ workflow_etape_actuelle: etapeId })
-      .eq('id', id)
-      .select()
-      .single()
+    const userId = session.user.id
 
-    if (error) {
-      console.error('Erreur mise à jour étape:', error)
-      return { error: 'Erreur lors de la mise à jour de l\'étape' }
+    const result = await query(
+      'UPDATE dossiers SET workflow_etape_actuelle = $1 WHERE id = $2 AND user_id = $3 RETURNING *',
+      [etapeId, id, userId]
+    )
+
+    if (result.rows.length === 0) {
+      return { error: 'Dossier introuvable' }
     }
 
     revalidatePath(`/dossiers/${id}`)
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur mise à jour:', error)
     return { error: 'Erreur lors de la mise à jour' }
@@ -123,23 +111,15 @@ export async function updateDossierEtapeAction(id: string, etapeId: string) {
 
 export async function deleteDossierAction(id: string) {
   try {
-    // Vérifier l'authentification
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    // Supprimer le dossier (cascade supprime actions, documents, etc.)
-    const { error } = await supabase.from('dossiers').delete().eq('id', id)
+    const userId = session.user.id
 
-    if (error) {
-      console.error('Erreur suppression dossier:', error)
-      return { error: 'Erreur lors de la suppression du dossier' }
-    }
+    // Supprimer le dossier (cascade supprime actions, documents, etc.)
+    await query('DELETE FROM dossiers WHERE id = $1 AND user_id = $2', [id, userId])
 
     revalidatePath('/dossiers')
     return { success: true }
@@ -151,27 +131,30 @@ export async function deleteDossierAction(id: string) {
 
 export async function getDossierAction(id: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    const { data, error } = await supabase
-      .from('dossiers')
-      .select('*, clients(*)')
-      .eq('id', id)
-      .single()
+    const userId = session.user.id
 
-    if (error) {
-      console.error('Erreur récupération dossier:', error)
+    const result = await query(
+      `SELECT d.*, json_build_object(
+        'id', c.id, 'nom', c.nom, 'prenom', c.prenom,
+        'type_client', c.type_client, 'cin', c.cin, 'adresse', c.adresse,
+        'telephone', c.telephone, 'email', c.email
+      ) as clients
+      FROM dossiers d
+      LEFT JOIN clients c ON d.client_id = c.id
+      WHERE d.id = $1 AND d.user_id = $2`,
+      [id, userId]
+    )
+
+    if (result.rows.length === 0) {
       return { error: 'Dossier non trouvé' }
     }
 
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur récupération:', error)
     return { error: 'Erreur lors de la récupération du dossier' }

@@ -52,9 +52,9 @@ export default function FactureDetailClient({
   const handleGeneratePDF = () => {
     // Générer le PDF
     const clientName = facture.clients
-      ? facture.clients.type === 'PERSONNE_PHYSIQUE'
+      ? facture.clients.type_client === 'personne_physique'
         ? `${facture.clients.nom} ${facture.clients.prenom || ''}`.trim()
-        : facture.clients.denomination
+        : facture.clients.nom
       : 'Client supprimé'
 
     // Créer le contenu HTML pour le PDF
@@ -63,7 +63,7 @@ export default function FactureDetailClient({
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Facture ${facture.numero_facture}</title>
+  <title>Facture ${facture.numero}</title>
   <style>
     @page { size: A4; margin: 2cm; }
     body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.6; color: #333; }
@@ -88,7 +88,7 @@ export default function FactureDetailClient({
 <body>
   <div class="header">
     <h1>FACTURE</h1>
-    <p style="font-size: 18pt; margin: 10px 0;">${facture.numero_facture}</p>
+    <p style="font-size: 18pt; margin: 10px 0;">${facture.numero}</p>
   </div>
 
   <div class="info-section">
@@ -127,7 +127,7 @@ export default function FactureDetailClient({
       ${facture.dossiers ? `
       <tr>
         <td><span class="label">Dossier:</span></td>
-        <td><strong>${facture.dossiers.numero_dossier}</strong> - ${facture.dossiers.objet}</td>
+        <td><strong>${facture.dossiers.numero}</strong> - ${facture.dossiers.objet}</td>
       </tr>
       ` : ''}
     </table>
@@ -198,9 +198,9 @@ export default function FactureDetailClient({
         </button>
 
         {/* Changer statut */}
-        {facture.statut !== 'PAYEE' && (
+        {facture.statut !== 'payee' && (
           <button
-            onClick={() => handleChangeStatut('PAYEE')}
+            onClick={() => handleChangeStatut('payee')}
             disabled={loading}
             className="w-full rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
           >
@@ -208,9 +208,9 @@ export default function FactureDetailClient({
           </button>
         )}
 
-        {facture.statut === 'BROUILLON' && (
+        {facture.statut === 'brouillon' && (
           <button
-            onClick={() => handleChangeStatut('ENVOYEE')}
+            onClick={() => handleChangeStatut('envoyee')}
             disabled={loading}
             className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
@@ -218,9 +218,9 @@ export default function FactureDetailClient({
           </button>
         )}
 
-        {facture.statut !== 'IMPAYEE' && facture.statut !== 'PAYEE' && (
+        {facture.statut !== 'impayee' && facture.statut !== 'payee' && (
           <button
-            onClick={() => handleChangeStatut('IMPAYEE')}
+            onClick={() => handleChangeStatut('impayee')}
             disabled={loading}
             className="w-full rounded-md border border-red-300 bg-card px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >

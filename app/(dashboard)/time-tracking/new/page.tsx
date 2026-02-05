@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import TimeEntryForm from '@/components/time-tracking/TimeEntryForm'
@@ -9,15 +10,11 @@ export default async function NewTimeEntryPage({
 }: {
   searchParams: Promise<{ dossier_id?: string }>
 }) {
-  const supabase = await createClient()
   const params = await searchParams
+  const session = await getSession()
   const t = await getTranslations('timeTracking')
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
@@ -27,12 +24,11 @@ export default async function NewTimeEntryPage({
 
   if (dossierId) {
     // Vérifier que le dossier appartient à l'utilisateur
-    const { data: dossier } = await supabase
-      .from('dossiers')
-      .select('id')
-      .eq('id', dossierId)
-      .eq('user_id', user.id)
-      .single()
+    const dossierResult = await query(
+      'SELECT id FROM dossiers WHERE id = $1 AND user_id = $2',
+      [dossierId, session.user.id]
+    )
+    const dossier = dossierResult.rows[0]
 
     if (!dossier) {
       dossierId = ''
@@ -40,11 +36,11 @@ export default async function NewTimeEntryPage({
   }
 
   // Récupérer le taux horaire par défaut du profil
-  const { data: _profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const profileResult = await query(
+    'SELECT * FROM profiles WHERE id = $1',
+    [session.user.id]
+  )
+  const _profile = profileResult.rows[0]
 
   // Si le profil a un taux horaire par défaut, l'utiliser (à ajouter au schéma profiles plus tard)
   // Pour l'instant, on utilise undefined

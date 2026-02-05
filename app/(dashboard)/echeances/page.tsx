@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import EcheanceCard from '@/components/echeances/EcheanceCard'
 import { niveauUrgence } from '@/lib/utils/delais-tunisie'
@@ -6,40 +7,34 @@ import { getTranslations } from 'next-intl/server'
 
 export default async function EcheancesPage() {
   const t = await getTranslations('echeances')
-  const supabase = await createClient()
+  const session = await getSession()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer toutes les échéances actives
-  const { data: echeances, error } = await supabase
-    .from('echeances')
-    .select(`
-      *,
-      dossiers (
-        id,
-        numero_dossier,
-        objet,
-        clients (
-          id,
-          type,
-          nom,
-          prenom,
-          denomination
+  const result = await query(
+    `SELECT e.*,
+      json_build_object(
+        'id', d.id,
+        'numero', d.numero,
+        'objet', d.objet,
+        'clients', json_build_object(
+          'id', c.id,
+          'type_client', c.type_client,
+          'nom', c.nom,
+          'prenom', c.prenom
         )
-      )
-    `)
-    .eq('statut', 'actif')
-    .order('date_echeance', { ascending: true })
-
-  if (error) {
-    console.error('Erreur chargement échéances:', error)
-  }
+      ) as dossiers
+    FROM echeances e
+    LEFT JOIN dossiers d ON e.dossier_id = d.id
+    LEFT JOIN clients c ON d.client_id = c.id
+    WHERE e.user_id = $1 AND e.statut = $2
+    ORDER BY e.date_echeance ASC`,
+    [session.user.id, 'actif']
+  )
+  const echeances = result.rows
 
   // Statistiques
   const aujourdhui = new Date()

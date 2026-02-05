@@ -3,7 +3,7 @@
  * Détecte les fichiers ajoutés manuellement dans Google Drive et les synchronise avec la BDD
  */
 
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
 import { createGoogleDriveProvider } from './cloud-storage'
 
 interface SyncResult {
@@ -55,47 +55,41 @@ export async function syncGoogleDriveToDatabase(
     errors: [],
   }
 
-  const supabase = createClient()
-
   try {
     console.log(`[SyncService] Début synchronisation pour user ${userId}`)
 
     // 1. Créer log de synchronisation
-    const { data: syncLog, error: syncLogError } = await supabase
-      .from('sync_logs')
-      .insert({
-        user_id: userId,
-        provider: 'google_drive',
-        sync_type: 'webhook',
-        sync_status: 'started',
-        started_at: new Date().toISOString(),
-      })
-      .select('id')
-      .single()
+    const syncLogResult = await query(
+      `INSERT INTO sync_logs (user_id, provider, sync_type, sync_status, started_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       RETURNING id`,
+      [userId, 'google_drive', 'webhook', 'started']
+    )
 
-    if (syncLogError || !syncLog) {
-      console.error('[SyncService] Erreur création sync log:', syncLogError)
+    if (syncLogResult.rows.length === 0) {
+      console.error('[SyncService] Erreur création sync log')
       result.errors.push('Erreur création log synchronisation')
       return result
     }
 
+    const syncLog = syncLogResult.rows[0]
     result.syncLogId = syncLog.id
     const startTime = Date.now()
 
     // 2. Récupérer configuration cloud utilisateur
-    const { data: cloudConfig, error: configError } = await supabase
-      .from('cloud_providers_config')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('provider', 'google_drive')
-      .eq('enabled', true)
-      .single()
+    const configResult = await query(
+      `SELECT * FROM cloud_providers_config
+       WHERE user_id = $1 AND provider = 'google_drive' AND enabled = true`,
+      [userId]
+    )
 
-    if (configError || !cloudConfig) {
+    const cloudConfig = configResult.rows[0]
+
+    if (!cloudConfig) {
       const errorMsg = 'Configuration Google Drive non trouvée'
-      console.error(`[SyncService] ${errorMsg}:`, configError)
+      console.error(`[SyncService] ${errorMsg}`)
       result.errors.push(errorMsg)
-      await updateSyncLogFailed(supabase, syncLog.id, result, startTime)
+      await updateSyncLogFailed(syncLog.id, result, startTime)
       return result
     }
 
@@ -103,7 +97,7 @@ export async function syncGoogleDriveToDatabase(
       const errorMsg = 'Dossier racine Google Drive non configuré'
       console.error(`[SyncService] ${errorMsg}`)
       result.errors.push(errorMsg)
-      await updateSyncLogFailed(supabase, syncLog.id, result, startTime)
+      await updateSyncLogFailed(syncLog.id, result, startTime)
       return result
     }
 
@@ -126,26 +120,35 @@ export async function syncGoogleDriveToDatabase(
     result.filesScanned = filesInDrive.length
 
     // 5. Récupérer tous les documents existants en BDD pour cet utilisateur
-    const { data: existingDocuments } = await supabase
-      .from('documents')
-      .select('id, external_file_id, external_metadata')
-      .eq('user_id', userId)
-      .eq('storage_provider', 'google_drive')
+    const existingDocsResult = await query(
+      `SELECT id, external_file_id, external_metadata
+       FROM documents
+       WHERE user_id = $1 AND storage_provider = 'google_drive'`,
+      [userId]
+    )
 
+    const existingDocuments = existingDocsResult.rows
     const existingFileIds = new Set(
       existingDocuments?.map((d) => d.external_file_id) || []
     )
 
     // 6. Récupérer clients et dossiers pour matching
-    const { data: clients } = await supabase
-      .from('clients')
-      .select('id, nom, prenom, denomination, cin, type, google_drive_folder_id')
-      .eq('user_id', userId)
+    const clientsResult = await query(
+      `SELECT id, nom, prenom, denomination, cin, type_client, google_drive_folder_id
+       FROM clients
+       WHERE user_id = $1`,
+      [userId]
+    )
 
-    const { data: dossiers } = await supabase
-      .from('dossiers')
-      .select('id, numero_dossier, client_id, google_drive_folder_id')
-      .eq('user_id', userId)
+    const dossiersResult = await query(
+      `SELECT id, numero, client_id, google_drive_folder_id
+       FROM dossiers
+       WHERE user_id = $1`,
+      [userId]
+    )
+
+    const clients = clientsResult.rows
+    const dossiers = dossiersResult.rows
 
     // Créer maps pour recherche rapide
     const clientsByFolderId = new Map<string, any>(
@@ -180,17 +183,19 @@ export async function syncGoogleDriveToDatabase(
 
             if (existingModifiedTime !== newModifiedTime) {
               // Fichier modifié, mettre à jour métadonnées
-              await supabase
-                .from('documents')
-                .update({
-                  external_metadata: {
+              await query(
+                `UPDATE documents
+                 SET external_metadata = $1, updated_at = NOW()
+                 WHERE id = $2`,
+                [
+                  JSON.stringify({
                     ...existingDoc.external_metadata,
                     modifiedTime: newModifiedTime,
                     webViewLink: file.webViewLink,
-                  },
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', existingDoc.id)
+                  }),
+                  existingDoc.id,
+                ]
+              )
 
               result.filesUpdated++
               console.log(`[SyncService] Fichier mis à jour: ${file.name}`)
@@ -221,41 +226,40 @@ export async function syncGoogleDriveToDatabase(
           ? dossiersByFolderId.get(pathAnalysis.dossierId)?.google_drive_folder_id || null
           : null
 
-        const { error: insertError } = await supabase.from('documents').insert({
-          user_id: userId,
-          dossier_id: pathAnalysis.dossierId || null,
-          nom_fichier: file.name,
-          type_fichier: file.mimeType,
-          taille_fichier: file.size,
-          storage_provider: 'google_drive',
-          external_file_id: file.id,
-          external_folder_client_id: clientFolderId,
-          external_folder_dossier_id: dossierFolderId,
-          external_sharing_link: file.webViewLink,
-          external_metadata: {
-            createdTime: file.createdTime.toISOString(),
-            modifiedTime: file.modifiedTime.toISOString(),
-            webViewLink: file.webViewLink,
-            parents: file.parents,
-            path: file.path,
-          },
-          source_type: 'google_drive_sync',
-          source_metadata: {
-            sync_detected_at: new Date().toISOString(),
-            path_analysis: pathAnalysis,
-          },
-          needs_classification: needsClassification,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-
-        if (insertError) {
-          console.error(
-            `[SyncService] Erreur insertion document ${file.name}:`,
-            insertError
+        try {
+          await query(
+            `INSERT INTO documents (
+              user_id, dossier_id, nom_fichier, type_fichier, taille_fichier,
+              storage_provider, external_file_id, external_folder_client_id,
+              external_folder_dossier_id, external_sharing_link, external_metadata,
+              source_type, source_metadata, needs_classification, created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())`,
+            [
+              userId,
+              pathAnalysis.dossierId || null,
+              file.name,
+              file.mimeType,
+              file.size,
+              'google_drive',
+              file.id,
+              clientFolderId,
+              dossierFolderId,
+              file.webViewLink,
+              JSON.stringify({
+                createdTime: file.createdTime.toISOString(),
+                modifiedTime: file.modifiedTime.toISOString(),
+                webViewLink: file.webViewLink,
+                parents: file.parents,
+                path: file.path,
+              }),
+              'google_drive_sync',
+              JSON.stringify({
+                sync_detected_at: new Date().toISOString(),
+                path_analysis: pathAnalysis,
+              }),
+              needsClassification,
+            ]
           )
-          result.errors.push(`Erreur insertion ${file.name}: ${insertError.message}`)
-        } else {
           result.filesAdded++
           if (needsClassification) {
             result.filesNeedsClassification++
@@ -263,6 +267,12 @@ export async function syncGoogleDriveToDatabase(
           console.log(
             `[SyncService] Document créé: ${file.name} (needs_classification=${needsClassification})`
           )
+        } catch (insertError: any) {
+          console.error(
+            `[SyncService] Erreur insertion document ${file.name}:`,
+            insertError
+          )
+          result.errors.push(`Erreur insertion ${file.name}: ${insertError.message}`)
         }
       } catch (error: any) {
         console.error(`[SyncService] Erreur traitement fichier ${file.name}:`, error)
@@ -272,29 +282,32 @@ export async function syncGoogleDriveToDatabase(
 
     // 8. Mettre à jour log de synchronisation (succès)
     const duration = Date.now() - startTime
-    await supabase
-      .from('sync_logs')
-      .update({
-        sync_status: result.errors.length > 0 ? 'partial' : 'success',
-        completed_at: new Date().toISOString(),
-        duration_ms: duration,
-        files_scanned: result.filesScanned,
-        files_added: result.filesAdded,
-        files_updated: result.filesUpdated,
-        files_deleted: result.filesDeleted,
-        files_needs_classification: result.filesNeedsClassification,
-        error_message:
-          result.errors.length > 0 ? result.errors.join('; ') : null,
-      })
-      .eq('id', syncLog.id)
+    await query(
+      `UPDATE sync_logs
+       SET sync_status = $1, completed_at = NOW(), duration_ms = $2,
+           files_scanned = $3, files_added = $4, files_updated = $5,
+           files_deleted = $6, files_needs_classification = $7, error_message = $8
+       WHERE id = $9`,
+      [
+        result.errors.length > 0 ? 'partial' : 'success',
+        duration,
+        result.filesScanned,
+        result.filesAdded,
+        result.filesUpdated,
+        result.filesDeleted,
+        result.filesNeedsClassification,
+        result.errors.length > 0 ? result.errors.join('; ') : null,
+        syncLog.id,
+      ]
+    )
 
     // Mettre à jour last_sync_at dans config
-    await supabase
-      .from('cloud_providers_config')
-      .update({
-        last_sync_at: new Date().toISOString(),
-      })
-      .eq('id', cloudConfig.id)
+    await query(
+      `UPDATE cloud_providers_config
+       SET last_sync_at = NOW()
+       WHERE id = $1`,
+      [cloudConfig.id]
+    )
 
     result.success = true
     console.log(`[SyncService] Synchronisation terminée:`, {
@@ -312,7 +325,6 @@ export async function syncGoogleDriveToDatabase(
 
     if (result.syncLogId) {
       await updateSyncLogFailed(
-        supabase,
         result.syncLogId,
         result,
         Date.now()
@@ -467,7 +479,7 @@ function analyzeFilePath(
 
         // Chercher dossier avec ce numéro
         const dossier = Array.from(dossiersByFolderId.values()).find(
-          (d) => d.numero_dossier === numeroDossier
+          (d) => d.numero === numeroDossier
         )
 
         if (dossier) {
@@ -485,23 +497,24 @@ function analyzeFilePath(
  * Mettre à jour log de synchronisation en cas d'échec
  */
 async function updateSyncLogFailed(
-  supabase: any,
   syncLogId: string,
   result: SyncResult,
   startTime: number
 ): Promise<void> {
   const duration = Date.now() - startTime
 
-  await supabase
-    .from('sync_logs')
-    .update({
-      sync_status: 'failed',
-      completed_at: new Date().toISOString(),
-      duration_ms: duration,
-      files_scanned: result.filesScanned,
-      files_added: result.filesAdded,
-      files_updated: result.filesUpdated,
-      error_message: result.errors.join('; '),
-    })
-    .eq('id', syncLogId)
+  await query(
+    `UPDATE sync_logs
+     SET sync_status = 'failed', completed_at = NOW(), duration_ms = $1,
+         files_scanned = $2, files_added = $3, files_updated = $4, error_message = $5
+     WHERE id = $6`,
+    [
+      duration,
+      result.filesScanned,
+      result.filesAdded,
+      result.filesUpdated,
+      result.errors.join('; '),
+      syncLogId,
+    ]
+  )
 }

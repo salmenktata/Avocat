@@ -1,6 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { echeanceSchema, calculateEcheanceSchema, type EcheanceFormData, type CalculateEcheanceData } from '@/lib/validations/echeance'
 import { calculerEcheance } from '@/lib/utils/delais-tunisie'
 import { revalidatePath } from 'next/cache'
@@ -11,166 +12,148 @@ export async function createEcheanceAction(formData: EcheanceFormData) {
     const validatedData = echeanceSchema.parse(formData)
 
     // Vérifier l'authentification
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
     // Vérifier que le dossier appartient à l'utilisateur
-    const { data: dossier, error: dossierError } = await supabase
-      .from('dossiers')
-      .select('id')
-      .eq('id', validatedData.dossier_id)
-      .eq('user_id', user.id)
-      .single()
+    const dossierResult = await query(
+      'SELECT id FROM dossiers WHERE id = $1 AND user_id = $2',
+      [validatedData.dossier_id, session.user.id]
+    )
 
-    if (dossierError || !dossier) {
+    if (dossierResult.rows.length === 0) {
       return { error: 'Dossier introuvable ou accès refusé' }
     }
 
     // Créer l'échéance
-    const { data, error } = await supabase
-      .from('echeances')
-      .insert(validatedData)
-      .select()
-      .single()
+    const columns = Object.keys(validatedData).join(', ')
+    const values = Object.values(validatedData)
+    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ')
 
-    if (error) {
-      console.error('Erreur création échéance:', error)
-      return { error: 'Erreur lors de la création de l\'échéance' }
-    }
+    const result = await query(
+      `INSERT INTO echeances (${columns}) VALUES (${placeholders}) RETURNING *`,
+      values
+    )
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${validatedData.dossier_id}`)
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
-    console.error('Erreur validation:', error)
-    return { error: 'Données invalides' }
+    console.error('Erreur création échéance:', error)
+    return { error: 'Erreur lors de la création de l\'échéance' }
   }
 }
 
 export async function updateEcheanceAction(id: string, formData: Partial<EcheanceFormData>) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    // Vérifier que l'échéance existe et appartient à l'utilisateur
-    const { data: echeance, error: checkError } = await supabase
-      .from('echeances')
-      .select('id, dossier_id, dossiers(user_id)')
-      .eq('id', id)
-      .single()
+    // Vérifier que l'échéance existe et appartient à l'utilisateur (via le dossier)
+    const checkResult = await query(
+      `SELECT e.id, e.dossier_id
+       FROM echeances e
+       JOIN dossiers d ON e.dossier_id = d.id
+       WHERE e.id = $1 AND d.user_id = $2`,
+      [id, session.user.id]
+    )
 
-    if (checkError || !echeance || (echeance.dossiers as any)?.user_id !== user.id) {
+    if (checkResult.rows.length === 0) {
       return { error: 'Échéance introuvable ou accès refusé' }
     }
 
-    const { data, error } = await supabase
-      .from('echeances')
-      .update(formData)
-      .eq('id', id)
-      .select()
-      .single()
+    const echeance = checkResult.rows[0]
 
-    if (error) {
-      console.error('Erreur mise à jour échéance:', error)
-      return { error: 'Erreur lors de la mise à jour' }
-    }
+    // Mettre à jour
+    const setClause = Object.keys(formData)
+      .map((key, i) => `${key} = $${i + 1}`)
+      .join(', ')
+    const values = [...Object.values(formData), id]
+
+    const result = await query(
+      `UPDATE echeances SET ${setClause} WHERE id = $${values.length} RETURNING *`,
+      values
+    )
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${echeance.dossier_id}`)
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
-    console.error('Erreur mise à jour:', error)
+    console.error('Erreur mise à jour échéance:', error)
     return { error: 'Erreur lors de la mise à jour' }
   }
 }
 
 export async function deleteEcheanceAction(id: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
     // Récupérer l'échéance pour le revalidatePath
-    const { data: echeance } = await supabase
-      .from('echeances')
-      .select('dossier_id')
-      .eq('id', id)
-      .single()
+    const echeanceResult = await query(
+      `SELECT e.dossier_id
+       FROM echeances e
+       JOIN dossiers d ON e.dossier_id = d.id
+       WHERE e.id = $1 AND d.user_id = $2`,
+      [id, session.user.id]
+    )
 
-    const { error } = await supabase.from('echeances').delete().eq('id', id)
-
-    if (error) {
-      console.error('Erreur suppression échéance:', error)
-      return { error: 'Erreur lors de la suppression' }
+    if (echeanceResult.rows.length === 0) {
+      return { error: 'Échéance introuvable ou accès refusé' }
     }
 
-    if (echeance) {
-      revalidatePath('/dossiers')
-      revalidatePath(`/dossiers/${echeance.dossier_id}`)
-    }
+    const echeance = echeanceResult.rows[0]
+
+    await query('DELETE FROM echeances WHERE id = $1', [id])
+
+    revalidatePath('/dossiers')
+    revalidatePath(`/dossiers/${echeance.dossier_id}`)
 
     return { success: true }
   } catch (error) {
-    console.error('Erreur suppression:', error)
+    console.error('Erreur suppression échéance:', error)
     return { error: 'Erreur lors de la suppression' }
   }
 }
 
 export async function marquerEcheanceRespecte(id: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    const { data: echeance, error: checkError } = await supabase
-      .from('echeances')
-      .select('dossier_id')
-      .eq('id', id)
-      .single()
+    // Vérifier et récupérer le dossier_id
+    const checkResult = await query(
+      `SELECT e.dossier_id
+       FROM echeances e
+       JOIN dossiers d ON e.dossier_id = d.id
+       WHERE e.id = $1 AND d.user_id = $2`,
+      [id, session.user.id]
+    )
 
-    if (checkError) {
+    if (checkResult.rows.length === 0) {
       return { error: 'Échéance introuvable' }
     }
 
-    const { data, error } = await supabase
-      .from('echeances')
-      .update({ statut: 'respecte' })
-      .eq('id', id)
-      .select()
-      .single()
+    const echeance = checkResult.rows[0]
 
-    if (error) {
-      console.error('Erreur marquage échéance:', error)
-      return { error: 'Erreur lors du marquage' }
-    }
+    const result = await query(
+      `UPDATE echeances SET statut = 'respecte' WHERE id = $1 RETURNING *`,
+      [id]
+    )
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${echeance.dossier_id}`)
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
-    console.error('Erreur:', error)
+    console.error('Erreur marquage échéance:', error)
     return { error: 'Erreur lors du marquage' }
   }
 }
@@ -205,12 +188,8 @@ export async function calculateEcheanceAction(formData: CalculateEcheanceData) {
 
 export async function getEcheancesUrgentesAction() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
@@ -218,34 +197,32 @@ export async function getEcheancesUrgentesAction() {
     const dans15Jours = new Date()
     dans15Jours.setDate(dans15Jours.getDate() + 15)
 
-    const { data, error } = await supabase
-      .from('echeances')
-      .select(`
-        *,
-        dossiers (
-          id,
-          numero_dossier,
-          objet,
-          clients (
-            nom,
-            prenom,
-            denomination,
-            type
+    const result = await query(
+      `SELECT
+        e.*,
+        json_build_object(
+          'id', d.id,
+          'numero', d.numero,
+          'objet', d.objet,
+          'clients', json_build_object(
+            'nom', c.nom,
+            'prenom', c.prenom,
+            'type_client', c.type_client
           )
-        )
-      `)
-      .eq('statut', 'actif')
-      .lte('date_echeance', dans15Jours.toISOString().split('T')[0])
-      .order('date_echeance', { ascending: true })
+        ) as dossiers
+       FROM echeances e
+       JOIN dossiers d ON e.dossier_id = d.id
+       LEFT JOIN clients c ON d.client_id = c.id
+       WHERE e.statut = 'actif'
+         AND e.date_echeance <= $1
+         AND d.user_id = $2
+       ORDER BY e.date_echeance ASC`,
+      [dans15Jours.toISOString().split('T')[0], session.user.id]
+    )
 
-    if (error) {
-      console.error('Erreur récupération échéances urgentes:', error)
-      return { error: 'Erreur lors de la récupération des échéances' }
-    }
-
-    return { success: true, data }
+    return { success: true, data: result.rows }
   } catch (error) {
-    console.error('Erreur:', error)
+    console.error('Erreur récupération échéances urgentes:', error)
     return { error: 'Erreur lors de la récupération des échéances' }
   }
 }

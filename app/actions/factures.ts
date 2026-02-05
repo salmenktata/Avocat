@@ -1,6 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { factureSchema, type FactureFormData } from '@/lib/validations/facture'
 import { revalidatePath } from 'next/cache'
 import { Resend } from 'resend'
@@ -16,30 +17,23 @@ export async function createFactureAction(formData: FactureFormData) {
     // Validation
     const validatedData = factureSchema.parse(formData)
 
-    // Vérifier l'authentification
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+
+    const userId = session.user.id
 
     // Générer le numéro de facture
     const currentYear = new Date().getFullYear()
 
     // Récupérer la dernière facture de l'année
-    const { data: lastFacture } = await supabase
-      .from('factures')
-      .select('sequence')
-      .eq('user_id', user.id)
-      .eq('annee', currentYear)
-      .order('sequence', { ascending: false })
-      .limit(1)
-      .single()
+    const lastFactureResult = await query(
+      'SELECT sequence FROM factures WHERE user_id = $1 AND annee = $2 ORDER BY sequence DESC LIMIT 1',
+      [userId, currentYear]
+    )
 
-    const nextSequence = lastFacture ? lastFacture.sequence + 1 : 1
+    const nextSequence = lastFactureResult.rows.length > 0 ? lastFactureResult.rows[0].sequence + 1 : 1
     const numeroFacture = `F${currentYear}${String(nextSequence).padStart(4, '0')}`
 
     // Calculer montants
@@ -50,10 +44,10 @@ export async function createFactureAction(formData: FactureFormData) {
 
     // Préparer les données
     const factureData = {
-      user_id: user.id,
+      user_id: userId,
       client_id: validatedData.client_id,
       dossier_id: validatedData.dossier_id || null,
-      numero_facture: numeroFacture,
+      numero: numeroFacture,
       annee: currentYear,
       sequence: nextSequence,
       montant_ht,
@@ -68,20 +62,17 @@ export async function createFactureAction(formData: FactureFormData) {
       notes: validatedData.notes || null,
     }
 
-    // Créer la facture
-    const { data, error } = await supabase
-      .from('factures')
-      .insert(factureData)
-      .select()
-      .single()
+    const columns = Object.keys(factureData).join(', ')
+    const values = Object.values(factureData)
+    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ')
 
-    if (error) {
-      console.error('Erreur création facture:', error)
-      return { error: 'Erreur lors de la création de la facture' }
-    }
+    const result = await query(
+      `INSERT INTO factures (${columns}) VALUES (${placeholders}) RETURNING *`,
+      values
+    )
 
     revalidatePath('/factures')
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur validation:', error)
     return { error: 'Données invalides' }
@@ -90,26 +81,40 @@ export async function createFactureAction(formData: FactureFormData) {
 
 export async function updateFactureAction(id: string, formData: Partial<FactureFormData>) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+
+    const userId = session.user.id
+
+    // Whitelist des colonnes autorisées pour éviter SQL injection
+    const ALLOWED_UPDATE_FIELDS = [
+      'client_id',
+      'dossier_id',
+      'montant_ht',
+      'taux_tva',
+      'montant_tva',
+      'montant_ttc',
+      'date_emission',
+      'date_echeance',
+      'date_paiement',
+      'statut',
+      'objet',
+      'notes',
+    ]
 
     // Recalculer les montants si montant_ht ou taux_tva changent
     let updateData: any = { ...formData }
 
     if (formData.montant_ht !== undefined || formData.taux_tva !== undefined) {
-      const { data: currentFacture } = await supabase
-        .from('factures')
-        .select('montant_ht, taux_tva')
-        .eq('id', id)
-        .single()
+      const currentResult = await query(
+        'SELECT montant_ht, taux_tva FROM factures WHERE id = $1 AND user_id = $2',
+        [id, userId]
+      )
 
-      if (currentFacture) {
+      if (currentResult.rows.length > 0) {
+        const currentFacture = currentResult.rows[0]
         const montant_ht = formData.montant_ht ?? currentFacture.montant_ht
         const taux_tva = formData.taux_tva ?? currentFacture.taux_tva
         const montant_tva = (montant_ht * taux_tva) / 100
@@ -123,22 +128,35 @@ export async function updateFactureAction(id: string, formData: Partial<FactureF
       }
     }
 
-    const { data, error } = await supabase
-      .from('factures')
-      .update(updateData)
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single()
+    // Filtrer uniquement les colonnes autorisées
+    const sanitizedData: any = {}
+    Object.keys(updateData).forEach((key) => {
+      if (ALLOWED_UPDATE_FIELDS.includes(key)) {
+        sanitizedData[key] = updateData[key]
+      }
+    })
 
-    if (error) {
-      console.error('Erreur mise à jour facture:', error)
-      return { error: 'Erreur lors de la mise à jour' }
+    if (Object.keys(sanitizedData).length === 0) {
+      return { error: 'Aucune donnée valide à mettre à jour' }
+    }
+
+    const setClause = Object.keys(sanitizedData)
+      .map((key, i) => `${key} = $${i + 1}`)
+      .join(', ')
+    const values = [...Object.values(sanitizedData), id, userId]
+
+    const result = await query(
+      `UPDATE factures SET ${setClause} WHERE id = $${values.length - 1} AND user_id = $${values.length} RETURNING *`,
+      values
+    )
+
+    if (result.rows.length === 0) {
+      return { error: 'Facture introuvable' }
     }
 
     revalidatePath('/factures')
     revalidatePath(`/factures/${id}`)
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur mise à jour:', error)
     return { error: 'Erreur lors de la mise à jour' }
@@ -147,25 +165,14 @@ export async function updateFactureAction(id: string, formData: Partial<FactureF
 
 export async function deleteFactureAction(id: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    const { error } = await supabase
-      .from('factures')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id)
+    const userId = session.user.id
 
-    if (error) {
-      console.error('Erreur suppression facture:', error)
-      return { error: 'Erreur lors de la suppression' }
-    }
+    await query('DELETE FROM factures WHERE id = $1 AND user_id = $2', [id, userId])
 
     revalidatePath('/factures')
     return { success: true }
@@ -177,34 +184,25 @@ export async function deleteFactureAction(id: string) {
 
 export async function marquerFacturePayeeAction(id: string, datePaiement: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    const { data, error } = await supabase
-      .from('factures')
-      .update({
-        statut: 'PAYEE',
-        date_paiement: datePaiement,
-      })
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single()
+    const userId = session.user.id
 
-    if (error) {
-      console.error('Erreur marquage paiement:', error)
-      return { error: 'Erreur lors du marquage comme payée' }
+    const result = await query(
+      `UPDATE factures SET statut = 'payee', date_paiement = $1 WHERE id = $2 AND user_id = $3 RETURNING *`,
+      [datePaiement, id, userId]
+    )
+
+    if (result.rows.length === 0) {
+      return { error: 'Facture introuvable' }
     }
 
     revalidatePath('/factures')
     revalidatePath(`/factures/${id}`)
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur:', error)
     return { error: 'Erreur lors du marquage comme payée' }
@@ -213,31 +211,25 @@ export async function marquerFacturePayeeAction(id: string, datePaiement: string
 
 export async function changerStatutFactureAction(id: string, statut: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    const { data, error } = await supabase
-      .from('factures')
-      .update({ statut })
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single()
+    const userId = session.user.id
 
-    if (error) {
-      console.error('Erreur changement statut:', error)
-      return { error: 'Erreur lors du changement de statut' }
+    const result = await query(
+      'UPDATE factures SET statut = $1 WHERE id = $2 AND user_id = $3 RETURNING *',
+      [statut, id, userId]
+    )
+
+    if (result.rows.length === 0) {
+      return { error: 'Facture introuvable' }
     }
 
     revalidatePath('/factures')
     revalidatePath(`/factures/${id}`)
-    return { success: true, data }
+    return { success: true, data: result.rows[0] }
   } catch (error) {
     console.error('Erreur:', error)
     return { error: 'Erreur lors du changement de statut' }
@@ -246,43 +238,32 @@ export async function changerStatutFactureAction(id: string, statut: string) {
 
 export async function envoyerFactureEmailAction(factureId: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
 
-    // Récupérer la facture avec les relations
-    const { data: facture, error: factureError } = await supabase
-      .from('factures')
-      .select(
-        `
-        *,
-        clients (
-          id,
-          nom,
-          prenom,
-          denomination,
-          type,
-          cin,
-          adresse,
-          ville,
-          code_postal,
-          telephone,
-          email
-        )
-      `
-      )
-      .eq('id', factureId)
-      .eq('user_id', user.id)
-      .single()
+    const userId = session.user.id
 
-    if (factureError || !facture) {
+    // Récupérer la facture avec les relations
+    const factureResult = await query(
+      `SELECT f.*,
+        json_build_object(
+          'id', c.id, 'nom', c.nom, 'prenom', c.prenom,
+          'type_client', c.type_client, 'cin', c.cin, 'adresse', c.adresse,
+          'telephone', c.telephone, 'email', c.email
+        ) as clients
+      FROM factures f
+      LEFT JOIN clients c ON f.client_id = c.id
+      WHERE f.id = $1 AND f.user_id = $2`,
+      [factureId, userId]
+    )
+
+    if (factureResult.rows.length === 0) {
       return { error: 'Facture non trouvée' }
     }
+
+    const facture = factureResult.rows[0]
 
     // Vérifier que le client a un email
     if (!facture.clients?.email) {
@@ -290,15 +271,16 @@ export async function envoyerFactureEmailAction(factureId: string) {
     }
 
     // Récupérer le profil de l'avocat
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
+    const profileResult = await query(
+      'SELECT * FROM profiles WHERE id = $1',
+      [userId]
+    )
 
-    if (profileError || !profile) {
+    if (profileResult.rows.length === 0) {
       return { error: 'Profil avocat non trouvé' }
     }
+
+    const profile = profileResult.rows[0]
 
     // Préparer les données pour le PDF
     const pdfData = {
@@ -319,12 +301,9 @@ export async function envoyerFactureEmailAction(factureId: string) {
       client: {
         nom: facture.clients.nom,
         prenom: facture.clients.prenom,
-        denomination: facture.clients.denomination,
-        type: facture.clients.type,
+        type_client: facture.clients.type_client,
         cin: facture.clients.cin,
         adresse: facture.clients.adresse,
-        ville: facture.clients.ville,
-        code_postal: facture.clients.code_postal,
         telephone: facture.clients.telephone,
         email: facture.clients.email,
       },
@@ -349,9 +328,9 @@ export async function envoyerFactureEmailAction(factureId: string) {
 
     // Préparer les données email
     const clientNom =
-      facture.clients.type === 'PERSONNE_PHYSIQUE'
+      facture.clients.type_client === 'personne_physique'
         ? `${facture.clients.nom} ${facture.clients.prenom || ''}`.trim()
-        : facture.clients.denomination || facture.clients.nom
+        : facture.clients.nom
 
     const avocatNom = `${profile.prenom || ''} ${profile.nom}`.trim()
 
@@ -397,12 +376,11 @@ export async function envoyerFactureEmailAction(factureId: string) {
     }
 
     // Mettre à jour le statut de la facture si elle était en brouillon
-    if (facture.statut === 'BROUILLON') {
-      await supabase
-        .from('factures')
-        .update({ statut: 'ENVOYEE' })
-        .eq('id', factureId)
-        .eq('user_id', user.id)
+    if (facture.statut === 'brouillon') {
+      await query(
+        `UPDATE factures SET statut = 'envoyee' WHERE id = $1 AND user_id = $2`,
+        [factureId, userId]
+      )
     }
 
     revalidatePath('/factures')

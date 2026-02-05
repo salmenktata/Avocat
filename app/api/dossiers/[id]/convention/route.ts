@@ -7,7 +7,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
 import { ConventionPDF } from '@/lib/pdf/convention-pdf'
@@ -15,67 +17,66 @@ import { ConventionPDF } from '@/lib/pdf/convention-pdf'
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: dossierId } = await params
-    const supabase = await createClient()
 
     // Vérifier authentification
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const session = await getServerSession(authOptions)
 
-    if (!user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    // Récupérer dossier avec relations
-    const { data: dossier, error: dossierError } = await supabase
-      .from('dossiers')
-      .select(
-        `
-        *,
-        client:clients(*),
-        profile:profiles(*)
-      `
-      )
-      .eq('id', dossierId)
-      .eq('user_id', user.id)
-      .single()
+    const userId = session.user.id
 
-    if (dossierError || !dossier) {
+    // Récupérer dossier avec client
+    const dossierResult = await query(
+      `SELECT d.*,
+        c.id as client_id, c.nom, c.prenom, c.type_client,
+        c.cin, c.adresse
+       FROM dossiers d
+       JOIN clients c ON d.client_id = c.id
+       WHERE d.id = $1 AND d.user_id = $2`,
+      [dossierId, userId]
+    )
+
+    if (dossierResult.rows.length === 0) {
       return NextResponse.json({ error: 'Dossier introuvable' }, { status: 404 })
     }
 
-    if (!dossier.client) {
-      return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
-    }
+    const dossier = dossierResult.rows[0]
 
     // Récupérer profil avocat complet
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+    const profileResult = await query(
+      'SELECT * FROM profiles WHERE id = $1',
+      [userId]
+    )
 
-    if (!profile) {
+    if (profileResult.rows.length === 0) {
       return NextResponse.json({ error: 'Profil avocat introuvable' }, { status: 404 })
     }
 
-    // Déterminer type honoraires et montants depuis dernière facture ou dossier
-    const { data: factures } = await supabase
-      .from('factures')
-      .select('type_honoraires, taux_horaire, montant_ht, provisions_recues')
-      .eq('dossier_id', dossierId)
-      .order('created_at', { ascending: false })
-      .limit(1)
+    const profile = profileResult.rows[0]
 
-    const derniereFact = factures?.[0]
+    // Déterminer type honoraires et montants depuis dernière facture ou dossier
+    const facturesResult = await query(
+      `SELECT type_honoraires, taux_horaire, montant_ht, provisions_recues
+       FROM factures
+       WHERE dossier_id = $1
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [dossierId]
+    )
+
+    const derniereFact = facturesResult.rows[0]
 
     // Données convention
     const conventionData = {
       client: {
-        nom_complet: dossier.client.denomination
-          ? dossier.client.denomination
-          : `${dossier.client.nom} ${dossier.client.prenom || ''}`.trim(),
-        adresse: dossier.client.adresse || 'Adresse non renseignée',
-        cin: dossier.client.cin,
-        type_client: dossier.client.type_client || 'PERSONNE_PHYSIQUE',
-        denomination: dossier.client.denomination,
-        registre_commerce: dossier.client.registre_commerce,
+        nom_complet: dossier.type_client === 'personne_morale'
+          ? dossier.nom
+          : `${dossier.nom} ${dossier.prenom || ''}`.trim(),
+        adresse: dossier.adresse || 'Adresse non renseignée',
+        cin: dossier.cin,
+        type_client: dossier.type_client || 'personne_physique',
       },
       avocat: {
         nom: profile.nom || 'Non renseigné',
@@ -88,9 +89,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         adresse: profile.cabinet_adresse || profile.adresse || 'Adresse non renseignée',
       },
       dossier: {
-        numero_dossier: dossier.numero_dossier,
+        numero: dossier.numero,
         objet: dossier.objet,
-        type_procedure: dossier.type_procedure || 'Civil',
+        type_procedure: dossier.type_procedure || 'civil',
         tribunal: dossier.tribunal,
       },
       type_honoraires: derniereFact?.type_honoraires || 'forfait',
@@ -116,7 +117,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="Convention-Honoraires-${dossier.numero_dossier}.pdf"`,
+        'Content-Disposition': `attachment; filename="Convention-Honoraires-${dossier.numero}.pdf"`,
       },
     })
   } catch (error) {

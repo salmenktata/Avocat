@@ -1,9 +1,11 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
 import { createStorageManager } from '@/lib/integrations/storage-manager'
 import { createGoogleDriveProvider } from '@/lib/integrations/cloud-storage'
+import { decrypt } from '@/lib/crypto'
 
 interface DossierWithUserId {
   user_id: string
@@ -14,14 +16,11 @@ interface DossierWithUserId {
  */
 export async function uploadDocumentAction(formData: FormData) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Extraire les données du formulaire
     const file = formData.get('file') as File
@@ -38,27 +37,23 @@ export async function uploadDocumentAction(formData: FormData) {
     }
 
     // Vérifier que le dossier appartient à l'utilisateur
-    const { data: dossier, error: dossierError } = await supabase
-      .from('dossiers')
-      .select('id')
-      .eq('id', dossierId)
-      .eq('user_id', user.id)
-      .single()
+    const dossierResult = await query(
+      `SELECT id FROM dossiers WHERE id = $1 AND user_id = $2`,
+      [dossierId, userId]
+    )
 
-    if (dossierError || !dossier) {
+    if (dossierResult.rows.length === 0) {
       return { error: 'Dossier introuvable ou accès refusé' }
     }
 
     // Vérifier que Google Drive est connecté
-    const { data: cloudConfig } = await supabase
-      .from('cloud_providers_config')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('provider', 'google_drive')
-      .eq('enabled', true)
-      .single()
+    const cloudConfigResult = await query(
+      `SELECT id FROM cloud_providers_config
+       WHERE user_id = $1 AND provider = $2 AND enabled = true`,
+      [userId, 'google_drive']
+    )
 
-    if (!cloudConfig) {
+    if (cloudConfigResult.rows.length === 0) {
       return {
         error: 'Google Drive non connecté. Veuillez configurer le stockage cloud dans les paramètres.',
       }
@@ -71,7 +66,7 @@ export async function uploadDocumentAction(formData: FormData) {
     // Uploader via Storage Manager
     const storageManager = createStorageManager()
     const uploadResult = await storageManager.uploadDocument({
-      userId: user.id,
+      userId: userId,
       dossierId: dossierId,
       fileName: file.name,
       fileBuffer: fileBuffer,
@@ -86,20 +81,19 @@ export async function uploadDocumentAction(formData: FormData) {
     }
 
     // Récupérer le document créé
-    const { data: document, error: fetchError } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('id', uploadResult.documentId)
-      .single()
+    const documentResult = await query(
+      `SELECT * FROM documents WHERE id = $1`,
+      [uploadResult.documentId]
+    )
 
-    if (fetchError || !document) {
-      console.error('Erreur récupération document:', fetchError)
+    if (documentResult.rows.length === 0) {
+      console.error('Erreur récupération document')
       return { error: 'Document uploadé mais erreur lors de la récupération' }
     }
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${dossierId}`)
-    return { success: true, data: document }
+    return { success: true, data: documentResult.rows[0] }
   } catch (error: any) {
     console.error('Erreur upload:', error)
 
@@ -133,27 +127,28 @@ export async function uploadDocumentAction(formData: FormData) {
  */
 export async function deleteDocumentAction(id: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
-    // Récupérer le document avec infos cloud
-    const { data: document, error: fetchError } = await supabase
-      .from('documents')
-      .select('*, dossiers!inner(user_id)')
-      .eq('id', id)
-      .single()
+    // Récupérer le document avec infos dossier
+    const documentResult = await query(
+      `SELECT d.*, dos.user_id as dossier_user_id
+       FROM documents d
+       INNER JOIN dossiers dos ON d.dossier_id = dos.id
+       WHERE d.id = $1`,
+      [id]
+    )
 
-    if (fetchError || !document) {
+    if (documentResult.rows.length === 0) {
       return { error: 'Document introuvable' }
     }
 
-    if ((document.dossiers as DossierWithUserId).user_id !== user.id) {
+    const document = documentResult.rows[0]
+
+    if (document.dossier_user_id !== userId) {
       return { error: 'Accès refusé' }
     }
 
@@ -161,17 +156,18 @@ export async function deleteDocumentAction(id: string) {
     if (document.storage_provider === 'google_drive' && document.external_file_id) {
       try {
         // Récupérer config cloud
-        const { data: cloudConfig } = await supabase
-          .from('cloud_providers_config')
-          .select('access_token')
-          .eq('user_id', user.id)
-          .eq('provider', 'google_drive')
-          .eq('enabled', true)
-          .single()
+        const cloudConfigResult = await query(
+          `SELECT access_token FROM cloud_providers_config
+           WHERE user_id = $1 AND provider = $2 AND enabled = true`,
+          [userId, 'google_drive']
+        )
 
-        if (cloudConfig) {
+        if (cloudConfigResult.rows.length > 0) {
+          // Déchiffrer le token
+          const decryptedToken = await decrypt(cloudConfigResult.rows[0].access_token)
+
           // Supprimer de Google Drive
-          const provider = createGoogleDriveProvider(cloudConfig.access_token)
+          const provider = createGoogleDriveProvider(decryptedToken)
           await provider.deleteFile({
             fileId: document.external_file_id,
           })
@@ -188,15 +184,7 @@ export async function deleteDocumentAction(id: string) {
     }
 
     // Supprimer l'entrée de la base de données
-    const { error: deleteError } = await supabase
-      .from('documents')
-      .delete()
-      .eq('id', id)
-
-    if (deleteError) {
-      console.error('Erreur suppression document BDD:', deleteError)
-      return { error: 'Erreur lors de la suppression du document' }
-    }
+    await query(`DELETE FROM documents WHERE id = $1`, [id])
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${document.dossier_id}`)
@@ -212,27 +200,28 @@ export async function deleteDocumentAction(id: string) {
  */
 export async function getDocumentUrlAction(id: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Récupérer le document
-    const { data: document, error: fetchError } = await supabase
-      .from('documents')
-      .select('*, dossiers!inner(user_id)')
-      .eq('id', id)
-      .single()
+    const documentResult = await query(
+      `SELECT d.*, dos.user_id as dossier_user_id
+       FROM documents d
+       INNER JOIN dossiers dos ON d.dossier_id = dos.id
+       WHERE d.id = $1`,
+      [id]
+    )
 
-    if (fetchError || !document) {
+    if (documentResult.rows.length === 0) {
       return { error: 'Document introuvable' }
     }
 
-    if ((document.dossiers as DossierWithUserId).user_id !== user.id) {
+    const document = documentResult.rows[0]
+
+    if (document.dossier_user_id !== userId) {
       return { error: 'Accès refusé' }
     }
 
@@ -268,48 +257,40 @@ export async function updateDocumentAction(
   data: { categorie?: string; description?: string }
 ) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Vérifier que le document appartient à l'utilisateur
-    const { data: document, error: checkError } = await supabase
-      .from('documents')
-      .select('dossier_id, dossiers!inner(user_id)')
-      .eq('id', id)
-      .single()
+    const checkResult = await query(
+      `SELECT d.dossier_id, dos.user_id as dossier_user_id
+       FROM documents d
+       INNER JOIN dossiers dos ON d.dossier_id = dos.id
+       WHERE d.id = $1`,
+      [id]
+    )
 
-    if (
-      checkError ||
-      !document ||
-      (document.dossiers as unknown as DossierWithUserId).user_id !== user.id
-    ) {
+    if (checkResult.rows.length === 0 || checkResult.rows[0].dossier_user_id !== userId) {
       return { error: 'Document introuvable ou accès refusé' }
     }
 
-    const { data: updated, error } = await supabase
-      .from('documents')
-      .update({
-        ...data,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single()
+    const document = checkResult.rows[0]
 
-    if (error) {
-      console.error('Erreur mise à jour document:', error)
-      return { error: 'Erreur lors de la mise à jour du document' }
-    }
+    const updateResult = await query(
+      `UPDATE documents SET
+        categorie = COALESCE($1, categorie),
+        description = COALESCE($2, description),
+        updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [data.categorie, data.description, id]
+    )
 
     revalidatePath('/dossiers')
     revalidatePath(`/dossiers/${document.dossier_id}`)
-    return { success: true, data: updated }
+    return { success: true, data: updateResult.rows[0] }
   } catch (error) {
     console.error('Erreur mise à jour:', error)
     return { error: 'Erreur lors de la mise à jour du document' }
@@ -321,39 +302,30 @@ export async function updateDocumentAction(
  */
 export async function getDocumentsByDossierAction(dossierId: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Vérifier que le dossier appartient à l'utilisateur
-    const { data: dossier, error: dossierError } = await supabase
-      .from('dossiers')
-      .select('id')
-      .eq('id', dossierId)
-      .eq('user_id', user.id)
-      .single()
+    const dossierResult = await query(
+      `SELECT id FROM dossiers WHERE id = $1 AND user_id = $2`,
+      [dossierId, userId]
+    )
 
-    if (dossierError || !dossier) {
+    if (dossierResult.rows.length === 0) {
       return { error: 'Dossier introuvable ou accès refusé' }
     }
 
-    const { data, error } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('dossier_id', dossierId)
-      .order('created_at', { ascending: false })
+    const documentsResult = await query(
+      `SELECT * FROM documents
+       WHERE dossier_id = $1
+       ORDER BY created_at DESC`,
+      [dossierId]
+    )
 
-    if (error) {
-      console.error('Erreur récupération documents:', error)
-      return { error: 'Erreur lors de la récupération des documents' }
-    }
-
-    return { success: true, data }
+    return { success: true, data: documentsResult.rows }
   } catch (error) {
     console.error('Erreur:', error)
     return { error: 'Erreur lors de la récupération des documents' }
@@ -366,47 +338,49 @@ export async function getDocumentsByDossierAction(dossierId: string) {
  */
 export async function downloadDocumentAction(id: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Récupérer le document
-    const { data: document, error: fetchError } = await supabase
-      .from('documents')
-      .select('*, dossiers!inner(user_id)')
-      .eq('id', id)
-      .single()
+    const documentResult = await query(
+      `SELECT d.*, dos.user_id as dossier_user_id
+       FROM documents d
+       INNER JOIN dossiers dos ON d.dossier_id = dos.id
+       WHERE d.id = $1`,
+      [id]
+    )
 
-    if (fetchError || !document) {
+    if (documentResult.rows.length === 0) {
       return { error: 'Document introuvable' }
     }
 
-    if ((document.dossiers as DossierWithUserId).user_id !== user.id) {
+    const document = documentResult.rows[0]
+
+    if (document.dossier_user_id !== userId) {
       return { error: 'Accès refusé' }
     }
 
     // Si document sur Google Drive
     if (document.storage_provider === 'google_drive' && document.external_file_id) {
       // Récupérer config cloud
-      const { data: cloudConfig } = await supabase
-        .from('cloud_providers_config')
-        .select('access_token')
-        .eq('user_id', user.id)
-        .eq('provider', 'google_drive')
-        .eq('enabled', true)
-        .single()
+      const cloudConfigResult = await query(
+        `SELECT access_token FROM cloud_providers_config
+         WHERE user_id = $1 AND provider = $2 AND enabled = true`,
+        [userId, 'google_drive']
+      )
 
-      if (!cloudConfig) {
+      if (cloudConfigResult.rows.length === 0) {
         return { error: 'Configuration Google Drive non trouvée' }
       }
 
+      // Déchiffrer le token
+      const decryptedToken = await decrypt(cloudConfigResult.rows[0].access_token)
+
       // Télécharger depuis Google Drive
-      const provider = createGoogleDriveProvider(cloudConfig.access_token)
+      const provider = createGoogleDriveProvider(decryptedToken)
       const downloadResult = await provider.downloadFile({
         fileId: document.external_file_id,
       })
@@ -440,47 +414,38 @@ export async function downloadDocumentAction(id: string) {
  */
 export async function getUnclassifiedDocumentsAction() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
-    // Récupérer documents non classés avec infos client
-    const { data, error } = await supabase
-      .from('documents')
-      .select(
-        `
-        *,
-        dossiers:dossier_id (
-          id,
-          numero_dossier,
-          objet,
-          client_id,
-          clients:client_id (
-            id,
-            nom,
-            prenom,
-            denomination,
-            type
-          )
-        )
-      `
-      )
-      .eq('user_id', user.id)
-      .eq('needs_classification', true)
-      .is('dossier_id', null)
-      .order('created_at', { ascending: false })
+    // Récupérer documents non classés avec infos dossier/client
+    const result = await query(
+      `SELECT d.*,
+              json_build_object(
+                'id', dos.id,
+                'numero', dos.numero,
+                'objet', dos.objet,
+                'client_id', dos.client_id,
+                'clients', json_build_object(
+                  'id', c.id,
+                  'nom', c.nom,
+                  'prenom', c.prenom,
+                  'type_client', c.type_client
+                )
+              ) as dossiers
+       FROM documents d
+       LEFT JOIN dossiers dos ON d.dossier_id = dos.id
+       LEFT JOIN clients c ON dos.client_id = c.id
+       WHERE d.user_id = $1
+         AND d.needs_classification = true
+         AND d.dossier_id IS NULL
+       ORDER BY d.created_at DESC`,
+      [userId]
+    )
 
-    if (error) {
-      console.error('Erreur récupération documents non classés:', error)
-      return { error: 'Erreur lors de la récupération des documents' }
-    }
-
-    return { success: true, data }
+    return { success: true, data: result.rows }
   } catch (error) {
     console.error('Erreur:', error)
     return { error: 'Erreur lors de la récupération des documents' }
@@ -495,60 +460,55 @@ export async function classifyDocumentAction(
   dossierId: string
 ) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Vérifier que le document appartient à l'utilisateur
-    const { data: document, error: docError } = await supabase
-      .from('documents')
-      .select('id, external_file_id, nom_fichier, user_id')
-      .eq('id', documentId)
-      .single()
+    const documentResult = await query(
+      `SELECT id, external_file_id, nom_fichier, user_id
+       FROM documents WHERE id = $1`,
+      [documentId]
+    )
 
-    if (docError || !document || document.user_id !== user.id) {
+    if (documentResult.rows.length === 0 || documentResult.rows[0].user_id !== userId) {
       return { error: 'Document introuvable ou accès refusé' }
     }
 
-    // Vérifier que le dossier appartient à l'utilisateur
-    const { data: dossier, error: dossierError } = await supabase
-      .from('dossiers')
-      .select('id, numero_dossier, client_id, google_drive_folder_id')
-      .eq('id', dossierId)
-      .eq('user_id', user.id)
-      .single()
+    const document = documentResult.rows[0]
 
-    if (dossierError || !dossier) {
+    // Vérifier que le dossier appartient à l'utilisateur
+    const dossierResult = await query(
+      `SELECT id, numero, client_id, google_drive_folder_id
+       FROM dossiers WHERE id = $1 AND user_id = $2`,
+      [dossierId, userId]
+    )
+
+    if (dossierResult.rows.length === 0) {
       return { error: 'Dossier introuvable ou accès refusé' }
     }
+
+    const dossier = dossierResult.rows[0]
 
     // TODO (optionnel) : Déplacer fichier dans Google Drive vers bon dossier juridique
     // Pour l'instant, on se contente de mettre à jour la BDD
 
     // Mettre à jour document en BDD
-    const { error: updateError } = await supabase
-      .from('documents')
-      .update({
-        dossier_id: dossierId,
-        needs_classification: false,
-        classified_at: new Date().toISOString(),
-        external_folder_dossier_id: dossier.google_drive_folder_id || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', documentId)
-
-    if (updateError) {
-      console.error('Erreur classification document:', updateError)
-      return { error: 'Erreur lors de la classification du document' }
-    }
+    await query(
+      `UPDATE documents SET
+        dossier_id = $1,
+        needs_classification = false,
+        classified_at = NOW(),
+        external_folder_dossier_id = $2,
+        updated_at = NOW()
+       WHERE id = $3`,
+      [dossierId, dossier.google_drive_folder_id, documentId]
+    )
 
     console.log(
-      `[classifyDocumentAction] Document ${document.nom_fichier} classé dans dossier ${dossier.numero_dossier}`
+      `[classifyDocumentAction] Document ${document.nom_fichier} classé dans dossier ${dossier.numero}`
     )
 
     revalidatePath('/dashboard')
@@ -566,40 +526,31 @@ export async function classifyDocumentAction(
  */
 export async function ignoreUnclassifiedDocumentAction(documentId: string) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const session = await getSession()
+    if (!session?.user?.id) {
       return { error: 'Non authentifié' }
     }
+    const userId = session.user.id
 
     // Vérifier que le document appartient à l'utilisateur
-    const { data: document, error: docError } = await supabase
-      .from('documents')
-      .select('id, user_id')
-      .eq('id', documentId)
-      .single()
+    const documentResult = await query(
+      `SELECT id, user_id FROM documents WHERE id = $1`,
+      [documentId]
+    )
 
-    if (docError || !document || document.user_id !== user.id) {
+    if (documentResult.rows.length === 0 || documentResult.rows[0].user_id !== userId) {
       return { error: 'Document introuvable ou accès refusé' }
     }
 
     // Marquer comme classé mais sans dossier (pour le masquer de la liste)
-    const { error: updateError } = await supabase
-      .from('documents')
-      .update({
-        needs_classification: false,
-        classified_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', documentId)
-
-    if (updateError) {
-      console.error('Erreur ignorer document:', updateError)
-      return { error: 'Erreur lors de l\'opération' }
-    }
+    await query(
+      `UPDATE documents SET
+        needs_classification = false,
+        classified_at = NOW(),
+        updated_at = NOW()
+       WHERE id = $1`,
+      [documentId]
+    )
 
     console.log(`[ignoreUnclassifiedDocumentAction] Document ignoré: ${documentId}`)
 

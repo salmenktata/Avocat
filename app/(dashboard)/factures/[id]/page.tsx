@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import FactureDetailClient from '@/components/factures/FactureDetailClient'
@@ -9,78 +10,69 @@ export default async function FactureDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const supabase = await createClient()
   const { id } = await params
+  const session = await getSession()
   const t = await getTranslations('factures')
   const _tCommon = await getTranslations('common')
   const tClients = await getTranslations('clients')
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
   // Récupérer la facture avec toutes les relations
-  const { data: facture, error } = await supabase
-    .from('factures')
-    .select(`
-      *,
-      clients (
-        id,
-        type,
-        nom,
-        prenom,
-        denomination,
-        email,
-        telephone,
-        adresse,
-        code_postal,
-        ville,
-        cin,
-        registre_commerce
-      ),
-      dossiers (
-        id,
-        numero_dossier,
-        objet,
-        type_dossier
-      )
-    `)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
+  const factureResult = await query(
+    `SELECT f.*,
+      json_build_object(
+        'id', c.id,
+        'type_client', c.type_client,
+        'nom', c.nom,
+        'prenom', c.prenom,
+        'email', c.email,
+        'telephone', c.telephone,
+        'adresse', c.adresse,
+        'cin', c.cin
+      ) as clients,
+      json_build_object(
+        'id', d.id,
+        'numero', d.numero,
+        'objet', d.objet,
+        'type_dossier', d.type_dossier
+      ) as dossiers
+    FROM factures f
+    LEFT JOIN clients c ON f.client_id = c.id
+    LEFT JOIN dossiers d ON f.dossier_id = d.id
+    WHERE f.id = $1 AND f.user_id = $2`,
+    [id, session.user.id]
+  )
+  const facture = factureResult.rows[0]
 
-  if (error || !facture) {
-    console.error('Erreur chargement facture:', error)
+  if (!facture) {
     notFound()
   }
 
   // Récupérer le profil de l'avocat pour le PDF
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const profileResult = await query(
+    'SELECT * FROM profiles WHERE id = $1',
+    [session.user.id]
+  )
+  const profile = profileResult.rows[0]
 
   const clientName = facture.clients
-    ? facture.clients.type === 'PERSONNE_PHYSIQUE'
+    ? facture.clients.type_client === 'personne_physique'
       ? `${facture.clients.nom} ${facture.clients.prenom || ''}`.trim()
-      : facture.clients.denomination
+      : facture.clients.nom
     : t('clientDeleted')
 
   const isRetard =
-    facture.statut === 'IMPAYEE' &&
+    facture.statut === 'envoyee' &&
     facture.date_echeance &&
     new Date(facture.date_echeance) < new Date()
 
   const statutColors: Record<string, string> = {
-    BROUILLON: 'bg-muted text-foreground',
-    ENVOYEE: 'bg-blue-100 text-blue-700',
-    PAYEE: 'bg-green-100 text-green-700',
-    IMPAYEE: 'bg-red-100 text-red-700',
+    brouillon: 'bg-muted text-foreground',
+    envoyee: 'bg-blue-100 text-blue-700',
+    payee: 'bg-green-100 text-green-700',
   }
 
   return (
@@ -95,7 +87,7 @@ export default async function FactureDetailPage({
             ← {t('backToInvoices')}
           </Link>
           <h1 className="mt-2 text-3xl font-bold text-foreground">
-            {t('invoice')} {facture.numero_facture}
+            {t('invoice')} {facture.numero}
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -128,7 +120,7 @@ export default async function FactureDetailPage({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">{t('number')}</p>
-                  <p className="font-medium text-foreground">{facture.numero_facture}</p>
+                  <p className="font-medium text-foreground">{facture.numero}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t('issueDate')}</p>
@@ -240,8 +232,6 @@ export default async function FactureDetailPage({
                     <p className="text-sm text-muted-foreground">{tClients('address')}</p>
                     <p className="text-sm text-foreground">
                       {facture.clients.adresse}
-                      {facture.clients.code_postal && `, ${facture.clients.code_postal}`}
-                      {facture.clients.ville && ` ${facture.clients.ville}`}
                     </p>
                   </div>
                 )}
@@ -269,7 +259,7 @@ export default async function FactureDetailPage({
                 <div>
                   <p className="text-sm text-muted-foreground">{t('number')}</p>
                   <p className="font-medium text-foreground">
-                    {facture.dossiers.numero_dossier}
+                    {facture.dossiers.numero}
                   </p>
                 </div>
                 <div>

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
 import { FacturePDF } from '@/lib/pdf/facture-pdf'
@@ -10,90 +12,75 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
 
     // Vérifier l'authentification
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const session = await getServerSession(authOptions)
 
-    if (!user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    // Récupérer la facture avec les relations
-    const { data: facture, error: factureError } = await supabase
-      .from('factures')
-      .select(
-        `
-        *,
-        clients (
-          id,
-          nom,
-          prenom,
-          denomination,
-          type,
-          cin,
-          adresse,
-          ville,
-          code_postal,
-          telephone,
-          email
-        )
-      `
-      )
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single()
+    const userId = session.user.id
 
-    if (factureError || !facture) {
+    // Récupérer la facture avec le client
+    const factureResult = await query(
+      `SELECT f.*,
+        c.id as client_id, c.nom, c.prenom, c.type_client, c.cin,
+        c.adresse, c.telephone, c.email
+       FROM factures f
+       JOIN clients c ON f.client_id = c.id
+       WHERE f.id = $1 AND f.user_id = $2`,
+      [id, userId]
+    )
+
+    if (factureResult.rows.length === 0) {
       return NextResponse.json(
         { error: 'Facture non trouvée' },
         { status: 404 }
       )
     }
 
-    // Récupérer le profil de l'avocat
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
+    const factureRow = factureResult.rows[0]
 
-    if (profileError || !profile) {
+    // Récupérer le profil de l'avocat
+    const profileResult = await query(
+      'SELECT * FROM profiles WHERE id = $1',
+      [userId]
+    )
+
+    if (profileResult.rows.length === 0) {
       return NextResponse.json(
         { error: 'Profil avocat non trouvé' },
         { status: 404 }
       )
     }
 
+    const profile = profileResult.rows[0]
+
     // Préparer les données pour le PDF
     const pdfData = {
       facture: {
-        id: facture.id,
-        numero_facture: facture.numero_facture,
-        date_emission: facture.date_emission,
-        date_echeance: facture.date_echeance,
-        date_paiement: facture.date_paiement,
-        montant_ht: parseFloat(facture.montant_ht),
-        taux_tva: parseFloat(facture.taux_tva),
-        montant_tva: parseFloat(facture.montant_tva),
-        montant_ttc: parseFloat(facture.montant_ttc),
-        statut: facture.statut,
-        objet: facture.objet,
-        notes: facture.notes,
+        id: factureRow.id,
+        numero: factureRow.numero,
+        date_emission: factureRow.date_emission,
+        date_echeance: factureRow.date_echeance,
+        date_paiement: factureRow.date_paiement,
+        montant_ht: parseFloat(factureRow.montant_ht),
+        taux_tva: parseFloat(factureRow.taux_tva),
+        montant_tva: parseFloat(factureRow.montant_tva),
+        montant_ttc: parseFloat(factureRow.montant_ttc),
+        statut: factureRow.statut,
+        objet: factureRow.objet,
+        notes: factureRow.notes,
       },
       client: {
-        nom: facture.clients.nom,
-        prenom: facture.clients.prenom,
-        denomination: facture.clients.denomination,
-        type: facture.clients.type,
-        cin: facture.clients.cin,
-        adresse: facture.clients.adresse,
-        ville: facture.clients.ville,
-        code_postal: facture.clients.code_postal,
-        telephone: facture.clients.telephone,
-        email: facture.clients.email,
+        nom: factureRow.nom,
+        prenom: factureRow.prenom,
+        type_client: factureRow.type_client,
+        cin: factureRow.cin,
+        adresse: factureRow.adresse,
+        telephone: factureRow.telephone,
+        email: factureRow.email,
       },
       avocat: {
         nom: profile.nom,
@@ -120,7 +107,7 @@ export async function GET(
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="facture-${facture.numero_facture}.pdf"`,
+        'Content-Disposition': `inline; filename="facture-${factureRow.numero}.pdf"`,
         'Cache-Control': 'no-store, max-age=0',
       },
     })

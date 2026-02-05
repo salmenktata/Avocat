@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import DossierForm from '@/components/dossiers/DossierForm'
 import { getTranslations } from 'next-intl/server'
 
@@ -8,14 +9,17 @@ interface NewDossierPageProps {
 
 export default async function NewDossierPage({ searchParams }: NewDossierPageProps) {
   const params = await searchParams
-  const supabase = await createClient()
+  const session = await getSession()
   const t = await getTranslations('dossiers')
 
+  if (!session?.user?.id) return null
+
   // Récupérer tous les clients pour le formulaire
-  const { data: clients } = await supabase
-    .from('clients')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const result = await query(
+    'SELECT * FROM clients WHERE user_id = $1 ORDER BY created_at DESC',
+    [session.user.id]
+  )
+  const clients = result.rows
 
   return (
     <div className="space-y-6">

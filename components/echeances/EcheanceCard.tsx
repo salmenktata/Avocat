@@ -77,14 +77,14 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
   const getDossierName = () => {
     if (!echeance.dossiers) return ''
     const client = echeance.dossiers.clients
-    if (!client) return echeance.dossiers.numero_dossier
+    if (!client) return echeance.dossiers.numero
 
     const clientName =
-      client.type === 'PERSONNE_PHYSIQUE'
+      client.type_client === 'personne_physique'
         ? `${client.nom} ${client.prenom || ''}`.trim()
-        : client.denomination
+        : client.nom
 
-    return `${echeance.dossiers.numero_dossier} - ${clientName}`
+    return `${echeance.dossiers.numero} - ${clientName}`
   }
 
   return (
