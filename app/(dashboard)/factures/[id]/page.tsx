@@ -12,7 +12,7 @@ export default async function FactureDetailPage({
   const supabase = await createClient()
   const { id } = await params
   const t = await getTranslations('factures')
-  const tCommon = await getTranslations('common')
+  const _tCommon = await getTranslations('common')
   const tClients = await getTranslations('clients')
 
   const {

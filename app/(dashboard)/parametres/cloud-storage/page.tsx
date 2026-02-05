@@ -10,9 +10,10 @@ export const metadata = {
 export default async function CloudStorageParametresPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const supabase = createClient()
+  const params = await searchParams
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -55,7 +56,7 @@ export default async function CloudStorageParametresPage({
 
       <CloudStorageConfig
         initialConfigs={sanitizedConfigs || []}
-        searchParams={searchParams}
+        searchParams={params}
       />
 
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
@@ -65,11 +66,11 @@ export default async function CloudStorageParametresPage({
             • Vos documents sont stockés sur <strong>VOTRE</strong> Google Drive, pas sur nos serveurs
           </li>
           <li>
-            • L'application n'a accès qu'aux fichiers qu'elle crée (scope <code>drive.file</code>)
+            • L&apos;application n&apos;a accès qu&apos;aux fichiers qu&apos;elle crée (scope <code>drive.file</code>)
           </li>
           <li>• Les tokens sont chiffrés et stockés de manière sécurisée</li>
           <li>
-            • Vous pouvez révoquer l'accès à tout moment depuis cette page ou votre compte Google
+            • Vous pouvez révoquer l&apos;accès à tout moment depuis cette page ou votre compte Google
           </li>
         </ul>
       </div>
@@ -77,7 +78,7 @@ export default async function CloudStorageParametresPage({
       <div className="rounded-lg border border-green-200 bg-green-50 p-4">
         <h3 className="font-semibold text-green-900">📁 Structure des Dossiers</h3>
         <div className="mt-2 text-sm text-green-800">
-          <p className="mb-2">L'application crée automatiquement cette structure dans votre Google Drive :</p>
+          <p className="mb-2">L&apos;application crée automatiquement cette structure dans votre Google Drive :</p>
           <pre className="rounded bg-green-100 p-2 font-mono text-xs">
             {`Clients MonCabinet/
 ├── [DUPONT Jean - CIN 12345678]/
@@ -106,10 +107,10 @@ export default async function CloudStorageParametresPage({
         <h3 className="font-semibold text-purple-900">🔄 Synchronisation Bidirectionnelle</h3>
         <ul className="mt-2 space-y-1 text-sm text-purple-800">
           <li>
-            • Activez la synchronisation pour que les documents ajoutés manuellement dans Google Drive apparaissent automatiquement dans l'application
+            • Activez la synchronisation pour que les documents ajoutés manuellement dans Google Drive apparaissent automatiquement dans l&apos;application
           </li>
           <li>
-            • Les fichiers placés dans "Documents non classés/" apparaîtront dans le widget "Documents à classer"
+            • Les fichiers placés dans &quot;Documents non classés/&quot; apparaîtront dans le widget &quot;Documents à classer&quot;
           </li>
           <li>
             • Fréquence de synchronisation : Choisissez entre 15, 30 ou 60 minutes

@@ -141,7 +141,7 @@ export function calculerCreanceCommerciale(
  * Calculer les intérêts à une date future (prévision)
  * Utile pour estimer intérêts au jour du jugement
  */
-export function prevoir InteretsADate(
+export function prevoirInteretsADate(
   montantPrincipal: number,
   dateMiseEnDemeure: Date,
   dateCible: Date,

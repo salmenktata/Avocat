@@ -12,8 +12,9 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
 import { ConventionPDF } from '@/lib/pdf/convention-pdf'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id: dossierId } = await params
     const supabase = await createClient()
 
     // Vérifier authentification
@@ -24,8 +25,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     if (!user) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
-
-    const dossierId = params.id
 
     // Récupérer dossier avec relations
     const { data: dossier, error: dossierError } = await supabase

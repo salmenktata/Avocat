@@ -497,7 +497,7 @@ export function EcheanceFormAdvanced({
         <div className="flex items-center gap-4">
           <Button type="submit" disabled={isSubmitting} className="min-w-[150px]">
             {isSubmitting && <Icons.loader className="mr-2 h-4 w-4 animate-spin" />}
-            {isEditing ? 'Mettre à jour' : 'Créer l'échéance'}
+            {isEditing ? 'Mettre à jour' : 'Créer l&apos;échéance'}
           </Button>
           <Button
             type="button"

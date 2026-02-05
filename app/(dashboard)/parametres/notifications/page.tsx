@@ -22,14 +22,14 @@ export default async function NotificationsPreferencesPage() {
   }
 
   // Récupérer préférences actuelles (ou créer par défaut)
-  let { data: preferences, error } = await supabase
+  let { data: preferences } = await supabase
     .from('notification_preferences')
     .select('*')
     .eq('user_id', user.id)
     .single()
 
   // Si pas de préférences, créer avec valeurs par défaut
-  if (error && error.code === 'PGRST116') {
+  if (!preferences) {
     const { data: newPrefs, error: insertError } = await supabase
       .from('notification_preferences')
       .insert({
@@ -79,7 +79,7 @@ export default async function NotificationsPreferencesPage() {
               <h4 className="font-semibold text-foreground mb-2">Email quotidien</h4>
               <p>
                 Recevez un récapitulatif quotidien de vos échéances, actions urgentes et audiences à venir.
-                L'email est envoyé tous les matins à l'heure que vous avez choisie.
+                L&apos;email est envoyé tous les matins à l&apos;heure que vous avez choisie.
               </p>
             </div>
 

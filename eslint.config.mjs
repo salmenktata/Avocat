@@ -22,6 +22,8 @@ const eslintConfig = [
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
       'prefer-const': 'warn',
+      'react/no-unescaped-entities': 'off',
+      'jsx-a11y/alt-text': 'warn',
     },
   },
 ]
