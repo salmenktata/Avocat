@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { signIn } from 'next-auth/react'
 
 export default function RegisterPage() {
   const t = useTranslations('auth')
@@ -80,13 +79,18 @@ export default function RegisterPage() {
       }
 
       // Compte créé avec succès - connexion automatique
-      const signInResult = await signIn('credentials', {
-        email: formData.email,
-        password: formData.password,
-        redirect: false,
+      const loginRes = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
       })
 
-      if (signInResult?.error) {
+      const loginData = await loginRes.json()
+
+      if (!loginData.success) {
         // Compte créé mais connexion échouée - rediriger vers login
         setError('Compte créé avec succès ! Veuillez vous connecter.')
         setTimeout(() => {
@@ -96,8 +100,7 @@ export default function RegisterPage() {
       }
 
       // Succès total - rediriger vers le dashboard
-      router.push('/dashboard')
-      router.refresh()
+      window.location.href = '/dashboard'
     } catch (error: any) {
       console.error('Erreur registration:', error)
       setError('Une erreur est survenue. Veuillez réessayer.')

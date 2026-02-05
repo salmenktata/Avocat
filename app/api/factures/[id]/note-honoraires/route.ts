@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db/postgres'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/auth-options'
+import { getSession } from '@/lib/auth/session'
 import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
 import { NoteHonorairesPDF } from '@/lib/pdf/note-honoraires-pdf'
@@ -14,7 +13,7 @@ export async function GET(
     const { id } = await params
 
     // Vérifier l'authentification
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })

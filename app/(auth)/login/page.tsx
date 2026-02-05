@@ -1,13 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { signIn } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 
 export default function LoginPage() {
-  const router = useRouter()
   const t = useTranslations('auth')
   const tCommon = useTranslations('common')
   const [email, setEmail] = useState('')
@@ -20,61 +17,24 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    console.log('🔐 [LOGIN] Début connexion...')
-    console.log('🔐 [LOGIN] Email:', email)
-
     try {
-      // 1. Obtenir le CSRF token
-      console.log('🔐 [LOGIN] Récupération CSRF token...')
-      const csrfRes = await fetch('/api/auth/csrf')
-      console.log('🔐 [LOGIN] CSRF Response status:', csrfRes.status)
-      const csrfData = await csrfRes.json()
-      const csrfToken = csrfData.csrfToken
-      console.log('🔐 [LOGIN] CSRF Token obtenu:', csrfToken ? '✓' : '✗')
-
-      // 2. Envoyer les credentials
-      console.log('🔐 [LOGIN] Envoi credentials...')
-      const res = await fetch('/api/auth/callback/credentials', {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          csrfToken,
-          email,
-          password,
-        }),
-        redirect: 'manual',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       })
 
-      console.log('🔐 [LOGIN] Response type:', res.type)
-      console.log('🔐 [LOGIN] Response status:', res.status)
+      const data = await res.json()
 
-      // 3. Vérifier le résultat
-      if (res.type === 'opaqueredirect' || res.status === 302 || res.status === 200) {
-        console.log('🔐 [LOGIN] Auth OK, vérification session...')
-
-        const sessionRes = await fetch('/api/auth/session')
-        console.log('🔐 [LOGIN] Session status:', sessionRes.status)
-        const session = await sessionRes.json()
-        console.log('🔐 [LOGIN] Session:', session)
-
-        if (session?.user) {
-          console.log('🔐 [LOGIN] ✅ Connecté! Redirection...')
-          window.location.replace('/dashboard')
-          return
-        } else {
-          console.log('🔐 [LOGIN] ❌ Pas de session user')
-        }
+      if (data.success) {
+        // Redirection après connexion réussie
+        window.location.href = '/dashboard'
+      } else {
+        setError(data.error || 'Email ou mot de passe incorrect')
+        setLoading(false)
       }
-
-      // Erreur d'authentification
-      console.log('🔐 [LOGIN] ❌ Échec authentification')
-      setError('Email ou mot de passe incorrect')
-      setLoading(false)
-    } catch (err: any) {
-      console.error('🔐 [LOGIN] ❌ Exception:', err)
-      setError(err?.message || 'Erreur de connexion')
+    } catch (err) {
+      setError('Erreur de connexion au serveur')
       setLoading(false)
     }
   }

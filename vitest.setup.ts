@@ -24,14 +24,14 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/',
 }))
 
-// Mock de next-auth/react
-vi.mock('next-auth/react', () => ({
+// Mock du SessionProvider custom
+vi.mock('@/components/providers/SessionProvider', () => ({
   useSession: () => ({
-    data: null,
-    status: 'unauthenticated',
+    user: null,
+    loading: false,
+    refresh: vi.fn(),
   }),
-  signIn: vi.fn(),
-  signOut: vi.fn(),
+  SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
 // Mock de next-intl

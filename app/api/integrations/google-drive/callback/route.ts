@@ -5,8 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db/postgres'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/auth-options'
+import { getSession } from '@/lib/auth/session'
 import { createGoogleDriveAuthProvider } from '@/lib/integrations/cloud-storage'
 import { encrypt } from '@/lib/crypto'
 
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // 1. Vérifier que l'utilisateur est authentifié
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
 
     if (!session?.user?.id) {
       console.error('[GoogleDrive OAuth] Utilisateur non authentifié')

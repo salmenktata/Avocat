@@ -7,8 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { hash, compare } from 'bcryptjs'
 import { z } from 'zod'
 import { query } from '@/lib/db/postgres'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/auth-options'
+import { getSession } from '@/lib/auth/session'
 
 // Schéma de validation
 const changePasswordSchema = z.object({
@@ -34,7 +33,7 @@ const changePasswordSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // 1. Vérifier que l'utilisateur est authentifié
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
 
     if (!session?.user?.id) {
       return NextResponse.json(

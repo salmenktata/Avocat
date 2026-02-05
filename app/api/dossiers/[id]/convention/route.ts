@@ -8,8 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db/postgres'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/auth-options'
+import { getSession } from '@/lib/auth/session'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
 import { ConventionPDF } from '@/lib/pdf/convention-pdf'
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id: dossierId } = await params
 
     // Vérifier authentification
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
