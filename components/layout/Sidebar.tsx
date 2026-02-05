@@ -50,6 +50,15 @@ const navGroups: NavGroup[] = [
       { href: '/templates', label: 'templates', icon: 'templates' },
     ],
   },
+  {
+    group: 'Système',
+    items: [
+      { href: '/parametres/cabinet', label: 'cabinet', icon: 'building' },
+      { href: '/parametres/notifications', label: 'notifications', icon: 'bell' },
+      { href: '/parametres/cloud-storage', label: 'cloudStorage', icon: 'cloud' },
+      { href: '/parametres/messagerie', label: 'messaging', icon: 'messageSquare' },
+    ],
+  },
 ]
 
 export function Sidebar({ collapsed, onCollapse }: SidebarProps) {

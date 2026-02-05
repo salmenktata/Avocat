@@ -82,6 +82,8 @@ import {
   Hash,
   ListTodo,
   Briefcase,
+  Cloud,
+  MessageSquare,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -175,6 +177,8 @@ export const Icons = {
   globe: Globe,
   zap: Zap,
   command: Command,
+  cloud: Cloud,
+  messageSquare: MessageSquare,
 
   // Views
   list: List,

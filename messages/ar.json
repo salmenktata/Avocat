@@ -38,7 +38,11 @@
     "timeTracking": "تتبع الوقت",
     "documents": "الوثائق",
     "templates": "النماذج",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "cabinet": "المكتب",
+    "notifications": "الإشعارات",
+    "cloudStorage": "التخزين السحابي",
+    "messaging": "المراسلة"
   },
   "breadcrumbs": {
     "home": "الرئيسية",
@@ -49,7 +53,8 @@
   "navGroups": {
     "core": "الرئيسي",
     "finance": "المالية",
-    "documents": "الوثائق"
+    "documents": "الوثائق",
+    "système": "النظام"
   },
   "auth": {
     "loginTitle": "تسجيل الدخول إلى حسابك",

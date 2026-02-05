@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { GlobalKeyboardShortcuts } from '@/components/ui/KeyboardShortcuts'
+import { Toaster } from '@/components/ui/toaster'
 
 export default async function DashboardLayout({
   children,
@@ -34,6 +35,7 @@ export default async function DashboardLayout({
         {children}
       </AppLayout>
       <GlobalKeyboardShortcuts />
+      <Toaster />
     </>
   )
 }

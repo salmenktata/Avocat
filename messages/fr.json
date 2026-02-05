@@ -38,7 +38,11 @@
     "timeTracking": "Time Tracking",
     "documents": "Documents",
     "templates": "Templates",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "cabinet": "Cabinet",
+    "notifications": "Notifications",
+    "cloudStorage": "Stockage Cloud",
+    "messaging": "Messagerie"
   },
   "breadcrumbs": {
     "home": "Accueil",
@@ -49,7 +53,8 @@
   "navGroups": {
     "core": "Principal",
     "finance": "Finance",
-    "documents": "Documents"
+    "documents": "Documents",
+    "système": "Système"
   },
   "auth": {
     "loginTitle": "Connexion à votre compte",
