@@ -251,6 +251,7 @@
     "noDeadlines": "لا توجد مواعيد",
     "daysRemaining": "{count} يوم متبقي",
     "overdue": "متأخر بـ {count} يوم",
+    "overdueTitle": "متأخر",
     "totalActive": "إجمالي النشط",
     "critical3Days": "حرجة (3 أيام)",
     "urgent7Days": "عاجلة (7 أيام)",

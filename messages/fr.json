@@ -251,6 +251,7 @@
     "noDeadlines": "Aucune échéance",
     "daysRemaining": "{count} jours restants",
     "overdue": "En retard de {count} jours",
+    "overdueTitle": "En retard",
     "totalActive": "Total actives",
     "critical3Days": "Critiques (3 jours)",
     "urgent7Days": "Urgentes (7 jours)",

@@ -117,7 +117,7 @@ export default async function EcheancesPage() {
         <div className="rounded-lg border bg-card p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-muted-foreground">{t('overdue')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('overdueTitle')}</p>
               <p className="mt-1 text-2xl font-semibold text-red-600">{stats.depassees}</p>
               <p className="mt-1 text-xs text-muted-foreground">{t('immediateAction')}</p>
             </div>
