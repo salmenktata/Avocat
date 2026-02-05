@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 
-export default function HomePage() {
-  const t = useTranslations('home')
+export default async function HomePage() {
+  const t = await getTranslations('home')
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-white">

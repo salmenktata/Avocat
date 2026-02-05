@@ -2,16 +2,19 @@
 
 import { useTransition } from 'react'
 import { useLocale } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { locales, localeNames, type Locale } from '@/i18n.config'
 import { setUserLocale } from '@/lib/i18n/locale'
 
 export default function LanguageSwitcher() {
   const locale = useLocale() as Locale
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
-  const handleChange = (newLocale: Locale) => {
-    startTransition(() => {
-      setUserLocale(newLocale)
+  const handleChange = async (newLocale: Locale) => {
+    startTransition(async () => {
+      await setUserLocale(newLocale)
+      router.refresh()
     })
   }
 

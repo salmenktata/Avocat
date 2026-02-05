@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import { GlobalKeyboardShortcuts } from '@/components/ui/KeyboardShortcuts'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
+import { getTranslations } from 'next-intl/server'
 
 export default async function DashboardLayout({
   children,
@@ -24,6 +25,10 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single()
 
+  // Récupérer les traductions
+  const t = await getTranslations('nav')
+  const tCommon = await getTranslations('common')
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
@@ -40,49 +45,49 @@ export default async function DashboardLayout({
                   href="/dashboard"
                   className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 >
-                  Tableau de bord
+                  {t('dashboard')}
                 </Link>
                 <Link
                   href="/clients"
                   className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 >
-                  Clients
+                  {t('clients')}
                 </Link>
                 <Link
                   href="/dossiers"
                   className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 >
-                  Dossiers
+                  {t('dossiers')}
                 </Link>
                 <Link
                   href="/factures"
                   className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 >
-                  Factures
+                  {t('factures')}
                 </Link>
                 <Link
                   href="/echeances"
                   className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 >
-                  Échéances
+                  {t('echeances')}
                 </Link>
                 <Link
                   href="/time-tracking"
                   className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 >
-                  Time Tracking
+                  {t('timeTracking')}
                 </Link>
                 <Link
                   href="/documents"
                   className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 >
-                  Documents
+                  {t('documents')}
                 </Link>
                 <Link
                   href="/templates"
                   className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 >
-                  Templates
+                  {t('templates')}
                 </Link>
               </div>
             </div>
@@ -102,7 +107,7 @@ export default async function DashboardLayout({
                   type="submit"
                   className="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
                 >
-                  Déconnexion
+                  {tCommon('logout')}
                 </button>
               </form>
             </div>
