@@ -66,8 +66,8 @@ export default async function FacturesPage() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             {t('subtitle')}
           </p>
         </div>
@@ -81,11 +81,11 @@ export default async function FacturesPage() {
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <div className="rounded-lg border bg-card p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">{t('totalInvoices')}</p>
-              <p className="mt-1 text-2xl font-semibold text-gray-900">{stats.total}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('totalInvoices')}</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">{stats.total}</p>
             </div>
             <div className="rounded-full bg-blue-100 p-3">
               <svg
@@ -105,11 +105,11 @@ export default async function FacturesPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <div className="rounded-lg border bg-card p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">{t('totalAmountTTC')}</p>
-              <p className="mt-1 text-2xl font-semibold text-gray-900">
+              <p className="text-sm font-medium text-muted-foreground">{t('totalAmountTTC')}</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">
                 {stats.montantTotal.toFixed(3)} <span className="text-lg">TND</span>
               </p>
             </div>
@@ -131,14 +131,14 @@ export default async function FacturesPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <div className="rounded-lg border bg-card p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">{t('paid')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('paid')}</p>
               <p className="mt-1 text-2xl font-semibold text-green-600">
                 {stats.montantPaye.toFixed(3)} <span className="text-lg">TND</span>
               </p>
-              <p className="mt-1 text-xs text-gray-500">{stats.payees} {t('invoicesCount')}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{stats.payees} {t('invoicesCount')}</p>
             </div>
             <div className="rounded-full bg-green-100 p-3">
               <svg
@@ -158,14 +158,14 @@ export default async function FacturesPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <div className="rounded-lg border bg-card p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">{t('unpaid')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('unpaid')}</p>
               <p className="mt-1 text-2xl font-semibold text-red-600">
                 {stats.montantImpaye.toFixed(3)} <span className="text-lg">TND</span>
               </p>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {stats.impayees} {t('invoicesCount')}
                 {facturesEnRetard > 0 && (
                   <span className="ml-1 font-semibold text-red-700">
@@ -194,8 +194,8 @@ export default async function FacturesPage() {
       </div>
 
       {/* Filtres par statut */}
-      <div className="flex gap-2 rounded-lg border bg-white p-4">
-        <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">
+      <div className="flex gap-2 rounded-lg border bg-card p-4">
+        <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm font-medium text-foreground">
           {t('draft')} ({stats.brouillon})
         </span>
         <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
@@ -211,9 +211,9 @@ export default async function FacturesPage() {
 
       {/* Liste des factures */}
       {!factures || factures.length === 0 ? (
-        <div className="rounded-lg border border-dashed bg-white p-12 text-center">
+        <div className="rounded-lg border border-dashed bg-card p-12 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-muted-foreground"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -225,8 +225,8 @@ export default async function FacturesPage() {
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">{t('noInvoices')}</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="mt-2 text-sm font-medium text-foreground">{t('noInvoices')}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             {t('createFirstInvoice')}
           </p>
           <div className="mt-6">

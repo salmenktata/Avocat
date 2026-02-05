@@ -178,8 +178,8 @@ export default function FactureDetailClient({
   }
 
   return (
-    <div className="rounded-lg border bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
+    <div className="rounded-lg border bg-card p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-foreground mb-4">Actions</h2>
 
       {error && (
         <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-800">
@@ -222,7 +222,7 @@ export default function FactureDetailClient({
           <button
             onClick={() => handleChangeStatut('IMPAYEE')}
             disabled={loading}
-            className="w-full rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            className="w-full rounded-md border border-red-300 bg-card px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
             ⚠️ Marquer comme impayée
           </button>
@@ -232,7 +232,7 @@ export default function FactureDetailClient({
         <button
           onClick={() => router.push(`/factures/${facture.id}/edit`)}
           disabled={loading}
-          className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="w-full rounded-md border border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
         >
           ✏️ Modifier
         </button>
@@ -241,7 +241,7 @@ export default function FactureDetailClient({
         <button
           onClick={handleDelete}
           disabled={loading}
-          className="w-full rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+          className="w-full rounded-md border border-red-300 bg-card px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
         >
           🗑️ Supprimer
         </button>

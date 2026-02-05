@@ -20,11 +20,11 @@ export default function DossierCard({ dossier }: DossierCardProps) {
 
   return (
     <Link href={`/dossiers/${dossier.id}`}>
-      <div className="rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-all hover:border-blue-300">
+      <div className="rounded-lg border bg-card p-6 shadow-sm hover:shadow-md transition-all hover:border-blue-300">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-foreground">
                 {dossier.numero_dossier}
               </h3>
               <span
@@ -32,7 +32,7 @@ export default function DossierCard({ dossier }: DossierCardProps) {
                   dossier.statut === 'ACTIF'
                     ? 'bg-green-100 text-green-700'
                     : dossier.statut === 'CLOS'
-                    ? 'bg-gray-100 text-gray-700'
+                    ? 'bg-muted text-foreground'
                     : 'bg-blue-100 text-blue-700'
                 }`}
               >
@@ -40,12 +40,12 @@ export default function DossierCard({ dossier }: DossierCardProps) {
               </span>
             </div>
 
-            <p className="mt-1 text-sm text-gray-600 line-clamp-2">
+            <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
               {dossier.objet}
             </p>
 
             <div className="mt-3 space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <svg
                   className="h-4 w-4"
                   fill="none"
@@ -63,7 +63,7 @@ export default function DossierCard({ dossier }: DossierCardProps) {
               </div>
 
               {dossier.tribunal && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <svg
                     className="h-4 w-4"
                     fill="none"
@@ -106,7 +106,7 @@ export default function DossierCard({ dossier }: DossierCardProps) {
         {/* Barre de progression */}
         <div className="mt-4">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-gray-500">{t('progression')}</span>
+            <span className="text-xs text-muted-foreground">{t('progression')}</span>
             <span className="text-xs font-medium text-blue-600">{progress}%</span>
           </div>
           <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">

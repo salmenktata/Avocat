@@ -83,6 +83,10 @@
     "upcomingDeadlines": "Échéances à venir",
     "deadlines7Days": "Échéances (7 jours)",
     "unpaidInvoices": "Factures impayées",
+    "unpaid": "Impayés",
+    "invoices": "factures",
+    "templates": "Templates",
+    "documents": "Documents",
     "hoursThisMonth": "Heures ce mois",
     "totalTemplates": "Total templates",
     "totalDocuments": "Total documents",
@@ -660,5 +664,56 @@
     "newInvoice": "Nouvelle facture",
     "showShortcuts": "Afficher les raccourcis",
     "tip": "💡 Astuce : Utilisez ces raccourcis pour naviguer plus rapidement dans l'application."
+  },
+  "activity": {
+    "recentActivity": "Activité récente",
+    "noRecentActivity": "Aucune activité récente",
+    "justNow": "À l'instant",
+    "minutesAgo": "Il y a {minutes} min",
+    "hoursAgo": "Il y a {hours}h",
+    "yesterday": "Hier",
+    "daysAgo": "Il y a {days} jours",
+    "created": "créé",
+    "modified": "modifié",
+    "deleted": "supprimé",
+    "paid": "payé",
+    "dossierNumber": "Dossier {number}",
+    "invoiceNumber": "Facture #{number}",
+    "documentAdded": "Document ajouté",
+    "deadlineOn": "Échéance le {date}",
+    "newClient": "Nouveau client",
+    "otherDocument": "Document autre"
+  },
+  "urgentActions": {
+    "title": "Actions urgentes",
+    "viewAll": "Voir tout",
+    "noUrgentDeadlines": "Aucune échéance urgente",
+    "overdue": "En retard",
+    "today": "Aujourd'hui",
+    "tomorrow": "Demain",
+    "inDays": "Dans {days}j",
+    "dossierReference": "Dossier {number} - {object}"
+  },
+  "widgets": {
+    "dossiersParWorkflow": {
+      "title": "📊 Dossiers par procédure",
+      "noActiveDossiers": "Aucun dossier actif",
+      "totalActiveDossiers": "Total dossiers actifs"
+    },
+    "timeTracking": {
+      "title": "⏱️ Time Tracking",
+      "timeThisMonth": "Temps ce mois",
+      "revenueGenerated": "Revenus générés",
+      "averageHourlyRate": "Taux horaire moyen",
+      "hoursPerWeek": "Heures par semaine"
+    }
+  },
+  "stats": {
+    "newThisMonth": "+{count} ce mois",
+    "urgent": "urgentes",
+    "hello": "Bonjour 👋"
+  },
+  "currency": {
+    "tnd": "TND"
   }
 }

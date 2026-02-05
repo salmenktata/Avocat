@@ -14,7 +14,7 @@ const categorieColors: Record<string, string> = {
   jugement: 'bg-purple-100 text-purple-700',
   correspondance: 'bg-green-100 text-green-700',
   piece: 'bg-yellow-100 text-yellow-700',
-  autre: 'bg-gray-100 text-gray-700',
+  autre: 'bg-muted text-foreground',
 }
 
 export default function DocumentCard({ document }: DocumentCardProps) {
@@ -113,14 +113,14 @@ export default function DocumentCard({ document }: DocumentCardProps) {
     }
 
     return (
-      <svg className="h-8 w-8 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+      <svg className="h-8 w-8 text-muted-foreground" fill="currentColor" viewBox="0 0 20 20">
         <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
       </svg>
     )
   }
 
   return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="rounded-lg border bg-card p-4 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start gap-3">
         {/* Icône fichier */}
         <div className="flex-shrink-0">
@@ -131,13 +131,13 @@ export default function DocumentCard({ document }: DocumentCardProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-gray-900 truncate">{document.nom_fichier}</h3>
+              <h3 className="font-medium text-foreground truncate">{document.nom_fichier}</h3>
 
               {document.description && (
-                <p className="mt-1 text-sm text-gray-600">{document.description}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{document.description}</p>
               )}
 
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 {document.categorie && (
                   <span
                     className={`inline-flex items-center rounded-full px-2 py-1 font-medium ${
@@ -165,7 +165,7 @@ export default function DocumentCard({ document }: DocumentCardProps) {
             <button
               onClick={() => setShowActions(!showActions)}
               disabled={loading}
-              className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+              className="rounded-md border border bg-card px-2 py-1 text-xs font-medium text-foreground hover:bg-muted"
             >
               {showActions ? tCards('close') : tCards('actions')}
             </button>
@@ -192,7 +192,7 @@ export default function DocumentCard({ document }: DocumentCardProps) {
           <button
             onClick={handleDelete}
             disabled={loading}
-            className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            className="rounded-md border border-red-300 bg-card px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
             🗑️ {tCommon('delete')}
           </button>

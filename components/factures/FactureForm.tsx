@@ -89,12 +89,12 @@ export default function FactureForm({
       {/* Client et Dossier */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.clientRequired')}
           </label>
           <select
             {...register('client_id')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
             <option value="">{t('placeholders.selectClient')}</option>
             {clients.map((client) => {
@@ -115,12 +115,12 @@ export default function FactureForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.dossierOptional')}
           </label>
           <select
             {...register('dossier_id')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
             <option value="">{t('placeholders.noDossier')}</option>
             {dossiers.map((dossier) => (
@@ -134,12 +134,12 @@ export default function FactureForm({
 
       {/* Objet */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.invoiceObjectRequired')}
         </label>
         <input
           {...register('objet')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.enterInvoiceObject')}
         />
         {errors.objet && (
@@ -150,14 +150,14 @@ export default function FactureForm({
       {/* Montants */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.amountHTRequired')}
           </label>
           <input
             type="number"
             step="0.001"
             {...register('montant_ht', { valueAsNumber: true })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             placeholder={t('placeholders.enterAmountHT')}
           />
           {errors.montant_ht && (
@@ -166,14 +166,14 @@ export default function FactureForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.tva')}
           </label>
           <input
             type="number"
             step="0.01"
             {...register('taux_tva', { valueAsNumber: true })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           />
           {errors.taux_tva && (
             <p className="mt-1 text-sm text-red-600">{errors.taux_tva.message}</p>
@@ -185,19 +185,19 @@ export default function FactureForm({
       <div className="rounded-lg bg-blue-50 p-4">
         <div className="grid grid-cols-3 gap-4 text-sm">
           <div>
-            <span className="text-gray-600">{t('helpers.amountHTLabel')}</span>
-            <p className="font-semibold text-gray-900">
+            <span className="text-muted-foreground">{t('helpers.amountHTLabel')}</span>
+            <p className="font-semibold text-foreground">
               {montantHT.toFixed(3)} TND
             </p>
           </div>
           <div>
-            <span className="text-gray-600">{t('helpers.tvaLabel')} ({tauxTVA}%):</span>
-            <p className="font-semibold text-gray-900">
+            <span className="text-muted-foreground">{t('helpers.tvaLabel')} ({tauxTVA}%):</span>
+            <p className="font-semibold text-foreground">
               {montantTVA.toFixed(3)} TND
             </p>
           </div>
           <div>
-            <span className="text-gray-600">{t('helpers.amountTTCLabel')}</span>
+            <span className="text-muted-foreground">{t('helpers.amountTTCLabel')}</span>
             <p className="text-lg font-bold text-blue-600">
               {montantTTC.toFixed(3)} TND
             </p>
@@ -208,13 +208,13 @@ export default function FactureForm({
       {/* Dates */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.issueDateRequired')}
           </label>
           <input
             type="date"
             {...register('date_emission')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           />
           {errors.date_emission && (
             <p className="mt-1 text-sm text-red-600">
@@ -224,25 +224,25 @@ export default function FactureForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.dueDate')}
           </label>
           <input
             type="date"
             {...register('date_echeance')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           />
         </div>
       </div>
 
       {/* Statut */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.statusRequired')}
         </label>
         <select
           {...register('statut')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
         >
           <option value="BROUILLON">{t('options.statusDraft')}</option>
           <option value="ENVOYEE">{t('options.statusSent')}</option>
@@ -256,11 +256,11 @@ export default function FactureForm({
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">{t('labels.notes')}</label>
+        <label className="block text-sm font-medium text-foreground">{t('labels.notes')}</label>
         <textarea
           {...register('notes')}
           rows={3}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.internalNotes')}
         />
       </div>
@@ -278,7 +278,7 @@ export default function FactureForm({
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-md border border-gray-300 bg-white px-6 py-2 text-gray-700 font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="rounded-md border border bg-card px-6 py-2 text-foreground font-semibold hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           {t('buttons.cancel')}
         </button>

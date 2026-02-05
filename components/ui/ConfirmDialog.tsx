@@ -92,18 +92,18 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
             />
 
             {/* Dialog */}
-            <div className="relative z-10 w-full max-w-md transform rounded-lg bg-white p-6 shadow-xl transition-all">
+            <div className="relative z-10 w-full max-w-md transform rounded-lg bg-card p-6 shadow-xl transition-all">
               {style.icon}
 
               <div className="mt-4 text-center">
-                <h3 className="text-lg font-semibold text-gray-900">{options.title}</h3>
-                <p className="mt-2 text-sm text-gray-600">{options.message}</p>
+                <h3 className="text-lg font-semibold text-foreground">{options.title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{options.message}</p>
               </div>
 
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={handleCancel}
-                  className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex-1 rounded-md border border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
                 >
                   {options.cancelText || t('cancel')}
                 </button>

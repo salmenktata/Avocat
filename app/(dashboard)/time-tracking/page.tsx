@@ -94,8 +94,8 @@ export default async function TimeTrackingPage() {
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             {t('subtitle')}
           </p>
         </div>
@@ -116,10 +116,10 @@ export default async function TimeTrackingPage() {
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <div className="rounded-lg border bg-card p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">{t('week')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('week')}</p>
               <p className="mt-1 text-2xl font-semibold text-blue-600">
                 {stats.heuresSemaine.toFixed(1)}h
               </p>
@@ -142,10 +142,10 @@ export default async function TimeTrackingPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <div className="rounded-lg border bg-card p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">{t('month')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('month')}</p>
               <p className="mt-1 text-2xl font-semibold text-indigo-600">
                 {stats.heuresMois.toFixed(1)}h
               </p>
@@ -168,10 +168,10 @@ export default async function TimeTrackingPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <div className="rounded-lg border bg-card p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">{t('toBillMonth')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('toBillMonth')}</p>
               <p className="mt-1 text-xl font-semibold text-green-600">
                 {stats.montantMois.toFixed(0)} <span className="text-sm">TND</span>
               </p>
@@ -194,14 +194,14 @@ export default async function TimeTrackingPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <div className="rounded-lg border bg-card p-5 shadow-sm">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">{t('notBilled')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('notBilled')}</p>
               <p className="mt-1 text-2xl font-semibold text-orange-600">
                 {stats.nonFacturees}
               </p>
-              <p className="text-xs text-gray-500">{t('entries')}</p>
+              <p className="text-xs text-muted-foreground">{t('entries')}</p>
             </div>
             <div className="rounded-full bg-orange-100 p-3">
               <svg
@@ -224,9 +224,9 @@ export default async function TimeTrackingPage() {
 
       {/* Liste des entrées */}
       {!timeEntries || timeEntries.length === 0 ? (
-        <div className="rounded-lg border border-dashed bg-white p-12 text-center">
+        <div className="rounded-lg border border-dashed bg-card p-12 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-muted-foreground"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -238,10 +238,10 @@ export default async function TimeTrackingPage() {
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">
+          <h3 className="mt-2 text-sm font-medium text-foreground">
             {t('noEntries')}
           </h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             {t('createFirstEntry')}
           </p>
           <div className="mt-6">
@@ -255,7 +255,7 @@ export default async function TimeTrackingPage() {
         </div>
       ) : (
         <div>
-          <h2 className="mb-3 text-lg font-semibold text-gray-900">
+          <h2 className="mb-3 text-lg font-semibold text-foreground">
             {t('history')} ({timeEntries.length} {t('entries')})
           </h2>
           <div className="grid gap-4">

@@ -61,7 +61,7 @@ export default async function DossierDetailPage({
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <Link href="/dossiers" className="text-gray-500 hover:text-gray-700">
+            <Link href="/dossiers" className="text-muted-foreground hover:text-foreground">
               <svg
                 className="h-5 w-5"
                 fill="none"
@@ -76,7 +76,7 @@ export default async function DossierDetailPage({
                 />
               </svg>
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-foreground">
               {dossier.numero_dossier}
             </h1>
             <span
@@ -84,15 +84,15 @@ export default async function DossierDetailPage({
                 dossier.statut === 'ACTIF'
                   ? 'bg-green-100 text-green-700'
                   : dossier.statut === 'CLOS'
-                  ? 'bg-gray-100 text-gray-700'
+                  ? 'bg-muted text-foreground'
                   : 'bg-blue-100 text-blue-700'
               }`}
             >
               {dossier.statut}
             </span>
           </div>
-          <p className="mt-2 text-gray-600">{dossier.objet}</p>
-          <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
+          <p className="mt-2 text-muted-foreground">{dossier.objet}</p>
+          <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
             <span>{t('clientLabel')} {clientName}</span>
             {dossier.tribunal && <span>{t('tribunalLabel')} {dossier.tribunal}</span>}
           </div>

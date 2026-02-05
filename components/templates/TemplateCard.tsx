@@ -21,7 +21,7 @@ const typeColors: Record<string, string> = {
   appel: 'bg-yellow-100 text-yellow-700',
   refere: 'bg-pink-100 text-pink-700',
   procuration: 'bg-teal-100 text-teal-700',
-  autre: 'bg-gray-100 text-gray-700',
+  autre: 'bg-muted text-foreground',
 }
 
 export default function TemplateCard({ template }: TemplateCardProps) {
@@ -67,12 +67,12 @@ export default function TemplateCard({ template }: TemplateCardProps) {
   const variableCount = Array.isArray(template.variables) ? template.variables.length : 0
 
   return (
-    <div className="rounded-lg border bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div className="rounded-lg border bg-card p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           {/* Titre */}
           <div className="flex items-start gap-2">
-            <h3 className="font-semibold text-gray-900 text-lg truncate">{template.titre}</h3>
+            <h3 className="font-semibold text-foreground text-lg truncate">{template.titre}</h3>
             {template.est_public && (
               <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                 {t('public')}
@@ -82,11 +82,11 @@ export default function TemplateCard({ template }: TemplateCardProps) {
 
           {/* Description */}
           {template.description && (
-            <p className="mt-1 text-sm text-gray-600 line-clamp-2">{template.description}</p>
+            <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{template.description}</p>
           )}
 
           {/* Métadonnées */}
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500">
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             {/* Type */}
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-1 font-medium ${
@@ -151,7 +151,7 @@ export default function TemplateCard({ template }: TemplateCardProps) {
         <button
           onClick={() => setShowActions(!showActions)}
           disabled={loading}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="rounded-md border border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
         >
           {showActions ? 'Fermer' : 'Actions'}
         </button>
@@ -174,7 +174,7 @@ export default function TemplateCard({ template }: TemplateCardProps) {
 
           <Link
             href={`/templates/${template.id}/edit`}
-            className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
           >
             ✏️ Modifier
           </Link>
@@ -182,7 +182,7 @@ export default function TemplateCard({ template }: TemplateCardProps) {
           <button
             onClick={handleDuplicate}
             disabled={loading}
-            className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="rounded-md border border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
           >
             📋 Dupliquer
           </button>
@@ -197,7 +197,7 @@ export default function TemplateCard({ template }: TemplateCardProps) {
           <button
             onClick={handleDelete}
             disabled={loading}
-            className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            className="rounded-md border border-red-300 bg-card px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
             🗑️ Supprimer
           </button>

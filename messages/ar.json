@@ -83,6 +83,10 @@
     "upcomingDeadlines": "المواعيد القادمة",
     "deadlines7Days": "المواعيد (7 أيام)",
     "unpaidInvoices": "الفواتير غير المدفوعة",
+    "unpaid": "غير مدفوع",
+    "invoices": "فواتير",
+    "templates": "النماذج",
+    "documents": "الوثائق",
     "hoursThisMonth": "الساعات هذا الشهر",
     "totalTemplates": "إجمالي النماذج",
     "totalDocuments": "إجمالي الوثائق",
@@ -660,5 +664,56 @@
     "newInvoice": "فاتورة جديدة",
     "showShortcuts": "إظهار الاختصارات",
     "tip": "💡 نصيحة: استخدم هذه الاختصارات للتنقل بشكل أسرع في التطبيق."
+  },
+  "activity": {
+    "recentActivity": "النشاط الأخير",
+    "noRecentActivity": "لا يوجد نشاط حديث",
+    "justNow": "الآن",
+    "minutesAgo": "منذ {minutes} دقيقة",
+    "hoursAgo": "منذ {hours} ساعة",
+    "yesterday": "أمس",
+    "daysAgo": "منذ {days} يوم",
+    "created": "تم الإنشاء",
+    "modified": "تم التعديل",
+    "deleted": "تم الحذف",
+    "paid": "تم الدفع",
+    "dossierNumber": "ملف {number}",
+    "invoiceNumber": "فاتورة #{number}",
+    "documentAdded": "تمت إضافة وثيقة",
+    "deadlineOn": "موعد في {date}",
+    "newClient": "عميل جديد",
+    "otherDocument": "وثيقة أخرى"
+  },
+  "urgentActions": {
+    "title": "إجراءات عاجلة",
+    "viewAll": "عرض الكل",
+    "noUrgentDeadlines": "لا توجد مواعيد عاجلة",
+    "overdue": "متأخر",
+    "today": "اليوم",
+    "tomorrow": "غداً",
+    "inDays": "خلال {days} يوم",
+    "dossierReference": "ملف {number} - {object}"
+  },
+  "widgets": {
+    "dossiersParWorkflow": {
+      "title": "📊 الملفات حسب الإجراء",
+      "noActiveDossiers": "لا توجد ملفات نشطة",
+      "totalActiveDossiers": "مجموع الملفات النشطة"
+    },
+    "timeTracking": {
+      "title": "⏱️ تتبع الوقت",
+      "timeThisMonth": "الوقت هذا الشهر",
+      "revenueGenerated": "الإيرادات المحققة",
+      "averageHourlyRate": "متوسط السعر بالساعة",
+      "hoursPerWeek": "الساعات في الأسبوع"
+    }
+  },
+  "stats": {
+    "newThisMonth": "+{count} هذا الشهر",
+    "urgent": "عاجلة",
+    "hello": "مرحباً 👋"
+  },
+  "currency": {
+    "tnd": "دينار"
   }
 }

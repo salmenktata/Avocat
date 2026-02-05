@@ -16,14 +16,14 @@ const urgenceColors = {
   critique: 'bg-orange-100 text-orange-700 border-orange-300',
   urgent: 'bg-yellow-100 text-yellow-700 border-yellow-300',
   proche: 'bg-blue-100 text-blue-700 border-blue-300',
-  normal: 'bg-gray-100 text-gray-700 border-gray-300',
+  normal: 'bg-muted text-foreground border',
 }
 
 const typeColors: Record<string, string> = {
   audience: 'bg-purple-100 text-purple-700',
   delai_legal: 'bg-red-100 text-red-700',
   delai_interne: 'bg-blue-100 text-blue-700',
-  autre: 'bg-gray-100 text-gray-700',
+  autre: 'bg-muted text-foreground',
 }
 
 export default function EcheanceCard({ echeance, showDossierInfo = false }: EcheanceCardProps) {
@@ -89,7 +89,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
 
   return (
     <div
-      className={`rounded-lg border-2 bg-white p-4 shadow-sm hover:shadow-md transition-shadow ${urgenceColors[urgence]}`}
+      className={`rounded-lg border-2 bg-card p-4 shadow-sm hover:shadow-md transition-shadow ${urgenceColors[urgence]}`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
@@ -121,14 +121,14 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
             )}
           </div>
 
-          <h3 className="text-lg font-semibold text-gray-900">{echeance.titre}</h3>
+          <h3 className="text-lg font-semibold text-foreground">{echeance.titre}</h3>
 
           {echeance.description && (
-            <p className="mt-1 text-sm text-gray-600">{echeance.description}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{echeance.description}</p>
           )}
 
           {showDossierInfo && echeance.dossiers && (
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-muted-foreground">
               📁 {getDossierName()}
             </p>
           )}
@@ -136,7 +136,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
           <div className="mt-3 flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
               <svg
-                className="h-4 w-4 text-gray-500"
+                className="h-4 w-4 text-muted-foreground"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -148,7 +148,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
                   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                 />
               </svg>
-              <span className="text-gray-700">
+              <span className="text-foreground">
                 {dateEcheance.toLocaleDateString('fr-FR', {
                   weekday: 'short',
                   day: 'numeric',
@@ -160,7 +160,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
 
             <div className="flex items-center gap-1">
               <svg
-                className="h-4 w-4 text-gray-500"
+                className="h-4 w-4 text-muted-foreground"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -180,7 +180,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
                     ? 'text-orange-700'
                     : jours <= 7
                     ? 'text-yellow-700'
-                    : 'text-gray-700'
+                    : 'text-foreground'
                 }`}
               >
                 {formatterDelai(jours)}
@@ -190,7 +190,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
 
           {/* Informations de calcul */}
           {echeance.delai_type && echeance.date_point_depart && (
-            <div className="mt-2 rounded bg-gray-50 p-2 text-xs text-gray-600">
+            <div className="mt-2 rounded bg-muted p-2 text-xs text-muted-foreground">
               <p>
                 📊 Calculé : {echeance.nombre_jours} jour(s){' '}
                 {echeance.delai_type === 'jours_ouvrables'
@@ -208,16 +208,16 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
           {echeance.statut === 'actif' && (
             <div className="mt-2 flex gap-1">
               {echeance.rappel_j15 && (
-                <span className="text-xs text-gray-500">🔔 J-15</span>
+                <span className="text-xs text-muted-foreground">🔔 J-15</span>
               )}
               {echeance.rappel_j7 && (
-                <span className="text-xs text-gray-500">🔔 J-7</span>
+                <span className="text-xs text-muted-foreground">🔔 J-7</span>
               )}
               {echeance.rappel_j3 && (
-                <span className="text-xs text-gray-500">🔔 J-3</span>
+                <span className="text-xs text-muted-foreground">🔔 J-3</span>
               )}
               {echeance.rappel_j1 && (
-                <span className="text-xs text-gray-500">🔔 J-1</span>
+                <span className="text-xs text-muted-foreground">🔔 J-1</span>
               )}
             </div>
           )}
@@ -226,7 +226,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
         <button
           onClick={() => setShowActions(!showActions)}
           disabled={loading}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="rounded-md border border bg-card px-3 py-1 text-sm font-medium text-foreground hover:bg-muted"
         >
           {showActions ? tCards('close') : tCards('actions')}
         </button>
@@ -239,7 +239,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
       )}
 
       {showActions && (
-        <div className="mt-3 space-y-2 rounded-md bg-gray-50 p-3">
+        <div className="mt-3 space-y-2 rounded-md bg-muted p-3">
           {echeance.statut === 'actif' && (
             <button
               onClick={handleMarquerRespecte}
@@ -253,7 +253,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
           <button
             onClick={() => router.push(`/echeances/${echeance.id}/edit`)}
             disabled={loading}
-            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="w-full rounded-md border border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
           >
             ✏️ Modifier
           </button>
@@ -261,7 +261,7 @@ export default function EcheanceCard({ echeance, showDossierInfo = false }: Eche
           <button
             onClick={handleDelete}
             disabled={loading}
-            className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            className="w-full rounded-md border border-red-300 bg-card px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
             🗑️ Supprimer
           </button>

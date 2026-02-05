@@ -52,15 +52,15 @@ export default function Pagination({
   const pages = getPageNumbers()
 
   return (
-    <nav className="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-0">
+    <nav className="flex items-center justify-between border-t border px-4 py-3 sm:px-0">
       <div className="flex w-0 flex-1">
         {currentPage > 1 && (
           <button
             onClick={() => onPageChange(currentPage - 1)}
-            className="inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors"
+            className="inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium text-muted-foreground hover:border hover:text-foreground transition-colors"
           >
             <svg
-              className="mr-3 h-5 w-5 text-gray-400"
+              className="mr-3 h-5 w-5 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -81,7 +81,7 @@ export default function Pagination({
         {showFirstLast && currentPage > 1 && (
           <button
             onClick={() => onPageChange(1)}
-            className="inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors"
+            className="inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-muted-foreground hover:border hover:text-foreground transition-colors"
           >
             «
           </button>
@@ -96,8 +96,8 @@ export default function Pagination({
               page === currentPage
                 ? 'border-blue-500 text-blue-600'
                 : page === '...'
-                ? 'border-transparent text-gray-400 cursor-default'
-                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                ? 'border-transparent text-muted-foreground cursor-default'
+                : 'border-transparent text-muted-foreground hover:border-accent hover:text-foreground'
             }`}
           >
             {page}
@@ -107,7 +107,7 @@ export default function Pagination({
         {showFirstLast && currentPage < totalPages && (
           <button
             onClick={() => onPageChange(totalPages)}
-            className="inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors"
+            className="inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium text-muted-foreground hover:border hover:text-foreground transition-colors"
           >
             »
           </button>
@@ -118,11 +118,11 @@ export default function Pagination({
         {currentPage < totalPages && (
           <button
             onClick={() => onPageChange(currentPage + 1)}
-            className="inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors"
+            className="inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium text-muted-foreground hover:border hover:text-foreground transition-colors"
           >
             {t('next')}
             <svg
-              className="ml-3 h-5 w-5 text-gray-400"
+              className="ml-3 h-5 w-5 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -152,23 +152,23 @@ export function SimplePagination({
   if (totalPages <= 1) return null
 
   return (
-    <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
+    <div className="flex items-center justify-between border-t border px-4 py-3">
       <button
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
-        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="rounded-md border border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {t('previous')}
       </button>
 
-      <span className="text-sm text-gray-700">
+      <span className="text-sm text-foreground">
         {t('pageOf', { current: currentPage, total: totalPages })}
       </span>
 
       <button
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
-        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="rounded-md border border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {t('next')}
       </button>

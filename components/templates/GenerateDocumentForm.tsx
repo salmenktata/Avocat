@@ -114,18 +114,18 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
   return (
     <div className="space-y-6">
       {/* Sélection du dossier */}
-      <div className="rounded-lg border bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">1. Sélectionner un dossier</h2>
+      <div className="rounded-lg border bg-card p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-foreground mb-4">1. Sélectionner un dossier</h2>
 
         {dossiers.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Aucun dossier disponible. Créez d&apos;abord un dossier.
           </p>
         ) : (
           <select
             value={selectedDossier?.id || ''}
             onChange={(e) => handleDossierChange(e.target.value)}
-            className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           >
             <option value="">-- Sélectionnez un dossier --</option>
             {dossiers.map((dossier) => (
@@ -142,22 +142,22 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
 
       {/* Remplissage des variables */}
       {selectedDossier && variables.length > 0 && (
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="rounded-lg border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
             2. Remplir les variables ({variables.length})
           </h2>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {variables.map((variable: string) => (
               <div key={variable}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {variable}
                 </label>
                 <input
                   type="text"
                   value={variablesValues[variable] || ''}
                   onChange={(e) => handleVariableChange(variable, e.target.value)}
-                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="block w-full rounded-md border border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   placeholder={`Valeur pour {{${variable}}}`}
                 />
               </div>
@@ -186,14 +186,14 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
 
       {/* Document généré */}
       {generatedContent && (
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <div className="rounded-lg border bg-card p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Document généré</h2>
+            <h2 className="text-lg font-semibold text-foreground">Document généré</h2>
 
             <div className="flex gap-2">
               <button
                 onClick={handleCopyToClipboard}
-                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-md border border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
               >
                 📋 Copier
               </button>
@@ -207,8 +207,8 @@ export default function GenerateDocumentForm({ template, dossiers }: GenerateDoc
             </div>
           </div>
 
-          <div className="rounded-md bg-gray-50 p-4 max-h-[600px] overflow-y-auto">
-            <pre className="whitespace-pre-wrap font-mono text-sm text-gray-900">
+          <div className="rounded-md bg-muted p-4 max-h-[600px] overflow-y-auto">
+            <pre className="whitespace-pre-wrap font-mono text-sm text-foreground">
               {generatedContent}
             </pre>
           </div>

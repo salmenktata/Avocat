@@ -115,12 +115,12 @@ export default function EcheanceForm({
 
       {/* Type d'échéance */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.deadlineTypeRequired')}
         </label>
         <select
           {...register('type_echeance')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
         >
           <option value="audience">{t('options.deadlineHearing')}</option>
           <option value="delai_legal">{t('options.deadlineLegal')}</option>
@@ -134,12 +134,12 @@ export default function EcheanceForm({
 
       {/* Titre */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.titleRequired')}
         </label>
         <input
           {...register('titre')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.enterDeadlineTitle')}
         />
         {errors.titre && (
@@ -149,11 +149,11 @@ export default function EcheanceForm({
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">{t('labels.description')}</label>
+        <label className="block text-sm font-medium text-foreground">{t('labels.description')}</label>
         <textarea
           {...register('description')}
           rows={3}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.deadlineDetails')}
         />
       </div>
@@ -178,45 +178,45 @@ export default function EcheanceForm({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-foreground">
                     {t('helpers.startDate')}
                   </label>
                   <input
                     type="date"
                     value={dateDepart}
                     onChange={(e) => setDateDepart(e.target.value)}
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                    className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-foreground">
                     {t('helpers.numberOfDays')}
                   </label>
                   <input
                     type="number"
                     value={nombreJours || ''}
                     onChange={(e) => setNombreJours(parseInt(e.target.value) || 0)}
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                    className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                     min="1"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-foreground">
                   {t('helpers.delayType')}
                 </label>
                 <select
                   value={typeDelai}
                   onChange={(e) => setTypeDelai(e.target.value as any)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                 >
                   <option value="jours_calendaires">{t('options.delayCalendar')}</option>
                   <option value="jours_ouvrables">{t('options.delayWorking')}</option>
                   <option value="jours_francs">{t('options.delayFranc')}</option>
                 </select>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {typeDelai === 'jours_calendaires' && t('helpers.delayCalendarHelp')}
                   {typeDelai === 'jours_ouvrables' && t('helpers.delayWorkingHelp')}
                   {typeDelai === 'jours_francs' && t('helpers.delayFrancHelp')}
@@ -253,13 +253,13 @@ export default function EcheanceForm({
 
       {/* Date d'échéance */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.deadlineRequired')}
         </label>
         <input
           type="date"
           {...register('date_echeance')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
         />
         {errors.date_echeance && (
           <p className="mt-1 text-sm text-red-600">{errors.date_echeance.message}</p>
@@ -268,36 +268,36 @@ export default function EcheanceForm({
 
       {/* Rappels */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
+        <label className="block text-sm font-medium text-foreground mb-3">
           {t('labels.automaticReminders')}
         </label>
         <div className="space-y-2">
           <label className="flex items-center">
             <input type="checkbox" {...register('rappel_j15')} className="rounded" />
-            <span className="ml-2 text-sm text-gray-700">{t('helpers.reminder15')}</span>
+            <span className="ml-2 text-sm text-foreground">{t('helpers.reminder15')}</span>
           </label>
           <label className="flex items-center">
             <input type="checkbox" {...register('rappel_j7')} className="rounded" />
-            <span className="ml-2 text-sm text-gray-700">{t('helpers.reminder7')}</span>
+            <span className="ml-2 text-sm text-foreground">{t('helpers.reminder7')}</span>
           </label>
           <label className="flex items-center">
             <input type="checkbox" {...register('rappel_j3')} className="rounded" />
-            <span className="ml-2 text-sm text-gray-700">{t('helpers.reminder3')}</span>
+            <span className="ml-2 text-sm text-foreground">{t('helpers.reminder3')}</span>
           </label>
           <label className="flex items-center">
             <input type="checkbox" {...register('rappel_j1')} className="rounded" />
-            <span className="ml-2 text-sm text-gray-700">{t('helpers.reminder1')}</span>
+            <span className="ml-2 text-sm text-foreground">{t('helpers.reminder1')}</span>
           </label>
         </div>
       </div>
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">{t('labels.notes')}</label>
+        <label className="block text-sm font-medium text-foreground">{t('labels.notes')}</label>
         <textarea
           {...register('notes')}
           rows={2}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.internalNotes')}
         />
       </div>
@@ -315,7 +315,7 @@ export default function EcheanceForm({
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-md border border-gray-300 bg-white px-6 py-2 text-gray-700 font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="rounded-md border border bg-card px-6 py-2 text-foreground font-semibold hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           {t('buttons.cancel')}
         </button>

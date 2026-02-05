@@ -124,13 +124,13 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Titre */}
       <div>
-        <label htmlFor="titre" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="titre" className="block text-sm font-medium text-foreground">
           {t('labels.templateTitleRequired')}
         </label>
         <input
           type="text"
           {...register('titre')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           placeholder={t('placeholders.enterTemplateTitle')}
         />
         {errors.titre && <p className="mt-1 text-sm text-red-600">{errors.titre.message}</p>}
@@ -138,13 +138,13 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
 
       {/* Description */}
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="description" className="block text-sm font-medium text-foreground">
           {t('labels.description')}
         </label>
         <textarea
           {...register('description')}
           rows={2}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           placeholder={t('placeholders.templateDescription')}
         />
         {errors.description && (
@@ -154,12 +154,12 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
 
       {/* Type de document */}
       <div>
-        <label htmlFor="type_document" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="type_document" className="block text-sm font-medium text-foreground">
           {t('labels.documentTypeRequired')}
         </label>
         <select
           {...register('type_document')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
         >
           {Object.entries(TYPE_DOCUMENT_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
@@ -174,7 +174,7 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
 
       {/* Variables rapides */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-foreground mb-2">
           {t('labels.insertVariable')}
         </label>
         <div className="flex flex-wrap gap-2">
@@ -183,27 +183,27 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
               key={v.value}
               type="button"
               onClick={() => insertVariable(v.value)}
-              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+              className="rounded-md border border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
             >
               {v.label}
             </button>
           ))}
         </div>
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-muted-foreground">
           💡 {t('helpers.variablesTip')}
         </p>
       </div>
 
       {/* Contenu */}
       <div>
-        <label htmlFor="contenu" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="contenu" className="block text-sm font-medium text-foreground">
           {t('labels.templateContentRequired')}
         </label>
         <textarea
           {...register('contenu')}
           rows={16}
           onChange={handleContenuChange}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 font-mono text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
           placeholder={t('placeholders.enterTemplateContent')}
         />
         {errors.contenu && <p className="mt-1 text-sm text-red-600">{errors.contenu.message}</p>}
@@ -231,9 +231,9 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
           type="checkbox"
           {...register('est_public')}
           id="est_public"
-          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          className="h-4 w-4 rounded border text-blue-600 focus:ring-blue-500"
         />
-        <label htmlFor="est_public" className="text-sm text-gray-700">
+        <label htmlFor="est_public" className="text-sm text-foreground">
           {t('labels.makePublic')}
         </label>
       </div>
@@ -254,7 +254,7 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="rounded-md border border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
         >
           {t('buttons.cancel')}
         </button>

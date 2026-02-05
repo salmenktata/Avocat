@@ -48,7 +48,7 @@ export default function DossierDetailContent({
   return (
     <div className="space-y-6">
       {/* Onglets */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border">
         <nav className="-mb-px flex gap-2">
           {tabs.map((tab) => (
             <button
@@ -57,7 +57,7 @@ export default function DossierDetailContent({
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-accent'
               }`}
             >
               <span className="mr-2">{tab.icon}</span>
@@ -68,10 +68,10 @@ export default function DossierDetailContent({
       </div>
 
       {/* Contenu des onglets */}
-      <div className="rounded-lg border bg-white p-6 shadow-sm">
+      <div className="rounded-lg border bg-card p-6 shadow-sm">
         {activeTab === 'workflow' && (
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               Workflow de la procédure
             </h2>
             <WorkflowVisualizer
@@ -83,7 +83,7 @@ export default function DossierDetailContent({
 
         {activeTab === 'info' && (
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               Modifier les informations
             </h2>
             <DossierForm initialData={dossier} isEditing clients={[dossier.clients]} />
@@ -93,7 +93,7 @@ export default function DossierDetailContent({
         {activeTab === 'actions' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 Actions à faire ({actions.length})
               </h2>
               {!showAddAction && (
@@ -108,7 +108,7 @@ export default function DossierDetailContent({
 
             {showAddAction && (
               <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">
+                <h3 className="text-sm font-medium text-foreground mb-3">
                   Nouvelle action
                 </h3>
                 <AddActionForm
@@ -125,7 +125,7 @@ export default function DossierDetailContent({
         {activeTab === 'echeances' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 Échéances ({echeances.length})
               </h2>
               <button className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
@@ -142,11 +142,11 @@ export default function DossierDetailContent({
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <h4 className="font-medium text-gray-900">
+                        <h4 className="font-medium text-foreground">
                           {echeance.titre}
                         </h4>
                         {echeance.description && (
-                          <p className="mt-1 text-sm text-gray-600">
+                          <p className="mt-1 text-sm text-muted-foreground">
                             {echeance.description}
                           </p>
                         )}
@@ -162,8 +162,8 @@ export default function DossierDetailContent({
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-                <p className="text-sm text-gray-500">Aucune échéance</p>
+              <div className="rounded-lg border border-dashed border bg-muted p-8 text-center">
+                <p className="text-sm text-muted-foreground">Aucune échéance</p>
               </div>
             )}
           </div>
@@ -172,7 +172,7 @@ export default function DossierDetailContent({
         {activeTab === 'documents' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 Documents ({documents.length})
               </h2>
               <button className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
@@ -190,8 +190,8 @@ export default function DossierDetailContent({
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">📄</span>
                       <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{doc.nom}</h4>
-                        <p className="text-sm text-gray-500">
+                        <h4 className="font-medium text-foreground">{doc.nom}</h4>
+                        <p className="text-sm text-muted-foreground">
                           {doc.type_document} •{' '}
                           {new Date(doc.created_at).toLocaleDateString('fr-FR')}
                         </p>
@@ -201,8 +201,8 @@ export default function DossierDetailContent({
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-                <p className="text-sm text-gray-500">Aucun document</p>
+              <div className="rounded-lg border border-dashed border bg-muted p-8 text-center">
+                <p className="text-sm text-muted-foreground">Aucun document</p>
               </div>
             )}
           </div>

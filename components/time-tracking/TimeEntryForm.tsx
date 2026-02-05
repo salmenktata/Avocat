@@ -98,12 +98,12 @@ export default function TimeEntryForm({
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.descriptionRequired')}
         </label>
         <input
           {...register('description')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.enterDescription')}
         />
         {errors.description && (
@@ -113,11 +113,11 @@ export default function TimeEntryForm({
 
       {/* Date */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">{t('labels.dateRequired')}</label>
+        <label className="block text-sm font-medium text-foreground">{t('labels.dateRequired')}</label>
         <input
           type="date"
           {...register('date')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
         />
         {errors.date && (
           <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
@@ -126,29 +126,29 @@ export default function TimeEntryForm({
 
       {/* Durée */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-foreground mb-2">
           {t('labels.durationRequired')}
         </label>
 
         <div className="grid grid-cols-2 gap-4 mb-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('labels.hours')}</label>
+            <label className="block text-xs text-muted-foreground mb-1">{t('labels.hours')}</label>
             <input
               type="number"
               value={heures}
               onChange={(e) => setDureeFromHeures(parseInt(e.target.value) || 0, minutes)}
-              className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+              className="block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
               min="0"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('labels.minutes')}</label>
+            <label className="block text-xs text-muted-foreground mb-1">{t('labels.minutes')}</label>
             <input
               type="number"
               value={minutes}
               onChange={(e) => setDureeFromHeures(heures, parseInt(e.target.value) || 0)}
-              className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+              className="block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
               min="0"
               max="59"
             />
@@ -161,28 +161,28 @@ export default function TimeEntryForm({
           <button
             type="button"
             onClick={() => setValue('duree_minutes', 15)}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border bg-card px-3 py-1 text-xs text-foreground hover:bg-muted"
           >
             15 min
           </button>
           <button
             type="button"
             onClick={() => setValue('duree_minutes', 30)}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border bg-card px-3 py-1 text-xs text-foreground hover:bg-muted"
           >
             30 min
           </button>
           <button
             type="button"
             onClick={() => setValue('duree_minutes', 60)}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border bg-card px-3 py-1 text-xs text-foreground hover:bg-muted"
           >
             1h
           </button>
           <button
             type="button"
             onClick={() => setValue('duree_minutes', 120)}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1 text-xs text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border bg-card px-3 py-1 text-xs text-foreground hover:bg-muted"
           >
             2h
           </button>
@@ -195,14 +195,14 @@ export default function TimeEntryForm({
 
       {/* Taux horaire */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.hourlyRate')}
         </label>
         <input
           type="number"
           step="0.001"
           {...register('taux_horaire', { valueAsNumber: true })}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.enterHourlyRate')}
         />
         {errors.taux_horaire && (
@@ -213,11 +213,11 @@ export default function TimeEntryForm({
       {/* Montant calculé */}
       {tauxHoraire > 0 && (
         <div className="rounded-lg bg-blue-50 p-4">
-          <div className="text-sm text-gray-600">{t('helpers.calculatedAmount')}</div>
+          <div className="text-sm text-muted-foreground">{t('helpers.calculatedAmount')}</div>
           <div className="text-2xl font-bold text-blue-600">
             {montantCalcule.toFixed(3)} TND
           </div>
-          <div className="mt-1 text-xs text-gray-500">
+          <div className="mt-1 text-xs text-muted-foreground">
             {(dureeMinutes / 60).toFixed(2)} h × {tauxHoraire.toFixed(3)} TND/h
           </div>
         </div>
@@ -227,17 +227,17 @@ export default function TimeEntryForm({
       <div>
         <label className="flex items-center">
           <input type="checkbox" {...register('facturable')} className="rounded" />
-          <span className="ml-2 text-sm text-gray-700">{t('labels.billableTime')}</span>
+          <span className="ml-2 text-sm text-foreground">{t('labels.billableTime')}</span>
         </label>
       </div>
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">{t('labels.notes')}</label>
+        <label className="block text-sm font-medium text-foreground">{t('labels.notes')}</label>
         <textarea
           {...register('notes')}
           rows={2}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.internalNotes')}
         />
       </div>
@@ -255,7 +255,7 @@ export default function TimeEntryForm({
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-md border border-gray-300 bg-white px-6 py-2 text-gray-700 font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="rounded-md border border bg-card px-6 py-2 text-foreground font-semibold hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           {t('buttons.cancel')}
         </button>

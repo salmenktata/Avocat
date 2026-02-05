@@ -81,7 +81,7 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
 
       {/* Type de client */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-foreground mb-2">
           {t('labels.clientTypeRequired')}
         </label>
         <div className="flex gap-4">
@@ -114,12 +114,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
         <>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-foreground">
                 {t('labels.nameRequired')}
               </label>
               <input
                 {...register('nom')}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                 placeholder={t('placeholders.enterName')}
               />
               {errors.nom && (
@@ -128,12 +128,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-foreground">
                 {t('labels.firstName')}
               </label>
               <input
                 {...register('prenom')}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                 placeholder={t('placeholders.enterFirstName')}
               />
               {errors.prenom && (
@@ -143,12 +143,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-foreground">
               {t('labels.cin')}
             </label>
             <input
               {...register('cin')}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
               placeholder={t('placeholders.enterCIN')}
             />
             {errors.cin && (
@@ -159,12 +159,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
       ) : (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-foreground">
               {t('labels.companyNameRequired')}
             </label>
             <input
               {...register('nom')}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
               placeholder={t('placeholders.enterCompanyName')}
             />
             {errors.nom && (
@@ -173,12 +173,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-foreground">
               {t('labels.registreCommerce')}
             </label>
             <input
               {...register('registre_commerce')}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
               placeholder={t('placeholders.enterRegistreCommerce')}
             />
             {errors.registre_commerce && (
@@ -193,13 +193,13 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
       {/* Coordonnées */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.email')}
           </label>
           <input
             type="email"
             {...register('email')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             placeholder={t('placeholders.enterEmail')}
           />
           {errors.email && (
@@ -208,12 +208,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.phone')}
           </label>
           <input
             {...register('telephone')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             placeholder={t('placeholders.enterPhone')}
           />
           {errors.telephone && (
@@ -224,12 +224,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
 
       {/* Adresse */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.address')}
         </label>
         <input
           {...register('adresse')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.enterAddress')}
         />
         {errors.adresse && (
@@ -238,12 +238,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.city')}
         </label>
         <input
           {...register('ville')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.enterCity')}
         />
         {errors.ville && (
@@ -253,13 +253,13 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.notes')}
         </label>
         <textarea
           {...register('notes')}
           rows={4}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.privateNotes')}
         />
         {errors.notes && (
@@ -280,7 +280,7 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-md border border-gray-300 bg-white px-6 py-2 text-gray-700 font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="rounded-md border border bg-card px-6 py-2 text-foreground font-semibold hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           {t('buttons.cancel')}
         </button>

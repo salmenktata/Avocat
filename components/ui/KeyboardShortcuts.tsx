@@ -125,12 +125,12 @@ export function GlobalKeyboardShortcuts() {
               onClick={() => setShowHelp(false)}
             />
 
-            <div className="relative z-10 w-full max-w-2xl transform rounded-lg bg-white p-6 shadow-xl transition-all">
+            <div className="relative z-10 w-full max-w-2xl transform rounded-lg bg-card p-6 shadow-xl transition-all">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
+                <h2 className="text-2xl font-bold text-foreground">{t('title')}</h2>
                 <button
                   onClick={() => setShowHelp(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-muted-foreground hover:text-muted-foreground transition-colors"
                 >
                   <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -147,26 +147,26 @@ export function GlobalKeyboardShortcuts() {
                 {shortcuts.map((shortcut, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between rounded-lg border border p-3 hover:bg-muted transition-colors"
                   >
-                    <span className="text-sm text-gray-700">{shortcut.description}</span>
+                    <span className="text-sm text-foreground">{shortcut.description}</span>
                     <div className="flex items-center gap-1">
                       {shortcut.ctrl && (
-                        <kbd className="rounded bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-800 border border-gray-300">
+                        <kbd className="rounded bg-muted px-2 py-1 text-xs font-semibold text-foreground border border">
                           {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}
                         </kbd>
                       )}
                       {shortcut.alt && (
-                        <kbd className="rounded bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-800 border border-gray-300">
+                        <kbd className="rounded bg-muted px-2 py-1 text-xs font-semibold text-foreground border border">
                           Alt
                         </kbd>
                       )}
                       {shortcut.shift && (
-                        <kbd className="rounded bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-800 border border-gray-300">
+                        <kbd className="rounded bg-muted px-2 py-1 text-xs font-semibold text-foreground border border">
                           Shift
                         </kbd>
                       )}
-                      <kbd className="rounded bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-800 border border-gray-300">
+                      <kbd className="rounded bg-muted px-2 py-1 text-xs font-semibold text-foreground border border">
                         {shortcut.key.toUpperCase()}
                       </kbd>
                     </div>

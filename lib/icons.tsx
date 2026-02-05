@@ -77,6 +77,11 @@ import {
   Columns,
   SlidersHorizontal,
   Command,
+  Gavel,
+  Banknote,
+  Hash,
+  ListTodo,
+  Briefcase,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -151,9 +156,11 @@ export const Icons = {
   building: Building,
   creditCard: CreditCard,
   dollar: DollarSign,
+  banknote: Banknote,
   trendingUp: TrendingUp,
   trendingDown: TrendingDown,
   package: Package,
+  briefcase: Briefcase,
 
   // UI Elements
   eye: Eye,
@@ -174,12 +181,17 @@ export const Icons = {
   grid: Grid,
   columns: Columns,
   sliders: SlidersHorizontal,
+  listTodo: ListTodo,
 
   // Charts & Analytics
   activity: Activity,
   barChart: BarChart,
   pieChart: PieChart,
   layers: Layers,
+
+  // Legal & Professional
+  gavel: Gavel,
+  hash: Hash,
 } as const
 
 export type IconName = keyof typeof Icons

@@ -76,16 +76,16 @@ export default function ActiveTimer({ timer: initialTimer }: ActiveTimerProps) {
             </span>
           </div>
 
-          <h3 className="text-lg font-semibold text-gray-900">{timer.description}</h3>
+          <h3 className="text-lg font-semibold text-foreground">{timer.description}</h3>
 
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-muted-foreground">
             📁 {timer.dossiers?.numero_dossier} - {clientName}
           </p>
 
           <div className="mt-3 flex items-center gap-4">
             <div className="flex items-center gap-2">
               <svg
-                className="h-4 w-4 text-gray-500"
+                className="h-4 w-4 text-muted-foreground"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -102,7 +102,7 @@ export default function ActiveTimer({ timer: initialTimer }: ActiveTimerProps) {
               </span>
             </div>
 
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-muted-foreground">
               Démarré à {timer.heure_debut}
             </div>
           </div>

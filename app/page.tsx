@@ -15,7 +15,7 @@ export default async function HomePage() {
         <h1 className="mb-6 text-5xl font-bold text-blue-900">
           {t('title')}
         </h1>
-        <p className="mb-8 text-xl text-gray-600">
+        <p className="mb-8 text-xl text-muted-foreground">
           {t('subtitle')}
         </p>
 
@@ -35,21 +35,21 @@ export default async function HomePage() {
         </div>
 
         <div className="mt-16 grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <div className="rounded-lg border bg-card p-6 shadow-sm">
             <h3 className="mb-2 text-lg font-semibold">{t('features.dossiers.title')}</h3>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               {t('features.dossiers.description')}
             </p>
           </div>
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <div className="rounded-lg border bg-card p-6 shadow-sm">
             <h3 className="mb-2 text-lg font-semibold">{t('features.delais.title')}</h3>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               {t('features.delais.description')}
             </p>
           </div>
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <div className="rounded-lg border bg-card p-6 shadow-sm">
             <h3 className="mb-2 text-lg font-semibold">{t('features.facturation.title')}</h3>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               {t('features.facturation.description')}
             </p>
           </div>

@@ -47,11 +47,11 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
   const isFacturee = !!entry.facture_id
 
   return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="rounded-lg border bg-card p-4 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm font-medium text-gray-500">
+            <span className="text-sm font-medium text-muted-foreground">
               {new Date(entry.date).toLocaleDateString('fr-FR', {
                 weekday: 'short',
                 day: 'numeric',
@@ -60,14 +60,14 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
             </span>
 
             {entry.heure_debut && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted-foreground">
                 {entry.heure_debut}
                 {entry.heure_fin && ` - ${entry.heure_fin}`}
               </span>
             )}
 
             {!entry.facturable && (
-              <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+              <span className="inline-flex items-center rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                 {t('notBillable')}
               </span>
             )}
@@ -79,22 +79,22 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
             )}
           </div>
 
-          <h3 className="font-medium text-gray-900">{entry.description}</h3>
+          <h3 className="font-medium text-foreground">{entry.description}</h3>
 
           {showDossierInfo && entry.dossiers && (
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               📁 {entry.dossiers.numero_dossier}
             </p>
           )}
 
           {entry.notes && (
-            <p className="mt-1 text-sm text-gray-600">{entry.notes}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{entry.notes}</p>
           )}
 
           <div className="mt-3 flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
               <svg
-                className="h-4 w-4 text-gray-500"
+                className="h-4 w-4 text-muted-foreground"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -106,18 +106,18 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-foreground">
                 {formatDuration(entry.duree_minutes)}
               </span>
             </div>
 
             {entry.taux_horaire && entry.taux_horaire > 0 && (
               <>
-                <div className="text-gray-400">•</div>
-                <div className="text-gray-600">
+                <div className="text-muted-foreground">•</div>
+                <div className="text-muted-foreground">
                   {entry.taux_horaire.toFixed(0)} TND/h
                 </div>
-                <div className="text-gray-400">•</div>
+                <div className="text-muted-foreground">•</div>
                 <div className="font-semibold text-blue-600">
                   {parseFloat(entry.montant_calcule || '0').toFixed(3)} TND
                 </div>
@@ -130,7 +130,7 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
           <button
             onClick={() => setShowActions(!showActions)}
             disabled={loading}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border bg-card px-3 py-1 text-sm font-medium text-foreground hover:bg-muted"
           >
             {showActions ? 'Fermer' : 'Actions'}
           </button>
@@ -144,11 +144,11 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
       )}
 
       {showActions && !isFacturee && (
-        <div className="mt-3 space-y-2 rounded-md bg-gray-50 p-3">
+        <div className="mt-3 space-y-2 rounded-md bg-muted p-3">
           <button
             onClick={() => router.push(`/time-tracking/${entry.id}/edit`)}
             disabled={loading}
-            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="w-full rounded-md border border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
           >
             ✏️ Modifier
           </button>
@@ -156,7 +156,7 @@ export default function TimeEntryCard({ entry, showDossierInfo = false }: TimeEn
           <button
             onClick={handleDelete}
             disabled={loading}
-            className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            className="w-full rounded-md border border-red-300 bg-card px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
             🗑️ Supprimer
           </button>

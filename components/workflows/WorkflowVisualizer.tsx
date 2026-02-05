@@ -12,7 +12,7 @@ export default function WorkflowVisualizer({ workflowId, etapeActuelleId }: Work
 
   if (!workflow) {
     return (
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-muted-foreground">
         Workflow introuvable
       </div>
     )
@@ -26,7 +26,7 @@ export default function WorkflowVisualizer({ workflowId, etapeActuelleId }: Work
       {/* En-tête avec progression */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-gray-900">{workflow.nom}</h3>
+          <h3 className="text-sm font-medium text-foreground">{workflow.nom}</h3>
           <span className="text-sm font-semibold text-blue-600">{progression}%</span>
         </div>
 
@@ -85,10 +85,10 @@ export default function WorkflowVisualizer({ workflowId, etapeActuelleId }: Work
                   </div>
                 ) : estActuelle ? (
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 ring-4 ring-blue-100">
-                    <div className="h-2 w-2 rounded-full bg-white" />
+                    <div className="h-2 w-2 rounded-full bg-card" />
                   </div>
                 ) : (
-                  <div className="h-6 w-6 rounded-full border-2 border-gray-300 bg-white" />
+                  <div className="h-6 w-6 rounded-full border-2 border bg-card" />
                 )}
               </div>
 
@@ -101,13 +101,13 @@ export default function WorkflowVisualizer({ workflowId, etapeActuelleId }: Work
                         estActuelle
                           ? 'text-blue-900'
                           : estTerminee
-                          ? 'text-gray-900'
-                          : 'text-gray-500'
+                          ? 'text-foreground'
+                          : 'text-muted-foreground'
                       }`}
                     >
                       {etape.libelle}
                     </p>
-                    <p className="mt-0.5 text-xs text-gray-500">{etape.description}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{etape.description}</p>
 
                     {/* Documents requis */}
                     {etape.documents_requis && etape.documents_requis.length > 0 && (
@@ -115,7 +115,7 @@ export default function WorkflowVisualizer({ workflowId, etapeActuelleId }: Work
                         {etape.documents_requis.map((doc) => (
                           <span
                             key={doc}
-                            className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                            className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
                           >
                             📄 {doc}
                           </span>
@@ -126,7 +126,7 @@ export default function WorkflowVisualizer({ workflowId, etapeActuelleId }: Work
 
                   {/* Délai moyen */}
                   {etape.delai_moyen_jours && etape.delai_moyen_jours > 0 && (
-                    <span className="ml-2 text-xs text-gray-500">
+                    <span className="ml-2 text-xs text-muted-foreground">
                       ~{etape.delai_moyen_jours}j
                     </span>
                   )}

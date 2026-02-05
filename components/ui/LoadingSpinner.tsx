@@ -12,7 +12,7 @@ export default function LoadingSpinner({ size = 'md', className = '' }: { size?:
   return (
     <div className={`flex items-center justify-center ${className}`}>
       <div
-        className={`${sizes[size]} animate-spin rounded-full border-4 border-gray-200 border-t-blue-600`}
+        className={`${sizes[size]} animate-spin rounded-full border-4 border border-t-blue-600`}
       />
     </div>
   )
@@ -24,9 +24,9 @@ export function LoadingOverlay({ message }: { message?: string }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-      <div className="rounded-lg bg-white p-6 shadow-xl">
+      <div className="rounded-lg bg-card p-6 shadow-xl">
         <LoadingSpinner size="lg" />
-        <p className="mt-4 text-center text-sm font-medium text-gray-700">{displayMessage}</p>
+        <p className="mt-4 text-center text-sm font-medium text-foreground">{displayMessage}</p>
       </div>
     </div>
   )
@@ -39,7 +39,7 @@ export function LoadingPage() {
     <div className="flex min-h-screen items-center justify-center">
       <div className="text-center">
         <LoadingSpinner size="lg" />
-        <p className="mt-4 text-sm text-gray-600">{t('loading')}</p>
+        <p className="mt-4 text-sm text-muted-foreground">{t('loading')}</p>
       </div>
     </div>
   )

@@ -28,7 +28,7 @@ export default function LanguageSwitcher() {
           className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             loc === locale
               ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-muted text-foreground hover:bg-gray-200'
           } disabled:opacity-50 disabled:cursor-not-allowed`}
           title={localeNames[loc]}
         >

@@ -76,7 +76,7 @@ export default function Toast({ message, type = 'info', duration = 5000, onClose
             onClose?.()
           }, 300)
         }}
-        className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+        className="flex-shrink-0 text-muted-foreground hover:text-muted-foreground transition-colors"
       >
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

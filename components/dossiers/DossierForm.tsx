@@ -95,12 +95,12 @@ export default function DossierForm({
 
       {/* Client */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.clientRequired')}
         </label>
         <select
           {...register('client_id')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
         >
           <option value="">{t('placeholders.selectClient')}</option>
           {clients.map((client) => {
@@ -123,12 +123,12 @@ export default function DossierForm({
       {/* Informations principales */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.dossierNumberRequired')}
           </label>
           <input
             {...register('numero_dossier')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             placeholder={t('placeholders.enterDossierNumber')}
           />
           {errors.numero_dossier && (
@@ -139,12 +139,12 @@ export default function DossierForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.procedureTypeRequired')}
           </label>
           <select
             {...register('type_procedure')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
             {WORKFLOWS_DISPONIBLES.map((workflow) => (
               <option key={workflow.id} value={workflow.id}>
@@ -162,12 +162,12 @@ export default function DossierForm({
 
       {/* Objet */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.objectRequired')}
         </label>
         <input
           {...register('objet')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.enterObject')}
         />
         {errors.objet && (
@@ -177,13 +177,13 @@ export default function DossierForm({
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           {t('labels.description')}
         </label>
         <textarea
           {...register('description')}
           rows={4}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.detailedDescription')}
         />
         {errors.description && (
@@ -194,23 +194,23 @@ export default function DossierForm({
       {/* Parties et tribunal */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.adverseParty')}
           </label>
           <input
             {...register('partie_adverse')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             placeholder={t('placeholders.adversePartyName')}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.adverseLawyer')}
           </label>
           <input
             {...register('avocat_adverse')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             placeholder={t('placeholders.adverseLawyerName')}
           />
         </div>
@@ -218,23 +218,23 @@ export default function DossierForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.tribunal')}
           </label>
           <input
             {...register('tribunal')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             placeholder={t('placeholders.exampleTribunal')}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.numeroRG')}
           </label>
           <input
             {...register('numero_rg')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             placeholder={t('placeholders.exampleRG')}
           />
         </div>
@@ -243,25 +243,25 @@ export default function DossierForm({
       {/* Date et montant */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.openingDate')}
           </label>
           <input
             type="date"
             {...register('date_ouverture')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.amountLitige')}
           </label>
           <input
             type="number"
             step="0.01"
             {...register('montant_litige', { valueAsNumber: true })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             placeholder={t('placeholders.enterAmount')}
           />
         </div>
@@ -270,12 +270,12 @@ export default function DossierForm({
       {/* Statut et étape */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.statusRequired')}
           </label>
           <select
             {...register('statut')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
             <option value="ACTIF">{t('options.statusActive')}</option>
             <option value="CLOS">{t('options.statusClosed')}</option>
@@ -287,12 +287,12 @@ export default function DossierForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {t('labels.workflowStep')}
           </label>
           <select
             {...register('workflow_etape_actuelle')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
             {(() => {
               const workflow = getWorkflowById(typeProcedure || 'civil_premiere_instance')
@@ -308,11 +308,11 @@ export default function DossierForm({
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">{t('labels.notes')}</label>
+        <label className="block text-sm font-medium text-foreground">{t('labels.notes')}</label>
         <textarea
           {...register('notes')}
           rows={3}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.privateNotes')}
         />
       </div>
@@ -330,7 +330,7 @@ export default function DossierForm({
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-md border border-gray-300 bg-white px-6 py-2 text-gray-700 font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="rounded-md border border bg-card px-6 py-2 text-foreground font-semibold hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           {t('buttons.cancel')}
         </button>

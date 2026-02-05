@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { getWorkflowById } from '@/lib/workflows/workflows-config'
 
 interface DossiersParWorkflowWidgetProps {
@@ -7,6 +8,7 @@ interface DossiersParWorkflowWidgetProps {
 }
 
 export default function DossiersParWorkflowWidget({ dossiers }: DossiersParWorkflowWidgetProps) {
+  const t = useTranslations('widgets.dossiersParWorkflow')
   // Regrouper par type de procédure
   const parWorkflow = dossiers.reduce((acc: Record<string, number>, d) => {
     const type = d.type_procedure || 'autre'
@@ -29,11 +31,11 @@ export default function DossiersParWorkflowWidget({ dossiers }: DossiersParWorkf
   const total = dossiers.length
 
   return (
-    <div className="rounded-lg border bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">📊 Dossiers par procédure</h2>
+    <div className="rounded-lg border bg-card p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-card-foreground mb-4">{t('title')}</h2>
 
       {workflows.length === 0 ? (
-        <p className="text-sm text-gray-500 text-center py-8">Aucun dossier actif</p>
+        <p className="text-sm text-muted-foreground text-center py-8">{t('noActiveDossiers')}</p>
       ) : (
         <div className="space-y-4">
           {workflows.map((w) => {
@@ -42,12 +44,12 @@ export default function DossiersParWorkflowWidget({ dossiers }: DossiersParWorkf
             return (
               <div key={w.id}>
                 <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="font-medium text-gray-700">{w.nom}</span>
-                  <span className="font-semibold text-gray-900">
+                  <span className="font-medium text-foreground">{w.nom}</span>
+                  <span className="font-semibold text-foreground">
                     {w.count} ({pourcentage.toFixed(0)}%)
                   </span>
                 </div>
-                <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-3 bg-muted rounded-full overflow-hidden">
                   <div
                     className={`h-full ${w.couleur} transition-all duration-300`}
                     style={{ width: `${pourcentage}%` }}
@@ -60,8 +62,8 @@ export default function DossiersParWorkflowWidget({ dossiers }: DossiersParWorkf
           {/* Total */}
           <div className="mt-6 pt-4 border-t">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-900">Total dossiers actifs</span>
-              <span className="text-2xl font-bold text-blue-600">{total}</span>
+              <span className="text-sm font-semibold text-foreground">{t('totalActiveDossiers')}</span>
+              <span className="text-2xl font-bold text-primary">{total}</span>
             </div>
           </div>
         </div>
@@ -76,7 +78,7 @@ function getCouleur(workflowId: string): string {
     divorce: 'bg-purple-500',
     commercial: 'bg-green-500',
     refere: 'bg-orange-500',
-    autre: 'bg-gray-500',
+    autre: 'bg-muted0',
   }
-  return couleurs[workflowId] || 'bg-gray-500'
+  return couleurs[workflowId] || 'bg-muted0'
 }

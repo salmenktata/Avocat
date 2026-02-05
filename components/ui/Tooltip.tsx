@@ -78,7 +78,7 @@ export function HelpTooltip({ content }: { content: string }) {
     <Tooltip content={content}>
       <button
         type="button"
-        className="inline-flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+        className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-muted-foreground transition-colors"
       >
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path

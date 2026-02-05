@@ -56,10 +56,10 @@ export default function AddActionForm({ dossierId, onCancel }: AddActionFormProp
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">{t('titleRequired')}</label>
+        <label className="block text-sm font-medium text-foreground">{t('titleRequired')}</label>
         <input
           {...register('titre')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.title')}
         />
         {errors.titre && (
@@ -68,21 +68,21 @@ export default function AddActionForm({ dossierId, onCancel }: AddActionFormProp
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">{t('description')}</label>
+        <label className="block text-sm font-medium text-foreground">{t('description')}</label>
         <textarea
           {...register('description')}
           rows={2}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.description')}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">{t('typeRequired')}</label>
+          <label className="block text-sm font-medium text-foreground">{t('typeRequired')}</label>
           <select
             {...register('type')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
             <option value="AUDIENCE">{t('types.audience')}</option>
             <option value="DEADLINE">{t('types.deadline')}</option>
@@ -93,10 +93,10 @@ export default function AddActionForm({ dossierId, onCancel }: AddActionFormProp
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">{t('priorityRequired')}</label>
+          <label className="block text-sm font-medium text-foreground">{t('priorityRequired')}</label>
           <select
             {...register('priorite')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
             <option value="BASSE">{t('priorities.low')}</option>
             <option value="NORMALE">{t('priorities.normal')}</option>
@@ -107,11 +107,11 @@ export default function AddActionForm({ dossierId, onCancel }: AddActionFormProp
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">{t('deadline')}</label>
+        <label className="block text-sm font-medium text-foreground">{t('deadline')}</label>
         <input
           type="date"
           {...register('date_limite')}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
         />
       </div>
 
@@ -126,7 +126,7 @@ export default function AddActionForm({ dossierId, onCancel }: AddActionFormProp
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 font-medium hover:bg-gray-50"
+          className="flex-1 rounded-md border border bg-card px-4 py-2 text-foreground font-medium hover:bg-muted"
         >
           {t('cancel')}
         </button>

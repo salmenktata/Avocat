@@ -87,11 +87,11 @@ export default function DocumentUploadForm({ dossierId, onSuccess }: DocumentUpl
 
       {/* Sélection fichier */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-foreground mb-2">
           {t('fileRequired')}
         </label>
         <div className="flex items-center justify-center w-full">
-          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted">
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
               {selectedFile ? (
                 <>
@@ -108,13 +108,13 @@ export default function DocumentUploadForm({ dossierId, onSuccess }: DocumentUpl
                       d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <p className="text-sm font-medium text-gray-700">{selectedFile.name}</p>
-                  <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                  <p className="text-sm font-medium text-foreground">{selectedFile.name}</p>
+                  <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
                 </>
               ) : (
                 <>
                   <svg
-                    className="w-8 h-8 mb-2 text-gray-400"
+                    className="w-8 h-8 mb-2 text-muted-foreground"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -126,10 +126,10 @@ export default function DocumentUploadForm({ dossierId, onSuccess }: DocumentUpl
                       d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                     />
                   </svg>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     <span className="font-semibold">{t('clickToUpload')}</span> {t('dragAndDrop')}
                   </p>
-                  <p className="text-xs text-gray-500">{t('supportedFormats')}</p>
+                  <p className="text-xs text-muted-foreground">{t('supportedFormats')}</p>
                 </>
               )}
             </div>
@@ -145,11 +145,11 @@ export default function DocumentUploadForm({ dossierId, onSuccess }: DocumentUpl
 
       {/* Catégorie */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">{t('category')}</label>
+        <label className="block text-sm font-medium text-foreground">{t('category')}</label>
         <select
           value={categorie}
           onChange={(e) => setCategorie(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
         >
           <option value="">{t('selectCategory')}</option>
           <option value="contrat">{t('categories.contrat')}</option>
@@ -162,12 +162,12 @@ export default function DocumentUploadForm({ dossierId, onSuccess }: DocumentUpl
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">{t('description')}</label>
+        <label className="block text-sm font-medium text-foreground">{t('description')}</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('descriptionPlaceholder')}
         />
       </div>

@@ -37,12 +37,12 @@ export default async function EcheancesWidget() {
 
   if (!echeances || echeances.length === 0) {
     return (
-      <div className="rounded-lg border bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="rounded-lg border bg-card p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-foreground mb-4">
           ⏰ Échéances urgentes
         </h2>
         <div className="text-center py-8">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Aucune échéance dans les 7 prochains jours
           </p>
           <p className="mt-2 text-2xl">✅</p>
@@ -52,9 +52,9 @@ export default async function EcheancesWidget() {
   }
 
   return (
-    <div className="rounded-lg border bg-white p-6 shadow-sm">
+    <div className="rounded-lg border bg-card p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-lg font-semibold text-foreground">
           ⏰ Échéances urgentes
         </h2>
         <Link
@@ -90,7 +90,7 @@ export default async function EcheancesWidget() {
             <Link
               key={echeance.id}
               href={`/dossiers/${echeance.dossier_id}#echeances`}
-              className={`block rounded-lg border-l-4 p-3 hover:bg-gray-50 transition-colors ${
+              className={`block rounded-lg border-l-4 p-3 hover:bg-accent transition-colors ${
                 urgence === 'depasse'
                   ? 'border-red-500'
                   : urgence === 'critique'
@@ -102,10 +102,10 @@ export default async function EcheancesWidget() {
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {echeance.titre}
                   </p>
-                  <p className="mt-1 text-xs text-gray-500 truncate">
+                  <p className="mt-1 text-xs text-muted-foreground truncate">
                     {echeance.dossiers?.numero_dossier} - {clientName}
                   </p>
                 </div>
@@ -119,7 +119,7 @@ export default async function EcheancesWidget() {
                     : `${jours}j`}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {dateEcheance.toLocaleDateString('fr-FR', {
                   weekday: 'short',
                   day: 'numeric',

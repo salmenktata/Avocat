@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ThemeToggle } from './ThemeToggle'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
+import { GlobalSearch } from './GlobalSearch'
 
 interface TopbarProps {
   user: {
@@ -48,10 +49,8 @@ export function Topbar({ user }: TopbarProps) {
 
         {/* Actions à droite */}
         <div className="flex items-center gap-2">
-          {/* Recherche globale - TODO: implémenter CMD+K */}
-          <Button variant="ghost" size="icon" title="Recherche (CMD+K)">
-            <Icons.search className="h-5 w-5" />
-          </Button>
+          {/* Recherche globale CMD+K */}
+          <GlobalSearch className="w-64" />
 
           {/* Language Switcher */}
           <LanguageSwitcher />

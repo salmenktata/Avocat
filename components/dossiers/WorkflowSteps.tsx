@@ -29,12 +29,12 @@ export default function WorkflowSteps({
       {/* Barre de progression */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-sm font-medium text-foreground">
             Progression du dossier
           </span>
           <span className="text-sm font-medium text-blue-600">{progress}%</span>
         </div>
-        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div
             className="h-full bg-blue-600 transition-all duration-300"
             style={{ width: `${progress}%` }}
@@ -58,18 +58,18 @@ export default function WorkflowSteps({
                 isActive
                   ? `${colorClass} border-current shadow-md scale-105`
                   : isPassed
-                  ? 'bg-gray-50 text-gray-500 border-gray-200'
-                  : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                  ? 'bg-muted text-muted-foreground border'
+                  : 'bg-card text-foreground border hover:border-accent'
               } ${onEtapeClick ? 'cursor-pointer' : 'cursor-default'}`}
             >
               <div className="flex items-center gap-3">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
                     isActive
-                      ? 'bg-white text-blue-600'
+                      ? 'bg-card text-blue-600'
                       : isPassed
-                      ? 'bg-gray-200 text-gray-600'
-                      : 'bg-gray-100 text-gray-700'
+                      ? 'bg-muted text-muted-foreground'
+                      : 'bg-muted text-foreground'
                   }`}
                 >
                   {isPassed ? (
@@ -105,7 +105,7 @@ export default function WorkflowSteps({
 
                 {onEtapeClick && (
                   <svg
-                    className="h-5 w-5 text-gray-400"
+                    className="h-5 w-5 text-muted-foreground"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"

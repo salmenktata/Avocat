@@ -38,11 +38,11 @@ export default function ClientCard({ client }: ClientCardProps) {
       : client.denomination
 
   return (
-    <div className="rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div className="rounded-lg border bg-card p-6 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               {displayName}
             </h3>
             <span
@@ -56,7 +56,7 @@ export default function ClientCard({ client }: ClientCardProps) {
             </span>
           </div>
 
-          <div className="mt-2 space-y-1 text-sm text-gray-600">
+          <div className="mt-2 space-y-1 text-sm text-muted-foreground">
             {client.type === 'PERSONNE_PHYSIQUE' && client.cin && (
               <p>CIN: {client.cin}</p>
             )}
@@ -148,7 +148,7 @@ export default function ClientCard({ client }: ClientCardProps) {
             </button>
             <button
               onClick={() => setShowDeleteConfirm(false)}
-              className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+              className="rounded-md border border bg-card px-3 py-1 text-sm text-foreground hover:bg-muted"
             >
               {t('close')}
             </button>
@@ -158,13 +158,13 @@ export default function ClientCard({ client }: ClientCardProps) {
         <div className="mt-4 flex gap-2">
           <Link
             href={`/clients/${client.id}`}
-            className="flex-1 rounded-md border border-blue-600 bg-white px-3 py-2 text-center text-sm font-medium text-blue-600 hover:bg-blue-50"
+            className="flex-1 rounded-md border border-blue-600 bg-card px-3 py-2 text-center text-sm font-medium text-blue-600 hover:bg-blue-50"
           >
             {t('viewDetails')}
           </Link>
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+            className="rounded-md border border-red-300 bg-card px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
           >
             {t('delete')}
           </button>

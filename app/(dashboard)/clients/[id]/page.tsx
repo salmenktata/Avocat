@@ -43,7 +43,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
           <div className="flex items-center gap-2">
             <Link
               href="/clients"
-              className="text-gray-500 hover:text-gray-700"
+              className="text-muted-foreground hover:text-foreground"
             >
               <svg
                 className="h-5 w-5"
@@ -59,9 +59,9 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
                 />
               </svg>
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">{displayName}</h1>
+            <h1 className="text-3xl font-bold text-foreground">{displayName}</h1>
           </div>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-muted-foreground">
             {t('clientInfo')}
           </p>
         </div>
@@ -70,8 +70,8 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Informations */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="rounded-lg border bg-card p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               {t('editInfo')}
             </h2>
             <ClientForm initialData={client} isEditing />
@@ -81,26 +81,26 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Statistiques */}
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500 mb-4">
+          <div className="rounded-lg border bg-card p-6 shadow-sm">
+            <h3 className="text-sm font-medium text-muted-foreground mb-4">
               {t('statistics')}
             </h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">{t('activeDossiersCount')}</span>
+                <span className="text-sm text-muted-foreground">{t('activeDossiersCount')}</span>
                 <span className="text-lg font-bold text-blue-600">
                   {dossiers?.filter((d) => d.statut === 'ACTIF').length || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">{t('closedDossiersCount')}</span>
-                <span className="text-lg font-bold text-gray-600">
+                <span className="text-sm text-muted-foreground">{t('closedDossiersCount')}</span>
+                <span className="text-lg font-bold text-muted-foreground">
                   {dossiers?.filter((d) => d.statut === 'CLOS').length || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">{t('totalDossiersCount')}</span>
-                <span className="text-lg font-bold text-gray-900">
+                <span className="text-sm text-muted-foreground">{t('totalDossiersCount')}</span>
+                <span className="text-lg font-bold text-foreground">
                   {dossiers?.length || 0}
                 </span>
               </div>
@@ -108,8 +108,8 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
           </div>
 
           {/* Dossiers récents */}
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500 mb-4">
+          <div className="rounded-lg border bg-card p-6 shadow-sm">
+            <h3 className="text-sm font-medium text-muted-foreground mb-4">
               {t('recentDossiers')}
             </h3>
             {dossiers && dossiers.length > 0 ? (
@@ -118,36 +118,36 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
                   <Link
                     key={dossier.id}
                     href={`/dossiers/${dossier.id}`}
-                    className="block rounded-md border border-gray-200 p-3 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                    className="block rounded-md border border p-3 hover:border-blue-300 hover:bg-blue-50 transition-colors"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-foreground">
                         {dossier.numero_dossier}
                       </span>
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                           dossier.statut === 'ACTIF'
                             ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-700'
+                            : 'bg-muted text-foreground'
                         }`}
                       >
                         {dossier.statut}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500 truncate">
+                    <p className="mt-1 text-xs text-muted-foreground truncate">
                       {dossier.objet}
                     </p>
                   </Link>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">{t('noDossiers')}</p>
+              <p className="text-sm text-muted-foreground">{t('noDossiers')}</p>
             )}
           </div>
 
           {/* Actions rapides */}
-          <div className="rounded-lg border bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500 mb-4">
+          <div className="rounded-lg border bg-card p-6 shadow-sm">
+            <h3 className="text-sm font-medium text-muted-foreground mb-4">
               {t('quickActions')}
             </h3>
             <div className="space-y-2">
@@ -159,7 +159,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
               </Link>
               <Link
                 href={`/factures/new?client_id=${client.id}`}
-                className="block w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                className="block w-full rounded-md border border bg-card px-4 py-2 text-center text-sm font-semibold text-foreground hover:bg-muted"
               >
                 {t('createInvoice')}
               </Link>

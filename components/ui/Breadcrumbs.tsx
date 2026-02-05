@@ -54,12 +54,12 @@ export default function Breadcrumbs() {
   if (breadcrumbs.length <= 1) return null
 
   return (
-    <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-4">
+    <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-4">
       {breadcrumbs.map((crumb, index) => (
         <div key={`${crumb.href}-${index}`} className="flex items-center">
           {index > 0 && (
             <svg
-              className="mx-2 h-4 w-4 text-gray-400"
+              className="mx-2 h-4 w-4 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -68,7 +68,7 @@ export default function Breadcrumbs() {
             </svg>
           )}
           {index === breadcrumbs.length - 1 ? (
-            <span className="font-medium text-gray-900">{crumb.label}</span>
+            <span className="font-medium text-foreground">{crumb.label}</span>
           ) : (
             <Link href={crumb.href} className="hover:text-blue-600 transition-colors">
               {crumb.label}</Link>

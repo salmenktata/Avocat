@@ -14,7 +14,7 @@ interface ActionsListProps {
 }
 
 const prioriteColors: Record<string, string> = {
-  BASSE: 'bg-gray-100 text-gray-700',
+  BASSE: 'bg-muted text-foreground',
   NORMALE: 'bg-blue-100 text-blue-700',
   HAUTE: 'bg-orange-100 text-orange-700',
   URGENTE: 'bg-red-100 text-red-700',
@@ -71,8 +71,8 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
           key={action.id}
           className={`rounded-lg border p-4 transition-all ${
             action.statut === 'TERMINEE'
-              ? 'bg-gray-50 border-gray-200 opacity-60'
-              : 'bg-white border-gray-300 hover:border-blue-300 hover:shadow-sm'
+              ? 'bg-muted border opacity-60'
+              : 'bg-card border hover:border-blue-300 hover:shadow-sm'
           }`}
         >
           <div className="flex items-start gap-3">
@@ -85,7 +85,7 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
                 className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
                   action.statut === 'TERMINEE'
                     ? 'bg-green-500 border-green-500'
-                    : 'border-gray-300 hover:border-blue-500'
+                    : 'border hover:border-blue-500'
                 }`}
               >
                 {action.statut === 'TERMINEE' && (
@@ -112,8 +112,8 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
                     <h4
                       className={`font-medium ${
                         action.statut === 'TERMINEE'
-                          ? 'line-through text-gray-500'
-                          : 'text-gray-900'
+                          ? 'line-through text-muted-foreground'
+                          : 'text-foreground'
                       }`}
                     >
                       {action.titre}
@@ -121,7 +121,7 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
                   </div>
 
                   {action.description && (
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       {action.description}
                     </p>
                   )}
@@ -136,7 +136,7 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
                     </span>
 
                     {action.date_limite && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-muted-foreground">
                         📅 {new Date(action.date_limite).toLocaleDateString('fr-FR')}
                       </span>
                     )}
@@ -147,7 +147,7 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
                           ? 'text-green-600'
                           : action.statut === 'EN_COURS'
                           ? 'text-blue-600'
-                          : 'text-gray-600'
+                          : 'text-muted-foreground'
                       }`}
                     >
                       {action.statut.replace('_', ' ')}
@@ -158,7 +158,7 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
                 <button
                   onClick={() => handleDelete(action.id)}
                   disabled={loadingAction === action.id}
-                  className="text-gray-400 hover:text-red-600 p-1"
+                  className="text-muted-foreground hover:text-red-600 p-1"
                   title={t('delete')}
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,8 +177,8 @@ export default function ActionsList({ actions, dossierId }: ActionsListProps) {
       ))}
 
       {actions.length === 0 && (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-          <p className="text-sm text-gray-500">{t('noActions')}</p>
+        <div className="rounded-lg border border-dashed border bg-muted p-8 text-center">
+          <p className="text-sm text-muted-foreground">{t('noActions')}</p>
         </div>
       )}
     </div>
