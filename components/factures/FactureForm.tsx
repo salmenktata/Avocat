@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useTranslations } from 'next-intl'
 import { factureSchema, type FactureFormData } from '@/lib/validations/facture'
 import { createFactureAction, updateFactureAction } from '@/app/actions/factures'
 
@@ -27,6 +28,8 @@ export default function FactureForm({
   preselectedDossierId,
 }: FactureFormProps) {
   const router = useRouter()
+  const t = useTranslations('forms')
+  const tErrors = useTranslations('errors')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -70,7 +73,7 @@ export default function FactureForm({
       router.push('/factures')
       router.refresh()
     } catch (err) {
-      setError('Une erreur est survenue')
+      setError(tErrors('generic'))
       setLoading(false)
     }
   }
@@ -87,13 +90,13 @@ export default function FactureForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Client *
+            {t('labels.clientRequired')}
           </label>
           <select
             {...register('client_id')}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
-            <option value="">Sélectionner un client</option>
+            <option value="">{t('placeholders.selectClient')}</option>
             {clients.map((client) => {
               const displayName =
                 client.type === 'PERSONNE_PHYSIQUE'
@@ -113,13 +116,13 @@ export default function FactureForm({
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Dossier (optionnel)
+            {t('labels.dossierOptional')}
           </label>
           <select
             {...register('dossier_id')}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
-            <option value="">Aucun dossier lié</option>
+            <option value="">{t('placeholders.noDossier')}</option>
             {dossiers.map((dossier) => (
               <option key={dossier.id} value={dossier.id}>
                 {dossier.numero_dossier} - {dossier.objet}
@@ -132,12 +135,12 @@ export default function FactureForm({
       {/* Objet */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Objet de la facture *
+          {t('labels.invoiceObjectRequired')}
         </label>
         <input
           {...register('objet')}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-          placeholder="Ex: Honoraires pour procédure civile"
+          placeholder={t('placeholders.enterInvoiceObject')}
         />
         {errors.objet && (
           <p className="mt-1 text-sm text-red-600">{errors.objet.message}</p>
@@ -148,14 +151,14 @@ export default function FactureForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Montant HT (TND) *
+            {t('labels.amountHTRequired')}
           </label>
           <input
             type="number"
             step="0.001"
             {...register('montant_ht', { valueAsNumber: true })}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-            placeholder="0.000"
+            placeholder={t('placeholders.enterAmountHT')}
           />
           {errors.montant_ht && (
             <p className="mt-1 text-sm text-red-600">{errors.montant_ht.message}</p>
@@ -164,7 +167,7 @@ export default function FactureForm({
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            TVA (%)
+            {t('labels.tva')}
           </label>
           <input
             type="number"
@@ -182,19 +185,19 @@ export default function FactureForm({
       <div className="rounded-lg bg-blue-50 p-4">
         <div className="grid grid-cols-3 gap-4 text-sm">
           <div>
-            <span className="text-gray-600">Montant HT:</span>
+            <span className="text-gray-600">{t('helpers.amountHTLabel')}</span>
             <p className="font-semibold text-gray-900">
               {montantHT.toFixed(3)} TND
             </p>
           </div>
           <div>
-            <span className="text-gray-600">TVA ({tauxTVA}%):</span>
+            <span className="text-gray-600">{t('helpers.tvaLabel')} ({tauxTVA}%):</span>
             <p className="font-semibold text-gray-900">
               {montantTVA.toFixed(3)} TND
             </p>
           </div>
           <div>
-            <span className="text-gray-600">Montant TTC:</span>
+            <span className="text-gray-600">{t('helpers.amountTTCLabel')}</span>
             <p className="text-lg font-bold text-blue-600">
               {montantTTC.toFixed(3)} TND
             </p>
@@ -206,7 +209,7 @@ export default function FactureForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Date d&apos;émission *
+            {t('labels.issueDateRequired')}
           </label>
           <input
             type="date"
@@ -222,7 +225,7 @@ export default function FactureForm({
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Date d&apos;échéance
+            {t('labels.dueDate')}
           </label>
           <input
             type="date"
@@ -235,16 +238,16 @@ export default function FactureForm({
       {/* Statut */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Statut *
+          {t('labels.statusRequired')}
         </label>
         <select
           {...register('statut')}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
         >
-          <option value="BROUILLON">Brouillon</option>
-          <option value="ENVOYEE">Envoyée</option>
-          <option value="PAYEE">Payée</option>
-          <option value="IMPAYEE">Impayée</option>
+          <option value="BROUILLON">{t('options.statusDraft')}</option>
+          <option value="ENVOYEE">{t('options.statusSent')}</option>
+          <option value="PAYEE">{t('options.statusPaid')}</option>
+          <option value="IMPAYEE">{t('options.statusUnpaid')}</option>
         </select>
         {errors.statut && (
           <p className="mt-1 text-sm text-red-600">{errors.statut.message}</p>
@@ -253,12 +256,12 @@ export default function FactureForm({
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">Notes</label>
+        <label className="block text-sm font-medium text-gray-700">{t('labels.notes')}</label>
         <textarea
           {...register('notes')}
           rows={3}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-          placeholder="Notes internes..."
+          placeholder={t('placeholders.internalNotes')}
         />
       </div>
 
@@ -269,7 +272,7 @@ export default function FactureForm({
           disabled={loading}
           className="rounded-md bg-blue-600 px-6 py-2 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Enregistrement...' : isEditing ? 'Modifier' : 'Créer'}
+          {loading ? t('buttons.saving') : isEditing ? t('buttons.edit') : t('buttons.create')}
         </button>
 
         <button
@@ -277,7 +280,7 @@ export default function FactureForm({
           onClick={() => router.back()}
           className="rounded-md border border-gray-300 bg-white px-6 py-2 text-gray-700 font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
-          Annuler
+          {t('buttons.cancel')}
         </button>
       </div>
     </form>

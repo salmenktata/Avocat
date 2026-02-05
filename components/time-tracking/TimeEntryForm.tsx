@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useTranslations } from 'next-intl'
 import { timeEntrySchema, type TimeEntryFormData } from '@/lib/validations/time-entry'
 import { createTimeEntryAction, updateTimeEntryAction } from '@/app/actions/time-entries'
 
@@ -25,6 +26,8 @@ export default function TimeEntryForm({
   onSuccess,
 }: TimeEntryFormProps) {
   const router = useRouter()
+  const t = useTranslations('forms')
+  const tErrors = useTranslations('errors')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -80,7 +83,7 @@ export default function TimeEntryForm({
         router.refresh()
       }
     } catch {
-      setError('Une erreur est survenue')
+      setError(tErrors('generic'))
       setLoading(false)
     }
   }
@@ -96,12 +99,12 @@ export default function TimeEntryForm({
       {/* Description */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Description *
+          {t('labels.descriptionRequired')}
         </label>
         <input
           {...register('description')}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-          placeholder="Ex: Rédaction conclusions, Consultation client..."
+          placeholder={t('placeholders.enterDescription')}
         />
         {errors.description && (
           <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
@@ -110,7 +113,7 @@ export default function TimeEntryForm({
 
       {/* Date */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">Date *</label>
+        <label className="block text-sm font-medium text-gray-700">{t('labels.dateRequired')}</label>
         <input
           type="date"
           {...register('date')}
@@ -124,12 +127,12 @@ export default function TimeEntryForm({
       {/* Durée */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Durée *
+          {t('labels.durationRequired')}
         </label>
 
         <div className="grid grid-cols-2 gap-4 mb-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Heures</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('labels.hours')}</label>
             <input
               type="number"
               value={heures}
@@ -140,7 +143,7 @@ export default function TimeEntryForm({
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Minutes</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('labels.minutes')}</label>
             <input
               type="number"
               value={minutes}
@@ -193,14 +196,14 @@ export default function TimeEntryForm({
       {/* Taux horaire */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Taux horaire (TND/h)
+          {t('labels.hourlyRate')}
         </label>
         <input
           type="number"
           step="0.001"
           {...register('taux_horaire', { valueAsNumber: true })}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-          placeholder="Ex: 150.000"
+          placeholder={t('placeholders.enterHourlyRate')}
         />
         {errors.taux_horaire && (
           <p className="mt-1 text-sm text-red-600">{errors.taux_horaire.message}</p>
@@ -210,7 +213,7 @@ export default function TimeEntryForm({
       {/* Montant calculé */}
       {tauxHoraire > 0 && (
         <div className="rounded-lg bg-blue-50 p-4">
-          <div className="text-sm text-gray-600">Montant calculé</div>
+          <div className="text-sm text-gray-600">{t('helpers.calculatedAmount')}</div>
           <div className="text-2xl font-bold text-blue-600">
             {montantCalcule.toFixed(3)} TND
           </div>
@@ -224,18 +227,18 @@ export default function TimeEntryForm({
       <div>
         <label className="flex items-center">
           <input type="checkbox" {...register('facturable')} className="rounded" />
-          <span className="ml-2 text-sm text-gray-700">Temps facturable au client</span>
+          <span className="ml-2 text-sm text-gray-700">{t('labels.billableTime')}</span>
         </label>
       </div>
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">Notes</label>
+        <label className="block text-sm font-medium text-gray-700">{t('labels.notes')}</label>
         <textarea
           {...register('notes')}
           rows={2}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-          placeholder="Notes internes..."
+          placeholder={t('placeholders.internalNotes')}
         />
       </div>
 
@@ -246,7 +249,7 @@ export default function TimeEntryForm({
           disabled={loading}
           className="rounded-md bg-blue-600 px-6 py-2 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Enregistrement...' : isEditing ? 'Modifier' : 'Ajouter'}
+          {loading ? t('buttons.saving') : isEditing ? t('buttons.edit') : t('buttons.add')}
         </button>
 
         <button
@@ -254,7 +257,7 @@ export default function TimeEntryForm({
           onClick={() => router.back()}
           className="rounded-md border border-gray-300 bg-white px-6 py-2 text-gray-700 font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
-          Annuler
+          {t('buttons.cancel')}
         </button>
       </div>
     </form>

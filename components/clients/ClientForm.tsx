@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useTranslations } from 'next-intl'
 import { clientSchema, type ClientFormData } from '@/lib/validations/client'
 import { createClientAction, updateClientAction } from '@/app/actions/clients'
 
@@ -14,6 +15,8 @@ interface ClientFormProps {
 
 export default function ClientForm({ initialData, isEditing = false }: ClientFormProps) {
   const router = useRouter()
+  const t = useTranslations('forms')
+  const tErrors = useTranslations('errors')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -63,7 +66,7 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
       router.push('/clients')
       router.refresh()
     } catch (err) {
-      setError('Une erreur est survenue')
+      setError(tErrors('generic'))
       setLoading(false)
     }
   }
@@ -79,7 +82,7 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
       {/* Type de client */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Type de client *
+          {t('labels.clientTypeRequired')}
         </label>
         <div className="flex gap-4">
           <label className="flex items-center">
@@ -89,7 +92,7 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
               {...register('type')}
               className="mr-2"
             />
-            Personne physique
+            {t('options.naturalPerson')}
           </label>
           <label className="flex items-center">
             <input
@@ -98,7 +101,7 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
               {...register('type')}
               className="mr-2"
             />
-            Personne morale
+            {t('options.legalPerson')}
           </label>
         </div>
         {errors.type && (
@@ -112,12 +115,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Nom *
+                {t('labels.nameRequired')}
               </label>
               <input
                 {...register('nom')}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                placeholder="Ben Ahmed"
+                placeholder={t('placeholders.enterName')}
               />
               {errors.nom && (
                 <p className="mt-1 text-sm text-red-600">{errors.nom.message}</p>
@@ -126,12 +129,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Prénom
+                {t('labels.firstName')}
               </label>
               <input
                 {...register('prenom')}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                placeholder="Mohamed"
+                placeholder={t('placeholders.enterFirstName')}
               />
               {errors.prenom && (
                 <p className="mt-1 text-sm text-red-600">{errors.prenom.message}</p>
@@ -141,12 +144,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              CIN
+              {t('labels.cin')}
             </label>
             <input
               {...register('cin')}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-              placeholder="12345678"
+              placeholder={t('placeholders.enterCIN')}
             />
             {errors.cin && (
               <p className="mt-1 text-sm text-red-600">{errors.cin.message}</p>
@@ -157,12 +160,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
         <>
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Dénomination sociale *
+              {t('labels.companyNameRequired')}
             </label>
             <input
               {...register('nom')}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-              placeholder="SARL Exemple"
+              placeholder={t('placeholders.enterCompanyName')}
             />
             {errors.nom && (
               <p className="mt-1 text-sm text-red-600">{errors.nom.message}</p>
@@ -171,12 +174,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Registre de commerce
+              {t('labels.registreCommerce')}
             </label>
             <input
               {...register('registre_commerce')}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-              placeholder="B12345678"
+              placeholder={t('placeholders.enterRegistreCommerce')}
             />
             {errors.registre_commerce && (
               <p className="mt-1 text-sm text-red-600">
@@ -191,13 +194,13 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Email
+            {t('labels.email')}
           </label>
           <input
             type="email"
             {...register('email')}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-            placeholder="email@exemple.tn"
+            placeholder={t('placeholders.enterEmail')}
           />
           {errors.email && (
             <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
@@ -206,12 +209,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Téléphone
+            {t('labels.phone')}
           </label>
           <input
             {...register('telephone')}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-            placeholder="20123456"
+            placeholder={t('placeholders.enterPhone')}
           />
           {errors.telephone && (
             <p className="mt-1 text-sm text-red-600">{errors.telephone.message}</p>
@@ -222,12 +225,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
       {/* Adresse */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Adresse
+          {t('labels.address')}
         </label>
         <input
           {...register('adresse')}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-          placeholder="123 Avenue Habib Bourguiba"
+          placeholder={t('placeholders.enterAddress')}
         />
         {errors.adresse && (
           <p className="mt-1 text-sm text-red-600">{errors.adresse.message}</p>
@@ -236,12 +239,12 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
 
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Ville
+          {t('labels.city')}
         </label>
         <input
           {...register('ville')}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-          placeholder="Tunis"
+          placeholder={t('placeholders.enterCity')}
         />
         {errors.ville && (
           <p className="mt-1 text-sm text-red-600">{errors.ville.message}</p>
@@ -251,13 +254,13 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
       {/* Notes */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Notes
+          {t('labels.notes')}
         </label>
         <textarea
           {...register('notes')}
           rows={4}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-          placeholder="Notes privées..."
+          placeholder={t('placeholders.privateNotes')}
         />
         {errors.notes && (
           <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>
@@ -271,7 +274,7 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
           disabled={loading}
           className="rounded-md bg-blue-600 px-6 py-2 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Enregistrement...' : isEditing ? 'Modifier' : 'Créer'}
+          {loading ? t('buttons.saving') : isEditing ? t('buttons.edit') : t('buttons.create')}
         </button>
 
         <button
@@ -279,7 +282,7 @@ export default function ClientForm({ initialData, isEditing = false }: ClientFor
           onClick={() => router.back()}
           className="rounded-md border border-gray-300 bg-white px-6 py-2 text-gray-700 font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
-          Annuler
+          {t('buttons.cancel')}
         </button>
       </div>
     </form>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useTranslations } from 'next-intl'
 import { echeanceSchema, type EcheanceFormData } from '@/lib/validations/echeance'
 import { createEcheanceAction, updateEcheanceAction, calculateEcheanceAction } from '@/app/actions/echeances'
 import { calculerEcheance } from '@/lib/utils/delais-tunisie'
@@ -22,6 +23,8 @@ export default function EcheanceForm({
   dossierId,
 }: EcheanceFormProps) {
   const router = useRouter()
+  const t = useTranslations('forms')
+  const tErrors = useTranslations('errors')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showCalculator, setShowCalculator] = useState(false)
@@ -55,7 +58,7 @@ export default function EcheanceForm({
 
   const handleCalculer = () => {
     if (!dateDepart || !nombreJours) {
-      setError('Veuillez renseigner une date de départ et un nombre de jours')
+      setError(t('validation.enterStartDateAndDays'))
       return
     }
 
@@ -75,7 +78,7 @@ export default function EcheanceForm({
       setValue('delai_type', typeDelai)
       setError('')
     } catch (err) {
-      setError('Erreur lors du calcul de l\'échéance')
+      setError(t('validation.calculationError'))
     }
   }
 
@@ -97,7 +100,7 @@ export default function EcheanceForm({
       router.push(`/dossiers/${dossierId}`)
       router.refresh()
     } catch (err) {
-      setError('Une erreur est survenue')
+      setError(tErrors('generic'))
       setLoading(false)
     }
   }
@@ -113,16 +116,16 @@ export default function EcheanceForm({
       {/* Type d'échéance */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Type d&apos;échéance *
+          {t('labels.deadlineTypeRequired')}
         </label>
         <select
           {...register('type_echeance')}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
         >
-          <option value="audience">Audience</option>
-          <option value="delai_legal">Délai légal</option>
-          <option value="delai_interne">Délai interne</option>
-          <option value="autre">Autre</option>
+          <option value="audience">{t('options.deadlineHearing')}</option>
+          <option value="delai_legal">{t('options.deadlineLegal')}</option>
+          <option value="delai_interne">{t('options.deadlineInternal')}</option>
+          <option value="autre">{t('options.deadlineOther')}</option>
         </select>
         {errors.type_echeance && (
           <p className="mt-1 text-sm text-red-600">{errors.type_echeance.message}</p>
@@ -132,12 +135,12 @@ export default function EcheanceForm({
       {/* Titre */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Titre *
+          {t('labels.titleRequired')}
         </label>
         <input
           {...register('titre')}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-          placeholder="Ex: Dépôt des conclusions"
+          placeholder={t('placeholders.enterDeadlineTitle')}
         />
         {errors.titre && (
           <p className="mt-1 text-sm text-red-600">{errors.titre.message}</p>
@@ -146,12 +149,12 @@ export default function EcheanceForm({
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">Description</label>
+        <label className="block text-sm font-medium text-gray-700">{t('labels.description')}</label>
         <textarea
           {...register('description')}
           rows={3}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-          placeholder="Détails sur l'échéance..."
+          placeholder={t('placeholders.deadlineDetails')}
         />
       </div>
 
@@ -160,14 +163,14 @@ export default function EcheanceForm({
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-blue-900">
-              🧮 Calculateur de délais légaux
+              🧮 {t('helpers.calculatorTitle')}
             </h3>
             <button
               type="button"
               onClick={() => setShowCalculator(!showCalculator)}
               className="text-sm text-blue-600 hover:text-blue-700"
             >
-              {showCalculator ? 'Masquer' : 'Afficher'}
+              {showCalculator ? t('buttons.hide') : t('buttons.show')}
             </button>
           </div>
 
@@ -176,7 +179,7 @@ export default function EcheanceForm({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Date de départ
+                    {t('helpers.startDate')}
                   </label>
                   <input
                     type="date"
@@ -188,7 +191,7 @@ export default function EcheanceForm({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Nombre de jours
+                    {t('helpers.numberOfDays')}
                   </label>
                   <input
                     type="number"
@@ -202,21 +205,21 @@ export default function EcheanceForm({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Type de délai
+                  {t('helpers.delayType')}
                 </label>
                 <select
                   value={typeDelai}
                   onChange={(e) => setTypeDelai(e.target.value as any)}
                   className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                 >
-                  <option value="jours_calendaires">Jours calendaires</option>
-                  <option value="jours_ouvrables">Jours ouvrables</option>
-                  <option value="jours_francs">Jours francs</option>
+                  <option value="jours_calendaires">{t('options.delayCalendar')}</option>
+                  <option value="jours_ouvrables">{t('options.delayWorking')}</option>
+                  <option value="jours_francs">{t('options.delayFranc')}</option>
                 </select>
                 <p className="mt-1 text-xs text-gray-500">
-                  {typeDelai === 'jours_calendaires' && 'Tous les jours sont comptés'}
-                  {typeDelai === 'jours_ouvrables' && 'Exclut week-ends, fériés et vacances judiciaires'}
-                  {typeDelai === 'jours_francs' && 'Délai franc : exclut le jour de départ et d\'arrivée'}
+                  {typeDelai === 'jours_calendaires' && t('helpers.delayCalendarHelp')}
+                  {typeDelai === 'jours_ouvrables' && t('helpers.delayWorkingHelp')}
+                  {typeDelai === 'jours_francs' && t('helpers.delayFrancHelp')}
                 </p>
               </div>
 
@@ -225,13 +228,13 @@ export default function EcheanceForm({
                 onClick={handleCalculer}
                 className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
-                Calculer l&apos;échéance
+                {t('buttons.calculate')}
               </button>
 
               {dateCalculee && (
                 <div className="rounded-md bg-green-50 p-3">
                   <p className="text-sm font-medium text-green-800">
-                    📅 Date d&apos;échéance calculée :{' '}
+                    📅 {t('helpers.calculatedDeadline')}{' '}
                     <span className="font-bold">
                       {new Date(dateCalculee).toLocaleDateString('fr-FR', {
                         weekday: 'long',
@@ -251,7 +254,7 @@ export default function EcheanceForm({
       {/* Date d'échéance */}
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Date d&apos;échéance *
+          {t('labels.deadlineRequired')}
         </label>
         <input
           type="date"
@@ -266,36 +269,36 @@ export default function EcheanceForm({
       {/* Rappels */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">
-          Rappels automatiques
+          {t('labels.automaticReminders')}
         </label>
         <div className="space-y-2">
           <label className="flex items-center">
             <input type="checkbox" {...register('rappel_j15')} className="rounded" />
-            <span className="ml-2 text-sm text-gray-700">15 jours avant</span>
+            <span className="ml-2 text-sm text-gray-700">{t('helpers.reminder15')}</span>
           </label>
           <label className="flex items-center">
             <input type="checkbox" {...register('rappel_j7')} className="rounded" />
-            <span className="ml-2 text-sm text-gray-700">7 jours avant</span>
+            <span className="ml-2 text-sm text-gray-700">{t('helpers.reminder7')}</span>
           </label>
           <label className="flex items-center">
             <input type="checkbox" {...register('rappel_j3')} className="rounded" />
-            <span className="ml-2 text-sm text-gray-700">3 jours avant</span>
+            <span className="ml-2 text-sm text-gray-700">{t('helpers.reminder3')}</span>
           </label>
           <label className="flex items-center">
             <input type="checkbox" {...register('rappel_j1')} className="rounded" />
-            <span className="ml-2 text-sm text-gray-700">1 jour avant</span>
+            <span className="ml-2 text-sm text-gray-700">{t('helpers.reminder1')}</span>
           </label>
         </div>
       </div>
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">Notes</label>
+        <label className="block text-sm font-medium text-gray-700">{t('labels.notes')}</label>
         <textarea
           {...register('notes')}
           rows={2}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-          placeholder="Notes internes..."
+          placeholder={t('placeholders.internalNotes')}
         />
       </div>
 
@@ -306,7 +309,7 @@ export default function EcheanceForm({
           disabled={loading}
           className="rounded-md bg-blue-600 px-6 py-2 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Enregistrement...' : isEditing ? 'Modifier' : 'Créer'}
+          {loading ? t('buttons.saving') : isEditing ? t('buttons.edit') : t('buttons.create')}
         </button>
 
         <button
@@ -314,7 +317,7 @@ export default function EcheanceForm({
           onClick={() => router.back()}
           className="rounded-md border border-gray-300 bg-white px-6 py-2 text-gray-700 font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
-          Annuler
+          {t('buttons.cancel')}
         </button>
       </div>
     </form>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { createTemplateAction, updateTemplateAction } from '@/app/actions/templates'
 import { templateSchema, type TemplateFormData, TYPE_DOCUMENT_LABELS } from '@/lib/validations/template'
 
@@ -14,6 +15,8 @@ interface TemplateFormProps {
 
 export default function TemplateForm({ initialData, templateId }: TemplateFormProps) {
   const router = useRouter()
+  const t = useTranslations('forms')
+  const tErrors = useTranslations('errors')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [variables, setVariables] = useState<string[]>([])
@@ -85,16 +88,16 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
 
   // Variables communes pour insertion rapide
   const commonVariables = [
-    { label: 'Client - Nom', value: '{{client.nom}}' },
-    { label: 'Client - Prénom', value: '{{client.prenom}}' },
-    { label: 'Client - CIN', value: '{{client.cin}}' },
-    { label: 'Client - Adresse', value: '{{client.adresse}}' },
-    { label: 'Avocat - Nom', value: '{{avocat.nom}}' },
-    { label: 'Avocat - Prénom', value: '{{avocat.prenom}}' },
-    { label: 'Tribunal', value: '{{tribunal}}' },
-    { label: 'Date', value: '{{date}}' },
-    { label: 'Lieu', value: '{{lieu}}' },
-    { label: 'N° Dossier', value: '{{numero_dossier}}' },
+    { label: t('helpers.clientName'), value: '{{client.nom}}' },
+    { label: t('helpers.clientFirstName'), value: '{{client.prenom}}' },
+    { label: t('helpers.clientCIN'), value: '{{client.cin}}' },
+    { label: t('helpers.clientAddress'), value: '{{client.adresse}}' },
+    { label: t('helpers.lawyerName'), value: '{{avocat.nom}}' },
+    { label: t('helpers.lawyerFirstName'), value: '{{avocat.prenom}}' },
+    { label: t('helpers.tribunalVar'), value: '{{tribunal}}' },
+    { label: t('helpers.dateVar'), value: '{{date}}' },
+    { label: t('helpers.locationVar'), value: '{{lieu}}' },
+    { label: t('helpers.dossierNumberVar'), value: '{{numero_dossier}}' },
   ]
 
   const insertVariable = (variable: string) => {
@@ -122,13 +125,13 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
       {/* Titre */}
       <div>
         <label htmlFor="titre" className="block text-sm font-medium text-gray-700">
-          Titre du template *
+          {t('labels.templateTitleRequired')}
         </label>
         <input
           type="text"
           {...register('titre')}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          placeholder="Ex: Assignation en matière civile"
+          placeholder={t('placeholders.enterTemplateTitle')}
         />
         {errors.titre && <p className="mt-1 text-sm text-red-600">{errors.titre.message}</p>}
       </div>
@@ -136,13 +139,13 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
       {/* Description */}
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-          Description
+          {t('labels.description')}
         </label>
         <textarea
           {...register('description')}
           rows={2}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          placeholder="Description courte du template..."
+          placeholder={t('placeholders.templateDescription')}
         />
         {errors.description && (
           <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
@@ -152,7 +155,7 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
       {/* Type de document */}
       <div>
         <label htmlFor="type_document" className="block text-sm font-medium text-gray-700">
-          Type de document *
+          {t('labels.documentTypeRequired')}
         </label>
         <select
           {...register('type_document')}
@@ -172,7 +175,7 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
       {/* Variables rapides */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Insérer une variable
+          {t('labels.insertVariable')}
         </label>
         <div className="flex flex-wrap gap-2">
           {commonVariables.map((v) => (
@@ -187,21 +190,21 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
           ))}
         </div>
         <p className="mt-2 text-xs text-gray-500">
-          💡 Utilisez le format {`{{variable}}`} pour les champs dynamiques
+          💡 {t('helpers.variablesTip')}
         </p>
       </div>
 
       {/* Contenu */}
       <div>
         <label htmlFor="contenu" className="block text-sm font-medium text-gray-700">
-          Contenu du template *
+          {t('labels.templateContentRequired')}
         </label>
         <textarea
           {...register('contenu')}
           rows={16}
           onChange={handleContenuChange}
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          placeholder="Saisissez le contenu du document avec les variables {{nom_variable}}..."
+          placeholder={t('placeholders.enterTemplateContent')}
         />
         {errors.contenu && <p className="mt-1 text-sm text-red-600">{errors.contenu.message}</p>}
 
@@ -209,7 +212,7 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
         {variables.length > 0 && (
           <div className="mt-2 rounded-md bg-blue-50 p-3">
             <p className="text-xs font-medium text-blue-900">
-              {variables.length} variable{variables.length > 1 ? 's' : ''} détectée{variables.length > 1 ? 's' : ''} :
+              {variables.length} {t('helpers.variablesDetected')}
             </p>
             <div className="mt-1 flex flex-wrap gap-1">
               {variables.map((v) => (
@@ -231,7 +234,7 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         />
         <label htmlFor="est_public" className="text-sm text-gray-700">
-          Rendre ce template public (visible par tous les utilisateurs)
+          {t('labels.makePublic')}
         </label>
       </div>
 
@@ -245,7 +248,7 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
           disabled={loading}
           className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {loading ? '⏳ Enregistrement...' : templateId ? '💾 Mettre à jour' : '✅ Créer le template'}
+          {loading ? t('helpers.savingWithEmoji') : templateId ? t('helpers.updateWithEmoji') : t('helpers.createTemplateWithEmoji')}
         </button>
 
         <button
@@ -253,7 +256,7 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
           onClick={() => router.back()}
           className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          Annuler
+          {t('buttons.cancel')}
         </button>
       </div>
     </form>
