@@ -1,0 +1,76 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Build artifacts
+.next
+out
+dist
+build
+
+# Environment files
+.env*
+!.env.example
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage
+.nyc_output
+*.test.js
+*.spec.js
+__tests__
+__mocks__
+
+# Logs
+*.log
+logs
+*.log.*
+
+# Documentation
+README.md
+docs/
+*.md
+!docs/DEPLOYMENT_VPS.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Misc
+.editorconfig
+.prettierrc
+.prettierignore
+.eslintrc*
+eslint.config.mjs
+tsconfig.json
+jest.config.js
+
+# Backup files
+*.backup
+*.bak
+*.tmp
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Scripts locaux
+scripts/dev-*.sh
+scripts/test-*.sh

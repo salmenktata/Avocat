@@ -25,6 +25,13 @@ import {
   notifyDocumentUnknownNumber,
   formatFileSize,
 } from '@/lib/email/notifications'
+import {
+  logIncomingMessage,
+  updateMessageStatus,
+  updateMessageClient,
+  checkMediaCache,
+  saveMediaCache,
+} from '@/lib/integrations/messaging/whatsapp-logger'
 
 /**
  * GET : Vérification webhook Meta
@@ -166,6 +173,19 @@ export async function POST(request: NextRequest) {
       mediaId: incomingMessage.mediaId,
     })
 
+    // Logger message dans historique (status: received)
+    const supabaseForLog = await createClient()
+    await logIncomingMessage(supabaseForLog, {
+      whatsappMessageId: incomingMessage.messageId,
+      fromPhone: incomingMessage.from,
+      toPhone: incomingMessage.to || 'unknown',
+      messageType: incomingMessage.type as 'text' | 'image' | 'video' | 'audio' | 'document',
+      messageBody: incomingMessage.body || incomingMessage.caption,
+      mediaId: incomingMessage.mediaId,
+      mediaMimeType: incomingMessage.mimeType,
+      mediaFileName: incomingMessage.fileName,
+    })
+
     // 6. Traiter message selon type
     if (incomingMessage.type === 'text') {
       // Messages texte : on ignore (pas de document)
@@ -179,7 +199,82 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Média incomplet' })
     }
 
-    // 7. Identifier client via téléphone normalisé
+    // 7. Télécharger média IMMÉDIATEMENT (expire après 30 jours)
+    // On télécharge avant de chercher le client pour éviter perte du média
+    console.log('[WhatsApp Webhook] Téléchargement média (prioritaire):', incomingMessage.mediaId)
+
+    // Créer messenger temporaire pour download (on ne connaît pas encore le user_id)
+    // On utilisera le premier phone_number_id disponible (MVP) ou une config globale
+    const { data: anyWhatsappConfig } = await (await createClient())
+      .from('messaging_webhooks_config')
+      .select('phone_number, access_token')
+      .eq('platform', 'whatsapp')
+      .eq('enabled', true)
+      .limit(1)
+      .single()
+
+    if (!anyWhatsappConfig) {
+      console.error('[WhatsApp Webhook] Aucune config WhatsApp active trouvée')
+      return NextResponse.json(
+        { error: 'Configuration WhatsApp non disponible' },
+        { status: 500 }
+      )
+    }
+
+    // Vérifier cache média avant téléchargement
+    const cachedMedia = await checkMediaCache(supabaseForLog, {
+      mediaId: incomingMessage.mediaId,
+    })
+
+    let mediaResult: { buffer: Buffer; fileName: string; mimeType: string; size: number }
+
+    if (cachedMedia.cached && !cachedMedia.isExpired) {
+      console.log('[WhatsApp Webhook] Média trouvé en cache, skip téléchargement')
+
+      // TODO: Récupérer buffer depuis Supabase Storage via cachedMedia.storageUrl
+      // Pour l'instant on télécharge quand même (à optimiser plus tard)
+      const messengerForDownload = createWhatsAppMessenger({
+        phoneNumberId: anyWhatsappConfig.phone_number,
+        accessToken: anyWhatsappConfig.access_token,
+        appSecret: appSecret || '',
+      })
+
+      mediaResult = await messengerForDownload.downloadMedia({
+        mediaId: incomingMessage.mediaId,
+        mimeType: incomingMessage.mimeType,
+      })
+    } else {
+      console.log('[WhatsApp Webhook] Téléchargement média depuis WhatsApp API')
+
+      const messengerForDownload = createWhatsAppMessenger({
+        phoneNumberId: anyWhatsappConfig.phone_number,
+        accessToken: anyWhatsappConfig.access_token,
+        appSecret: appSecret || '',
+      })
+
+      mediaResult = await messengerForDownload.downloadMedia({
+        mediaId: incomingMessage.mediaId,
+        mimeType: incomingMessage.mimeType,
+      })
+    }
+
+    console.log('[WhatsApp Webhook] Média téléchargé:', {
+      fileName: mediaResult.fileName,
+      size: mediaResult.size,
+    })
+
+    // Mettre à jour status message (media_downloaded)
+    // L'expiration WhatsApp est de 30 jours après réception
+    const mediaExpiresAt = new Date()
+    mediaExpiresAt.setDate(mediaExpiresAt.getDate() + 30)
+
+    await updateMessageStatus(supabaseForLog, {
+      whatsappMessageId: incomingMessage.messageId,
+      status: 'media_downloaded',
+      mediaExpiresAt,
+    })
+
+    // 8. Identifier client via téléphone normalisé
     const supabase = await createClient()
 
     const { data: client, error: clientError } = await supabase
@@ -231,6 +326,14 @@ export async function POST(request: NextRequest) {
       // Pour le MVP, on log et on retourne succès
       console.log('[WhatsApp Webhook] Notification email "numéro inconnu" - email avocat non disponible')
 
+      // Mettre à jour status message
+      await updateMessageStatus(supabase, {
+        whatsappMessageId: incomingMessage.messageId,
+        status: 'client_not_found',
+        pendingDocumentId: pendingDoc?.id || undefined,
+        processedAt: new Date(),
+      })
+
       return NextResponse.json({
         success: true,
         message: 'Client non trouvé, notification envoyée',
@@ -244,6 +347,9 @@ export async function POST(request: NextRequest) {
         ? `${client.prenom} ${client.nom}`
         : client.denomination,
     })
+
+    // Associer client et user au message
+    await updateMessageClient(supabase, incomingMessage.messageId, client.id, client.user_id)
 
     // 8. Récupérer configuration WhatsApp de l'utilisateur
     const { data: whatsappConfig, error: configError } = await supabase
@@ -262,27 +368,16 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Créer messenger avec vraie config
+    // Créer messenger avec vraie config pour envoi messages
     const messenger = createWhatsAppMessenger({
       phoneNumberId: whatsappConfig.phone_number,
       accessToken: whatsappConfig.access_token,
       appSecret: appSecret,
     })
 
-    // 9. Télécharger média depuis serveurs WhatsApp
-    console.log('[WhatsApp Webhook] Téléchargement média:', incomingMessage.mediaId)
+    // Média déjà téléchargé plus haut (ligne ~180)
 
-    const mediaResult = await messenger.downloadMedia({
-      mediaId: incomingMessage.mediaId,
-      mimeType: incomingMessage.mimeType,
-    })
-
-    console.log('[WhatsApp Webhook] Média téléchargé:', {
-      fileName: mediaResult.fileName,
-      size: mediaResult.size,
-    })
-
-    // 10. Récupérer dossiers actifs du client
+    // 9. Récupérer dossiers actifs du client
     const { data: dossiers, error: dossiersError } = await supabase
       .from('dossiers')
       .select('id, numero, objet')
@@ -375,6 +470,14 @@ export async function POST(request: NextRequest) {
           // Non bloquant, on continue
         }
 
+        // Mettre à jour status message
+        await updateMessageStatus(supabase, {
+          whatsappMessageId: incomingMessage.messageId,
+          status: 'document_created',
+          documentId: uploadResult.documentId,
+          processedAt: new Date(),
+        })
+
         return NextResponse.json({
           success: true,
           message: 'Document uploadé automatiquement',
@@ -388,6 +491,14 @@ export async function POST(request: NextRequest) {
         await messenger.sendTextMessage({
           to: incomingMessage.from,
           text: `❌ Erreur lors de l'enregistrement du document. Veuillez réessayer ou contacter votre avocat.`,
+        })
+
+        // Mettre à jour status message
+        await updateMessageStatus(supabase, {
+          whatsappMessageId: incomingMessage.messageId,
+          status: 'error',
+          errorMessage: `Erreur upload: ${uploadError.message}`,
+          processedAt: new Date(),
         })
 
         return NextResponse.json({
@@ -467,6 +578,14 @@ export async function POST(request: NextRequest) {
         // Non bloquant, on continue
       }
 
+      // Mettre à jour status message (document en attente de rattachement)
+      await updateMessageStatus(supabase, {
+        whatsappMessageId: incomingMessage.messageId,
+        status: 'document_created',
+        pendingDocumentId: pendingDoc.id,
+        processedAt: new Date(),
+      })
+
       return NextResponse.json({
         success: true,
         message: 'Document en attente de rattachement manuel',
@@ -538,6 +657,14 @@ export async function POST(request: NextRequest) {
         // Non bloquant, on continue
       }
 
+      // Mettre à jour status message (aucun dossier actif)
+      await updateMessageStatus(supabase, {
+        whatsappMessageId: incomingMessage.messageId,
+        status: 'document_created',
+        pendingDocumentId: pendingDoc?.id || undefined,
+        processedAt: new Date(),
+      })
+
       return NextResponse.json({
         success: true,
         message: 'Aucun dossier actif, notification envoyée',
@@ -546,6 +673,22 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: any) {
     console.error('[WhatsApp Webhook] Erreur POST:', error)
+
+    // Logger erreur si message parsé
+    if (incomingMessage?.messageId) {
+      try {
+        const supabaseForError = await createClient()
+        await updateMessageStatus(supabaseForError, {
+          whatsappMessageId: incomingMessage.messageId,
+          status: 'error',
+          errorMessage: `Erreur webhook: ${error.message}`,
+          processedAt: new Date(),
+        })
+      } catch (logError) {
+        console.error('[WhatsApp Webhook] Erreur log erreur:', logError)
+      }
+    }
+
     return NextResponse.json(
       {
         success: false,

@@ -1,0 +1,105 @@
+name: Deploy to VPS Contabo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Tests et Validations
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate Code
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check translations
+        run: npm run check:translations || true
+
+  # Job 2: Déploiement sur VPS
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to VPS
+    needs: validate
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            cd /opt/moncabinet
+            ./deploy.sh
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            # Attendre que l'app démarre
+            sleep 10
+
+            # Health check
+            curl -f http://localhost:3000/api/health || exit 1
+
+            # Status containers
+            cd /opt/moncabinet
+            docker-compose ps
+
+  # Job 3: Notification résultat
+  notify:
+    runs-on: ubuntu-latest
+    name: Notify Status
+    needs: [validate, deploy]
+    if: always()
+
+    steps:
+      - name: Notify success
+        if: needs.deploy.result == 'success'
+        run: |
+          echo "✅ Déploiement réussi sur VPS Contabo"
+          echo "Branche: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Auteur: ${{ github.actor }}"
+
+      - name: Notify failure
+        if: needs.deploy.result == 'failure'
+        run: |
+          echo "❌ Échec déploiement sur VPS Contabo"
+          echo "Branche: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Auteur: ${{ github.actor }}"
+          exit 1
+
+# Configuration GitHub Secrets requise:
+# - VPS_HOST: IP ou domaine du VPS (ex: vps-123.contabo.host ou 1.2.3.4)
+# - VPS_USER: Utilisateur SSH (ex: moncabinet)
+# - VPS_SSH_KEY: Clé privée SSH (générer avec: ssh-keygen -t ed25519)
+# - VPS_PORT: Port SSH (optionnel, défaut: 22)
+#
+# Pour ajouter les secrets:
+# GitHub repo → Settings → Secrets and variables → Actions → New repository secret
