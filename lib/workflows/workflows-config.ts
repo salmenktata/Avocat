@@ -188,29 +188,45 @@ export const WORKFLOW_DIVORCE: WorkflowTemplate = {
 }
 
 /**
- * WORKFLOW COMMERCIAL - Procédure commerciale
+ * WORKFLOW COMMERCIAL - Procédure commerciale tunisienne
+ *
+ * PARTICULARITÉS COMMERCIALES TUNISIE:
+ * - Tribunal de Commerce (compétence spéciale)
+ * - Délai appel RÉDUIT: 10 jours (vs 20j civil) ⚠️
+ * - Intérêts moratoires: TMM + 7 points (env. 14.5%)
+ * - Indemnité forfaitaire recouvrement: 40 TND (loi 2017)
+ * - Référés commerciaux fréquents (mesures urgentes)
+ * - Expertise comptable courante
  */
 export const WORKFLOW_COMMERCIAL: WorkflowTemplate = {
   id: 'commercial',
-  nom: 'Procédure commerciale',
-  description: 'Workflow pour une procédure devant le tribunal de commerce',
+  nom: 'Procédure commerciale (Tribunal Commerce)',
+  description: 'Workflow pour une procédure devant le tribunal de commerce tunisien - DÉLAI APPEL 10 JOURS',
   categorie: 'COMMERCIAL',
   etapes: [
     {
-      id: 'MISE_EN_DEMEURE',
-      libelle: 'Mise en demeure',
-      description: 'Envoi d\'une mise en demeure préalable',
-      delai_moyen_jours: 7,
-      documents_requis: ['Lettre de mise en demeure', 'Factures impayées'],
+      id: 'CONSULTATION',
+      libelle: 'Consultation initiale',
+      description: 'Analyse du dossier commercial et calcul créance + intérêts TMM+7',
+      delai_moyen_jours: 3,
+      documents_requis: ['Contrat commercial', 'Factures', 'Registre commerce'],
       ordre: 1,
     },
     {
-      id: 'ASSIGNATION',
-      libelle: 'Assignation',
-      description: 'Assignation devant le tribunal de commerce',
+      id: 'MISE_EN_DEMEURE',
+      libelle: 'Mise en demeure commerciale',
+      description: 'Envoi mise en demeure préalable (point départ intérêts moratoires)',
       delai_moyen_jours: 7,
-      documents_requis: ['Assignation', 'Pièces commerciales'],
+      documents_requis: ['Lettre mise en demeure recommandée', 'Décompte créance'],
       ordre: 2,
+    },
+    {
+      id: 'ASSIGNATION',
+      libelle: 'Assignation Tribunal Commerce',
+      description: 'Assignation devant le tribunal de commerce avec calcul intérêts',
+      delai_moyen_jours: 7,
+      documents_requis: ['Assignation', 'Pièces commerciales', 'RC parties'],
+      ordre: 3,
     },
     {
       id: 'CONSTITUTION',
@@ -218,54 +234,46 @@ export const WORKFLOW_COMMERCIAL: WorkflowTemplate = {
       description: 'Constitution de l\'avocat de la partie adverse',
       delai_moyen_jours: 10,
       documents_requis: ['Constitution d\'avocat'],
-      ordre: 3,
-    },
-    {
-      id: 'ECHANGE_PIECES',
-      libelle: 'Échange de pièces',
-      description: 'Communication des pièces et échange de conclusions',
-      delai_moyen_jours: 20,
-      documents_requis: ['Bordereaux de pièces', 'Conclusions'],
       ordre: 4,
     },
     {
-      id: 'EXPERTISE_COMPTABLE',
-      libelle: 'Expertise comptable (si nécessaire)',
-      description: 'Désignation d\'un expert-comptable',
-      delai_moyen_jours: 60,
-      documents_requis: ['Rapport d\'expertise'],
+      id: 'ECHANGE_CONCLUSIONS',
+      libelle: 'Échange conclusions',
+      description: 'Communication pièces et échange conclusions (+ actualisations intérêts)',
+      delai_moyen_jours: 20,
+      documents_requis: ['Conclusions demandeur', 'Conclusions défendeur', 'Bordereaux pièces'],
       ordre: 5,
     },
     {
-      id: 'CLOTURE',
-      libelle: 'Clôture',
-      description: 'Clôture de l\'instruction',
-      delai_moyen_jours: 10,
-      documents_requis: [],
+      id: 'EXPERTISE_COMPTABLE',
+      libelle: 'Expertise comptable (optionnel)',
+      description: 'Désignation expert-comptable si nécessaire',
+      delai_moyen_jours: 60,
+      documents_requis: ['Rapport expertise comptable'],
       ordre: 6,
     },
     {
-      id: 'AUDIENCE',
-      libelle: 'Audience de plaidoirie',
-      description: 'Plaidoirie devant le tribunal de commerce',
+      id: 'PLAIDOIRIE',
+      libelle: 'Plaidoirie',
+      description: 'Audience de plaidoirie devant le tribunal de commerce',
       delai_moyen_jours: 20,
-      documents_requis: [],
+      documents_requis: ['Notes de plaidoirie'],
       ordre: 7,
     },
     {
       id: 'JUGEMENT',
       libelle: 'Jugement',
-      description: 'Prononcé du jugement',
+      description: 'Prononcé du jugement - ⚠️ ATTENTION: Délai appel 10 JOURS seulement',
       delai_moyen_jours: 15,
-      documents_requis: ['Jugement'],
+      documents_requis: ['Jugement', 'Copie exécutoire'],
       ordre: 8,
     },
     {
-      id: 'RECOUVREMENT',
-      libelle: 'Recouvrement',
-      description: 'Procédure de recouvrement de la créance',
+      id: 'EXECUTION',
+      libelle: 'Exécution jugement',
+      description: 'Recouvrement forcé: commandement, saisie (si jugement favorable)',
       delai_moyen_jours: 30,
-      documents_requis: ['Commandement de payer', 'Saisie'],
+      documents_requis: ['Commandement de payer', 'PV de saisie'],
       ordre: 9,
     },
   ],
