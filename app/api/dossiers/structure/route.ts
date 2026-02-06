@@ -4,6 +4,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+
+// Force dynamic rendering - pas de prérendu statique
+export const dynamic = 'force-dynamic'
+
 import { getSession } from '@/lib/auth/session'
 import { structurerDossier, type StructuringOptions } from '@/lib/ai/dossier-structuring-service'
 import { logChatUsage } from '@/lib/ai/usage-tracker'

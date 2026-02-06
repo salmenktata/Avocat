@@ -10,6 +10,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+
+// Force dynamic rendering - pas de prérendu statique
+export const dynamic = 'force-dynamic'
+
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import {

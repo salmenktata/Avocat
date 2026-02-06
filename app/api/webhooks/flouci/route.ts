@@ -11,6 +11,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+
+// Force dynamic rendering - pas de prérendu statique
+export const dynamic = 'force-dynamic'
+
 import { query, transaction } from '@/lib/db/postgres'
 import { flouciClient, mapperStatutFlouci, type FlouciWebhookPayload } from '@/lib/integrations/flouci'
 import { createLogger } from '@/lib/logger'

@@ -4,6 +4,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+
+// Force dynamic rendering - pas de prérendu statique
+export const dynamic = 'force-dynamic'
+
 import { query } from '@/lib/db/postgres'
 import { headers } from 'next/headers'
 import { syncGoogleDriveToDatabase } from '@/lib/integrations/sync-service'

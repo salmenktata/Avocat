@@ -8,6 +8,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+
+// Force dynamic rendering - pas de prérendu statique
+export const dynamic = 'force-dynamic'
+
 import { hash } from 'bcryptjs'
 import { z } from 'zod'
 import { query } from '@/lib/db/postgres'

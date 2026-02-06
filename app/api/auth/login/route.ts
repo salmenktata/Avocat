@@ -6,6 +6,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+
+// Force dynamic rendering - pas de prérendu statique
+export const dynamic = 'force-dynamic'
+
 import { loginUser } from '@/lib/auth/session'
 import { loginLimiter, getClientIP, getRateLimitHeaders } from '@/lib/rate-limiter'
 import { createLogger } from '@/lib/logger'

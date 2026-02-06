@@ -4,6 +4,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+
+// Force dynamic rendering - pas de prérendu statique
+export const dynamic = 'force-dynamic'
+
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { createGoogleDriveAuthProvider } from '@/lib/integrations/cloud-storage'

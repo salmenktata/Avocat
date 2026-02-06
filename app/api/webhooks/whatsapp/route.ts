@@ -15,6 +15,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+
+// Force dynamic rendering - pas de prérendu statique
+export const dynamic = 'force-dynamic'
+
 import { query } from '@/lib/db/postgres'
 import { createWhatsAppMessenger } from '@/lib/integrations/messaging/whatsapp'
 import { createStorageManager } from '@/lib/integrations/storage-manager'
