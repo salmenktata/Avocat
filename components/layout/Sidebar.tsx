@@ -197,13 +197,13 @@ function SidebarComponent({ collapsed, onCollapse, userRole }: SidebarProps) {
         {/* Bouton pour ouvrir la sidebar quand réduite */}
         {collapsed && (
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             onClick={onCollapse}
-            className="w-full h-10 hover:bg-accent"
+            className="w-10 h-10 mx-auto border-2 border-primary/50 bg-primary/10 hover:bg-primary/20 hover:border-primary"
             title="Ouvrir le menu"
           >
-            <Icons.chevronRight className="h-5 w-5" />
+            <Icons.panelLeftOpen className="h-5 w-5 text-primary" />
           </Button>
         )}
 

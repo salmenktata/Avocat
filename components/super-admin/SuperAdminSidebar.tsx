@@ -205,13 +205,13 @@ function SuperAdminSidebarComponent({
         {/* Bouton pour ouvrir la sidebar quand réduite */}
         {collapsed && (
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             onClick={onCollapse}
-            className="w-full h-10 text-slate-400 hover:text-white hover:bg-slate-800"
+            className="w-10 h-10 mx-auto border-2 border-blue-500/50 bg-blue-500/10 hover:bg-blue-500/20 hover:border-blue-500 text-blue-400"
             title="Ouvrir le menu"
           >
-            <Icons.chevronRight className="h-5 w-5" />
+            <Icons.panelLeftOpen className="h-5 w-5" />
           </Button>
         )}
 

@@ -92,6 +92,8 @@ import {
   History,
   Undo2,
   Play,
+  PanelLeftOpen,
+  PanelLeftClose,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -138,6 +140,8 @@ export const Icons = {
   arrowRight: ArrowRight,
   arrowUp: ArrowUp,
   arrowDown: ArrowDown,
+  panelLeftOpen: PanelLeftOpen,
+  panelLeftClose: PanelLeftClose,
 
   // More options
   moreHorizontal: MoreHorizontal,
