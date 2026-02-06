@@ -100,23 +100,6 @@ export function GlobalKeyboardShortcuts() {
 
   return (
     <>
-      {/* Bouton d'aide visible */}
-      <button
-        onClick={() => setShowHelp(true)}
-        className="fixed bottom-4 left-4 z-40 rounded-full bg-gray-800 p-3 text-white shadow-lg hover:bg-gray-700 transition-colors"
-        title={t('title') + ' (Shift + ?)'}
-      >
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      </button>
-
-      {/* Modale d'aide */}
       {showHelp && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-center justify-center p-4">
