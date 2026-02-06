@@ -26,7 +26,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build sans prebuild (seed) car pas de DB disponible pendant le build
 # Augmenter la mémoire Node.js pour le build
+# DATABASE_URL factice pour éviter erreurs d'import pendant le build
 ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
 RUN npx next build
 
 # Stage 3: Runner
