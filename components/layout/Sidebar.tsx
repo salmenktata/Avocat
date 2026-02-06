@@ -141,13 +141,16 @@ function SidebarComponent({ collapsed, onCollapse, userRole }: SidebarProps) {
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between px-4 border-b">
+      <div className={cn(
+        'flex h-16 items-center border-b',
+        collapsed ? 'justify-center px-2' : 'justify-between px-4'
+      )}>
         {!collapsed ? (
           <Link href="/dashboard" prefetch={true}>
             <LogoHorizontal size="sm" variant="juridique" showTag={true} animate={false} />
           </Link>
         ) : (
-          <Link href="/dashboard" prefetch={true} className="mx-auto">
+          <Link href="/dashboard" prefetch={true}>
             <LogoIcon size="sm" animate={false} />
           </Link>
         )}
@@ -155,9 +158,17 @@ function SidebarComponent({ collapsed, onCollapse, userRole }: SidebarProps) {
           variant="ghost"
           size="icon"
           onClick={onCollapse}
-          className={cn('transition-transform', collapsed ? 'hidden' : '')}
+          className={cn(
+            'transition-transform shrink-0',
+            collapsed ? 'absolute left-12 top-4 bg-card border shadow-sm hover:bg-accent' : ''
+          )}
+          title={collapsed ? 'Ouvrir le menu' : 'Réduire le menu'}
         >
-          <Icons.chevronLeft className="h-4 w-4" />
+          {collapsed ? (
+            <Icons.chevronRight className="h-4 w-4" />
+          ) : (
+            <Icons.chevronLeft className="h-4 w-4" />
+          )}
         </Button>
       </div>
 

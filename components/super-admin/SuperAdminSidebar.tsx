@@ -150,13 +150,16 @@ function SuperAdminSidebarComponent({
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between px-4 border-b border-slate-700">
+      <div className={cn(
+        'flex h-16 items-center border-b border-slate-700',
+        collapsed ? 'justify-center px-2' : 'justify-between px-4'
+      )}>
         {!collapsed ? (
           <Link href="/super-admin/dashboard" prefetch={true}>
             <LogoHorizontal size="sm" variant="juridique" showTag={true} animate={false} />
           </Link>
         ) : (
-          <Link href="/super-admin/dashboard" prefetch={true} className="mx-auto">
+          <Link href="/super-admin/dashboard" prefetch={true}>
             <LogoIcon size="sm" animate={false} />
           </Link>
         )}
@@ -165,11 +168,16 @@ function SuperAdminSidebarComponent({
           size="icon"
           onClick={onCollapse}
           className={cn(
-            'transition-transform text-slate-400 hover:text-white hover:bg-slate-800',
-            collapsed ? 'hidden' : ''
+            'transition-transform shrink-0 text-slate-400 hover:text-white hover:bg-slate-800',
+            collapsed ? 'absolute left-12 top-4 bg-slate-900 border border-slate-700 shadow-sm' : ''
           )}
+          title={collapsed ? 'Ouvrir le menu' : 'Réduire le menu'}
         >
-          <Icons.chevronLeft className="h-4 w-4" />
+          {collapsed ? (
+            <Icons.chevronRight className="h-4 w-4" />
+          ) : (
+            <Icons.chevronLeft className="h-4 w-4" />
+          )}
         </Button>
       </div>
 
