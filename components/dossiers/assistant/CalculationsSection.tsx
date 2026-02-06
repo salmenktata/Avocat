@@ -8,24 +8,24 @@ interface CalculationsSectionProps {
 }
 
 const TYPE_CONFIG: Record<string, { icon: string; colorClass: string }> = {
-  moutaa: { icon: '&#128141;', colorClass: 'border-pink-200 bg-pink-50' },
+  moutaa: { icon: '&#128141;', colorClass: 'border-pink-200 dark:border-pink-800 bg-pink-50 dark:bg-pink-900/20' },
   pension_alimentaire: {
     icon: '&#128118;',
-    colorClass: 'border-amber-200 bg-amber-50',
+    colorClass: 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20',
   },
   pension_epouse: {
     icon: '&#128105;',
-    colorClass: 'border-purple-200 bg-purple-50',
+    colorClass: 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20',
   },
   interets_moratoires: {
     icon: '&#128176;',
-    colorClass: 'border-emerald-200 bg-emerald-50',
+    colorClass: 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20',
   },
   indemnite_forfaitaire: {
     icon: '&#128181;',
-    colorClass: 'border-blue-200 bg-blue-50',
+    colorClass: 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20',
   },
-  autre: { icon: '&#128200;', colorClass: 'border-gray-200 bg-gray-50' },
+  autre: { icon: '&#128200;', colorClass: 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50' },
 }
 
 export default function CalculationsSection({
@@ -76,7 +76,7 @@ export default function CalculationsSection({
               </div>
 
               <div className="mt-3 space-y-1 text-sm">
-                <div className="rounded bg-white/50 px-2 py-1">
+                <div className="rounded bg-white/50 dark:bg-white/5 px-2 py-1">
                   <span className="text-muted-foreground">
                     {t('calculations.formula')}:
                   </span>{' '}

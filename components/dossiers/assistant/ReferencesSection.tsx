@@ -13,17 +13,17 @@ const TYPE_CONFIG: Record<
 > = {
   code: {
     icon: '&#128214;',
-    colorClass: 'border-blue-200 bg-blue-50',
+    colorClass: 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20',
     labelKey: 'references.code',
   },
   jurisprudence: {
     icon: '&#9878;',
-    colorClass: 'border-amber-200 bg-amber-50',
+    colorClass: 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20',
     labelKey: 'references.jurisprudence',
   },
   doctrine: {
     icon: '&#128218;',
-    colorClass: 'border-purple-200 bg-purple-50',
+    colorClass: 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20',
     labelKey: 'references.doctrine',
   },
 }
@@ -58,7 +58,7 @@ export default function ReferencesSection({
         {Object.entries(grouped).map(([type, refs]) => {
           const config = TYPE_CONFIG[type as LegalReference['type']] || {
             icon: '&#128196;',
-            colorClass: 'border-gray-200 bg-gray-50',
+            colorClass: 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50',
             labelKey: 'references.other',
           }
 

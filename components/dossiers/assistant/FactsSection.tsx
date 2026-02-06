@@ -77,8 +77,8 @@ export default function FactsSection({
                   key={index}
                   className={`rounded-full px-3 py-1.5 text-sm ${
                     enfant.estMineur
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-gray-100 text-gray-800'
+                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'
                   }`}
                 >
                   {enfant.prenom}, {enfant.age} ans

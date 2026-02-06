@@ -62,15 +62,15 @@ function PartyCard({ party, isClient, roleLabel }: PartyCardProps) {
   return (
     <div
       className={`rounded-lg border p-4 ${
-        isClient ? 'border-blue-200 bg-blue-50/50' : 'border-red-200 bg-red-50/50'
+        isClient ? 'border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20' : 'border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/20'
       }`}
     >
       <div className="flex items-center gap-2 mb-3">
         <span
           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
             isClient
-              ? 'bg-blue-100 text-blue-800'
-              : 'bg-red-100 text-red-800'
+              ? 'bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
+              : 'bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200'
           }`}
         >
           {roleLabel}

@@ -209,10 +209,10 @@ export default function LegalAnalysisSection({
               key={index}
               className={`flex items-start gap-3 rounded-lg p-4 ${
                 check.status === 'ok'
-                  ? 'bg-green-50 border border-green-200'
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
                   : check.status === 'warning'
-                    ? 'bg-amber-50 border border-amber-200'
-                    : 'bg-red-50 border border-red-200'
+                    ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
+                    : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
               }`}
             >
               <span className="text-xl">
@@ -226,10 +226,10 @@ export default function LegalAnalysisSection({
                 <h4
                   className={`font-medium ${
                     check.status === 'ok'
-                      ? 'text-green-900'
+                      ? 'text-green-900 dark:text-green-300'
                       : check.status === 'warning'
-                        ? 'text-amber-900'
-                        : 'text-red-900'
+                        ? 'text-amber-900 dark:text-amber-300'
+                        : 'text-red-900 dark:text-red-300'
                   }`}
                 >
                   {check.title}
@@ -242,10 +242,10 @@ export default function LegalAnalysisSection({
                 <p
                   className={`text-sm mt-1 ${
                     check.status === 'ok'
-                      ? 'text-green-800'
+                      ? 'text-green-800 dark:text-green-400'
                       : check.status === 'warning'
-                        ? 'text-amber-800'
-                        : 'text-red-800'
+                        ? 'text-amber-800 dark:text-amber-400'
+                        : 'text-red-800 dark:text-red-400'
                   }`}
                 >
                   {check.description}
@@ -310,20 +310,20 @@ export default function LegalAnalysisSection({
         {analysis?.strategiePreuve ? (
           <div className="space-y-4">
             {/* Charge de la preuve */}
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-              <h4 className="font-medium text-blue-900 mb-1">Charge de la preuve</h4>
-              <p className="text-sm text-blue-800">{analysis.strategiePreuve.chargeDeLaPreuve}</p>
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">
+              <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-1">Charge de la preuve</h4>
+              <p className="text-sm text-blue-800 dark:text-blue-300">{analysis.strategiePreuve.chargeDeLaPreuve}</p>
             </div>
 
             {/* Preuves disponibles */}
             {analysis.strategiePreuve.preuvesDisponibles.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium text-green-700 mb-2">
+                <h4 className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">
                   &#9989; Preuves identifiées dans le récit
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {analysis.strategiePreuve.preuvesDisponibles.map((p, i) => (
-                    <span key={i} className="rounded-full bg-green-100 px-3 py-1 text-sm text-green-800">
+                    <span key={i} className="rounded-full bg-green-100 dark:bg-green-900/30 px-3 py-1 text-sm text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800">
                       {p}
                     </span>
                   ))}
@@ -334,14 +334,14 @@ export default function LegalAnalysisSection({
             {/* Preuves manquantes */}
             {analysis.strategiePreuve.preuvesManquantes.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium text-amber-700 mb-2">
+                <h4 className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2">
                   &#9888; Preuves à collecter
                 </h4>
                 <div className="space-y-2">
                   {analysis.strategiePreuve.preuvesManquantes.map((p, i) => (
-                    <div key={i} className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-                      <span className="text-amber-600">&#128196;</span>
-                      <span className="text-sm text-amber-800">{p}</span>
+                    <div key={i} className="flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2">
+                      <span className="text-amber-600 dark:text-amber-400">&#128196;</span>
+                      <span className="text-sm text-amber-800 dark:text-amber-300">{p}</span>
                     </div>
                   ))}
                 </div>
@@ -367,10 +367,10 @@ export default function LegalAnalysisSection({
                   <span
                     className={`flex-shrink-0 rounded-full p-1.5 ${
                       item.priority === 'essential'
-                        ? 'bg-red-100 text-red-700'
+                        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                         : item.priority === 'important'
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-blue-100 text-blue-700'
+                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                          : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                     }`}
                   >
                     <span className="text-sm" dangerouslySetInnerHTML={{ __html: item.icon }} />
@@ -379,7 +379,7 @@ export default function LegalAnalysisSection({
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-foreground">{item.document}</span>
                       {item.priority === 'essential' && (
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                        <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-400">
                           {t('legalAnalysis.evidence.essential')}
                         </span>
                       )}
@@ -418,20 +418,20 @@ export default function LegalAnalysisSection({
               key={index}
               className={`rounded-lg border p-4 ${
                 isHigh
-                  ? 'border-red-200 bg-red-50'
+                  ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'
                   : isMedium
-                    ? 'border-amber-200 bg-amber-50'
-                    : 'border-blue-200 bg-blue-50'
+                    ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20'
+                    : 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20'
               }`}
             >
               <div className="flex items-start justify-between">
                 <h4
                   className={`font-medium ${
                     isHigh
-                      ? 'text-red-900'
+                      ? 'text-red-900 dark:text-red-300'
                       : isMedium
-                        ? 'text-amber-900'
-                        : 'text-blue-900'
+                        ? 'text-amber-900 dark:text-amber-300'
+                        : 'text-blue-900 dark:text-blue-300'
                   }`}
                 >
                   {'nature' in risk ? risk.nature : risk.title}
@@ -439,10 +439,10 @@ export default function LegalAnalysisSection({
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                     isHigh
-                      ? 'bg-red-200 text-red-800'
+                      ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'
                       : isMedium
-                        ? 'bg-amber-200 text-amber-800'
-                        : 'bg-blue-200 text-blue-800'
+                        ? 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200'
+                        : 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
                   }`}
                 >
                   {levelLabel}
@@ -451,16 +451,16 @@ export default function LegalAnalysisSection({
               <p
                 className={`text-sm mt-1 ${
                   isHigh
-                    ? 'text-red-800'
+                    ? 'text-red-800 dark:text-red-400'
                     : isMedium
-                      ? 'text-amber-800'
-                      : 'text-blue-800'
+                      ? 'text-amber-800 dark:text-amber-400'
+                      : 'text-blue-800 dark:text-blue-400'
                 }`}
               >
                 {risk.description}
               </p>
               {risk.mitigation && (
-                <p className="text-sm mt-2 font-medium">
+                <p className="text-sm mt-2 font-medium text-foreground">
                   &#128161; {risk.mitigation}
                 </p>
               )}

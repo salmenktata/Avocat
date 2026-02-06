@@ -45,7 +45,7 @@ export default function TimelineSection({ timeline }: TimelineSectionProps) {
                       ? 'border-blue-600 bg-blue-600'
                       : step.obligatoire
                         ? 'border-amber-500 bg-amber-500'
-                        : 'border-gray-300 bg-white'
+                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
                   }`}
                 >
                   {isFirst && (
@@ -57,7 +57,7 @@ export default function TimelineSection({ timeline }: TimelineSectionProps) {
                 <div
                   className={`flex-1 rounded-lg border p-3 ${
                     isFirst
-                      ? 'border-blue-200 bg-blue-50'
+                      ? 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-muted bg-muted/30'
                   }`}
                 >
@@ -67,7 +67,7 @@ export default function TimelineSection({ timeline }: TimelineSectionProps) {
                         {step.etape}
                       </h4>
                       {step.obligatoire && (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                        <span className="rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300">
                           {t('timeline.mandatory')}
                         </span>
                       )}
@@ -91,7 +91,7 @@ export default function TimelineSection({ timeline }: TimelineSectionProps) {
                       {step.alertes.map((alerte, alerteIndex) => (
                         <span
                           key={alerteIndex}
-                          className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800"
+                          className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-xs text-amber-800 dark:text-amber-300"
                         >
                           <span>&#9888;</span>
                           {alerte}
@@ -121,8 +121,8 @@ export default function TimelineSection({ timeline }: TimelineSectionProps) {
                 />
               </svg>
             </div>
-            <div className="flex-1 rounded-lg border border-green-200 bg-green-50 p-3">
-              <span className="font-semibold text-green-800">
+            <div className="flex-1 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-3">
+              <span className="font-semibold text-green-800 dark:text-green-300">
                 {t('timeline.endProcedure')}
               </span>
             </div>

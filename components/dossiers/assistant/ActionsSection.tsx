@@ -108,8 +108,8 @@ export default function ActionsSection({
               key={index}
               className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
                 action.checked
-                  ? 'border-blue-200 bg-blue-50/50'
-                  : 'border-muted hover:border-blue-200'
+                  ? 'border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20'
+                  : 'border-muted hover:border-blue-200 dark:hover:border-blue-800'
               }`}
             >
               <input

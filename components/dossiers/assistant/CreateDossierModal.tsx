@@ -95,7 +95,7 @@ export default function CreateDossierModal({
               {result.resumeCourt}
             </p>
             <div className="flex flex-wrap gap-2 mt-2">
-              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+              <span className="rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-300">
                 {t(`procedureTypes.${result.typeProcedure}`)}
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
@@ -133,8 +133,8 @@ export default function CreateDossierModal({
                 })}
               </select>
             ) : (
-              <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50 p-4 text-center">
-                <p className="text-sm text-amber-800 mb-2">
+              <div className="rounded-lg border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-4 text-center">
+                <p className="text-sm text-amber-800 dark:text-amber-300 mb-2">
                   {t('createModal.noClients')}
                 </p>
                 <Link
