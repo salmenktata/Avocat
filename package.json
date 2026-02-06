@@ -21,6 +21,7 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "check:translations": "node scripts/check-translations.js",
+    "i18n:check": "npx tsx scripts/i18n-check.ts",
     "find:hardcoded-text": "node scripts/find-hardcoded-text.js",
     "check:dark": "./scripts/check-dark-mode.sh",
     "fix:dark": "./scripts/fix-dark-mode.sh",
