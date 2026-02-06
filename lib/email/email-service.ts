@@ -1,6 +1,6 @@
 /**
  * Service Email Unifié
- * Priorité: Resend -> Brevo (fallback)
+ * Priorité: Brevo (rapide) -> Resend (fallback)
  *
  * Ce service gère l'envoi d'emails avec failover automatique.
  */
@@ -44,9 +44,10 @@ function isResendConfigured(): boolean {
   return !!RESEND_API_KEY
 }
 
-function getAvailableProvider(): 'resend' | 'brevo' | null {
-  if (isResendConfigured()) return 'resend'
+function getAvailableProvider(): 'brevo' | 'resend' | null {
+  // Priorité Brevo (plus rapide et fiable)
   if (isBrevoConfigured()) return 'brevo'
+  if (isResendConfigured()) return 'resend'
   return null
 }
 
@@ -56,7 +57,7 @@ function getAvailableProvider(): 'resend' | 'brevo' | null {
 
 /**
  * Envoie un email avec failover automatique
- * Priorité: Resend -> Brevo
+ * Priorité: Brevo (rapide) -> Resend (fallback)
  */
 export async function sendEmail(params: EmailParams): Promise<EmailResult> {
   const { to, subject, html, text, replyTo, tags } = params
@@ -64,76 +65,16 @@ export async function sendEmail(params: EmailParams): Promise<EmailResult> {
   // Vérifier qu'au moins un provider est configuré
   const primaryProvider = getAvailableProvider()
   if (!primaryProvider) {
-    console.error('[Email] Aucun provider email configuré (RESEND_API_KEY ou BREVO_API_KEY)')
+    console.error('[Email] Aucun provider email configuré (BREVO_API_KEY ou RESEND_API_KEY)')
     return {
       success: false,
       error: 'Aucun provider email configuré',
     }
   }
 
-  // Essayer Resend en premier
-  if (isResendConfigured()) {
-    console.log('[Email] Tentative envoi via Resend...')
-    const resendResult = await sendResendEmail({
-      to,
-      subject,
-      html,
-      text,
-      replyTo,
-    })
-
-    if (resendResult.success) {
-      console.log('[Email] Envoyé via Resend:', resendResult.messageId)
-      return {
-        success: true,
-        messageId: resendResult.messageId,
-        provider: 'resend',
-      }
-    }
-
-    // Resend a échoué, essayer Brevo en fallback
-    console.warn('[Email] Resend a échoué:', resendResult.error)
-
-    if (isBrevoConfigured()) {
-      console.log('[Email] Fallback vers Brevo...')
-      const brevoResult = await sendBrevoEmail({
-        to,
-        subject,
-        htmlContent: html,
-        textContent: text,
-        replyTo,
-        tags,
-      })
-
-      if (brevoResult.success) {
-        console.log('[Email] Envoyé via Brevo (fallback):', brevoResult.messageId)
-        return {
-          success: true,
-          messageId: brevoResult.messageId,
-          provider: 'brevo',
-          fallbackUsed: true,
-        }
-      }
-
-      // Les deux ont échoué
-      console.error('[Email] Brevo fallback a aussi échoué:', brevoResult.error)
-      return {
-        success: false,
-        error: `Resend: ${resendResult.error} | Brevo: ${brevoResult.error}`,
-        fallbackUsed: true,
-      }
-    }
-
-    // Pas de fallback disponible
-    return {
-      success: false,
-      error: resendResult.error,
-    }
-  }
-
-  // Resend non configuré, utiliser Brevo directement
+  // Essayer Brevo en premier (plus rapide et fiable)
   if (isBrevoConfigured()) {
-    console.log('[Email] Envoi via Brevo (Resend non configuré)...')
+    console.log('[Email] Tentative envoi via Brevo...')
     const brevoResult = await sendBrevoEmail({
       to,
       subject,
@@ -143,11 +84,70 @@ export async function sendEmail(params: EmailParams): Promise<EmailResult> {
       tags,
     })
 
+    if (brevoResult.success) {
+      console.log('[Email] Envoyé via Brevo:', brevoResult.messageId)
+      return {
+        success: true,
+        messageId: brevoResult.messageId,
+        provider: 'brevo',
+      }
+    }
+
+    // Brevo a échoué, essayer Resend en fallback
+    console.warn('[Email] Brevo a échoué:', brevoResult.error)
+
+    if (isResendConfigured()) {
+      console.log('[Email] Fallback vers Resend...')
+      const resendResult = await sendResendEmail({
+        to,
+        subject,
+        html,
+        text,
+        replyTo,
+      })
+
+      if (resendResult.success) {
+        console.log('[Email] Envoyé via Resend (fallback):', resendResult.messageId)
+        return {
+          success: true,
+          messageId: resendResult.messageId,
+          provider: 'resend',
+          fallbackUsed: true,
+        }
+      }
+
+      // Les deux ont échoué
+      console.error('[Email] Resend fallback a aussi échoué:', resendResult.error)
+      return {
+        success: false,
+        error: `Brevo: ${brevoResult.error} | Resend: ${resendResult.error}`,
+        fallbackUsed: true,
+      }
+    }
+
+    // Pas de fallback disponible
     return {
-      success: brevoResult.success,
-      messageId: brevoResult.messageId,
-      provider: 'brevo',
+      success: false,
       error: brevoResult.error,
+    }
+  }
+
+  // Brevo non configuré, utiliser Resend directement
+  if (isResendConfigured()) {
+    console.log('[Email] Envoi via Resend (Brevo non configuré)...')
+    const resendResult = await sendResendEmail({
+      to,
+      subject,
+      html,
+      text,
+      replyTo,
+    })
+
+    return {
+      success: resendResult.success,
+      messageId: resendResult.messageId,
+      provider: 'resend',
+      error: resendResult.error,
     }
   }
 

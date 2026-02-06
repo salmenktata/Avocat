@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useMemo, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
@@ -120,6 +120,8 @@ function getPasswordCriteria(password: string): PasswordCriteria {
 export default function RegisterPage() {
   const t = useTranslations('auth')
   const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [formData, setFormData] = useState({
     nom: '',
     prenom: '',
@@ -127,6 +129,26 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
   })
+
+  // Pré-remplir le formulaire avec les paramètres URL
+  useEffect(() => {
+    const nom = searchParams.get('nom')
+    const prenom = searchParams.get('prenom')
+    const email = searchParams.get('email')
+    const password = searchParams.get('password')
+    const confirmPassword = searchParams.get('confirmPassword')
+
+    if (nom || prenom || email || password || confirmPassword) {
+      setFormData(prev => ({
+        ...prev,
+        ...(nom && { nom }),
+        ...(prenom && { prenom }),
+        ...(email && { email }),
+        ...(password && { password }),
+        ...(confirmPassword && { confirmPassword }),
+      }))
+    }
+  }, [searchParams])
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')

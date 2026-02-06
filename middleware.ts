@@ -102,6 +102,6 @@ export const config = {
     '/documents/:path*',
     '/time-tracking/:path*',
     '/super-admin/:path*',
-    '/pending-approval',
+    '/assistant-ia/:path*',
   ],
 }

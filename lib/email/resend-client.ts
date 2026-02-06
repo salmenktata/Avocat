@@ -26,8 +26,11 @@ export interface SendEmailResult {
   error?: string
 }
 
+// Timeout pour éviter les blocages (3 secondes max)
+const RESEND_TIMEOUT_MS = 3000
+
 /**
- * Envoyer un email via Resend
+ * Envoyer un email via Resend avec timeout
  */
 export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
   try {
@@ -39,7 +42,12 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       }
     }
 
-    const { data, error } = await resend.emails.send({
+    // Créer une promesse avec timeout
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout Resend')), RESEND_TIMEOUT_MS)
+    })
+
+    const sendPromise = resend.emails.send({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: Array.isArray(params.to) ? params.to : [params.to],
       subject: params.subject,
@@ -47,6 +55,8 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       text: params.text,
       replyTo: params.replyTo,
     })
+
+    const { data, error } = await Promise.race([sendPromise, timeoutPromise])
 
     if (error) {
       console.error('[Resend] Erreur envoi email:', error)
@@ -63,7 +73,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       messageId: data?.id,
     }
   } catch (error: any) {
-    console.error('[Resend] Exception envoi email:', error)
+    console.error('[Resend] Exception envoi email:', error.message)
     return {
       success: false,
       error: error.message || 'Exception lors de l\'envoi',

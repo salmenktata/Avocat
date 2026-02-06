@@ -1,8 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { Logo } from '@/components/ui/Logo'
 import { useTranslations } from 'next-intl'
-import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 
 function CheckIcon() {
@@ -61,7 +61,7 @@ export default function AuthLayout({
   ]
 
   return (
-    <div className="flex min-h-screen bg-slate-950">
+    <div className="dark flex min-h-screen bg-slate-950">
       {/* Panneau gauche - Branding (caché sur mobile) */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] relative overflow-hidden">
         {/* Gradient de fond */}
@@ -92,7 +92,9 @@ export default function AuthLayout({
         <div className="relative z-10 flex flex-col justify-between w-full p-8 lg:p-12 xl:p-16">
           {/* Header avec Logo */}
           <div className="animate-fade-in-up">
-            <Logo size="lg" variant="juridique" showTag={true} animate={true} />
+            <Link href="/">
+              <Logo size="lg" variant="juridique" showTag={true} animate={true} />
+            </Link>
           </div>
 
           {/* Section centrale */}
@@ -152,20 +154,21 @@ export default function AuthLayout({
       <div className="flex-1 flex flex-col min-h-screen bg-slate-900 lg:bg-slate-900/50">
         {/* Header mobile avec logo */}
         <div className="lg:hidden p-6 flex justify-center">
-          <Logo size="md" variant="juridique" showTag={true} animate={false} />
+          <Link href="/">
+            <Logo size="md" variant="juridique" showTag={true} animate={false} />
+          </Link>
         </div>
 
-        {/* Contrôles en haut à droite */}
-        <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+        {/* Sélecteur de langue en haut à droite */}
+        <div className="absolute top-4 right-4 z-20">
           <LanguageSwitcher />
-          <ThemeToggle />
         </div>
 
         {/* Zone du formulaire */}
         <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
           <div className="w-full max-w-md animate-scale-in">
-            {/* Card glassmorphism */}
-            <div className="glass-card rounded-2xl p-6 sm:p-8 shadow-2xl">
+            {/* Card glassmorphism - forcé en dark */}
+            <div className="rounded-2xl p-6 sm:p-8 shadow-2xl bg-slate-800/90 backdrop-blur-xl border border-slate-700/50">
               {children}
             </div>
 

@@ -58,8 +58,8 @@ function FeatureCard({ icon, title, description, delay }: FeatureCardProps) {
       <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center text-blue-400 mb-4 group-hover:scale-110 transition-transform duration-300">
         {icon}
       </div>
-      <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
-      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+      <p className="text-sm text-slate-300 leading-relaxed">{description}</p>
     </div>
   )
 }
@@ -74,7 +74,7 @@ function StatItem({ value, label, delay }: StatItemProps) {
   return (
     <div className={`text-center animate-fade-in-up ${delay}`}>
       <div className="text-3xl md:text-4xl font-bold gradient-gold-text mb-1">{value}</div>
-      <div className="text-sm text-muted-foreground">{label}</div>
+      <div className="text-sm text-slate-300">{label}</div>
     </div>
   )
 }
@@ -84,7 +84,7 @@ export default async function HomePage() {
   const tAuth = await getTranslations('authLayout')
 
   return (
-    <div className="min-h-screen bg-slate-950 text-foreground overflow-hidden">
+    <div className="dark min-h-screen bg-slate-950 text-white overflow-hidden">
       {/* Background decorations */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
@@ -100,7 +100,7 @@ export default async function HomePage() {
             <LanguageSwitcher />
             <Link
               href="/login"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
             >
               {t('loginButton')}
             </Link>
@@ -123,12 +123,12 @@ export default async function HomePage() {
           </div>
 
           {/* Titre */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 animate-fade-in-up stagger-1">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 animate-fade-in-up stagger-1">
             {t('title')}
           </h1>
 
           {/* Sous-titre */}
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in-up stagger-2">
+          <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-10 animate-fade-in-up stagger-2">
             {t('subtitle')}
           </p>
 
@@ -142,7 +142,7 @@ export default async function HomePage() {
             </Link>
             <Link
               href="/login"
-              className="glass px-8 py-4 rounded-xl text-lg font-semibold text-foreground hover:bg-white/10 transition-all"
+              className="glass px-8 py-4 rounded-xl text-lg font-semibold text-white hover:bg-white/10 transition-all"
             >
               {t('loginButton')}
             </Link>
@@ -162,10 +162,10 @@ export default async function HomePage() {
       <section className="relative z-10 py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 animate-fade-in-up">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 animate-fade-in-up">
               Tout ce dont vous avez besoin
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto animate-fade-in-up stagger-1">
+            <p className="text-lg text-slate-300 max-w-2xl mx-auto animate-fade-in-up stagger-1">
               Une plateforme complète pour gérer votre cabinet juridique efficacement
             </p>
           </div>
@@ -206,7 +206,7 @@ export default async function HomePage() {
             <div className="grid md:grid-cols-2 gap-12 items-center">
               {/* Left: Benefits list */}
               <div>
-                <h2 className="text-3xl font-bold text-foreground mb-8">
+                <h2 className="text-3xl font-bold text-white mb-8">
                   Pourquoi choisir MonCabinet ?
                 </h2>
                 <ul className="space-y-4">
@@ -218,7 +218,7 @@ export default async function HomePage() {
                     'Mises à jour régulières',
                     'Formation et accompagnement',
                   ].map((benefit, index) => (
-                    <li key={index} className="flex items-center gap-3 text-muted-foreground">
+                    <li key={index} className="flex items-center gap-3 text-slate-300">
                       <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
                         <CheckIcon className="w-4 h-4 text-emerald-400" />
                       </div>
@@ -242,7 +242,7 @@ export default async function HomePage() {
                     </svg>
                   ))}
                 </div>
-                <blockquote className="text-lg text-foreground italic mb-6">
+                <blockquote className="text-lg text-white italic mb-6">
                   &ldquo;{tAuth('testimonial.quote')}&rdquo;
                 </blockquote>
                 <div className="flex items-center gap-3">
@@ -250,8 +250,8 @@ export default async function HomePage() {
                     S
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">{tAuth('testimonial.author')}</p>
-                    <p className="text-sm text-muted-foreground">{tAuth('testimonial.role')}</p>
+                    <p className="font-semibold text-white">{tAuth('testimonial.author')}</p>
+                    <p className="text-sm text-slate-300">{tAuth('testimonial.role')}</p>
                   </div>
                 </div>
               </div>
@@ -263,10 +263,10 @@ export default async function HomePage() {
       {/* CTA Section */}
       <section className="relative z-10 py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
             Prêt à transformer votre cabinet ?
           </h2>
-          <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-300 mb-10 max-w-2xl mx-auto">
             Rejoignez des centaines d&apos;avocats qui ont déjà optimisé leur pratique avec MonCabinet
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -278,7 +278,7 @@ export default async function HomePage() {
             </Link>
             <Link
               href="/login"
-              className="glass px-8 py-4 rounded-xl text-lg font-semibold text-foreground hover:bg-white/10 transition-all"
+              className="glass px-8 py-4 rounded-xl text-lg font-semibold text-white border border-white/30 hover:bg-white/10 transition-all"
             >
               Se connecter
             </Link>
@@ -294,19 +294,19 @@ export default async function HomePage() {
               <Logo size="sm" variant="juridique" showTag={false} showText={true} animate={false} />
             </div>
 
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <Link href="#" className="hover:text-foreground transition-colors">
+            <div className="flex items-center gap-6 text-sm text-slate-300">
+              <Link href="#" className="hover:text-white transition-colors">
                 Conditions d&apos;utilisation
               </Link>
-              <Link href="#" className="hover:text-foreground transition-colors">
+              <Link href="#" className="hover:text-white transition-colors">
                 Politique de confidentialité
               </Link>
-              <Link href="#" className="hover:text-foreground transition-colors">
+              <Link href="#" className="hover:text-white transition-colors">
                 Contact
               </Link>
             </div>
 
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-300">
               © {new Date().getFullYear()} MonCabinet. Tous droits réservés. Developed by{' '}
               <a
                 href="https://quelyos.com"
