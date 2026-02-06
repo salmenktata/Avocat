@@ -1,9 +1,39 @@
 # 🗺️ ROADMAP AVOCAT SAAS - TUNISIE
 ## Roadmap Consolidé - Version Officielle
 
-**Date de consolidation** : 5 février 2026
-**Version** : 1.0
-**Statut** : En cours - Mois 3
+**Date de consolidation** : 6 février 2026
+**Version** : 2.0
+**Statut** : Post-Mois 3 - Architecture VPS Standalone
+
+---
+
+## 🏗️ ARCHITECTURE ACTUELLE (VPS Standalone)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Cloudflare (DNS + SSL Full Strict)                         │
+└────────────────────────┬────────────────────────────────────┘
+                         │ HTTPS
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  VPS Contabo                                                │
+├─────────────────────────────────────────────────────────────┤
+│  Nginx (reverse proxy) → PM2 (process manager)             │
+│  Docker Compose:                                            │
+│    ├─ PostgreSQL 15 + pgvector (port 5433)                 │
+│    ├─ MinIO S3-compatible (ports 9000/9001)                │
+│    └─ Next.js 15.5.12 (port 7002)                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+| Composant | Technologie | Remplace |
+|-----------|-------------|----------|
+| Base de données | PostgreSQL 15 (Docker) | Supabase DB |
+| Storage | MinIO (S3-compatible) | Supabase Storage |
+| Auth | JWT custom + HttpOnly cookies | Supabase Auth |
+| Email | Resend API | - |
+| Cron Jobs | Node.js + node-cron | Supabase Edge Functions |
+| Déploiement | Docker + PM2 + Nginx | Vercel |
 
 ---
 
@@ -60,12 +90,12 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - [x] Email quotidien récapitulatif (échéances J-15/7/3/1)
 - [x] Alertes délais légaux (Appel 20j/10j, Cassation 60j)
 - [x] Templates email FR/AR professionnels
-- [ ] Edge Function Supabase (à créer)
+- [ ] Cron Job Node.js (node-cron) pour envoi quotidien
 - [ ] Page préférences notifications (à créer)
 
 **Livrables** :
 - Système notifications prêt (logique complète)
-- À finaliser : Supabase Cron + Edge Function
+- À finaliser : Cron Job Node.js + API route
 
 #### Semaine 4 : Notes Honoraires ONAT ✅
 - [x] Distinction honoraires / débours
@@ -173,20 +203,18 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 
 **Objectifs** :
 - [x] Command Palette (Cmd+K) avec UI complète
-- [x] Edge Function notifications Supabase
+- [ ] ~~Edge Function notifications Supabase~~ → Cron Job Node.js (architecture VPS)
 - [x] API génération convention PDF
 - [x] Page préférences notifications
 - [x] Migration table préférences
 - [x] Formulaire préférences complet
 
-**Livrables créés** (6 fichiers) :
-- `components/shared/GlobalSearch.tsx` - Command Palette UI (320 lignes)
-- `supabase/functions/send-notifications/index.ts` - Edge Function
-- `app/api/dossiers/[id]/convention/route.ts` - API convention (130 lignes)
-- `lib/pdf/convention-pdf.tsx` - Template PDF convention (220 lignes)
+**Livrables créés** :
+- `components/shared/GlobalSearch.tsx` - Command Palette UI
+- `app/api/dossiers/[id]/convention/route.ts` - API convention
+- `lib/pdf/convention-pdf.tsx` - Template PDF convention
 - `app/(dashboard)/parametres/notifications/page.tsx` - Page préférences
-- `components/parametres/NotificationPreferencesForm.tsx` - Formulaire (360 lignes)
-- `supabase/migrations/20260205000008_notification_prefs.sql` - Table + RLS
+- `components/parametres/NotificationPreferencesForm.tsx` - Formulaire préférences
 
 **Valeur** : Expérience utilisateur complète, 100% fonctionnalités finalisées
 
@@ -240,15 +268,21 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 26. `app/api/search/route.ts` - API recherche globale
 27. `app/api/dossiers/[id]/convention/route.ts` - API génération convention PDF
 
-#### Finalisation S12 (7 fichiers)
+#### Finalisation S12 (5 fichiers)
 28. `components/shared/GlobalSearch.tsx` - Command Palette Cmd+K
 29. `components/parametres/NotificationPreferencesForm.tsx` - Formulaire préférences
 30. `app/(dashboard)/parametres/notifications/page.tsx` - Page préférences
 31. `lib/pdf/convention-pdf.tsx` - Template PDF convention
-32. `supabase/migrations/20260205000008_notification_prefs.sql` - Préférences notifications
-33. `supabase/functions/send-notifications/index.ts` - Edge Function notifications
 
-**Total : 33 fichiers créés**
+#### Post-Roadmap (VPS Standalone)
+32. `lib/stores/assistant-store.ts` - Store Zustand persistance Assistant IA
+33. `lib/db/postgres.ts` - Client PostgreSQL standalone
+34. `lib/storage/minio.ts` - Client MinIO S3-compatible
+35. `lib/auth/session.ts` - Auth JWT custom
+36. `docker-compose.yml` - Orchestration containers
+37. `Dockerfile` - Build multi-stage Next.js
+
+**Total : 37+ fichiers créés**
 
 ---
 
@@ -257,9 +291,9 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 ### Conformité & Facturation
 - ✅ PDF factures professionnelles (mentions ONAT)
 - ✅ Notes d'honoraires conformes (4 types)
-- ✅ Convention honoraires (template base)
+- ✅ Convention honoraires (template base + PDF)
 - ✅ Watermark "PAYÉE"
-- ⏳ Envoi email automatique factures
+- ✅ Envoi email factures via Resend
 
 ### Workflows Tunisiens
 - ✅ Workflow Civil (10 étapes) - Existant
@@ -284,40 +318,60 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - ✅ 9 templates juridiques FR/AR
 - ✅ Variables auto-remplies
 - ✅ Support bilingue FR/AR
-- ⏳ Génération PDF/DOCX (à finaliser)
+- ✅ Génération PDF (React-PDF)
+- ⏳ Génération DOCX éditable (docx.js)
 
 ### Recherche & Productivité
 - ✅ Index full-text (GIN) sur 4 tables
 - ✅ API recherche globale
-- ⏳ UI Command Palette Cmd+K (à créer)
+- ✅ UI Command Palette Cmd+K
+
+### Assistant IA Qadhya ✅
+- ✅ Chat conversationnel RAG (`/assistant-ia`)
+  - Pipeline RAG complet (`lib/ai/rag-chat-service.ts`)
+  - Base de connaissances vectorisée (`lib/ai/knowledge-base-service.ts`)
+  - Embeddings OpenAI/Ollama (`lib/ai/embeddings-service.ts`)
+- ✅ Structuration dossiers par récit (`/dossiers/assistant`)
+  - Analyse récit client (`lib/ai/dossier-structuring-service.ts`)
+  - Extraction automatique faits juridiques
+- ✅ Calculs juridiques tunisiens automatisés
+  - Pension Moutaa (Art. 31 CSP)
+  - Pension alimentaire enfants (Art. 46 CSP)
+  - Nafaqa épouse (Art. 38 CSP)
+  - Intérêts moratoires (TMM+7%)
+  - Indemnité forfaitaire chèque
+- ✅ Classification automatique documents (`lib/ai/document-classifier.ts`)
+- ✅ Import jurisprudence tunisienne (`lib/ai/jurisprudence-importer.ts`)
+- ✅ Monitoring coûts IA (`lib/ai/usage-tracker.ts`)
 
 ### Notifications
 - ✅ Logique notifications (échéances J-15/7/3/1)
-- ⏳ Edge Function Supabase (à créer)
-- ⏳ Page préférences (à créer)
+- ✅ Page préférences notifications
+- ⏳ Cron Job Node.js pour envoi quotidien (à créer)
 
 ---
 
 ## 🚧 TÂCHES RESTANTES
 
 ### Priorité 0 (Critique)
-- [ ] **Créer Edge Function notifications** Supabase
-  - Cron job quotidien 6h00 TN
-  - Email digest via Resend
+- [ ] **Cron Job notifications Node.js**
+  - Utiliser `node-cron` ou API route `/api/cron/notifications`
+  - Déclenché par cron système ou service externe (cron-job.org)
+  - Email digest quotidien 6h00 TN via Resend
 - [ ] **Tests manuels complets** workflows
   - Commercial : créer dossier + calculs
   - Divorce : créer dossier + pensions
   - Générer tous les templates
 
 ### Priorité 1 (Important)
-- [ ] **Command Palette UI** (Cmd+K)
-  - Composant `GlobalSearch.tsx`
+- [x] **Command Palette UI** (Cmd+K) ✅
+  - Composant `GlobalSearch.tsx` créé
   - Intégration cmdk
   - Navigation clavier
-- [ ] **API génération convention PDF**
+- [x] **API génération convention PDF** ✅
   - Endpoint `/api/dossiers/[id]/convention`
   - Template React-PDF
-- [ ] **Page préférences notifications**
+- [x] **Page préférences notifications** ✅
   - `/app/(dashboard)/parametres/notifications/page.tsx`
   - Fréquence, types alertes
 
@@ -326,6 +380,12 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - [ ] **Génération DOCX éditable** (docx.js)
 - [ ] **Preview templates** avant génération
 - [ ] **Moteur génération avancé** (tables, numérotation)
+- [x] **Persistance état Assistant IA** ✅ (Zustand + sessionStorage)
+
+### Priorité 3 (Améliorations IA Qadhya)
+- [ ] **Enrichissement base jurisprudence** (10,000+ décisions)
+- [ ] **Fine-tuning prompts spécialisés** par type de dossier
+- [ ] **Amélioration OCR** documents scannés
 
 ---
 
@@ -367,10 +427,14 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
    - Livre recettes/dépenses tunisien
 
 ### Phase 3 : Différenciation IA (Mois 7-12)
-1. **Assistant IA Qadhya** (8 semaines)
+1. ✅ **Assistant IA Qadhya** (TERMINÉ)
    - Premier assistant juridique droit tunisien
-2. **Base jurisprudence TN** (12+ semaines)
-   - 10,000+ décisions Cour Cassation
+   - Chat conversationnel RAG opérationnel (`/assistant-ia`)
+   - Structuration dossiers par récit (`/dossiers/assistant`)
+   - Calculs juridiques tunisiens automatisés
+2. ⏳ **Enrichissement base jurisprudence** (en cours)
+   - Objectif : 10,000+ décisions Cour Cassation
+   - Import jurisprudence tunisienne fonctionnel
 3. **Mobile app iOS/Android** (12 semaines)
    - React Native, scan OCR, offline
 4. **Paiements mobiles** (2 semaines)
@@ -428,31 +492,38 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - **CONTRIBUTING.md** - Guidelines contribution
 
 ### Ressources
-- **Repository** : GitHub
-- **Supabase** : Dashboard projet
-- **Vercel** : Déploiement
+- **Repository** : GitHub (salmenktata/MonCabinet)
+- **VPS** : Contabo (Docker + PM2 + Nginx)
+- **PostgreSQL** : Docker container (port 5433)
+- **MinIO** : Docker container (ports 9000/9001)
 - **Resend** : Emails transactionnels
+- **Cloudflare** : DNS + SSL
 
 ---
 
 ## 📝 DÉCISIONS À PRENDRE
 
-### 🔴 URGENT : Semaine 12
-**Quelle option choisir ?**
-- [ ] **Option A** : Intégration Flouci (paiements mobiles)
-- [ ] **Option B** : Finaliser fonctionnalités existantes (recommandé)
-- [ ] **Option C** : Templates Pack 3 (extension bibliothèque)
+### ✅ DÉCIDÉ : Architecture VPS Standalone
+- [x] Migration de Supabase vers VPS auto-hébergé
+- [x] PostgreSQL + MinIO + Auth JWT custom
+- [x] Docker Compose pour orchestration
+
+### 🔴 URGENT : Post-Mois 3
+- [ ] **Cron Job notifications** - Implémenter avec node-cron
+- [ ] **Tests E2E** workflows complets
+- [ ] **Backups automatisés** PostgreSQL + MinIO
 
 ### 🟡 MOYEN TERME
 - [ ] Prioriser E-facture TTN (obligatoire 2026) ?
 - [ ] Timing Beta testeurs (15 avocats) ?
 - [ ] Budget marketing & acquisition ?
+- [ ] Génération DOCX éditable ?
 
 ---
 
-**📅 Dernière mise à jour** : 5 février 2026
-**📊 Statut** : 93% completé - Semaine 12 à définir
-**🚀 Prochain milestone** : Décision Semaine 12 + Tests finaux
+**📅 Dernière mise à jour** : 6 février 2026
+**📊 Statut** : Roadmap 3 mois complété - Architecture VPS déployée
+**🚀 Prochain milestone** : Cron notifications + Tests E2E
 
 ---
 
