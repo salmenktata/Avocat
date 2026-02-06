@@ -85,6 +85,10 @@ import {
   Cloud,
   MessageSquare,
   BookOpen,
+  Database,
+  Folder,
+  Code,
+  HardDrive,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -202,6 +206,14 @@ export const Icons = {
   gavel: Gavel,
   hash: Hash,
   bookOpen: BookOpen,
+
+  // System & Storage
+  database: Database,
+  folder: Folder,
+  code: Code,
+  hardDrive: HardDrive,
+  trash: Trash2,
+  spinner: Loader2,
 } as const
 
 export type IconName = keyof typeof Icons

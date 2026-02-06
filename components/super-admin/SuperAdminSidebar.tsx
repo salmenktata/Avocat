@@ -68,6 +68,7 @@ const getNavGroups = (pendingCount: number, unreadNotifications: number): NavGro
     items: [
       { href: '/super-admin/ai-costs', label: 'Coûts IA', icon: 'dollar' },
       { href: '/super-admin/audit-logs', label: 'Audit Logs', icon: 'shield' },
+      { href: '/super-admin/backups', label: 'Backups', icon: 'database' },
     ],
   },
   {
