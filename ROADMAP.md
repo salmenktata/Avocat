@@ -2,8 +2,8 @@
 ## Roadmap Consolidé - Version Officielle
 
 **Date de consolidation** : 6 février 2026
-**Version** : 2.0
-**Statut** : Post-Mois 3 - Architecture VPS Standalone
+**Version** : 2.1
+**Statut** : Post-Mois 3 - Fonctionnalités avancées complétées
 
 ---
 
@@ -31,8 +31,9 @@
 | Base de données | PostgreSQL 15 (Docker) | Supabase DB |
 | Storage | MinIO (S3-compatible) | Supabase Storage |
 | Auth | JWT custom + HttpOnly cookies | Supabase Auth |
-| Email | Resend API | - |
-| Cron Jobs | Node.js + node-cron | Supabase Edge Functions |
+| Email Factures | Resend API | - |
+| Email Notifications | Brevo API (daily digest) | - |
+| Cron Jobs | API Route + CRON_SECRET | Supabase Edge Functions |
 | Déploiement | Docker + PM2 + Nginx | Vercel |
 
 ---
@@ -64,9 +65,9 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 ### Objectifs Roadmap
 1. ✅ **Conformité ONAT 2026** : Factures, notes d'honoraires, conventions conformes
 2. ✅ **3 workflows tunisiens** : Civil, Commercial TMM+7, Divorce CSP
-3. ✅ **Templates documents** : 13-14 documents juridiques FR/AR
-4. ⏳ **Calculs automatiques** : Intérêts commerciaux, pensions divorce
-5. ⏳ **Productivité avocat** : Recherche Cmd+K, notifications intelligentes
+3. ✅ **Templates documents** : 15 documents juridiques FR/AR + génération DOCX
+4. ✅ **Calculs automatiques** : Intérêts commerciaux, pensions divorce
+5. ✅ **Productivité avocat** : Recherche Cmd+K, notifications Brevo, preview temps réel
 
 ---
 
@@ -90,12 +91,13 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - [x] Email quotidien récapitulatif (échéances J-15/7/3/1)
 - [x] Alertes délais légaux (Appel 20j/10j, Cassation 60j)
 - [x] Templates email FR/AR professionnels
-- [ ] Cron Job Node.js (node-cron) pour envoi quotidien
-- [ ] Page préférences notifications (à créer)
+- [x] API Route Cron `/api/cron/daily-digest` avec CRON_SECRET
+- [x] Page préférences notifications
 
 **Livrables** :
-- Système notifications prêt (logique complète)
-- À finaliser : Cron Job Node.js + API route
+- `lib/email/brevo-client.ts` - Client Brevo SDK
+- `lib/notifications/daily-digest-service.ts` - Service digest quotidien
+- `app/api/cron/daily-digest/route.ts` - Endpoint cron protégé
 
 #### Semaine 4 : Notes Honoraires ONAT ✅
 - [x] Distinction honoraires / débours
@@ -196,7 +198,7 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - `data/templates/constitution-avocat-fr.txt`
 - `data/templates/bordereau-communication-pieces-fr.txt`
 
-**Total templates** : 9 documents juridiques FR/AR
+**Total templates** : 15 documents juridiques FR/AR
 
 #### Semaine 12 : Finalisation & Polish ✅ (TERMINÉ)
 **Option choisie** : **Option B - Finaliser fonctionnalités existantes**
@@ -243,7 +245,7 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 12. `supabase/migrations/20260205000005_fulltext_search_indexes.sql`
 13. `supabase/migrations/20260205000006_divorce_fields.sql`
 
-#### Templates Documents Juridiques (9 templates)
+#### Templates Documents Juridiques (15 templates)
 **Divorce (3)** :
 14. `data/templates/requete-divorce-consentement-mutuel-fr.txt`
 15. `data/templates/requete-divorce-prejudice-fr.txt`
@@ -264,6 +266,14 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 **Honoraires (1)** :
 25. `data/templates/convention-honoraires-base.txt`
 
+**Pack 3 - Procédure (6)** :
+26. `data/templates/conclusions-demande-fr.txt`
+27. `data/templates/requete-injonction-payer-fr.txt`
+28. `data/templates/opposition-injonction-payer-fr.txt`
+29. `data/templates/acte-appel-fr.txt`
+30. `data/templates/procuration-judiciaire-fr.txt`
+31. `data/templates/requete-refere-provision-fr.txt`
+
 #### Recherche & API
 26. `app/api/search/route.ts` - API recherche globale
 27. `app/api/dossiers/[id]/convention/route.ts` - API génération convention PDF
@@ -275,14 +285,27 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 31. `lib/pdf/convention-pdf.tsx` - Template PDF convention
 
 #### Post-Roadmap (VPS Standalone)
-32. `lib/stores/assistant-store.ts` - Store Zustand persistance Assistant IA
-33. `lib/db/postgres.ts` - Client PostgreSQL standalone
-34. `lib/storage/minio.ts` - Client MinIO S3-compatible
-35. `lib/auth/session.ts` - Auth JWT custom
-36. `docker-compose.yml` - Orchestration containers
-37. `Dockerfile` - Build multi-stage Next.js
+38. `lib/stores/assistant-store.ts` - Store Zustand persistance Assistant IA
+39. `lib/db/postgres.ts` - Client PostgreSQL standalone
+40. `lib/storage/minio.ts` - Client MinIO S3-compatible
+41. `lib/auth/session.ts` - Auth JWT custom
+42. `docker-compose.yml` - Orchestration containers
+43. `Dockerfile` - Build multi-stage Next.js
 
-**Total : 37+ fichiers créés**
+#### Fonctionnalités Avancées (Session 6 fév 2026)
+44. `lib/email/brevo-client.ts` - Client Brevo SDK pour notifications
+45. `lib/notifications/daily-digest-service.ts` - Service digest quotidien
+46. `app/api/cron/daily-digest/route.ts` - Endpoint cron protégé
+47. `lib/docx/docx-generator.ts` - Génération DOCX avec support FR/AR RTL
+48. `app/api/templates/[id]/docx/route.ts` - API génération DOCX
+49. `components/templates/TemplatePreview.tsx` - Preview temps réel templates
+50. `components/templates/GenerateDocumentForm.tsx` - Formulaire avec preview intégré
+
+#### Amélioration Pipeline RAG
+51. `lib/ai/config.ts` - Seuils centralisés RAG_THRESHOLDS, SOURCE_BOOST
+52. `lib/ai/rag-chat-service.ts` - Re-ranking, diversité sources, monitoring
+
+**Total : 52+ fichiers créés**
 
 ---
 
@@ -315,11 +338,12 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - ✅ Durée mariage automatique
 
 ### Templates Documents
-- ✅ 9 templates juridiques FR/AR
+- ✅ 15 templates juridiques FR/AR
 - ✅ Variables auto-remplies
 - ✅ Support bilingue FR/AR
 - ✅ Génération PDF (React-PDF)
-- ⏳ Génération DOCX éditable (docx.js)
+- ✅ Génération DOCX éditable (docx.js avec RTL)
+- ✅ Preview temps réel avant génération
 
 ### Recherche & Productivité
 - ✅ Index full-text (GIN) sur 4 tables
@@ -347,17 +371,18 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 ### Notifications
 - ✅ Logique notifications (échéances J-15/7/3/1)
 - ✅ Page préférences notifications
-- ⏳ Cron Job Node.js pour envoi quotidien (à créer)
+- ✅ API Cron daily-digest avec Brevo
+- ✅ Email digest quotidien automatisé
 
 ---
 
 ## 🚧 TÂCHES RESTANTES
 
 ### Priorité 0 (Critique)
-- [ ] **Cron Job notifications Node.js**
-  - Utiliser `node-cron` ou API route `/api/cron/notifications`
+- [x] **Cron Job notifications Brevo** ✅
+  - API route `/api/cron/daily-digest` avec CRON_SECRET
   - Déclenché par cron système ou service externe (cron-job.org)
-  - Email digest quotidien 6h00 TN via Resend
+  - Email digest quotidien via Brevo
 - [ ] **Tests manuels complets** workflows
   - Commercial : créer dossier + calculs
   - Divorce : créer dossier + pensions
@@ -376,9 +401,10 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
   - Fréquence, types alertes
 
 ### Priorité 2 (Nice to have)
-- [ ] **Templates Pack 3** (5-6 docs additionnels)
-- [ ] **Génération DOCX éditable** (docx.js)
-- [ ] **Preview templates** avant génération
+- [x] **Templates Pack 3** ✅ (6 nouveaux documents juridiques)
+- [x] **Génération DOCX éditable** ✅ (docx.js avec support FR/AR RTL)
+- [x] **Preview templates temps réel** ✅ (remplacement variables en direct)
+- [x] **Pipeline RAG amélioré** ✅ (re-ranking, monitoring, diversité sources)
 - [ ] **Moteur génération avancé** (tables, numérotation)
 - [x] **Persistance état Assistant IA** ✅ (Zustand + sessionStorage)
 
@@ -509,7 +535,7 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - [x] Docker Compose pour orchestration
 
 ### 🔴 URGENT : Post-Mois 3
-- [ ] **Cron Job notifications** - Implémenter avec node-cron
+- [x] **Cron Job notifications Brevo** ✅ - API route `/api/cron/daily-digest`
 - [ ] **Tests E2E** workflows complets
 - [ ] **Backups automatisés** PostgreSQL + MinIO
 
@@ -517,13 +543,13 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - [ ] Prioriser E-facture TTN (obligatoire 2026) ?
 - [ ] Timing Beta testeurs (15 avocats) ?
 - [ ] Budget marketing & acquisition ?
-- [ ] Génération DOCX éditable ?
+- [x] Génération DOCX éditable ✅
 
 ---
 
 **📅 Dernière mise à jour** : 6 février 2026
-**📊 Statut** : Roadmap 3 mois complété - Architecture VPS déployée
-**🚀 Prochain milestone** : Cron notifications + Tests E2E
+**📊 Statut** : Roadmap 3 mois complété - Fonctionnalités avancées (DOCX, Preview, RAG, Brevo)
+**🚀 Prochain milestone** : Tests E2E workflows + Backups automatisés + E-facture TTN
 
 ---
 
