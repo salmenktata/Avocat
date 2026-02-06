@@ -313,7 +313,19 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 51. `lib/ai/config.ts` - Seuils centralisés RAG_THRESHOLDS, SOURCE_BOOST
 52. `lib/ai/rag-chat-service.ts` - Re-ranking, diversité sources, monitoring
 
-**Total : 52+ fichiers créés**
+#### Système de Backups & Admin
+53. `backup.sh` - Script backup PostgreSQL + MinIO + Code avec notifications Brevo
+54. `restore.sh` - Script restauration avec options --list/--db/--minio/--latest
+55. `app/api/admin/backup/route.ts` - API backups (GET/POST/DELETE)
+56. `components/super-admin/backups/BackupsManager.tsx` - Interface gestion backups
+57. `app/super-admin/backups/page.tsx` - Page admin backups
+58. `docs/BACKUPS.md` - Documentation système backups
+
+#### Support Bilingue Templates
+59. `components/templates/TemplateLanguageFilter.tsx` - Filtre FR/AR
+60. `supabase/migrations/20260206300000_templates_add_langue.sql` - Colonne langue + trigger
+
+**Total : 60+ fichiers créés**
 
 ---
 
@@ -346,9 +358,11 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - ✅ Durée mariage automatique
 
 ### Templates Documents
-- ✅ 21 templates juridiques FR/AR
+- ✅ 27 templates juridiques FR/AR (21 + 6 Pack 3 AR)
 - ✅ Variables auto-remplies
-- ✅ Support bilingue FR/AR
+- ✅ Support bilingue FR/AR avec filtrage par langue
+- ✅ Colonne `langue` avec auto-détection arabe
+- ✅ Badge FR/عربي sur les cartes templates
 - ✅ Génération PDF (React-PDF)
 - ✅ Génération DOCX éditable (docx.js avec RTL)
 - ✅ Preview temps réel avant génération
@@ -545,7 +559,11 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 ### 🔴 URGENT : Post-Mois 3
 - [x] **Cron Job notifications Brevo** ✅ - API route `/api/cron/daily-digest`
 - [ ] **Tests E2E** workflows complets
-- [ ] **Backups automatisés** PostgreSQL + MinIO
+- [x] **Backups automatisés** ✅ - PostgreSQL + MinIO + Code source
+  - Script `backup.sh` avec notifications Brevo en cas d'échec
+  - Script `restore.sh` pour restauration
+  - API `/api/admin/backup` (GET/POST/DELETE)
+  - Interface admin `/super-admin/backups`
 
 ### 🟡 MOYEN TERME
 - [ ] Prioriser E-facture TTN (obligatoire 2026) ?
@@ -556,8 +574,8 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 ---
 
 **📅 Dernière mise à jour** : 6 février 2026
-**📊 Statut** : Roadmap 3 mois complété - Fonctionnalités avancées (DOCX, Preview, RAG, Brevo)
-**🚀 Prochain milestone** : Tests E2E workflows + Backups automatisés + E-facture TTN
+**📊 Statut** : Roadmap 3 mois complété - Backups automatisés + Templates bilingues complets
+**🚀 Prochain milestone** : Tests E2E workflows + E-facture TTN
 
 ---
 

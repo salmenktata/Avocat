@@ -7,7 +7,7 @@ import TemplateLanguageFilter from '@/components/templates/TemplateLanguageFilte
 import { getTranslations } from 'next-intl/server'
 
 interface TemplatesPageProps {
-  searchParams: { langue?: string }
+  searchParams: Promise<{ langue?: string }>
 }
 
 export default async function TemplatesPage({ searchParams }: TemplatesPageProps) {
@@ -18,8 +18,11 @@ export default async function TemplatesPage({ searchParams }: TemplatesPageProps
     redirect('/login')
   }
 
+  // Awaiter searchParams (Next.js 15)
+  const params = await searchParams
+
   // Filtre de langue
-  const langueFilter = searchParams.langue || 'all'
+  const langueFilter = params.langue || 'all'
 
   // Récupérer tous les templates (propres + publics)
   const result = await query(
