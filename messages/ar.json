@@ -75,7 +75,11 @@
     "loginError": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
     "registerError": "خطأ أثناء إنشاء الحساب",
     "passwordMismatch": "كلمات المرور غير متطابقة",
-    "passwordTooShort": "يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل"
+    "passwordTooShort": "يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل",
+    "emailPlaceholder": "بريدك@الإلكتروني.com",
+    "passwordPlaceholder": "••••••••",
+    "firstNamePlaceholder": "اسمك الأول",
+    "lastNamePlaceholder": "اسم عائلتك"
   },
   "dashboard": {
     "title": "لوحة التحكم",
