@@ -158,7 +158,7 @@ describe('Actions Clients', () => {
       const invalidFormData = {
         type_client: 'invalid_type', // Type invalide
         nom: 'A', // Nom trop court
-      } as ClientFormData
+      } as unknown as ClientFormData
 
       vi.mocked(getSession).mockResolvedValue(mockSession)
 
@@ -557,7 +557,7 @@ describe('Actions Clients', () => {
   describe('Edge Cases', () => {
     it('devrait gérer session expirée', async () => {
       const expiredSession = {
-        user: { id: 'user-123', email: 'test@example.com' },
+        user: { id: 'user-123', email: 'test@example.com', name: 'Test User' },
         expires: new Date(Date.now() - 1000).toISOString(), // Expiré
       }
 

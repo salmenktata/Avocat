@@ -95,6 +95,8 @@ describe('Actions Factures', () => {
         taux_tva: 19,
         date_emission: '2024-01-15',
         statut: 'BROUILLON',
+        montant_debours: 0,
+        provisions_recues: 0,
         objet: 'Test facture',
       })
 
@@ -132,6 +134,8 @@ describe('Actions Factures', () => {
         taux_tva: 19,
         date_emission: '2024-01-15',
         statut: 'BROUILLON',
+        montant_debours: 0,
+        provisions_recues: 0,
         objet: 'Test facture',
       })
 
@@ -161,6 +165,8 @@ describe('Actions Factures', () => {
         taux_tva: 19,
         date_emission: '2024-01-01',
         statut: 'BROUILLON',
+        montant_debours: 0,
+        provisions_recues: 0,
         objet: 'Première facture',
       })
 
@@ -189,6 +195,8 @@ describe('Actions Factures', () => {
         taux_tva: 19,
         date_emission: '2024-01-01',
         statut: 'BROUILLON',
+        montant_debours: 0,
+        provisions_recues: 0,
         objet: 'Facture 43',
       })
 
@@ -258,6 +266,8 @@ describe('Actions Factures', () => {
         taux_tva: 19,
         date_emission: '2024-01-01',
         statut: 'BROUILLON',
+        montant_debours: 0,
+        provisions_recues: 0,
         objet: 'Test',
       })
 
@@ -277,6 +287,8 @@ describe('Actions Factures', () => {
         taux_tva: 19,
         date_emission: '2024-01-01',
         statut: 'BROUILLON',
+        montant_debours: 0,
+        provisions_recues: 0,
         objet: 'Test',
       })
 
@@ -296,6 +308,8 @@ describe('Actions Factures', () => {
         taux_tva: 19,
         date_emission: '2024-01-01',
         statut: 'BROUILLON',
+        montant_debours: 0,
+        provisions_recues: 0,
         objet: 'Test',
       })
 
