@@ -5,7 +5,7 @@
 
 import { db } from '@/lib/db/postgres'
 import { sendEmail, isBrevoConfigured } from '@/lib/email/brevo-client'
-import { renderToStaticMarkup } from 'react-dom/server'
+import { render } from '@react-email/render'
 import {
   DailyDigestEmailTemplate,
   DailyDigestEmailText,
@@ -332,9 +332,7 @@ async function sendDigestToUser(
     }
 
     // Générer HTML et texte
-    const htmlContent = renderToStaticMarkup(
-      DailyDigestEmailTemplate(templateProps)
-    )
+    const htmlContent = await render(DailyDigestEmailTemplate(templateProps))
     const textContent = DailyDigestEmailText(templateProps)
 
     // Envoyer via Brevo
