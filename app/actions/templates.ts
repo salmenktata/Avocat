@@ -62,9 +62,16 @@ export async function createTemplateAction(formData: TemplateFormData) {
   }
 
   const userId = session.user.id
+  const userRole = session.user.role || 'user'
+  const isAdmin = userRole === 'admin' || userRole === 'super_admin'
 
   // Valider les données
   const validatedData = templateSchema.parse(formData)
+
+  // Seuls les admins peuvent créer des templates publics
+  if (validatedData.est_public && !isAdmin) {
+    return { error: 'Seuls les administrateurs peuvent créer des templates publics' }
+  }
 
   // Extraire les variables du contenu (recherche {{variable}})
   const variablesFromContent = extractVariables(validatedData.contenu)
@@ -98,9 +105,16 @@ export async function updateTemplateAction(id: string, formData: TemplateFormDat
   }
 
   const userId = session.user.id
+  const userRole = session.user.role || 'user'
+  const isAdmin = userRole === 'admin' || userRole === 'super_admin'
 
   // Valider les données
   const validatedData = templateSchema.parse(formData)
+
+  // Seuls les admins peuvent modifier un template pour le rendre public
+  if (validatedData.est_public && !isAdmin) {
+    return { error: 'Seuls les administrateurs peuvent créer des templates publics' }
+  }
 
   // Extraire les variables du contenu
   const variablesFromContent = extractVariables(validatedData.contenu)
@@ -254,6 +268,18 @@ export async function duplicateTemplateAction(id: string) {
 
   revalidatePath('/templates')
   return { template: result.rows[0] }
+}
+
+/**
+ * Vérifier si l'utilisateur actuel est admin
+ */
+export async function isUserAdminAction(): Promise<boolean> {
+  const session = await getSession()
+  if (!session?.user?.id) {
+    return false
+  }
+  const userRole = session.user.role || 'user'
+  return userRole === 'admin' || userRole === 'super_admin'
 }
 
 /**

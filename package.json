@@ -31,7 +31,11 @@
     "clean": "rm -rf .next",
     "restart": "npm run stop && npm run clean && npm run dev",
     "health": "curl -s http://localhost:7002/api/health | jq . || echo 'Serveur non accessible'",
-    "monitor": "./scripts/dev-monitor.sh"
+    "monitor": "./scripts/dev-monitor.sh",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",
@@ -87,6 +91,7 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@types/bcryptjs": "^2.4.6",

@@ -361,7 +361,12 @@
     "totalUsages": "إجمالي الاستخدامات",
     "createFirstTemplateShort": "إنشاء نموذجي الأول",
     "filterByLanguage": "تصفية حسب اللغة",
-    "allLanguages": "الكل"
+    "allLanguages": "الكل",
+    "customizeTemplate": "تخصيص النموذج",
+    "copyInfo": {
+      "title": "نسخة شخصية",
+      "description": "سيتم نسخ هذا النموذج العام إلى نماذجك الشخصية. تعديلاتك ستكون مرئية لك فقط."
+    }
   },
   "home": {
     "title": "مون كابينات",
@@ -544,7 +549,8 @@
       "dossierNumberVar": "رقم الملف",
       "savingWithEmoji": "جاري الحفظ...",
       "updateWithEmoji": "تحديث",
-      "createTemplateWithEmoji": "إنشاء النموذج"
+      "createTemplateWithEmoji": "إنشاء النموذج",
+      "createCopyWithEmoji": "📋 إنشاء نسختي"
     },
     "validation": {
       "required": "هذا الحقل مطلوب",

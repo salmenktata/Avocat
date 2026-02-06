@@ -5,21 +5,26 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { createTemplateAction, updateTemplateAction } from '@/app/actions/templates'
+import { createTemplateAction, updateTemplateAction, isUserAdminAction } from '@/app/actions/templates'
 import { templateSchema, type TemplateFormData, TYPE_DOCUMENT_LABELS, LANGUE_LABELS } from '@/lib/validations/template'
 
 interface TemplateFormProps {
   initialData?: Partial<TemplateFormData>
   templateId?: string
+  /** Si true, crée une copie personnelle au lieu de modifier */
+  isPublicCopy?: boolean
+  /** ID du template original (pour copie) */
+  originalTemplateId?: string
 }
 
-export default function TemplateForm({ initialData, templateId }: TemplateFormProps) {
+export default function TemplateForm({ initialData, templateId, isPublicCopy, originalTemplateId }: TemplateFormProps) {
   const router = useRouter()
   const t = useTranslations('forms')
   const tErrors = useTranslations('errors')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [variables, setVariables] = useState<string[]>([])
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const {
     register,
@@ -56,6 +61,11 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
     return [...new Set(vars)]
   }
 
+  // Vérifier si l'utilisateur est admin au chargement
+  useEffect(() => {
+    isUserAdminAction().then(setIsAdmin)
+  }, [])
+
   // Mettre à jour les variables quand le contenu change (via watch)
   useEffect(() => {
     if (contenu) {
@@ -74,9 +84,16 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
     setLoading(true)
     setError('')
 
-    const result = templateId
-      ? await updateTemplateAction(templateId, data)
-      : await createTemplateAction(data)
+    // Si c'est une copie d'un template public, toujours créer un nouveau template
+    const shouldCreate = isPublicCopy || !templateId
+
+    const result = shouldCreate
+      ? await createTemplateAction({
+          ...data,
+          // Pour une copie, forcer est_public à false
+          est_public: isPublicCopy ? false : data.est_public
+        })
+      : await updateTemplateAction(templateId, data)
 
     if (result.error) {
       setError(result.error)
@@ -267,18 +284,20 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
         )}
       </div>
 
-      {/* Template public */}
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          {...register('est_public')}
-          id="est_public"
-          className="h-4 w-4 rounded border text-blue-600 focus:ring-blue-500"
-        />
-        <label htmlFor="est_public" className="text-sm text-foreground">
-          {t('labels.makePublic')}
-        </label>
-      </div>
+      {/* Template public - uniquement visible pour les admins */}
+      {isAdmin && (
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            {...register('est_public')}
+            id="est_public"
+            className="h-4 w-4 rounded border text-blue-600 focus:ring-blue-500"
+          />
+          <label htmlFor="est_public" className="text-sm text-foreground">
+            {t('labels.makePublic')}
+          </label>
+        </div>
+      )}
 
       {/* Message d'erreur */}
       {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">{error}</div>}
@@ -290,7 +309,7 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
           disabled={loading}
           className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {loading ? t('helpers.savingWithEmoji') : templateId ? t('helpers.updateWithEmoji') : t('helpers.createTemplateWithEmoji')}
+          {loading ? t('helpers.savingWithEmoji') : isPublicCopy ? t('helpers.createCopyWithEmoji') : templateId ? t('helpers.updateWithEmoji') : t('helpers.createTemplateWithEmoji')}
         </button>
 
         <button

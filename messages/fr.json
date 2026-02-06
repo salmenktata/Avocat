@@ -75,7 +75,11 @@
     "loginError": "Email ou mot de passe incorrect",
     "registerError": "Erreur lors de la création du compte",
     "passwordMismatch": "Les mots de passe ne correspondent pas",
-    "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères"
+    "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères",
+    "emailPlaceholder": "votre@email.com",
+    "passwordPlaceholder": "••••••••",
+    "firstNamePlaceholder": "Votre prénom",
+    "lastNamePlaceholder": "Votre nom"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -361,7 +365,12 @@
     "totalUsages": "Utilisations totales",
     "createFirstTemplateShort": "Créer mon premier template",
     "filterByLanguage": "Filtrer par langue",
-    "allLanguages": "Toutes"
+    "allLanguages": "Toutes",
+    "customizeTemplate": "Personnaliser le template",
+    "copyInfo": {
+      "title": "Copie personnelle",
+      "description": "Ce template public sera copié dans vos modèles personnels. Vos modifications ne seront visibles que par vous."
+    }
   },
   "home": {
     "title": "MonCabinet",
@@ -544,7 +553,8 @@
       "dossierNumberVar": "N° Dossier",
       "savingWithEmoji": "Enregistrement...",
       "updateWithEmoji": "Mettre à jour",
-      "createTemplateWithEmoji": "Créer le template"
+      "createTemplateWithEmoji": "Créer le template",
+      "createCopyWithEmoji": "📋 Créer ma copie"
     },
     "validation": {
       "required": "Ce champ est requis",
