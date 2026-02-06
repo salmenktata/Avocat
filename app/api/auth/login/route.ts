@@ -14,6 +14,7 @@ export const dynamic = 'force-dynamic'
 import { authenticateUser, SessionUser } from '@/lib/auth/session'
 import { loginLimiter, getClientIP, getRateLimitHeaders } from '@/lib/rate-limiter'
 import { createLogger } from '@/lib/logger'
+import { logLogin, logLoginFailed } from '@/lib/audit/activity-logger'
 
 const log = createLogger('Auth:Login')
 
@@ -71,6 +72,9 @@ export async function POST(request: NextRequest) {
     if (result.error || !result.user) {
       log.info('Échec connexion', { email, ip: clientIP, errorCode: result.error })
 
+      // Log INPDP - tentative de connexion échouée
+      logLoginFailed(email).catch(() => {})
+
       // Gérer les différents codes d'erreur
       const statusCode = result.error === 'PENDING_APPROVAL' ? 403 :
                          result.error === 'ACCOUNT_SUSPENDED' ? 403 :
@@ -92,6 +96,9 @@ export async function POST(request: NextRequest) {
     // Reset le rate limiter pour cette IP
     loginLimiter.reset(clientIP)
     log.info('Connexion réussie', { email, ip: clientIP })
+
+    // Log INPDP - connexion réussie
+    logLogin(result.user.id, result.user.email).catch(() => {})
 
     // Créer la réponse avec le cookie défini directement
     const response = NextResponse.json({

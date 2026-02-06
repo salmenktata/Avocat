@@ -4,6 +4,7 @@ import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { clientSchema, type ClientFormData } from '@/lib/validations/client'
 import { revalidatePath } from 'next/cache'
+import { logClientAccess } from '@/lib/audit/activity-logger'
 
 interface ClientData {
   user_id: string
@@ -78,7 +79,18 @@ export async function createClientAction(formData: ClientFormData) {
     )
 
     revalidatePath('/clients')
-    return { success: true, data: result.rows[0] }
+
+    // Log INPDP - création de données personnelles
+    const client = result.rows[0]
+    logClientAccess(
+      session.user.id,
+      session.user.email,
+      'client_create',
+      client.id,
+      client.nom || client.raison_sociale || 'Client'
+    ).catch(() => {})
+
+    return { success: true, data: client }
   } catch (error) {
     console.error('Erreur création client:', error)
     return { error: 'Erreur lors de la création du client' }
@@ -154,7 +166,18 @@ export async function updateClientAction(id: string, formData: ClientFormData) {
 
     revalidatePath('/clients')
     revalidatePath(`/clients/${id}`)
-    return { success: true, data: result.rows[0] }
+
+    // Log INPDP - modification de données personnelles
+    const client = result.rows[0]
+    logClientAccess(
+      session.user.id,
+      session.user.email,
+      'client_update',
+      client.id,
+      client.nom || client.raison_sociale || 'Client'
+    ).catch(() => {})
+
+    return { success: true, data: client }
   } catch (error) {
     console.error('Erreur mise à jour client:', error)
     return { error: 'Erreur lors de la mise à jour du client' }
@@ -182,15 +205,25 @@ export async function deleteClientAction(id: string) {
       }
     }
 
-    // Supprimer le client
+    // Supprimer le client (avec RETURNING pour le log)
     const result = await query(
-      'DELETE FROM clients WHERE id = $1 AND user_id = $2 RETURNING id',
+      'DELETE FROM clients WHERE id = $1 AND user_id = $2 RETURNING id, nom, raison_sociale',
       [id, session.user.id]
     )
 
     if (result.rows.length === 0) {
       return { error: 'Client non trouvé ou non autorisé' }
     }
+
+    // Log INPDP - suppression de données personnelles
+    const client = result.rows[0]
+    logClientAccess(
+      session.user.id,
+      session.user.email,
+      'client_delete',
+      client.id,
+      client.nom || client.raison_sociale || 'Client'
+    ).catch(() => {})
 
     revalidatePath('/clients')
     return { success: true }
