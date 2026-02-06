@@ -358,7 +358,9 @@
     "myTemplates": "Mes templates",
     "publicTemplates": "Templates publics",
     "totalUsages": "Utilisations totales",
-    "createFirstTemplateShort": "Créer mon premier template"
+    "createFirstTemplateShort": "Créer mon premier template",
+    "filterByLanguage": "Filtrer par langue",
+    "allLanguages": "Toutes"
   },
   "home": {
     "title": "MonCabinet",
@@ -446,7 +448,8 @@
       "insertVariable": "Insérer une variable",
       "templateContent": "Contenu du template",
       "templateContentRequired": "Contenu du template *",
-      "makePublic": "Rendre ce template public (visible par tous les utilisateurs)"
+      "makePublic": "Rendre ce template public (visible par tous les utilisateurs)",
+      "language": "Langue"
     },
     "placeholders": {
       "enterName": "Ben Ahmed",

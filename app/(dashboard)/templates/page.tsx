@@ -3,9 +3,14 @@ import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import TemplateCard from '@/components/templates/TemplateCard'
+import TemplateLanguageFilter from '@/components/templates/TemplateLanguageFilter'
 import { getTranslations } from 'next-intl/server'
 
-export default async function TemplatesPage() {
+interface TemplatesPageProps {
+  searchParams: { langue?: string }
+}
+
+export default async function TemplatesPage({ searchParams }: TemplatesPageProps) {
   const t = await getTranslations('templates')
   const session = await getSession()
 
@@ -13,21 +18,34 @@ export default async function TemplatesPage() {
     redirect('/login')
   }
 
+  // Filtre de langue
+  const langueFilter = searchParams.langue || 'all'
+
   // Récupérer tous les templates (propres + publics)
   const result = await query(
     'SELECT * FROM templates ORDER BY created_at DESC'
   )
-  const templates = result.rows
+  let templates = result.rows
+
+  // Appliquer le filtre de langue si spécifié
+  if (langueFilter !== 'all') {
+    templates = templates.filter((t: any) => t.langue === langueFilter)
+  }
 
   // Séparer mes templates des templates publics
-  const mesTemplates = templates?.filter((t) => t.user_id === session.user.id) || []
-  const templatesPublics = templates?.filter((t) => t.user_id !== session.user.id && t.est_public) || []
+  const mesTemplates = templates?.filter((t: any) => t.user_id === session.user.id) || []
+  const templatesPublics = templates?.filter((t: any) => t.user_id !== session.user.id && t.est_public) || []
 
-  // Statistiques
+  // Statistiques (sur tous les templates, pas filtrés)
+  const allTemplates = result.rows
   const stats = {
-    total: mesTemplates.length,
-    publics: mesTemplates.filter((t) => t.est_public).length,
-    utilisationsTotal: mesTemplates.reduce((acc, t) => acc + (t.nombre_utilisations || 0), 0),
+    total: allTemplates.filter((t: any) => t.user_id === session.user.id).length,
+    publics: allTemplates.filter((t: any) => t.user_id === session.user.id && t.est_public).length,
+    utilisationsTotal: allTemplates
+      .filter((t: any) => t.user_id === session.user.id)
+      .reduce((acc: number, t: any) => acc + (t.nombre_utilisations || 0), 0),
+    fr: allTemplates.filter((t: any) => t.langue === 'fr' || !t.langue).length,
+    ar: allTemplates.filter((t: any) => t.langue === 'ar').length,
   }
 
   return (
@@ -47,6 +65,19 @@ export default async function TemplatesPage() {
         >
           ➕ {t('newTemplate')}
         </Link>
+      </div>
+
+      {/* Filtre par langue */}
+      <div className="flex items-center justify-between">
+        <TemplateLanguageFilter currentFilter={langueFilter} />
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1">
+            🇫🇷 <strong>{stats.fr}</strong> FR
+          </span>
+          <span className="flex items-center gap-1">
+            🇹🇳 <strong>{stats.ar}</strong> عربي
+          </span>
+        </div>
       </div>
 
       {/* Statistiques */}

@@ -358,7 +358,9 @@
     "myTemplates": "نماذجي",
     "publicTemplates": "النماذج العامة",
     "totalUsages": "إجمالي الاستخدامات",
-    "createFirstTemplateShort": "إنشاء نموذجي الأول"
+    "createFirstTemplateShort": "إنشاء نموذجي الأول",
+    "filterByLanguage": "تصفية حسب اللغة",
+    "allLanguages": "الكل"
   },
   "home": {
     "title": "مون كابينات",
@@ -446,7 +448,8 @@
       "insertVariable": "إدراج متغير",
       "templateContent": "محتوى النموذج",
       "templateContentRequired": "محتوى النموذج *",
-      "makePublic": "جعل هذا النموذج عاماً (مرئي لجميع المستخدمين)"
+      "makePublic": "جعل هذا النموذج عاماً (مرئي لجميع المستخدمين)",
+      "language": "اللغة"
     },
     "placeholders": {
       "enterName": "بن أحمد",

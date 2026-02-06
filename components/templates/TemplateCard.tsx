@@ -73,6 +73,16 @@ export default function TemplateCard({ template }: TemplateCardProps) {
           {/* Titre */}
           <div className="flex items-start gap-2">
             <h3 className="font-semibold text-foreground text-lg truncate">{template.titre}</h3>
+            {/* Badge langue */}
+            <span
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                template.langue === 'ar'
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-blue-100 text-blue-700'
+              }`}
+            >
+              {template.langue === 'ar' ? 'عربي' : 'FR'}
+            </span>
             {template.est_public && (
               <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                 {t('public')}

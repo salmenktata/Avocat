@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { createTemplateAction, updateTemplateAction } from '@/app/actions/templates'
-import { templateSchema, type TemplateFormData, TYPE_DOCUMENT_LABELS } from '@/lib/validations/template'
+import { templateSchema, type TemplateFormData, TYPE_DOCUMENT_LABELS, LANGUE_LABELS } from '@/lib/validations/template'
 
 interface TemplateFormProps {
   initialData?: Partial<TemplateFormData>
@@ -32,6 +32,7 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
       titre: '',
       description: '',
       type_document: 'autre',
+      langue: 'fr',
       contenu: '',
       est_public: false,
     },
@@ -152,24 +153,45 @@ export default function TemplateForm({ initialData, templateId }: TemplateFormPr
         )}
       </div>
 
-      {/* Type de document */}
-      <div>
-        <label htmlFor="type_document" className="block text-sm font-medium text-foreground">
-          {t('labels.documentTypeRequired')}
-        </label>
-        <select
-          {...register('type_document')}
-          className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-        >
-          {Object.entries(TYPE_DOCUMENT_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        {errors.type_document && (
-          <p className="mt-1 text-sm text-red-600">{errors.type_document.message}</p>
-        )}
+      {/* Type de document et Langue */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="type_document" className="block text-sm font-medium text-foreground">
+            {t('labels.documentTypeRequired')}
+          </label>
+          <select
+            {...register('type_document')}
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          >
+            {Object.entries(TYPE_DOCUMENT_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          {errors.type_document && (
+            <p className="mt-1 text-sm text-red-600">{errors.type_document.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="langue" className="block text-sm font-medium text-foreground">
+            {t('labels.language')} *
+          </label>
+          <select
+            {...register('langue')}
+            className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          >
+            {Object.entries(LANGUE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {value === 'fr' ? '🇫🇷' : '🇹🇳'} {label}
+              </option>
+            ))}
+          </select>
+          {errors.langue && (
+            <p className="mt-1 text-sm text-red-600">{errors.langue.message}</p>
+          )}
+        </div>
       </div>
 
       {/* Variables rapides */}

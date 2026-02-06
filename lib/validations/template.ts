@@ -17,10 +17,19 @@ export const templateSchema = z.object({
   ], {
     errorMap: () => ({ message: 'Type de document invalide' }),
   }),
+  langue: z.enum(['fr', 'ar'], {
+    errorMap: () => ({ message: 'Langue invalide' }),
+  }).default('fr'),
   contenu: z.string().min(10, 'Le contenu doit contenir au moins 10 caractères'),
   variables: z.array(z.string()).default([]),
   est_public: z.boolean().default(false),
 })
+
+// Labels pour les langues
+export const LANGUE_LABELS: Record<string, string> = {
+  fr: 'Français',
+  ar: 'العربية',
+}
 
 export type TemplateFormData = z.infer<typeof templateSchema>
 
