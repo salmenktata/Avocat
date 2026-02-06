@@ -26,32 +26,43 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import { Icons } from '@/lib/icons'
 import { createDossierAction, updateDossierAction } from '@/app/actions/dossiers'
 import { WORKFLOWS_DISPONIBLES, getWorkflowById } from '@/lib/workflows/workflows-config'
+import DossierCommercialForm from './DossierCommercialForm'
+import DossierDivorceForm from './DossierDivorceForm'
 
 // Schéma de validation Zod
 const dossierFormSchema = z.object({
   client_id: z.string().min(1, 'Le client est obligatoire'),
   numero: z.string().min(1, 'Le numéro de dossier est obligatoire'),
-  type_procedure: z.string().min(1, 'Le type de procédure est obligatoire'),
+  type_procedure: z.enum([
+    'civil_premiere_instance',
+    'divorce',
+    'commercial',
+    'refere',
+    'autre'
+  ], {
+    required_error: 'Le type de procédure est requis',
+  }),
   objet: z.string().min(3, 'L\'objet doit contenir au moins 3 caractères'),
-  description: z.string().optional(),
   partie_adverse: z.string().optional(),
   avocat_adverse: z.string().optional(),
   tribunal: z.string().optional(),
   numero_rg: z.string().optional(),
   date_ouverture: z.string().optional(),
   montant_litige: z.number().optional(),
-  statut: z.enum(['actif', 'clos', 'archive']),
-  workflow_etape_actuelle: z.string().min(1, 'L\'étape du workflow est obligatoire'),
+  statut: z.enum(['ACTIF', 'CLOS', 'ARCHIVE']),
+  workflow_etape_actuelle: z.string().optional(),
   notes: z.string().optional(),
 })
 
 type DossierFormValues = z.infer<typeof dossierFormSchema>
 
 interface DossierFormAdvancedProps {
-  initialData?: Partial<DossierFormValues>
+  initialData?: Partial<DossierFormValues> & { id?: string }
   isEditing?: boolean
   clients: Array<{
     id: string
@@ -71,7 +82,7 @@ export function DossierFormAdvanced({
   onSubmit: customOnSubmit,
 }: DossierFormAdvancedProps) {
   const router = useRouter()
-  const t = useTranslations('forms')
+  const _t = useTranslations('forms')
   const tErrors = useTranslations('errors')
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState('')
@@ -83,14 +94,13 @@ export function DossierFormAdvanced({
       numero: '',
       type_procedure: 'civil_premiere_instance',
       objet: '',
-      description: '',
       partie_adverse: '',
       avocat_adverse: '',
       tribunal: '',
       numero_rg: '',
       date_ouverture: '',
       montant_litige: undefined,
-      statut: 'actif',
+      statut: 'ACTIF',
       workflow_etape_actuelle: 'ASSIGNATION',
       notes: '',
       ...initialData,
@@ -118,8 +128,8 @@ export function DossierFormAdvanced({
       if (customOnSubmit) {
         await customOnSubmit(data)
       } else {
-        const result = isEditing && initialData?.id
-          ? await updateDossierAction(initialData.id as string, data)
+        const result = isEditing && (initialData as any)?.id
+          ? await updateDossierAction((initialData as any).id, data)
           : await createDossierAction(data)
 
         if (result.error) {
@@ -265,17 +275,17 @@ export function DossierFormAdvanced({
           )}
         />
 
-        {/* Description */}
+        {/* Notes */}
         <FormField
           control={form.control}
-          name="description"
+          name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description détaillée</FormLabel>
+              <FormLabel>Notes</FormLabel>
               <FormControl>
                 <Textarea
                   {...field}
-                  placeholder="Décrivez les détails du dossier..."
+                  placeholder="Notes et informations complémentaires..."
                   rows={4}
                 />
               </FormControl>
@@ -300,7 +310,7 @@ export function DossierFormAdvanced({
                   <FormLabel>Partie adverse</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Icons.users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Icons.user className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input {...field} placeholder="Nom de la partie adverse" className="pl-10" />
                     </div>
                   </FormControl>
@@ -510,6 +520,53 @@ export function DossierFormAdvanced({
             </FormItem>
           )}
         />
+
+        {/* Section spécialisée selon type de procédure */}
+        {typeProcedure === 'commercial' && (
+          <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-950/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-purple-900 dark:text-purple-100">
+                <Icons.building className="h-5 w-5" />
+                Informations commerciales
+              </CardTitle>
+              <CardDescription>
+                Champs spécifiques aux litiges commerciaux (calcul intérêts, chèques, etc.)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DossierCommercialForm
+                register={form.register}
+                watch={form.watch}
+                errors={form.formState.errors}
+                setValue={form.setValue}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {typeProcedure === 'divorce' && (
+          <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
+                <Icons.user className="h-5 w-5" />
+                Informations divorce
+              </CardTitle>
+              <CardDescription>
+                Champs spécifiques aux procédures de divorce (pension, garde, conciliation)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DossierDivorceForm
+                register={form.register}
+                watch={form.watch}
+                errors={form.formState.errors}
+                setValue={form.setValue}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        <Separator />
 
         {/* Boutons d'action */}
         <div className="flex items-center gap-4">

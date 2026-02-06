@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import InteretsCalculator from './InteretsCalculator'
 import { TYPE_LITIGE_LABELS, TypeLitigeCommercial } from '@/lib/utils/calculs-commerciaux'
 

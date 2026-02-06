@@ -8,6 +8,8 @@ import { useTranslations } from 'next-intl'
 import { dossierSchema, type DossierFormData } from '@/lib/validations/dossier'
 import { createDossierAction, updateDossierAction } from '@/app/actions/dossiers'
 import { WORKFLOWS_DISPONIBLES, getWorkflowById } from '@/lib/workflows/workflows-config'
+import DossierCommercialForm from './DossierCommercialForm'
+import DossierDivorceForm from './DossierDivorceForm'
 
 interface DossierFormProps {
   initialData?: any
@@ -181,13 +183,13 @@ export default function DossierForm({
           {t('labels.description')}
         </label>
         <textarea
-          {...register('description')}
+          {...register('notes')}
           rows={4}
           className="mt-1 block w-full rounded-md border border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           placeholder={t('placeholders.detailedDescription')}
         />
-        {errors.description && (
-          <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+        {errors.notes && (
+          <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>
         )}
       </div>
 
@@ -316,6 +318,41 @@ export default function DossierForm({
           placeholder={t('placeholders.privateNotes')}
         />
       </div>
+
+      {/* Section spécialisée selon type de procédure */}
+      {typeProcedure === 'commercial' && (
+        <div className="rounded-lg border-2 border-purple-200 bg-purple-50 dark:bg-purple-950/20 p-6">
+          <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-4 flex items-center gap-2">
+            <span>💼</span> Informations commerciales
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Champs spécifiques aux litiges commerciaux (calcul intérêts, chèques, registre commerce)
+          </p>
+          <DossierCommercialForm
+            register={register}
+            watch={watch}
+            errors={errors}
+            setValue={setValue}
+          />
+        </div>
+      )}
+
+      {typeProcedure === 'divorce' && (
+        <div className="rounded-lg border-2 border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-6">
+          <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100 mb-4 flex items-center gap-2">
+            <span>👨‍👩‍👧</span> Informations divorce
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Champs spécifiques aux procédures de divorce (pension compensatoire, garde, conciliation)
+          </p>
+          <DossierDivorceForm
+            register={register}
+            watch={watch}
+            errors={errors}
+            setValue={setValue}
+          />
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-4">
