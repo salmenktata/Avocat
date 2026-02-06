@@ -122,8 +122,17 @@ export function validateAIConfig(): {
 
   // Vérifier les clés API (seulement si RAG est activé)
   if (aiConfig.rag.enabled) {
-    if (!aiConfig.anthropic.apiKey) {
-      errors.push('ANTHROPIC_API_KEY manquant - Chat IA désactivé')
+    // Vérifier qu'au moins un LLM est disponible (Groq prioritaire)
+    const hasGroq = !!aiConfig.groq.apiKey
+    const hasAnthropic = !!aiConfig.anthropic.apiKey
+    const hasOpenAIChat = !!aiConfig.openai.apiKey
+
+    if (!hasGroq && !hasAnthropic && !hasOpenAIChat) {
+      errors.push('Aucun LLM disponible - Configurez GROQ_API_KEY, ANTHROPIC_API_KEY ou OPENAI_API_KEY')
+    } else if (hasGroq) {
+      warnings.push(`Groq LLM activé (${aiConfig.groq.model}) - Rapide et économique`)
+    } else if (hasAnthropic) {
+      warnings.push(`Anthropic Claude activé (${aiConfig.anthropic.model})`)
     }
 
     // Vérifier qu'au moins un provider d'embeddings est disponible
@@ -171,13 +180,12 @@ export function validateAIConfig(): {
 
 /**
  * Vérifie si les fonctionnalités IA sont disponibles
+ * Priorité: Groq > Anthropic > OpenAI
  */
 export function isAIEnabled(): boolean {
-  return (
-    aiConfig.rag.enabled &&
-    !!aiConfig.anthropic.apiKey &&
-    !!aiConfig.openai.apiKey
-  )
+  const hasLLM = !!aiConfig.groq.apiKey || !!aiConfig.anthropic.apiKey || !!aiConfig.openai.apiKey
+  const hasEmbeddings = aiConfig.ollama.enabled || !!aiConfig.openai.apiKey
+  return aiConfig.rag.enabled && hasLLM && hasEmbeddings
 }
 
 /**

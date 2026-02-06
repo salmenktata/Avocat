@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { sendDailyDigestNotifications } from '@/lib/notifications/daily-digest-service'
-import { isBrevoConfigured } from '@/lib/email/brevo-client'
+import { getEmailProvidersStatus } from '@/lib/email/email-service'
 import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit'
 
 export const dynamic = 'force-dynamic'
@@ -29,10 +29,11 @@ export async function POST() {
       )
     }
 
-    // Vérifier config Brevo
-    if (!isBrevoConfigured()) {
+    // Vérifier config email (Resend ou Brevo)
+    const emailStatus = getEmailProvidersStatus()
+    if (!emailStatus.primary) {
       return NextResponse.json(
-        { error: 'BREVO_API_KEY non configuré' },
+        { error: 'Aucun provider email configuré (RESEND_API_KEY ou BREVO_API_KEY)' },
         { status: 500 }
       )
     }

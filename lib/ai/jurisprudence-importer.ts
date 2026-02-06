@@ -9,17 +9,19 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { db } from '@/lib/db/postgres'
 import { extractTextFromPDF } from './document-parser'
 import { generateEmbedding, formatEmbeddingForPostgres } from './embeddings-service'
 import { chunkText } from './chunking-service'
-import { aiConfig, SYSTEM_PROMPTS, isChatEnabled } from './config'
+import { aiConfig, SYSTEM_PROMPTS, isChatEnabled, getChatProvider } from './config'
 
 // =============================================================================
-// CLIENT ANTHROPIC
+// CLIENTS LLM (Groq prioritaire)
 // =============================================================================
 
 let anthropicClient: Anthropic | null = null
+let groqClient: OpenAI | null = null
 
 function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
@@ -29,6 +31,56 @@ function getAnthropicClient(): Anthropic {
     anthropicClient = new Anthropic({ apiKey: aiConfig.anthropic.apiKey })
   }
   return anthropicClient
+}
+
+function getGroqClient(): OpenAI {
+  if (!groqClient) {
+    if (!aiConfig.groq.apiKey) {
+      throw new Error('GROQ_API_KEY non configuré')
+    }
+    groqClient = new OpenAI({
+      apiKey: aiConfig.groq.apiKey,
+      baseURL: aiConfig.groq.baseUrl,
+    })
+  }
+  return groqClient
+}
+
+/**
+ * Appelle le LLM configuré (Groq prioritaire, puis Anthropic)
+ */
+async function callLLM(
+  systemPrompt: string,
+  userPrompt: string,
+  options: { maxTokens?: number; temperature?: number } = {}
+): Promise<string> {
+  const provider = getChatProvider()
+  const maxTokens = options.maxTokens || 1500
+  const temperature = options.temperature || 0.1
+
+  if (provider === 'groq') {
+    const client = getGroqClient()
+    const response = await client.chat.completions.create({
+      model: aiConfig.groq.model,
+      max_tokens: maxTokens,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature,
+    })
+    return response.choices[0]?.message?.content || ''
+  } else {
+    const client = getAnthropicClient()
+    const response = await client.messages.create({
+      model: aiConfig.anthropic.model,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+      temperature,
+    })
+    return response.content[0].type === 'text' ? response.content[0].text : ''
+  }
 }
 
 // =============================================================================
@@ -64,10 +116,8 @@ export async function extractJurisprudenceMetadata(
   text: string
 ): Promise<JurisprudenceMetadata> {
   if (!isChatEnabled()) {
-    throw new Error('Extraction IA désactivée (ANTHROPIC_API_KEY manquant)')
+    throw new Error('Extraction IA désactivée (configurer GROQ_API_KEY ou ANTHROPIC_API_KEY)')
   }
-
-  const client = getAnthropicClient()
 
   // Limiter le texte pour l'extraction (début du document contient généralement les métadonnées)
   const truncatedText = text.substring(0, 10000)
@@ -99,16 +149,10 @@ Réponds UNIQUEMENT en JSON valide avec ce format exact:
   "summary": "..."
 }`
 
-  const response = await client.messages.create({
-    model: aiConfig.anthropic.model,
-    max_tokens: 1500,
-    system: SYSTEM_PROMPTS.jurisprudenceExtraction,
-    messages: [{ role: 'user', content: prompt }],
+  const responseText = await callLLM(SYSTEM_PROMPTS.jurisprudenceExtraction, prompt, {
+    maxTokens: 1500,
     temperature: 0.1,
   })
-
-  const responseText =
-    response.content[0].type === 'text' ? response.content[0].text : ''
 
   try {
     // Extraire le JSON de la réponse

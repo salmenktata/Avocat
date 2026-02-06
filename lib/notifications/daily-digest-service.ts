@@ -4,7 +4,7 @@
  */
 
 import { db } from '@/lib/db/postgres'
-import { sendEmail, isBrevoConfigured } from '@/lib/email/brevo-client'
+import { sendEmail, getEmailProvidersStatus } from '@/lib/email/email-service'
 import { render } from '@react-email/render'
 import {
   DailyDigestEmailTemplate,
@@ -345,8 +345,8 @@ async function sendDigestToUser(
     const result = await sendEmail({
       to: user.email,
       subject,
-      htmlContent: user.email_format === 'html' ? htmlContent : textContent,
-      textContent,
+      html: user.email_format === 'html' ? htmlContent : textContent,
+      text: textContent,
       tags: ['daily-digest', 'notifications'],
     })
 
@@ -410,9 +410,10 @@ export async function sendDailyDigestNotifications(): Promise<DigestStats> {
   const startTime = Date.now()
   const errors: string[] = []
 
-  // Vérifier la configuration Brevo
-  if (!isBrevoConfigured()) {
-    throw new Error('BREVO_API_KEY non configuré')
+  // Vérifier la configuration email (Resend ou Brevo)
+  const emailStatus = getEmailProvidersStatus()
+  if (!emailStatus.primary) {
+    throw new Error('Aucun provider email configuré (RESEND_API_KEY ou BREVO_API_KEY)')
   }
 
   console.log('[DailyDigest] Démarrage envoi notifications quotidiennes...')

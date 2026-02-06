@@ -118,17 +118,16 @@ export async function POST(request: NextRequest) {
 
     const user = userResult.rows[0]
 
-    // 6. Créer le profil associé
+    // 6. Créer le profil associé (profil cabinet minimal)
     await query(
       `INSERT INTO profiles (
-        id,
+        user_id,
         email,
-        nom,
-        prenom,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, NOW(), NOW())`,
-      [user.id, user.email, user.nom, user.prenom]
+      ) VALUES ($1, $2, NOW(), NOW())
+      ON CONFLICT (user_id) DO NOTHING`,
+      [user.id, user.email]
     )
 
     log.info('Nouvel utilisateur créé', { email: user.email, id: user.id })
@@ -143,7 +142,6 @@ export async function POST(request: NextRequest) {
 
     if (!emailResult.success) {
       log.warn('Échec envoi email vérification', { email: user.email, error: emailResult.error })
-      // On continue quand même - l'utilisateur pourra redemander l'email
     } else {
       log.info('Email de vérification envoyé', { email: user.email })
     }
@@ -153,6 +151,7 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         requiresApproval: true,
+        emailSent: emailResult.success,
         message: 'Compte créé avec succès. Votre demande est en attente d\'approbation.',
         user: {
           id: user.id,

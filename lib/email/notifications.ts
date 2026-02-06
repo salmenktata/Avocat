@@ -3,7 +3,7 @@
  * Fonctions d'envoi de notifications aux avocats
  */
 
-import { sendEmail } from './resend-client'
+import { sendEmail } from './email-service'
 import {
   templateDocumentAutoAttached,
   templateDocumentPendingClassification,

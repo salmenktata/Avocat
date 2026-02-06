@@ -3,7 +3,9 @@
  * Envoyé lors de l'inscription pour confirmer l'email
  */
 
-import { sendEmail, type SendEmailResult } from '../resend-client'
+import { sendEmail, type EmailResult } from '../email-service'
+
+type SendEmailResult = EmailResult
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'MonCabinet'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:7002'

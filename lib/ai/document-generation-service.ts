@@ -8,15 +8,17 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { db } from '@/lib/db/postgres'
 import { generateEmbedding, formatEmbeddingForPostgres } from './embeddings-service'
-import { aiConfig, SYSTEM_PROMPTS, isChatEnabled } from './config'
+import { aiConfig, SYSTEM_PROMPTS, isChatEnabled, getChatProvider } from './config'
 
 // =============================================================================
-// CLIENT ANTHROPIC
+// CLIENTS LLM (Groq prioritaire)
 // =============================================================================
 
 let anthropicClient: Anthropic | null = null
+let groqClient: OpenAI | null = null
 
 function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
@@ -26,6 +28,64 @@ function getAnthropicClient(): Anthropic {
     anthropicClient = new Anthropic({ apiKey: aiConfig.anthropic.apiKey })
   }
   return anthropicClient
+}
+
+function getGroqClient(): OpenAI {
+  if (!groqClient) {
+    if (!aiConfig.groq.apiKey) {
+      throw new Error('GROQ_API_KEY non configuré')
+    }
+    groqClient = new OpenAI({
+      apiKey: aiConfig.groq.apiKey,
+      baseURL: aiConfig.groq.baseUrl,
+    })
+  }
+  return groqClient
+}
+
+/**
+ * Appelle le LLM configuré (Groq prioritaire, puis Anthropic)
+ */
+async function callLLM(
+  systemPrompt: string,
+  userPrompt: string,
+  options: { maxTokens?: number; temperature?: number } = {}
+): Promise<{ text: string; inputTokens: number; outputTokens: number }> {
+  const provider = getChatProvider()
+  const maxTokens = options.maxTokens || 2000
+  const temperature = options.temperature || 0.3
+
+  if (provider === 'groq') {
+    const client = getGroqClient()
+    const response = await client.chat.completions.create({
+      model: aiConfig.groq.model,
+      max_tokens: maxTokens,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature,
+    })
+    return {
+      text: response.choices[0]?.message?.content || '',
+      inputTokens: response.usage?.prompt_tokens || 0,
+      outputTokens: response.usage?.completion_tokens || 0,
+    }
+  } else {
+    const client = getAnthropicClient()
+    const response = await client.messages.create({
+      model: aiConfig.anthropic.model,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+      temperature,
+    })
+    return {
+      text: response.content[0].type === 'text' ? response.content[0].text : '',
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    }
+  }
 }
 
 // =============================================================================
@@ -178,10 +238,8 @@ export async function generateFieldSuggestions(
   context: DocumentContext
 ): Promise<DocumentSuggestions> {
   if (!isChatEnabled()) {
-    throw new Error('Génération IA désactivée (ANTHROPIC_API_KEY manquant)')
+    throw new Error('Génération IA désactivée (configurer GROQ_API_KEY ou ANTHROPIC_API_KEY)')
   }
-
-  const client = getAnthropicClient()
 
   // Récupérer le template
   const templateResult = await db.query(
@@ -251,16 +309,12 @@ Réponds en JSON avec le format:
   ]
 }`
 
-  const response = await client.messages.create({
-    model: aiConfig.anthropic.model,
-    max_tokens: 2000,
-    system: SYSTEM_PROMPTS.documentGeneration,
-    messages: [{ role: 'user', content: prompt }],
+  const response = await callLLM(SYSTEM_PROMPTS.documentGeneration, prompt, {
+    maxTokens: 2000,
     temperature: 0.3,
   })
 
-  const responseText =
-    response.content[0].type === 'text' ? response.content[0].text : ''
+  const responseText = response.text
 
   // Parser la réponse JSON
   let suggestions: GenerationSuggestion[] = []
@@ -286,8 +340,8 @@ Réponds en JSON avec le format:
   return {
     suggestions,
     tokensUsed: {
-      input: response.usage.input_tokens,
-      output: response.usage.output_tokens,
+      input: response.inputTokens,
+      output: response.outputTokens,
     },
   }
 }
@@ -303,8 +357,6 @@ export async function generateTextSuggestion(
   if (!isChatEnabled()) {
     throw new Error('Génération IA désactivée')
   }
-
-  const client = getAnthropicClient()
 
   // Récupérer le contexte
   let dossierContext: Record<string, any> = {}
@@ -335,22 +387,16 @@ INSTRUCTIONS:
 
 Rédige directement le texte sans introduction.`
 
-  const response = await client.messages.create({
-    model: aiConfig.anthropic.model,
-    max_tokens: 1500,
-    system: SYSTEM_PROMPTS.documentGeneration,
-    messages: [{ role: 'user', content: prompt }],
+  const response = await callLLM(SYSTEM_PROMPTS.documentGeneration, prompt, {
+    maxTokens: 1500,
     temperature: 0.4,
   })
 
-  const text =
-    response.content[0].type === 'text' ? response.content[0].text : ''
-
   return {
-    text,
+    text: response.text,
     tokensUsed: {
-      input: response.usage.input_tokens,
-      output: response.usage.output_tokens,
+      input: response.inputTokens,
+      output: response.outputTokens,
     },
   }
 }
@@ -370,8 +416,6 @@ export async function validateAndSuggestCorrections(
   if (!isChatEnabled()) {
     throw new Error('Validation IA désactivée')
   }
-
-  const client = getAnthropicClient()
 
   const prompt = `Analyse ce texte juridique tunisien et propose des corrections si nécessaire.
 
@@ -398,21 +442,15 @@ Réponds en JSON:
   ]
 }`
 
-  const response = await client.messages.create({
-    model: aiConfig.anthropic.model,
-    max_tokens: 1500,
-    system: SYSTEM_PROMPTS.documentGeneration,
-    messages: [{ role: 'user', content: prompt }],
+  const response = await callLLM(SYSTEM_PROMPTS.documentGeneration, prompt, {
+    maxTokens: 1500,
     temperature: 0.2,
   })
-
-  const responseText =
-    response.content[0].type === 'text' ? response.content[0].text : ''
 
   let result = { isValid: true, corrections: [] as any[] }
 
   try {
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    const jsonMatch = response.text.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       result = JSON.parse(jsonMatch[0])
     }
@@ -423,8 +461,8 @@ Réponds en JSON:
   return {
     ...result,
     tokensUsed: {
-      input: response.usage.input_tokens,
-      output: response.usage.output_tokens,
+      input: response.inputTokens,
+      output: response.outputTokens,
     },
   }
 }

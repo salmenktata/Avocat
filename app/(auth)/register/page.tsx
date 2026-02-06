@@ -78,34 +78,12 @@ export default function RegisterPage() {
         return
       }
 
-      // Compte créé avec succès
-      // Vérifier si l'approbation est requise
-      if (data.requiresApproval) {
-        // Rediriger vers la page d'attente d'approbation
-        router.push('/pending-approval')
-        return
-      }
-
-      // Si pas d'approbation requise (mode legacy), tenter la connexion
-      const loginRes = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      })
-
-      const loginData = await loginRes.json()
-
-      if (!loginData.success) {
-        // Compte créé mais connexion échouée - rediriger vers login
-        router.push('/login?registered=true')
-        return
-      }
-
-      // Succès total - rediriger vers le dashboard
-      window.location.href = '/dashboard'
+      // Compte créé avec succès - rediriger vers la page d'attente d'approbation
+      // Ajouter un paramètre si l'email n'a pas pu être envoyé
+      const redirectUrl = data.emailSent === false
+        ? '/pending-approval?emailFailed=true'
+        : '/pending-approval'
+      router.push(redirectUrl)
     } catch (error: any) {
       console.error('Erreur registration:', error)
       setError('Une erreur est survenue. Veuillez réessayer.')

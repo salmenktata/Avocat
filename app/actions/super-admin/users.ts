@@ -3,7 +3,7 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
-import { sendEmail } from '@/lib/email/resend-client'
+import { sendEmail } from '@/lib/email/email-service'
 
 // =============================================================================
 // VÉRIFICATION SUPER ADMIN

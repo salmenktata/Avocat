@@ -8,16 +8,18 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { db } from '@/lib/db/postgres'
 import { extractText } from './document-parser'
 import { generateEmbedding, formatEmbeddingForPostgres } from './embeddings-service'
-import { aiConfig, SYSTEM_PROMPTS, isChatEnabled } from './config'
+import { aiConfig, SYSTEM_PROMPTS, isChatEnabled, getChatProvider } from './config'
 
 // =============================================================================
-// CLIENT ANTHROPIC
+// CLIENTS LLM (Groq prioritaire)
 // =============================================================================
 
 let anthropicClient: Anthropic | null = null
+let groqClient: OpenAI | null = null
 
 function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
@@ -27,6 +29,19 @@ function getAnthropicClient(): Anthropic {
     anthropicClient = new Anthropic({ apiKey: aiConfig.anthropic.apiKey })
   }
   return anthropicClient
+}
+
+function getGroqClient(): OpenAI {
+  if (!groqClient) {
+    if (!aiConfig.groq.apiKey) {
+      throw new Error('GROQ_API_KEY non configuré')
+    }
+    groqClient = new OpenAI({
+      apiKey: aiConfig.groq.apiKey,
+      baseURL: aiConfig.groq.baseUrl,
+    })
+  }
+  return groqClient
 }
 
 // =============================================================================
@@ -97,9 +112,9 @@ export async function classifyDocument(
     throw new Error('Texte insuffisant pour classification')
   }
 
-  const client = getAnthropicClient()
+  const provider = getChatProvider()
 
-  // 2. Classifier et extraire via Claude
+  // 2. Classifier et extraire via LLM
   const truncatedText = text.substring(0, 8000)
 
   const prompt = `Analyse ce document juridique et extrait les informations.
@@ -126,16 +141,31 @@ Réponds en JSON avec ce format:
   }
 }`
 
-  const response = await client.messages.create({
-    model: aiConfig.anthropic.model,
-    max_tokens: 2000,
-    system: SYSTEM_PROMPTS.documentClassification,
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.1,
-  })
+  let responseText: string
 
-  const responseText =
-    response.content[0].type === 'text' ? response.content[0].text : ''
+  if (provider === 'groq') {
+    const client = getGroqClient()
+    const response = await client.chat.completions.create({
+      model: aiConfig.groq.model,
+      max_tokens: 2000,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPTS.documentClassification },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.1,
+    })
+    responseText = response.choices[0]?.message?.content || ''
+  } else {
+    const client = getAnthropicClient()
+    const response = await client.messages.create({
+      model: aiConfig.anthropic.model,
+      max_tokens: 2000,
+      system: SYSTEM_PROMPTS.documentClassification,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
+    })
+    responseText = response.content[0].type === 'text' ? response.content[0].text : ''
+  }
 
   let classification: Partial<DocumentClassification>
 

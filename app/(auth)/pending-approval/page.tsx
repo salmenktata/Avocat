@@ -1,12 +1,14 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 
 export default function PendingApprovalPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const emailFailed = searchParams.get('emailFailed') === 'true'
 
   const handleLogout = async () => {
     try {
@@ -30,6 +32,21 @@ export default function PendingApprovalPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {emailFailed && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <Icons.alertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+                <div className="text-sm text-amber-800 dark:text-amber-400">
+                  <p className="font-medium">Email de vérification non envoyé</p>
+                  <p className="mt-1">
+                    Nous n'avons pas pu envoyer l'email de vérification. Vous pourrez le renvoyer
+                    depuis la page de connexion une fois votre compte approuvé.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="text-center space-y-4">
             <p className="text-muted-foreground">
               Votre demande d'inscription a bien été enregistrée et est actuellement
