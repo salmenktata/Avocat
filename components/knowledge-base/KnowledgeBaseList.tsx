@@ -27,6 +27,12 @@ export type KnowledgeBaseCategory =
   | 'doctrine'
   | 'modele'
   | 'autre'
+  // Nouvelles catégories
+  | 'legislation'
+  | 'modeles'
+  | 'procedures'
+  | 'jort'
+  | 'formulaires'
 
 export type KnowledgeBaseLanguage = 'ar' | 'fr'
 
@@ -76,6 +82,32 @@ const CATEGORY_CONFIG: Record<
     label: 'Autre',
     icon: FileQuestion,
     color: 'text-gray-600 bg-gray-100',
+  },
+  // Nouvelles catégories
+  legislation: {
+    label: 'Législation',
+    icon: Scale,
+    color: 'text-blue-600 bg-blue-100',
+  },
+  modeles: {
+    label: 'Modèles',
+    icon: FileCode,
+    color: 'text-orange-600 bg-orange-100',
+  },
+  procedures: {
+    label: 'Procédures',
+    icon: FileText,
+    color: 'text-cyan-600 bg-cyan-100',
+  },
+  jort: {
+    label: 'JORT',
+    icon: FileText,
+    color: 'text-red-600 bg-red-100',
+  },
+  formulaires: {
+    label: 'Formulaires',
+    icon: FileCode,
+    color: 'text-yellow-600 bg-yellow-100',
   },
 }
 

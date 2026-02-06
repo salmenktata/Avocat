@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Icons } from '@/lib/icons'
 import { useToast } from '@/lib/hooks/use-toast'
 import {
@@ -18,18 +19,31 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   indexKnowledgeDocumentAction,
-  deleteKnowledgeDocumentAction
+  deleteKnowledgeDocumentAction,
+  bulkKnowledgeDocumentAction
 } from '@/app/actions/knowledge-base'
+import { CategoryBadge } from './CategorySelector'
+import { TagsList } from './TagsInput'
 
 interface Document {
   id: string
   title: string
   description: string
   category: string
+  subcategory?: string | null
   language: string
+  tags?: string[]
   is_indexed: boolean
   chunk_count: number
+  version?: number
   file_name: string
   file_type: string
   uploaded_by_email: string
@@ -41,6 +55,7 @@ interface KnowledgeBaseListProps {
   currentPage: number
   totalPages: number
   category: string
+  subcategory?: string
   indexed: string
   search: string
 }
@@ -50,6 +65,7 @@ export function KnowledgeBaseList({
   currentPage,
   totalPages,
   category,
+  subcategory = '',
   indexed,
   search
 }: KnowledgeBaseListProps) {
@@ -57,6 +73,8 @@ export function KnowledgeBaseList({
   const { toast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading] = useState(false)
 
   const handleIndex = async (id: string) => {
     setLoading(id)
@@ -117,19 +135,54 @@ export function KnowledgeBaseList({
     }
   }
 
-  const getCategoryBadge = (cat: string) => {
-    const colors: Record<string, string> = {
-      jurisprudence: 'bg-purple-500/20 text-purple-500 border-purple-500/30',
-      code: 'bg-blue-500/20 text-blue-500 border-blue-500/30',
-      doctrine: 'bg-green-500/20 text-green-500 border-green-500/30',
-      modele: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30',
-      autre: 'bg-slate-500/20 text-slate-400 border-slate-500/30'
+  // Actions groupées
+  const handleBulkAction = async (action: 'delete' | 'index') => {
+    if (selectedIds.size === 0) return
+
+    setBulkLoading(true)
+    try {
+      const result = await bulkKnowledgeDocumentAction(action, Array.from(selectedIds))
+      if (result.error) {
+        toast({
+          title: 'Erreur',
+          description: result.error,
+          variant: 'destructive'
+        })
+      } else {
+        toast({
+          title: 'Action effectuée',
+          description: `${result.summary?.succeeded}/${result.summary?.total} documents traités`
+        })
+        setSelectedIds(new Set())
+        router.refresh()
+      }
+    } catch {
+      toast({
+        title: 'Erreur',
+        description: 'Erreur lors de l\'action groupée',
+        variant: 'destructive'
+      })
+    } finally {
+      setBulkLoading(false)
     }
-    return (
-      <Badge className={colors[cat] || colors.autre}>
-        {cat}
-      </Badge>
-    )
+  }
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === documents.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(documents.map(d => d.id)))
+    }
   }
 
   if (documents.length === 0) {
@@ -141,41 +194,144 @@ export function KnowledgeBaseList({
     )
   }
 
+  const buildUrl = (params: Record<string, string | number>) => {
+    const base = '/super-admin/knowledge-base'
+    const searchParams = new URLSearchParams()
+    if (category) searchParams.set('category', category)
+    if (subcategory) searchParams.set('subcategory', subcategory)
+    if (indexed) searchParams.set('indexed', indexed)
+    if (search) searchParams.set('search', search)
+    Object.entries(params).forEach(([key, val]) => {
+      if (val) searchParams.set(key, String(val))
+    })
+    return `${base}?${searchParams.toString()}`
+  }
+
   return (
     <>
+      {/* Actions groupées */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 mb-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+          <span className="text-sm text-blue-300">
+            {selectedIds.size} document(s) sélectionné(s)
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBulkAction('index')}
+              disabled={bulkLoading}
+              className="border-blue-500/30 text-blue-400"
+            >
+              {bulkLoading ? (
+                <Icons.loader className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Icons.zap className="h-4 w-4 mr-1" />
+                  Indexer
+                </>
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleBulkAction('delete')}
+              disabled={bulkLoading}
+              className="border-red-500/30 text-red-400"
+            >
+              <Icons.trash className="h-4 w-4 mr-1" />
+              Supprimer
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedIds(new Set())}
+              className="text-slate-400"
+            >
+              Annuler
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* En-tête avec sélection globale */}
+      <div className="flex items-center gap-3 mb-3 px-2">
+        <Checkbox
+          checked={selectedIds.size === documents.length && documents.length > 0}
+          onCheckedChange={toggleSelectAll}
+          className="border-slate-500"
+        />
+        <span className="text-sm text-slate-400">
+          {documents.length} document(s)
+        </span>
+      </div>
+
       <div className="space-y-3">
         {documents.map((doc) => (
           <div
             key={doc.id}
-            className="flex items-start gap-4 p-4 rounded-lg bg-slate-700/50 hover:bg-slate-700/70 transition"
+            className={`flex items-start gap-4 p-4 rounded-lg transition ${
+              selectedIds.has(doc.id)
+                ? 'bg-blue-500/10 border border-blue-500/30'
+                : 'bg-slate-700/50 hover:bg-slate-700/70'
+            }`}
           >
-            <div className="h-10 w-10 rounded-lg bg-slate-600 flex items-center justify-center shrink-0">
+            <Checkbox
+              checked={selectedIds.has(doc.id)}
+              onCheckedChange={() => toggleSelect(doc.id)}
+              className="mt-2 border-slate-500"
+            />
+
+            <Link
+              href={`/super-admin/knowledge-base/${doc.id}`}
+              className="h-10 w-10 rounded-lg bg-slate-600 flex items-center justify-center shrink-0 hover:bg-slate-500 transition"
+            >
               <Icons.fileText className="h-5 w-5 text-slate-300" />
-            </div>
+            </Link>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-medium text-white">{doc.title}</p>
-                {getCategoryBadge(doc.category)}
-                <Badge variant="outline" className="border-slate-600 text-slate-400">
-                  {doc.language === 'ar' ? 'Arabe' : 'Français'}
+                <Link
+                  href={`/super-admin/knowledge-base/${doc.id}`}
+                  className="font-medium text-white hover:text-blue-400 transition"
+                >
+                  {doc.title}
+                </Link>
+                {doc.version && doc.version > 1 && (
+                  <span className="text-xs text-slate-500 bg-slate-700 px-1.5 py-0.5 rounded">
+                    v{doc.version}
+                  </span>
+                )}
+                <CategoryBadge
+                  category={doc.category}
+                  subcategory={doc.subcategory}
+                  size="xs"
+                />
+                <Badge variant="outline" className="border-slate-600 text-slate-400 text-xs">
+                  {doc.language === 'ar' ? 'العربية' : 'FR'}
                 </Badge>
                 {doc.is_indexed ? (
-                  <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
                     <Icons.checkCircle className="h-3 w-3 mr-1" />
-                    Indexé ({doc.chunk_count} chunks)
+                    {doc.chunk_count} chunks
                   </Badge>
                 ) : (
-                  <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
+                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
                     Non indexé
                   </Badge>
                 )}
               </div>
 
               {doc.description && (
-                <p className="text-sm text-slate-400 mt-1 line-clamp-2">
+                <p className="text-sm text-slate-400 mt-1 line-clamp-1">
                   {doc.description}
                 </p>
+              )}
+
+              {doc.tags && doc.tags.length > 0 && (
+                <div className="mt-1.5">
+                  <TagsList tags={doc.tags.slice(0, 5)} size="xs" />
+                </div>
               )}
 
               <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
@@ -186,42 +342,80 @@ export function KnowledgeBaseList({
                   </span>
                 )}
                 <span>
-                  Ajouté le {new Date(doc.created_at).toLocaleDateString('fr-FR')}
+                  {new Date(doc.created_at).toLocaleDateString('fr-FR')}
                 </span>
                 {doc.uploaded_by_email && (
-                  <span>par {doc.uploaded_by_email}</span>
+                  <span>{doc.uploaded_by_email}</span>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
               {!doc.is_indexed && (
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => handleIndex(doc.id)}
                   disabled={loading === doc.id}
-                  className="border-blue-500/30 text-blue-500 hover:bg-blue-500/10"
+                  className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                  title="Indexer"
                 >
                   {loading === doc.id ? (
                     <Icons.loader className="h-4 w-4 animate-spin" />
                   ) : (
-                    <>
-                      <Icons.zap className="h-4 w-4 mr-1" />
-                      Indexer
-                    </>
+                    <Icons.zap className="h-4 w-4" />
                   )}
                 </Button>
               )}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setDeleteId(doc.id)}
-                disabled={loading === doc.id}
-                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-              >
-                <Icons.delete className="h-4 w-4" />
-              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-slate-400 hover:text-white"
+                  >
+                    <Icons.moreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href={`/super-admin/knowledge-base/${doc.id}`}
+                      className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+                    >
+                      <Icons.eye className="h-4 w-4 mr-2" />
+                      Voir détail
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href={`/super-admin/knowledge-base/${doc.id}/edit`}
+                      className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+                    >
+                      <Icons.edit className="h-4 w-4 mr-2" />
+                      Modifier
+                    </Link>
+                  </DropdownMenuItem>
+                  {!doc.is_indexed && (
+                    <DropdownMenuItem
+                      onClick={() => handleIndex(doc.id)}
+                      className="text-blue-400 hover:bg-slate-700 cursor-pointer"
+                    >
+                      <Icons.zap className="h-4 w-4 mr-2" />
+                      Indexer
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator className="bg-slate-700" />
+                  <DropdownMenuItem
+                    onClick={() => setDeleteId(doc.id)}
+                    className="text-red-400 hover:bg-red-500/10 cursor-pointer"
+                  >
+                    <Icons.trash className="h-4 w-4 mr-2" />
+                    Supprimer
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         ))}
@@ -230,9 +424,7 @@ export function KnowledgeBaseList({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6">
-          <Link
-            href={`/super-admin/knowledge-base?category=${category}&indexed=${indexed}&search=${search}&page=${Math.max(1, currentPage - 1)}`}
-          >
+          <Link href={buildUrl({ page: Math.max(1, currentPage - 1) })}>
             <Button
               variant="outline"
               size="sm"
@@ -247,9 +439,7 @@ export function KnowledgeBaseList({
             Page {currentPage} / {totalPages}
           </span>
 
-          <Link
-            href={`/super-admin/knowledge-base?category=${category}&indexed=${indexed}&search=${search}&page=${Math.min(totalPages, currentPage + 1)}`}
-          >
+          <Link href={buildUrl({ page: Math.min(totalPages, currentPage + 1) })}>
             <Button
               variant="outline"
               size="sm"

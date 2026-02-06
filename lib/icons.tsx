@@ -89,6 +89,8 @@ import {
   Folder,
   Code,
   HardDrive,
+  History,
+  Undo2,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -214,6 +216,11 @@ export const Icons = {
   hardDrive: HardDrive,
   trash: Trash2,
   spinner: Loader2,
+
+  // Additional icons
+  x: X,
+  history: History,
+  undo: Undo2,
 } as const
 
 export type IconName = keyof typeof Icons

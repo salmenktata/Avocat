@@ -38,19 +38,29 @@ export type KnowledgeBaseCategory =
   | 'doctrine'
   | 'modele'
   | 'autre'
+  // Nouvelles catégories
+  | 'legislation'
+  | 'modeles'
+  | 'procedures'
+  | 'jort'
+  | 'formulaires'
 
 export type KnowledgeBaseLanguage = 'ar' | 'fr'
 
 export interface KnowledgeBaseDocument {
   id: string
   category: KnowledgeBaseCategory
+  subcategory: string | null
   language: KnowledgeBaseLanguage
   title: string
   description: string | null
   metadata: Record<string, unknown>
+  tags: string[]
   sourceFile: string | null
   fullText: string | null
   isIndexed: boolean
+  isActive: boolean
+  version: number
   chunkCount?: number
   uploadedBy: string | null
   createdAt: Date
@@ -59,10 +69,12 @@ export interface KnowledgeBaseDocument {
 
 export interface KnowledgeBaseUploadInput {
   category: KnowledgeBaseCategory
+  subcategory?: string
   language: KnowledgeBaseLanguage
   title: string
   description?: string
   metadata?: Record<string, unknown>
+  tags?: string[]
   file?: {
     buffer: Buffer
     filename: string
@@ -70,6 +82,18 @@ export interface KnowledgeBaseUploadInput {
   }
   text?: string // Alternative: texte direct
   autoIndex?: boolean
+}
+
+export interface KnowledgeBaseVersion {
+  id: string
+  knowledgeBaseId: string
+  version: number
+  title: string
+  changeType: 'create' | 'update' | 'content_update' | 'file_replace' | 'restore'
+  changeReason: string | null
+  changedBy: string | null
+  changedByEmail?: string
+  changedAt: Date
 }
 
 export interface KnowledgeBaseSearchResult {
@@ -101,6 +125,12 @@ export const CATEGORY_LABELS: Record<KnowledgeBaseCategory, string> = {
   doctrine: 'Doctrine',
   modele: 'Modèle de document',
   autre: 'Autre',
+  // Nouvelles catégories
+  legislation: 'Législation',
+  modeles: 'Modèles',
+  procedures: 'Procédures',
+  jort: 'JORT',
+  formulaires: 'Formulaires',
 }
 
 const KNOWLEDGE_BASE_BUCKET = 'knowledge-base'
@@ -118,10 +148,12 @@ export async function uploadKnowledgeDocument(
 ): Promise<KnowledgeBaseDocument> {
   const {
     category,
+    subcategory,
     language,
     title,
     description,
     metadata = {},
+    tags = [],
     file,
     text,
     autoIndex = true,
@@ -164,15 +196,17 @@ export async function uploadKnowledgeDocument(
   // Insertion en base
   const result = await db.query(
     `INSERT INTO knowledge_base
-     (category, language, title, description, metadata, source_file, full_text, uploaded_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     (category, subcategory, language, title, description, metadata, tags, source_file, full_text, uploaded_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING *`,
     [
       category,
+      subcategory || null,
       language,
       title,
       description || null,
       JSON.stringify(metadata),
+      tags,
       sourceFile,
       fullText,
       uploadedBy,
@@ -180,6 +214,16 @@ export async function uploadKnowledgeDocument(
   )
 
   const doc = mapRowToKnowledgeBase(result.rows[0])
+
+  // Créer la version initiale
+  try {
+    await db.query(
+      `SELECT create_knowledge_base_version($1, $2, $3, $4)`,
+      [doc.id, uploadedBy, 'Version initiale', 'create']
+    )
+  } catch (error) {
+    console.error(`Erreur création version initiale pour ${doc.id}:`, error)
+  }
 
   // Auto-indexation si demandée et service disponible
   if (autoIndex && isSemanticSearchEnabled()) {
@@ -439,20 +483,27 @@ export async function searchKnowledgeBaseFulltext(
  */
 export async function listKnowledgeDocuments(options: {
   category?: KnowledgeBaseCategory
+  subcategory?: string
   isIndexed?: boolean
   search?: string
+  tags?: string[]
   limit?: number
   offset?: number
 }): Promise<{ documents: KnowledgeBaseDocument[]; total: number }> {
-  const { category, isIndexed, search, limit = 50, offset = 0 } = options
+  const { category, subcategory, isIndexed, search, tags, limit = 50, offset = 0 } = options
 
-  let whereClause = 'WHERE 1=1'
-  const params: (string | number | boolean)[] = []
+  let whereClause = 'WHERE kb.is_active = true'
+  const params: (string | number | boolean | string[])[] = []
   let paramIndex = 1
 
   if (category) {
     whereClause += ` AND kb.category = $${paramIndex++}`
     params.push(category)
+  }
+
+  if (subcategory) {
+    whereClause += ` AND kb.subcategory = $${paramIndex++}`
+    params.push(subcategory)
   }
 
   if (isIndexed !== undefined) {
@@ -467,6 +518,11 @@ export async function listKnowledgeDocuments(options: {
     )`
     params.push(`%${search}%`)
     paramIndex++
+  }
+
+  if (tags && tags.length > 0) {
+    whereClause += ` AND kb.tags && $${paramIndex++}`
+    params.push(tags)
   }
 
   // Compter le total
@@ -527,11 +583,14 @@ export async function updateKnowledgeDocument(
     title?: string
     description?: string
     category?: KnowledgeBaseCategory
+    subcategory?: string
     metadata?: Record<string, unknown>
+    tags?: string[]
+    language?: KnowledgeBaseLanguage
   }
 ): Promise<KnowledgeBaseDocument | null> {
   const setClauses: string[] = []
-  const params: (string | Record<string, unknown>)[] = []
+  const params: (string | Record<string, unknown> | string[])[] = []
   let paramIndex = 1
 
   if (updates.title !== undefined) {
@@ -549,9 +608,24 @@ export async function updateKnowledgeDocument(
     params.push(updates.category)
   }
 
+  if (updates.subcategory !== undefined) {
+    setClauses.push(`subcategory = $${paramIndex++}`)
+    params.push(updates.subcategory)
+  }
+
   if (updates.metadata !== undefined) {
     setClauses.push(`metadata = $${paramIndex++}`)
     params.push(JSON.stringify(updates.metadata))
+  }
+
+  if (updates.tags !== undefined) {
+    setClauses.push(`tags = $${paramIndex++}`)
+    params.push(updates.tags)
+  }
+
+  if (updates.language !== undefined) {
+    setClauses.push(`language = $${paramIndex++}`)
+    params.push(updates.language)
   }
 
   if (setClauses.length === 0) {
@@ -562,7 +636,7 @@ export async function updateKnowledgeDocument(
   params.push(documentId)
 
   const result = await db.query(
-    `UPDATE knowledge_base SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+    `UPDATE knowledge_base SET ${setClauses.join(', ')} WHERE id = $${paramIndex} AND is_active = true RETURNING *`,
     params
   )
 
@@ -647,16 +721,195 @@ function mapRowToKnowledgeBase(row: Record<string, unknown>): KnowledgeBaseDocum
   return {
     id: row.id as string,
     category: row.category as KnowledgeBaseCategory,
+    subcategory: (row.subcategory as string) || null,
     language: (row.language as KnowledgeBaseLanguage) || 'ar',
     title: row.title as string,
     description: row.description as string | null,
     metadata: (row.metadata as Record<string, unknown>) || {},
+    tags: (row.tags as string[]) || [],
     sourceFile: row.source_file as string | null,
     fullText: row.full_text as string | null,
     isIndexed: row.is_indexed as boolean,
+    isActive: row.is_active !== false,
+    version: (row.version as number) || 1,
     chunkCount: row.chunk_count ? parseInt(row.chunk_count as string) : undefined,
     uploadedBy: row.uploaded_by as string | null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
+  }
+}
+
+// =============================================================================
+// VERSIONING
+// =============================================================================
+
+/**
+ * Met à jour le contenu d'un document (nouveau fichier ou texte)
+ */
+export async function updateKnowledgeDocumentContent(
+  documentId: string,
+  data: {
+    file?: { buffer: Buffer; filename: string; mimeType: string }
+    text?: string
+    reindex?: boolean
+    changeReason?: string
+  },
+  changedBy: string
+): Promise<{
+  success: boolean
+  document?: KnowledgeBaseDocument
+  versionCreated?: number
+  error?: string
+}> {
+  const { file, text, reindex = true, changeReason } = data
+
+  if (!file && !text) {
+    return { success: false, error: 'Un fichier ou un texte est requis' }
+  }
+
+  // Vérifier que le document existe
+  const existingDoc = await getKnowledgeDocument(documentId)
+  if (!existingDoc) {
+    return { success: false, error: 'Document non trouvé' }
+  }
+
+  let fullText: string | null = null
+  let sourceFile: string | null = existingDoc.sourceFile
+  let changeType: 'content_update' | 'file_replace' = 'content_update'
+
+  // Traiter le fichier
+  if (file) {
+    const { extractText, isSupportedMimeType } = await getDocumentParser()
+
+    if (!isSupportedMimeType(file.mimeType)) {
+      return { success: false, error: `Type de fichier non supporté: ${file.mimeType}` }
+    }
+
+    // Supprimer l'ancien fichier si présent
+    if (existingDoc.sourceFile) {
+      try {
+        await deleteFile(existingDoc.sourceFile, KNOWLEDGE_BASE_BUCKET)
+      } catch (error) {
+        console.error(`Erreur suppression ancien fichier:`, error)
+      }
+    }
+
+    // Upload du nouveau fichier
+    const filePath = `${existingDoc.category}/${Date.now()}_${file.filename}`
+    const uploadResult = await uploadFile(
+      file.buffer,
+      filePath,
+      { category: existingDoc.category, title: existingDoc.title },
+      KNOWLEDGE_BASE_BUCKET
+    )
+    sourceFile = uploadResult.path
+
+    // Extraire le texte
+    const parseResult = await extractText(file.buffer, file.mimeType)
+    fullText = parseResult.text
+    changeType = 'file_replace'
+  } else if (text) {
+    fullText = text.trim()
+  }
+
+  if (!fullText || fullText.length < 50) {
+    return { success: false, error: 'Le contenu extrait est trop court (minimum 50 caractères)' }
+  }
+
+  // Créer une version de sauvegarde avant modification
+  const versionResult = await db.query(
+    `SELECT create_knowledge_base_version($1, $2, $3, $4) as version_id`,
+    [documentId, changedBy, changeReason || `Mise à jour du contenu`, changeType]
+  )
+
+  // Mettre à jour le document
+  const result = await db.query(
+    `UPDATE knowledge_base
+     SET full_text = $1, source_file = $2, is_indexed = false, updated_at = NOW()
+     WHERE id = $3 AND is_active = true
+     RETURNING *`,
+    [fullText, sourceFile, documentId]
+  )
+
+  if (result.rows.length === 0) {
+    return { success: false, error: 'Erreur lors de la mise à jour' }
+  }
+
+  const doc = mapRowToKnowledgeBase(result.rows[0])
+
+  // Ré-indexer si demandé
+  if (reindex && isSemanticSearchEnabled()) {
+    try {
+      await indexKnowledgeDocument(documentId)
+    } catch (error) {
+      console.error(`Erreur ré-indexation document ${documentId}:`, error)
+    }
+  }
+
+  return {
+    success: true,
+    document: await getKnowledgeDocument(documentId) || doc,
+    versionCreated: doc.version,
+  }
+}
+
+/**
+ * Récupère l'historique des versions d'un document
+ */
+export async function getKnowledgeDocumentVersions(
+  documentId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<KnowledgeBaseVersion[]> {
+  const { limit = 20, offset = 0 } = options || {}
+
+  const result = await db.query(
+    `SELECT * FROM get_knowledge_base_versions($1, $2, $3)`,
+    [documentId, limit, offset]
+  )
+
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    knowledgeBaseId: documentId,
+    version: row.version as number,
+    title: row.title as string,
+    changeType: row.change_type as KnowledgeBaseVersion['changeType'],
+    changeReason: row.change_reason as string | null,
+    changedBy: row.changed_by as string | null,
+    changedByEmail: row.changed_by_email as string | undefined,
+    changedAt: new Date(row.changed_at as string),
+  }))
+}
+
+/**
+ * Restaure une version antérieure d'un document
+ */
+export async function restoreKnowledgeDocumentVersion(
+  documentId: string,
+  versionId: string,
+  restoredBy: string,
+  reason?: string
+): Promise<{
+  success: boolean
+  document?: KnowledgeBaseDocument
+  error?: string
+}> {
+  try {
+    const result = await db.query(
+      `SELECT restore_knowledge_base_version($1, $2, $3, $4) as success`,
+      [documentId, versionId, restoredBy, reason || 'Restauration de version']
+    )
+
+    if (!result.rows[0]?.success) {
+      return { success: false, error: 'Échec de la restauration' }
+    }
+
+    const doc = await getKnowledgeDocument(documentId)
+    return { success: true, document: doc || undefined }
+  } catch (error) {
+    console.error('Erreur restauration version:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur lors de la restauration',
+    }
   }
 }

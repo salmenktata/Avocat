@@ -3,6 +3,7 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
+import type { KnowledgeCategory, KnowledgeSubcategory } from '@/lib/knowledge-base/categories'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse
 async function getKnowledgeBaseService() {
@@ -15,8 +16,16 @@ export type KnowledgeBaseCategory =
   | 'doctrine'
   | 'modele'
   | 'autre'
+  // Nouvelles catégories
+  | 'legislation'
+  | 'modeles'
+  | 'procedures'
+  | 'jort'
+  | 'formulaires'
 
 export type KnowledgeBaseLanguage = 'ar' | 'fr'
+
+export type { KnowledgeCategory, KnowledgeSubcategory }
 
 // =============================================================================
 // VÉRIFICATION ADMIN
@@ -78,9 +87,28 @@ export async function uploadKnowledgeDocumentAction(formData: FormData) {
       'doctrine',
       'modele',
       'autre',
+      // Nouvelles catégories
+      'legislation',
+      'modeles',
+      'procedures',
+      'jort',
+      'formulaires',
     ]
     if (!validCategories.includes(category)) {
       return { error: `Catégorie invalide` }
+    }
+
+    // Récupérer les nouveaux champs
+    const subcategory = formData.get('subcategory') as string | null
+    const tagsStr = formData.get('tags') as string | null
+    let tags: string[] = []
+    if (tagsStr) {
+      try {
+        tags = JSON.parse(tagsStr)
+      } catch {
+        // Si c'est une chaîne séparée par des virgules
+        tags = tagsStr.split(',').map((t) => t.trim()).filter(Boolean)
+      }
     }
 
     if (!file && !text) {
@@ -120,6 +148,8 @@ export async function uploadKnowledgeDocumentAction(formData: FormData) {
         file: fileData,
         text: text || undefined,
         autoIndex,
+        subcategory: subcategory || undefined,
+        tags,
       },
       authCheck.userId
     )
@@ -211,7 +241,10 @@ export async function updateKnowledgeDocumentAction(
     title?: string
     description?: string
     category?: KnowledgeBaseCategory
+    subcategory?: string
     metadata?: Record<string, unknown>
+    tags?: string[]
+    language?: 'ar' | 'fr'
   }
 ) {
   try {
@@ -265,8 +298,10 @@ export async function getKnowledgeBaseStatsAction() {
  */
 export async function listKnowledgeDocumentsAction(options: {
   category?: KnowledgeBaseCategory
+  subcategory?: string
   isIndexed?: boolean
   search?: string
+  tags?: string[]
   limit?: number
   offset?: number
 }) {
@@ -288,6 +323,267 @@ export async function listKnowledgeDocumentsAction(options: {
     console.error('Erreur liste:', error)
     return {
       error: error instanceof Error ? error.message : 'Erreur récupération liste',
+    }
+  }
+}
+
+// =============================================================================
+// NOUVELLES ACTIONS: VERSIONING ET MISE À JOUR CONTENU
+// =============================================================================
+
+/**
+ * Récupérer un document par ID
+ */
+export async function getKnowledgeDocumentAction(documentId: string) {
+  try {
+    const authCheck = await checkAdminAccess()
+    if ('error' in authCheck) {
+      return { error: authCheck.error }
+    }
+
+    const { getKnowledgeDocument } = await getKnowledgeBaseService()
+    const document = await getKnowledgeDocument(documentId)
+
+    if (!document) {
+      return { error: 'Document non trouvé' }
+    }
+
+    return { success: true, document }
+  } catch (error) {
+    console.error('Erreur récupération document:', error)
+    return {
+      error: error instanceof Error ? error.message : 'Erreur récupération document',
+    }
+  }
+}
+
+/**
+ * Mise à jour complète du contenu d'un document (nouveau fichier ou texte)
+ */
+export async function updateKnowledgeDocumentContentAction(
+  documentId: string,
+  formData: FormData
+) {
+  try {
+    const authCheck = await checkAdminAccess()
+    if ('error' in authCheck) {
+      return { error: authCheck.error }
+    }
+
+    const file = formData.get('file') as File | null
+    const text = formData.get('text') as string | null
+    const reindex = formData.get('reindex') !== 'false'
+    const changeReason = formData.get('changeReason') as string | null
+
+    if (!file && !text) {
+      return { error: 'Un fichier ou un texte est requis' }
+    }
+
+    // Préparer le fichier si présent
+    let fileData: { buffer: Buffer; filename: string; mimeType: string } | undefined
+    if (file) {
+      const arrayBuffer = await file.arrayBuffer()
+      fileData = {
+        buffer: Buffer.from(arrayBuffer),
+        filename: file.name,
+        mimeType: file.type || 'application/octet-stream',
+      }
+    }
+
+    const { updateKnowledgeDocumentContent } = await getKnowledgeBaseService()
+    const result = await updateKnowledgeDocumentContent(
+      documentId,
+      {
+        file: fileData,
+        text: text || undefined,
+        reindex,
+        changeReason: changeReason || undefined,
+      },
+      authCheck.userId
+    )
+
+    if (!result.success) {
+      return { error: result.error || 'Erreur mise à jour contenu' }
+    }
+
+    revalidatePath('/super-admin/knowledge-base')
+    revalidatePath(`/super-admin/knowledge-base/${documentId}`)
+
+    return {
+      success: true,
+      document: result.document,
+      versionCreated: result.versionCreated,
+    }
+  } catch (error) {
+    console.error('Erreur mise à jour contenu:', error)
+    return {
+      error: error instanceof Error ? error.message : 'Erreur mise à jour contenu',
+    }
+  }
+}
+
+/**
+ * Récupérer l'historique des versions d'un document
+ */
+export async function getKnowledgeDocumentVersionsAction(
+  documentId: string,
+  options?: { limit?: number; offset?: number }
+) {
+  try {
+    const authCheck = await checkAdminAccess()
+    if ('error' in authCheck) {
+      return { error: authCheck.error }
+    }
+
+    const { getKnowledgeDocumentVersions } = await getKnowledgeBaseService()
+    const versions = await getKnowledgeDocumentVersions(documentId, options)
+
+    return { success: true, versions }
+  } catch (error) {
+    console.error('Erreur récupération versions:', error)
+    return {
+      error: error instanceof Error ? error.message : 'Erreur récupération versions',
+    }
+  }
+}
+
+/**
+ * Restaurer une version antérieure d'un document
+ */
+export async function restoreKnowledgeDocumentVersionAction(
+  documentId: string,
+  versionId: string,
+  reason?: string
+) {
+  try {
+    const authCheck = await checkAdminAccess()
+    if ('error' in authCheck) {
+      return { error: authCheck.error }
+    }
+
+    const { restoreKnowledgeDocumentVersion } = await getKnowledgeBaseService()
+    const result = await restoreKnowledgeDocumentVersion(
+      documentId,
+      versionId,
+      authCheck.userId,
+      reason
+    )
+
+    if (!result.success) {
+      return { error: result.error || 'Erreur restauration' }
+    }
+
+    revalidatePath('/super-admin/knowledge-base')
+    revalidatePath(`/super-admin/knowledge-base/${documentId}`)
+
+    return { success: true, document: result.document }
+  } catch (error) {
+    console.error('Erreur restauration version:', error)
+    return {
+      error: error instanceof Error ? error.message : 'Erreur restauration',
+    }
+  }
+}
+
+/**
+ * Récupérer les catégories disponibles
+ */
+export async function getKnowledgeCategoriesAction() {
+  try {
+    const authCheck = await checkAdminAccess()
+    if ('error' in authCheck) {
+      return { error: authCheck.error }
+    }
+
+    const result = await query(`
+      SELECT id, parent_id, label_fr, label_ar, icon, sort_order
+      FROM knowledge_categories
+      ORDER BY sort_order, label_fr
+    `)
+
+    return { success: true, categories: result.rows }
+  } catch (error) {
+    console.error('Erreur récupération catégories:', error)
+    return {
+      error: error instanceof Error ? error.message : 'Erreur récupération catégories',
+    }
+  }
+}
+
+/**
+ * Actions groupées sur plusieurs documents
+ */
+export async function bulkKnowledgeDocumentAction(
+  action: 'delete' | 'index' | 'change_category',
+  documentIds: string[],
+  options?: { category?: KnowledgeBaseCategory; subcategory?: string }
+) {
+  try {
+    const authCheck = await checkAdminAccess()
+    if ('error' in authCheck) {
+      return { error: authCheck.error }
+    }
+
+    if (!documentIds.length) {
+      return { error: 'Aucun document sélectionné' }
+    }
+
+    const service = await getKnowledgeBaseService()
+    const results: { id: string; success: boolean; error?: string }[] = []
+
+    for (const id of documentIds) {
+      try {
+        switch (action) {
+          case 'delete': {
+            const deleted = await service.deleteKnowledgeDocument(id)
+            results.push({ id, success: deleted, error: deleted ? undefined : 'Non trouvé' })
+            break
+          }
+          case 'index': {
+            const result = await service.indexKnowledgeDocument(id)
+            results.push({ id, success: result.success, error: result.error })
+            break
+          }
+          case 'change_category': {
+            if (!options?.category) {
+              results.push({ id, success: false, error: 'Catégorie requise' })
+            } else {
+              const doc = await service.updateKnowledgeDocument(id, {
+                category: options.category,
+                subcategory: options.subcategory,
+              })
+              results.push({ id, success: !!doc, error: doc ? undefined : 'Non trouvé' })
+            }
+            break
+          }
+        }
+      } catch (err) {
+        results.push({
+          id,
+          success: false,
+          error: err instanceof Error ? err.message : 'Erreur',
+        })
+      }
+    }
+
+    revalidatePath('/super-admin/knowledge-base')
+
+    const successCount = results.filter((r) => r.success).length
+    const failCount = results.filter((r) => !r.success).length
+
+    return {
+      success: true,
+      results,
+      summary: {
+        total: documentIds.length,
+        succeeded: successCount,
+        failed: failCount,
+      },
+    }
+  } catch (error) {
+    console.error('Erreur action groupée:', error)
+    return {
+      error: error instanceof Error ? error.message : 'Erreur action groupée',
     }
   }
 }

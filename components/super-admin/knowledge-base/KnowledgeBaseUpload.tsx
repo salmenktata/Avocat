@@ -21,7 +21,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { uploadKnowledgeDocumentAction } from '@/app/actions/knowledge-base'
+import { CategorySelector } from './CategorySelector'
+import { TagsInput, SUGGESTED_TAGS } from './TagsInput'
+import { MetadataForm } from './MetadataForm'
+import type { KnowledgeCategory } from '@/lib/knowledge-base/categories'
 
 export function KnowledgeBaseUpload() {
   const router = useRouter()
@@ -30,12 +40,30 @@ export function KnowledgeBaseUpload() {
   const [loading, setLoading] = useState(false)
   const [file, setFile] = useState<File | null>(null)
 
+  // Nouveaux états pour les champs
+  const [category, setCategory] = useState<KnowledgeCategory>('legislation')
+  const [subcategory, setSubcategory] = useState<string | null>(null)
+  const [tags, setTags] = useState<string[]>([])
+  const [metadata, setMetadata] = useState<Record<string, unknown>>({})
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
 
     try {
       const formData = new FormData(e.currentTarget)
+
+      // Ajouter les champs supplémentaires
+      formData.set('category', category)
+      if (subcategory) {
+        formData.set('subcategory', subcategory)
+      }
+      if (tags.length > 0) {
+        formData.set('tags', JSON.stringify(tags))
+      }
+      if (Object.keys(metadata).length > 0) {
+        formData.set('metadata', JSON.stringify(metadata))
+      }
 
       if (file) {
         formData.set('file', file)
@@ -54,8 +82,13 @@ export function KnowledgeBaseUpload() {
           title: 'Document uploadé',
           description: `Le document "${result.document?.title}" a été ajouté.`
         })
+        // Reset form
         setIsOpen(false)
         setFile(null)
+        setCategory('legislation')
+        setSubcategory(null)
+        setTags([])
+        setMetadata({})
         router.refresh()
       }
     } catch {
@@ -91,7 +124,8 @@ export function KnowledgeBaseUpload() {
 
         <CollapsibleContent>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Section: Informations de base */}
               <div className="grid gap-4 md:grid-cols-2">
                 {/* Titre */}
                 <div>
@@ -99,26 +133,9 @@ export function KnowledgeBaseUpload() {
                   <Input
                     name="title"
                     required
-                    placeholder="Ex: Code Civil Tunisien"
+                    placeholder="Ex: Code des Obligations et Contrats"
                     className="mt-1 bg-slate-700 border-slate-600 text-white"
                   />
-                </div>
-
-                {/* Catégorie */}
-                <div>
-                  <Label className="text-slate-300">Catégorie *</Label>
-                  <Select name="category" required defaultValue="autre">
-                    <SelectTrigger className="mt-1 bg-slate-700 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="jurisprudence" className="text-white hover:bg-slate-700">Jurisprudence</SelectItem>
-                      <SelectItem value="code" className="text-white hover:bg-slate-700">Code</SelectItem>
-                      <SelectItem value="doctrine" className="text-white hover:bg-slate-700">Doctrine</SelectItem>
-                      <SelectItem value="modele" className="text-white hover:bg-slate-700">Modèle</SelectItem>
-                      <SelectItem value="autre" className="text-white hover:bg-slate-700">Autre</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 {/* Langue */}
@@ -129,26 +146,20 @@ export function KnowledgeBaseUpload() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="ar" className="text-white hover:bg-slate-700">Arabe</SelectItem>
+                      <SelectItem value="ar" className="text-white hover:bg-slate-700">العربية (Arabe)</SelectItem>
                       <SelectItem value="fr" className="text-white hover:bg-slate-700">Français</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
-                {/* Auto-indexation */}
-                <div>
-                  <Label className="text-slate-300">Indexation automatique</Label>
-                  <Select name="autoIndex" defaultValue="true">
-                    <SelectTrigger className="mt-1 bg-slate-700 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="true" className="text-white hover:bg-slate-700">Oui</SelectItem>
-                      <SelectItem value="false" className="text-white hover:bg-slate-700">Non</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
+
+              {/* Catégorie et sous-catégorie */}
+              <CategorySelector
+                category={category}
+                subcategory={subcategory}
+                onCategoryChange={setCategory}
+                onSubcategoryChange={setSubcategory}
+              />
 
               {/* Description */}
               <div>
@@ -157,8 +168,17 @@ export function KnowledgeBaseUpload() {
                   name="description"
                   placeholder="Description du document..."
                   className="mt-1 bg-slate-700 border-slate-600 text-white"
+                  rows={2}
                 />
               </div>
+
+              {/* Tags */}
+              <TagsInput
+                tags={tags}
+                onChange={setTags}
+                suggestions={SUGGESTED_TAGS}
+                placeholder="Ajouter des tags..."
+              />
 
               {/* Fichier ou texte */}
               <div className="grid gap-4 md:grid-cols-2">
@@ -171,7 +191,9 @@ export function KnowledgeBaseUpload() {
                     className="mt-1 bg-slate-700 border-slate-600 text-white file:bg-slate-600 file:text-white file:border-0"
                   />
                   {file && (
-                    <p className="text-xs text-slate-500 mt-1">{file.name}</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {file.name} ({(file.size / 1024).toFixed(1)} Ko)
+                    </p>
                   )}
                 </div>
 
@@ -185,7 +207,40 @@ export function KnowledgeBaseUpload() {
                 </div>
               </div>
 
-              <div className="flex gap-2 justify-end">
+              {/* Auto-indexation */}
+              <div>
+                <Label className="text-slate-300">Indexation automatique</Label>
+                <Select name="autoIndex" defaultValue="true">
+                  <SelectTrigger className="mt-1 bg-slate-700 border-slate-600 text-white w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-600">
+                    <SelectItem value="true" className="text-white hover:bg-slate-700">Oui (recommandé)</SelectItem>
+                    <SelectItem value="false" className="text-white hover:bg-slate-700">Non</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Métadonnées avancées (accordéon) */}
+              <Accordion type="single" collapsible>
+                <AccordionItem value="metadata" className="border-slate-700">
+                  <AccordionTrigger className="text-slate-300 hover:text-white">
+                    <span className="flex items-center gap-2">
+                      <Icons.settings className="h-4 w-4" />
+                      Métadonnées avancées ({category})
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                    <MetadataForm
+                      category={category}
+                      metadata={metadata}
+                      onChange={setMetadata}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              <div className="flex gap-2 justify-end pt-4 border-t border-slate-700">
                 <Button
                   type="button"
                   variant="ghost"
