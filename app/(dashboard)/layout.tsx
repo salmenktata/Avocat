@@ -16,12 +16,14 @@ export default async function DashboardLayout({
     redirect('/login')
   }
 
-  // Récupérer le profil
-  const result = await query(
-    'SELECT * FROM profiles WHERE id = $1',
-    [session.user.id]
-  )
-  const profile = result.rows[0]
+  // Récupérer le profil et le rôle
+  const [profileResult, userResult] = await Promise.all([
+    query('SELECT * FROM profiles WHERE id = $1', [session.user.id]),
+    query('SELECT role FROM users WHERE id = $1', [session.user.id])
+  ])
+
+  const profile = profileResult.rows[0]
+  const userRole = userResult.rows[0]?.role || 'user'
 
   return (
     <>
@@ -30,6 +32,7 @@ export default async function DashboardLayout({
           email: session.user.email!,
           nom: profile?.nom,
           prenom: profile?.prenom,
+          role: userRole,
         }}
       >
         {children}

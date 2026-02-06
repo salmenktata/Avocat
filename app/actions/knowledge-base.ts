@@ -29,7 +29,10 @@ async function checkAdminAccess(): Promise<{ userId: string } | { error: string 
   }
 
   const result = await query('SELECT role FROM users WHERE id = $1', [session.user.id])
-  if (result.rows[0]?.role !== 'admin') {
+  const role = result.rows[0]?.role
+
+  // Accepter admin ou super_admin
+  if (role !== 'admin' && role !== 'super_admin') {
     return { error: 'Accès réservé aux administrateurs' }
   }
 

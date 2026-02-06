@@ -42,6 +42,8 @@ export interface SessionUser {
   email: string
   name: string
   role?: string
+  status?: string
+  plan?: string
 }
 
 export interface Session {
@@ -177,42 +179,98 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 // =============================================================================
 
 /**
+ * Codes d'erreur d'authentification
+ */
+export type AuthErrorCode =
+  | 'INVALID_CREDENTIALS'
+  | 'PENDING_APPROVAL'
+  | 'ACCOUNT_SUSPENDED'
+  | 'ACCOUNT_REJECTED'
+
+export interface AuthResult {
+  user?: SessionUser
+  error?: AuthErrorCode
+  message?: string
+}
+
+/**
  * Authentifie un utilisateur avec email/mot de passe
- * Retourne l'utilisateur si les credentials sont valides, null sinon
+ * Retourne l'utilisateur si les credentials sont valides
+ * Vérifie également le status du compte
  */
 export async function authenticateUser(
   email: string,
   password: string
-): Promise<SessionUser | null> {
+): Promise<AuthResult> {
   try {
     const result = await query(
-      'SELECT id, email, password_hash, nom, prenom, role FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, nom, prenom, role, status, plan FROM users WHERE email = $1',
       [email.toLowerCase().trim()]
     )
 
     const user = result.rows[0]
     if (!user) {
       console.log('[Auth] Utilisateur non trouvé:', email)
-      return null
+      return { error: 'INVALID_CREDENTIALS', message: 'Email ou mot de passe incorrect' }
     }
 
     const isValid = await compare(password, user.password_hash)
     if (!isValid) {
       console.log('[Auth] Mot de passe invalide pour:', email)
-      return null
+      return { error: 'INVALID_CREDENTIALS', message: 'Email ou mot de passe incorrect' }
     }
+
+    // Vérifier le status du compte
+    const status = user.status || 'approved' // Par défaut approved pour compatibilité
+
+    if (status === 'pending') {
+      console.log('[Auth] Compte en attente:', email)
+      return {
+        error: 'PENDING_APPROVAL',
+        message: 'Votre compte est en attente d\'approbation'
+      }
+    }
+
+    if (status === 'suspended') {
+      console.log('[Auth] Compte suspendu:', email)
+      return {
+        error: 'ACCOUNT_SUSPENDED',
+        message: 'Votre compte a été suspendu. Contactez le support.'
+      }
+    }
+
+    if (status === 'rejected') {
+      console.log('[Auth] Compte rejeté:', email)
+      return {
+        error: 'ACCOUNT_REJECTED',
+        message: 'Votre demande d\'inscription a été refusée'
+      }
+    }
+
+    // Mettre à jour last_login_at et login_count
+    await query(
+      `UPDATE users SET
+        last_login_at = NOW(),
+        login_count = COALESCE(login_count, 0) + 1
+       WHERE id = $1`,
+      [user.id]
+    )
 
     console.log('[Auth] Connexion réussie:', email)
 
     return {
-      id: user.id,
-      email: user.email,
-      name: user.nom && user.prenom ? `${user.prenom} ${user.nom}` : user.email,
-      role: user.role || 'user',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.nom && user.prenom ? `${user.prenom} ${user.nom}` : user.email,
+        role: user.role || 'user',
+        status: status,
+        plan: user.plan || 'free',
+      }
     }
   } catch (error) {
     console.error('[Auth] Erreur authentification:', error)
-    return null
+    return { error: 'INVALID_CREDENTIALS', message: 'Erreur serveur' }
   }
 }
 
@@ -222,15 +280,19 @@ export async function authenticateUser(
 export async function loginUser(
   email: string,
   password: string
-): Promise<{ success: boolean; user?: SessionUser; error?: string }> {
-  const user = await authenticateUser(email, password)
+): Promise<{ success: boolean; user?: SessionUser; error?: string; errorCode?: AuthErrorCode }> {
+  const result = await authenticateUser(email, password)
 
-  if (!user) {
-    return { success: false, error: 'Email ou mot de passe incorrect' }
+  if (result.error || !result.user) {
+    return {
+      success: false,
+      error: result.message || 'Email ou mot de passe incorrect',
+      errorCode: result.error
+    }
   }
 
-  await setSessionCookie(user)
-  return { success: true, user }
+  await setSessionCookie(result.user)
+  return { success: true, user: result.user }
 }
 
 /**

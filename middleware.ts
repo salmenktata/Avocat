@@ -3,6 +3,7 @@
  *
  * Protège les routes définies dans le matcher.
  * Redirige vers /login si l'utilisateur n'est pas authentifié.
+ * Vérifie le rôle super_admin pour les routes /super-admin/*
  */
 
 import { NextResponse } from 'next/server'
@@ -20,19 +21,61 @@ const SECRET_KEY = new TextEncoder().encode(process.env.NEXTAUTH_SECRET)
 
 const COOKIE_NAME = 'auth_session'
 
+interface TokenPayload {
+  user: {
+    id: string
+    email: string
+    name: string
+    role?: string
+    status?: string
+    plan?: string
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value
+  const pathname = request.nextUrl.pathname
 
   // Pas de token = pas authentifié
   if (!token) {
     const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname)
+    loginUrl.searchParams.set('callbackUrl', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
   // Vérifier le token JWT
   try {
-    await jwtVerify(token, SECRET_KEY)
+    const { payload } = await jwtVerify(token, SECRET_KEY)
+    const tokenPayload = payload as unknown as TokenPayload
+    const user = tokenPayload.user
+
+    // Vérifier le status de l'utilisateur
+    if (user.status && user.status !== 'approved') {
+      // Autoriser l'accès à pending-approval
+      if (pathname === '/pending-approval') {
+        return NextResponse.next()
+      }
+
+      // Rediriger selon le status
+      if (user.status === 'pending') {
+        return NextResponse.redirect(new URL('/pending-approval', request.url))
+      }
+      if (user.status === 'suspended' || user.status === 'rejected') {
+        // Déconnecter l'utilisateur
+        const response = NextResponse.redirect(new URL('/login?error=account_suspended', request.url))
+        response.cookies.delete(COOKIE_NAME)
+        return response
+      }
+    }
+
+    // Vérifier le rôle pour les routes super-admin
+    if (pathname.startsWith('/super-admin')) {
+      if (user.role !== 'super_admin') {
+        // Rediriger vers le dashboard normal
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+    }
+
     return NextResponse.next()
   } catch {
     // Token invalide ou expiré
@@ -58,5 +101,7 @@ export const config = {
     '/profile/:path*',
     '/documents/:path*',
     '/time-tracking/:path*',
+    '/super-admin/:path*',
+    '/pending-approval',
   ],
 }

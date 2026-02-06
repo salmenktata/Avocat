@@ -50,10 +50,20 @@ export async function POST(request: NextRequest) {
     const result = await loginUser(email, password)
 
     if (!result.success) {
-      log.info('Échec connexion', { email, ip: clientIP })
+      log.info('Échec connexion', { email, ip: clientIP, errorCode: result.errorCode })
+
+      // Gérer les différents codes d'erreur
+      const statusCode = result.errorCode === 'PENDING_APPROVAL' ? 403 :
+                         result.errorCode === 'ACCOUNT_SUSPENDED' ? 403 :
+                         result.errorCode === 'ACCOUNT_REJECTED' ? 403 : 401
+
       return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 401, headers: getRateLimitHeaders(rateLimitResult) }
+        {
+          success: false,
+          error: result.error,
+          errorCode: result.errorCode
+        },
+        { status: statusCode, headers: getRateLimitHeaders(rateLimitResult) }
       )
     }
 

@@ -14,6 +14,7 @@ interface AppLayoutProps {
     email: string
     nom?: string
     prenom?: string
+    role?: string
   }
 }
 
@@ -72,7 +73,7 @@ function AppLayoutComponent({ children, user }: AppLayoutProps) {
     <div className="relative flex min-h-screen">
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <Sidebar collapsed={collapsed} onCollapse={toggleCollapse} />
+        <Sidebar collapsed={collapsed} onCollapse={toggleCollapse} userRole={user.role} />
       )}
 
       {/* Mobile Menu Button */}
@@ -90,7 +91,7 @@ function AppLayoutComponent({ children, user }: AppLayoutProps) {
       {/* Mobile Drawer */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="p-0 w-64">
-          <Sidebar collapsed={false} onCollapse={closeMobile} />
+          <Sidebar collapsed={false} onCollapse={closeMobile} userRole={user.role} />
         </SheetContent>
       </Sheet>
 

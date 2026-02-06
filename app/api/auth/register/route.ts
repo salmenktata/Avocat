@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const emailVerificationToken = crypto.randomBytes(32).toString('hex')
     const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
 
-    // 5. Créer l'utilisateur
+    // 5. Créer l'utilisateur avec status='pending' pour approbation
     const userResult = await query(
       `INSERT INTO users (
         email,
@@ -93,10 +93,14 @@ export async function POST(request: NextRequest) {
         email_verified,
         email_verification_token,
         email_verification_expires,
+        status,
+        is_approved,
+        role,
+        plan,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-      RETURNING id, email, nom, prenom, email_verified`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+      RETURNING id, email, nom, prenom, email_verified, status`,
       [
         validatedData.email.toLowerCase(),
         passwordHash,
@@ -105,6 +109,10 @@ export async function POST(request: NextRequest) {
         false,
         emailVerificationToken,
         emailVerificationExpires,
+        'pending',  // Nouveau: status pending par défaut
+        false,      // Nouveau: is_approved false
+        'user',     // Nouveau: role user par défaut
+        'free',     // Nouveau: plan free par défaut
       ]
     )
 
@@ -140,16 +148,18 @@ export async function POST(request: NextRequest) {
       log.info('Email de vérification envoyé', { email: user.email })
     }
 
-    // 8. Retourner succès
+    // 8. Retourner succès avec indication d'approbation requise
     return NextResponse.json(
       {
         success: true,
-        message: 'Compte créé avec succès. Veuillez vérifier votre email.',
+        requiresApproval: true,
+        message: 'Compte créé avec succès. Votre demande est en attente d\'approbation.',
         user: {
           id: user.id,
           email: user.email,
           nom: user.nom,
           prenom: user.prenom,
+          status: 'pending',
         },
       },
       { status: 201 }

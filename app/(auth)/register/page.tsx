@@ -78,7 +78,15 @@ export default function RegisterPage() {
         return
       }
 
-      // Compte créé avec succès - connexion automatique
+      // Compte créé avec succès
+      // Vérifier si l'approbation est requise
+      if (data.requiresApproval) {
+        // Rediriger vers la page d'attente d'approbation
+        router.push('/pending-approval')
+        return
+      }
+
+      // Si pas d'approbation requise (mode legacy), tenter la connexion
       const loginRes = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,10 +100,7 @@ export default function RegisterPage() {
 
       if (!loginData.success) {
         // Compte créé mais connexion échouée - rediriger vers login
-        setError('Compte créé avec succès ! Veuillez vous connecter.')
-        setTimeout(() => {
-          router.push('/login')
-        }, 2000)
+        router.push('/login?registered=true')
         return
       }
 

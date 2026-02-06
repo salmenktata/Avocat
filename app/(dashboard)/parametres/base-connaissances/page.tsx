@@ -13,9 +13,13 @@ export const metadata = {
   description: 'Gérer la base de connaissances juridique partagée',
 }
 
-async function checkAdminAccess(userId: string): Promise<boolean> {
+async function checkAdminAccess(userId: string): Promise<{ isAdmin: boolean; isSuperAdmin: boolean }> {
   const result = await query('SELECT role FROM users WHERE id = $1', [userId])
-  return result.rows[0]?.role === 'admin'
+  const role = result.rows[0]?.role
+  return {
+    isAdmin: role === 'admin' || role === 'super_admin',
+    isSuperAdmin: role === 'super_admin'
+  }
 }
 
 export default async function BaseConnaissancesPage() {
@@ -26,7 +30,14 @@ export default async function BaseConnaissancesPage() {
   }
 
   // Vérifier accès admin
-  const isAdmin = await checkAdminAccess(session.user.id)
+  const { isAdmin, isSuperAdmin } = await checkAdminAccess(session.user.id)
+
+  // Rediriger super_admin vers la page dédiée
+  if (isSuperAdmin) {
+    redirect('/super-admin/knowledge-base')
+  }
+
+  // Les utilisateurs normaux n'ont pas accès
   if (!isAdmin) {
     redirect('/dashboard')
   }

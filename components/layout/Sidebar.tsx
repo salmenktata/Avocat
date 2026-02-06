@@ -24,6 +24,7 @@ interface NavGroup {
 interface SidebarProps {
   collapsed: boolean
   onCollapse: () => void
+  userRole?: string
 }
 
 // Navigation statique - définie en dehors du composant
@@ -56,7 +57,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/assistant-ia', label: 'assistantIA', icon: 'zap' },
       { href: '/dossiers/assistant', label: 'modeRapide', icon: 'activity' },
-      { href: '/parametres/base-connaissances', label: 'knowledgeBase', icon: 'bookOpen' },
+      // Base de connaissances déplacée vers Super Admin
     ],
   },
   {
@@ -104,7 +105,7 @@ const NavLink = memo(function NavLink({ item, isActive, collapsed, label }: NavL
   )
 })
 
-function SidebarComponent({ collapsed, onCollapse }: SidebarProps) {
+function SidebarComponent({ collapsed, onCollapse, userRole }: SidebarProps) {
   const pathname = usePathname()
   const t = useTranslations('nav')
   const tGroups = useTranslations('navGroups')
@@ -183,7 +184,24 @@ function SidebarComponent({ collapsed, onCollapse }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t p-4">
+      <div className="border-t p-4 space-y-1">
+        {/* Lien Super Admin pour les super_admin */}
+        {userRole === 'super_admin' && (
+          <Link href="/super-admin/dashboard" prefetch={true}>
+            <div
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'bg-blue-600 text-white hover:bg-blue-700',
+                collapsed && 'justify-center'
+              )}
+              title={collapsed ? 'Super Admin' : undefined}
+            >
+              <Icons.shield className="h-5 w-5 shrink-0" />
+              {!collapsed && <span>Super Admin</span>}
+            </div>
+          </Link>
+        )}
+
         <Link href="/settings" prefetch={true}>
           <div
             className={cn(
