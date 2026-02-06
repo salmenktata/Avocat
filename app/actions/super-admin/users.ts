@@ -60,11 +60,26 @@ async function createAuditLog(
 // EMAILS TEMPLATES
 // =============================================================================
 
+/**
+ * Échappe les caractères HTML pour prévenir les injections XSS
+ */
+function escapeHtml(text: string): string {
+  const htmlEntities: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }
+  return text.replace(/[&<>"']/g, (char) => htmlEntities[char] || char)
+}
+
 function getApprovalEmailHtml(userName: string) {
+  const safeName = escapeHtml(userName)
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h1 style="color: #22c55e;">Bienvenue sur MonCabinet !</h1>
-      <p>Bonjour ${userName},</p>
+      <p>Bonjour ${safeName},</p>
       <p>Nous avons le plaisir de vous informer que votre demande d'inscription a été <strong>approuvée</strong>.</p>
       <p>Vous pouvez maintenant vous connecter et commencer à utiliser la plateforme.</p>
       <div style="margin: 30px 0;">
@@ -79,12 +94,14 @@ function getApprovalEmailHtml(userName: string) {
 }
 
 function getRejectionEmailHtml(userName: string, reason?: string) {
+  const safeName = escapeHtml(userName)
+  const safeReason = reason ? escapeHtml(reason) : ''
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h1 style="color: #ef4444;">Demande d'inscription refusée</h1>
-      <p>Bonjour ${userName},</p>
+      <p>Bonjour ${safeName},</p>
       <p>Nous sommes désolés de vous informer que votre demande d'inscription a été <strong>refusée</strong>.</p>
-      ${reason ? `<p><strong>Raison :</strong> ${reason}</p>` : ''}
+      ${safeReason ? `<p><strong>Raison :</strong> ${safeReason}</p>` : ''}
       <p>Si vous pensez qu'il s'agit d'une erreur, n'hésitez pas à nous contacter.</p>
       <p>Cordialement,<br>L'équipe MonCabinet</p>
     </div>
@@ -92,12 +109,14 @@ function getRejectionEmailHtml(userName: string, reason?: string) {
 }
 
 function getSuspensionEmailHtml(userName: string, reason?: string) {
+  const safeName = escapeHtml(userName)
+  const safeReason = reason ? escapeHtml(reason) : ''
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h1 style="color: #ef4444;">Compte suspendu</h1>
-      <p>Bonjour ${userName},</p>
+      <p>Bonjour ${safeName},</p>
       <p>Nous vous informons que votre compte a été <strong>suspendu</strong>.</p>
-      ${reason ? `<p><strong>Raison :</strong> ${reason}</p>` : ''}
+      ${safeReason ? `<p><strong>Raison :</strong> ${safeReason}</p>` : ''}
       <p>Si vous souhaitez contester cette décision, veuillez nous contacter.</p>
       <p>Cordialement,<br>L'équipe MonCabinet</p>
     </div>
@@ -105,10 +124,11 @@ function getSuspensionEmailHtml(userName: string, reason?: string) {
 }
 
 function getReactivationEmailHtml(userName: string) {
+  const safeName = escapeHtml(userName)
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h1 style="color: #22c55e;">Compte réactivé</h1>
-      <p>Bonjour ${userName},</p>
+      <p>Bonjour ${safeName},</p>
       <p>Nous avons le plaisir de vous informer que votre compte a été <strong>réactivé</strong>.</p>
       <p>Vous pouvez à nouveau vous connecter et utiliser la plateforme.</p>
       <div style="margin: 30px 0;">

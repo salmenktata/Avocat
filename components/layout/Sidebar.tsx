@@ -27,8 +27,8 @@ interface SidebarProps {
   userRole?: string
 }
 
-// Navigation statique - définie en dehors du composant
-const navGroups: NavGroup[] = [
+// Navigation dynamique selon le rôle utilisateur
+const getNavGroups = (userRole?: string): NavGroup[] => [
   {
     group: 'Core',
     items: [
@@ -57,7 +57,8 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/assistant-ia', label: 'assistantIA', icon: 'zap' },
       { href: '/dossiers/assistant', label: 'modeRapide', icon: 'activity' },
-      // Base de connaissances déplacée vers Super Admin
+      // Base de connaissances visible pour les admins (super_admin ont leur propre page)
+      ...(userRole === 'admin' ? [{ href: '/parametres/base-connaissances', label: 'knowledgeBase', icon: 'bookOpen' as keyof typeof Icons }] : []),
     ],
   },
   {
@@ -117,6 +118,7 @@ function SidebarComponent({ collapsed, onCollapse, userRole }: SidebarProps) {
 
   // Mémorise les items avec leurs états
   const groupsWithState = useMemo(() => {
+    const navGroups = getNavGroups(userRole)
     return navGroups.map(group => ({
       ...group,
       items: group.items.map(item => ({
@@ -126,7 +128,7 @@ function SidebarComponent({ collapsed, onCollapse, userRole }: SidebarProps) {
       })),
       translatedGroup: tGroups(group.group.toLowerCase()),
     }))
-  }, [isActive, t, tGroups])
+  }, [isActive, t, tGroups, userRole])
 
   const settingsActive = useMemo(() => isActive('/settings'), [isActive])
 

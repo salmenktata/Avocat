@@ -218,8 +218,8 @@ async function getAudiencesForUser(
     return []
   }
 
-  // Si seulement veille, limiter à demain
-  const interval = prefs.alerte_audiences_semaine ? '7 days' : '1 day'
+  // Si seulement veille, limiter à demain (1 jour), sinon 7 jours
+  const intervalDays = prefs.alerte_audiences_semaine ? 7 : 1
 
   const result = await db.query(
     `
@@ -234,12 +234,12 @@ async function getAudiencesForUser(
     JOIN dossiers d ON a.dossier_id = d.id
     WHERE d.user_id = $1
       AND a.date_audience >= CURRENT_DATE
-      AND a.date_audience <= CURRENT_DATE + INTERVAL '${interval}'
+      AND a.date_audience <= CURRENT_DATE + ($2 || ' days')::INTERVAL
       AND a.statut != 'annulee'
     ORDER BY a.date_audience ASC
     LIMIT 10
   `,
-    [userId]
+    [userId, intervalDays]
   )
 
   return result.rows as Audience[]
