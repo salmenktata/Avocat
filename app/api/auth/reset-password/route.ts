@@ -3,12 +3,18 @@
  * POST /api/auth/reset-password
  *
  * Valide le token et met à jour le mot de passe
+ *
+ * Rate limited: 3 tentatives / heure par IP
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { hash } from 'bcryptjs'
 import { z } from 'zod'
 import { query } from '@/lib/db/postgres'
+import { passwordResetLimiter, getClientIP, getRateLimitHeaders } from '@/lib/rate-limiter'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('Auth:ResetPassword')
 
 // Schéma de validation
 const resetPasswordSchema = z.object({
@@ -28,6 +34,24 @@ const resetPasswordSchema = z.object({
   })
 
 export async function POST(request: NextRequest) {
+  // Rate limiting par IP
+  const clientIP = getClientIP(request)
+  const rateLimitResult = passwordResetLimiter.check(clientIP)
+
+  if (!rateLimitResult.allowed) {
+    log.warn('Rate limit atteint', { ip: clientIP, retryAfter: rateLimitResult.retryAfter })
+    return NextResponse.json(
+      {
+        error: 'Trop de tentatives. Veuillez réessayer plus tard.',
+        retryAfter: rateLimitResult.retryAfter,
+      },
+      {
+        status: 429,
+        headers: getRateLimitHeaders(rateLimitResult),
+      }
+    )
+  }
+
   try {
     // 1. Parser et valider les données
     const body = await request.json()
@@ -85,7 +109,7 @@ export async function POST(request: NextRequest) {
       [tokenData.id]
     )
 
-    console.log('[ResetPassword] Mot de passe réinitialisé pour:', tokenData.email)
+    log.info('Mot de passe réinitialisé', { email: tokenData.email })
 
     // 8. Invalider tous les autres tokens de cet utilisateur
     await query(
@@ -104,7 +128,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     )
   } catch (error: any) {
-    console.error('[ResetPassword] Erreur:', error)
+    log.exception('Erreur', error)
 
     // Erreur de validation Zod
     if (error instanceof z.ZodError) {

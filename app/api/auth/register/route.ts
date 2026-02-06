@@ -1,6 +1,8 @@
 /**
  * API Registration - Création nouveau compte utilisateur
  * POST /api/auth/register
+ *
+ * Rate limited: 3 inscriptions / heure par IP
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -8,6 +10,11 @@ import { hash } from 'bcryptjs'
 import { z } from 'zod'
 import { query } from '@/lib/db/postgres'
 import crypto from 'crypto'
+import { registerLimiter, getClientIP, getRateLimitHeaders } from '@/lib/rate-limiter'
+import { createLogger } from '@/lib/logger'
+import { sendVerificationEmail } from '@/lib/email/templates/verification-email'
+
+const log = createLogger('Auth:Register')
 
 // Schéma de validation
 const registerSchema = z.object({
@@ -29,6 +36,24 @@ const registerSchema = z.object({
   })
 
 export async function POST(request: NextRequest) {
+  // Rate limiting par IP
+  const clientIP = getClientIP(request)
+  const rateLimitResult = registerLimiter.check(clientIP)
+
+  if (!rateLimitResult.allowed) {
+    log.warn('Rate limit atteint', { ip: clientIP, retryAfter: rateLimitResult.retryAfter })
+    return NextResponse.json(
+      {
+        error: 'Trop de tentatives d\'inscription. Veuillez réessayer plus tard.',
+        retryAfter: rateLimitResult.retryAfter,
+      },
+      {
+        status: 429,
+        headers: getRateLimitHeaders(rateLimitResult),
+      }
+    )
+  }
+
   try {
     // 1. Parser et valider les données
     const body = await request.json()
@@ -94,11 +119,22 @@ export async function POST(request: NextRequest) {
       [user.id, user.email, user.nom, user.prenom]
     )
 
-    console.log('[Register] Nouvel utilisateur créé:', user.email)
+    log.info('Nouvel utilisateur créé', { email: user.email, id: user.id })
 
-    // 7. TODO: Envoyer email de vérification
-    // const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/verify-email?token=${emailVerificationToken}`
-    // await sendVerificationEmail(user.email, verificationUrl)
+    // 7. Envoyer email de vérification
+    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify-email?token=${emailVerificationToken}`
+    const emailResult = await sendVerificationEmail({
+      to: user.email,
+      userName: `${user.prenom} ${user.nom}`,
+      verificationUrl,
+    })
+
+    if (!emailResult.success) {
+      log.warn('Échec envoi email vérification', { email: user.email, error: emailResult.error })
+      // On continue quand même - l'utilisateur pourra redemander l'email
+    } else {
+      log.info('Email de vérification envoyé', { email: user.email })
+    }
 
     // 8. Retourner succès
     return NextResponse.json(
@@ -115,7 +151,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error: any) {
-    console.error('[Register] Erreur:', error)
+    log.exception('Erreur inscription', error)
 
     // Erreur de validation Zod
     if (error instanceof z.ZodError) {

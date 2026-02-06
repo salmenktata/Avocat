@@ -3,6 +3,8 @@
  * POST /api/auth/forgot-password
  *
  * Génère un token unique et envoie un email avec le lien de reset
+ *
+ * Rate limited: 3 demandes / heure par IP
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -10,8 +12,11 @@ import { z } from 'zod'
 import { query } from '@/lib/db/postgres'
 import crypto from 'crypto'
 import { Resend } from 'resend'
+import { passwordResetLimiter, getClientIP, getRateLimitHeaders } from '@/lib/rate-limiter'
+import { createLogger } from '@/lib/logger'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+const log = createLogger('Auth:ForgotPassword')
 
 // Schéma de validation
 const forgotPasswordSchema = z.object({
@@ -19,6 +24,24 @@ const forgotPasswordSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  // Rate limiting par IP
+  const clientIP = getClientIP(request)
+  const rateLimitResult = passwordResetLimiter.check(clientIP)
+
+  if (!rateLimitResult.allowed) {
+    log.warn('Rate limit atteint', { ip: clientIP, retryAfter: rateLimitResult.retryAfter })
+    return NextResponse.json(
+      {
+        error: 'Trop de demandes de réinitialisation. Veuillez réessayer plus tard.',
+        retryAfter: rateLimitResult.retryAfter,
+      },
+      {
+        status: 429,
+        headers: getRateLimitHeaders(rateLimitResult),
+      }
+    )
+  }
+
   try {
     // 1. Parser et valider les données
     const body = await request.json()
@@ -34,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // IMPORTANT: Ne pas révéler si l'email existe ou non (sécurité)
     if (userResult.rows.length === 0) {
-      console.log('[ForgotPassword] Email non trouvé:', email)
+      log.info('Email non trouvé', { email })
       // Retourner succès même si l'email n'existe pas
       return NextResponse.json(
         {
@@ -137,9 +160,9 @@ L'équipe MonCabinet
         `,
       })
 
-      console.log('[ForgotPassword] Email envoyé à:', email)
+      log.info('Email envoyé', { email })
     } catch (emailError) {
-      console.error('[ForgotPassword] Erreur envoi email:', emailError)
+      log.exception('Erreur envoi email', emailError)
       return NextResponse.json(
         { error: 'Erreur lors de l\'envoi de l\'email. Veuillez réessayer.' },
         { status: 500 }
@@ -155,7 +178,7 @@ L'équipe MonCabinet
       { status: 200 }
     )
   } catch (error: any) {
-    console.error('[ForgotPassword] Erreur:', error)
+    log.exception('Erreur', error)
 
     // Erreur de validation Zod
     if (error instanceof z.ZodError) {

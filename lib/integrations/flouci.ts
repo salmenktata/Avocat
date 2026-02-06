@@ -12,6 +12,8 @@
  * Commission: 1.5% du montant
  */
 
+import crypto from 'crypto'
+
 const FLOUCI_API_URL = process.env.FLOUCI_API_URL || 'https://developers.flouci.com'
 const FLOUCI_APP_TOKEN = process.env.FLOUCI_APP_TOKEN
 const FLOUCI_APP_SECRET = process.env.FLOUCI_APP_SECRET
@@ -179,19 +181,51 @@ export class FlouciClient {
   }
 
   /**
-   * Valider signature webhook Flouci (si configuré)
+   * Valider signature webhook Flouci
    *
-   * @param payload Payload webhook
-   * @param signature Signature reçue dans header
+   * Utilise HMAC SHA-256 avec le secret d'application pour vérifier
+   * l'authenticité des webhooks Flouci.
+   *
+   * @param payload Payload webhook (body brut)
+   * @param signature Signature reçue dans header (format: sha256=...)
    * @returns true si signature valide
    */
   validateWebhookSignature(payload: string, signature: string): boolean {
-    // TODO: Implémenter validation HMAC si Flouci supporte
-    // Pour l'instant, vérifier que le payload contient les champs requis
     try {
-      const data = JSON.parse(payload)
-      return !!(data.payment_id && data.status)
-    } catch {
+      // Vérifier que la signature a le bon format
+      if (!signature.startsWith('sha256=')) {
+        console.error('[Flouci] Format signature invalide - doit commencer par sha256=')
+        return false
+      }
+
+      // Extraire la signature hex
+      const receivedSignature = signature.slice(7) // Enlever "sha256="
+
+      // Calculer la signature attendue avec HMAC SHA-256
+      const expectedSignature = crypto
+        .createHmac('sha256', this.appSecret)
+        .update(payload, 'utf8')
+        .digest('hex')
+
+      // Comparaison timing-safe pour éviter les attaques timing
+      const receivedBuffer = Buffer.from(receivedSignature, 'hex')
+      const expectedBuffer = Buffer.from(expectedSignature, 'hex')
+
+      // Vérifier que les buffers ont la même longueur avant timingSafeEqual
+      if (receivedBuffer.length !== expectedBuffer.length) {
+        console.error('[Flouci] Longueur signature invalide')
+        return false
+      }
+
+      const isValid = crypto.timingSafeEqual(receivedBuffer, expectedBuffer)
+
+      if (!isValid) {
+        console.error('[Flouci] Signature HMAC invalide')
+      }
+
+      return isValid
+    } catch (error) {
+      console.error('[Flouci] Erreur validation signature:', error)
       return false
     }
   }

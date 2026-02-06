@@ -15,9 +15,14 @@ import { compare } from 'bcryptjs'
 // CONFIGURATION
 // =============================================================================
 
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'fallback-secret-change-in-production'
-)
+// SÉCURITÉ: Ne jamais utiliser de fallback pour le secret JWT
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error(
+    'NEXTAUTH_SECRET est requis. Définissez cette variable d\'environnement avec une valeur sécurisée.'
+  )
+}
+
+const SECRET_KEY = new TextEncoder().encode(process.env.NEXTAUTH_SECRET)
 
 const COOKIE_NAME = 'auth_session'
 const COOKIE_OPTIONS = {
