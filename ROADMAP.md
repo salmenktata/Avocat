@@ -65,7 +65,7 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 ### Objectifs Roadmap
 1. ✅ **Conformité ONAT 2026** : Factures, notes d'honoraires, conventions conformes
 2. ✅ **3 workflows tunisiens** : Civil, Commercial TMM+7, Divorce CSP
-3. ✅ **Templates documents** : 15 documents juridiques FR/AR + génération DOCX
+3. ✅ **Templates documents** : 21 documents juridiques FR/AR + génération DOCX
 4. ✅ **Calculs automatiques** : Intérêts commerciaux, pensions divorce
 5. ✅ **Productivité avocat** : Recherche Cmd+K, notifications Brevo, preview temps réel
 
@@ -198,7 +198,7 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - `data/templates/constitution-avocat-fr.txt`
 - `data/templates/bordereau-communication-pieces-fr.txt`
 
-**Total templates** : 15 documents juridiques FR/AR
+**Total templates** : 21 documents juridiques FR/AR
 
 #### Semaine 12 : Finalisation & Polish ✅ (TERMINÉ)
 **Option choisie** : **Option B - Finaliser fonctionnalités existantes**
@@ -266,13 +266,21 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 **Honoraires (1)** :
 25. `data/templates/convention-honoraires-base.txt`
 
-**Pack 3 - Procédure (6)** :
+**Pack 3 - Procédure FR (6)** :
 26. `data/templates/conclusions-demande-fr.txt`
 27. `data/templates/requete-injonction-payer-fr.txt`
 28. `data/templates/opposition-injonction-payer-fr.txt`
 29. `data/templates/acte-appel-fr.txt`
 30. `data/templates/procuration-judiciaire-fr.txt`
 31. `data/templates/requete-refere-provision-fr.txt`
+
+**Pack 3 - Procédure AR (6)** :
+32. `data/templates/conclusions-demande-ar.txt`
+33. `data/templates/requete-injonction-payer-ar.txt`
+34. `data/templates/opposition-injonction-payer-ar.txt`
+35. `data/templates/acte-appel-ar.txt`
+36. `data/templates/procuration-judiciaire-ar.txt`
+37. `data/templates/requete-refere-provision-ar.txt`
 
 #### Recherche & API
 26. `app/api/search/route.ts` - API recherche globale
@@ -338,7 +346,7 @@ Digitaliser la gestion des cabinets d'avocats tunisiens avec une solution SaaS m
 - ✅ Durée mariage automatique
 
 ### Templates Documents
-- ✅ 15 templates juridiques FR/AR
+- ✅ 21 templates juridiques FR/AR
 - ✅ Variables auto-remplies
 - ✅ Support bilingue FR/AR
 - ✅ Génération PDF (React-PDF)
