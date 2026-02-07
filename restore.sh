@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Script de restauration MonCabinet
+# Script de restauration Qadhya
 #
 # Usage: ./restore.sh [options]
 #
@@ -233,7 +233,7 @@ case "${1:-}" in
     restore_latest
     ;;
   *)
-    echo -e "${BLUE}Script de restauration MonCabinet${NC}"
+    echo -e "${BLUE}Script de restauration Qadhya${NC}"
     echo ""
     echo "Usage: $0 [options]"
     echo ""

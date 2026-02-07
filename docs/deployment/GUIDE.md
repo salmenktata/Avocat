@@ -1,4 +1,4 @@
-# Guide de Déploiement MonCabinet sur VPS Contabo
+# Guide de Déploiement Qadhya sur VPS Contabo
 
 ## Table des Matières
 

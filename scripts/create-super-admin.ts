@@ -37,7 +37,7 @@ function log(message: string, color: keyof typeof colors = 'reset') {
 }
 
 async function main() {
-  log('\n=== Création Super Admin MonCabinet ===\n', 'cyan')
+  log('\n=== Création Super Admin Qadhya ===\n', 'cyan')
 
   // Vérifier les variables requises
   if (!SUPER_ADMIN_EMAIL) {

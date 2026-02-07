@@ -2,7 +2,7 @@
 
 ## 📚 Vue d'ensemble
 
-L'application MonCabinet est entièrement bilingue (Français/Arabe). Ce document explique comment ajouter et maintenir les traductions.
+L'application Qadhya est entièrement bilingue (Français/Arabe). Ce document explique comment ajouter et maintenir les traductions.
 
 ## 🎯 Principes fondamentaux
 

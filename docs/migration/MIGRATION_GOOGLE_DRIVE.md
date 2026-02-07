@@ -63,7 +63,7 @@ Migration complète du système de stockage documents de **Supabase Storage** ve
 
 ```
 Google Drive de l'avocat :
-├── Clients MonCabinet/                       ← Dossier racine
+├── Clients Qadhya/                       ← Dossier racine
 │   ├── [DUPONT Jean - CIN 12345678]/         ← Dossier client
 │   │   ├── Dossier 2025-001 (Divorce)/       ← Dossier juridique
 │   │   │   ├── Requête.pdf

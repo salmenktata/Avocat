@@ -1,7 +1,7 @@
 /**
  * Migration - Définir salmen.ktata@gmail.com comme super_admin permanent
  *
- * Ce compte est le seul administrateur de la plateforme MonCabinet.
+ * Ce compte est le seul administrateur de la plateforme Qadhya.
  */
 
 -- Mettre à jour le rôle de salmen.ktata@gmail.com

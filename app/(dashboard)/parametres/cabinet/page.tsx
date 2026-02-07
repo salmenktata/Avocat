@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import CabinetForm from '@/components/parametres/CabinetForm'
 
 export const metadata = {
-  title: 'Paramètres Cabinet - MonCabinet',
+  title: 'Paramètres Cabinet - Qadhya',
   description: 'Gérer les informations de votre cabinet',
 }
 

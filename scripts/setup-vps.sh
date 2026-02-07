@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ################################################################################
-# Script d'installation automatique MonCabinet sur VPS Contabo
+# Script d'installation automatique Qadhya sur VPS Contabo
 #
 # Ce script installe et configure automatiquement :
 # - Docker + Docker Compose
@@ -24,7 +24,7 @@ NC='\033[0m' # No Color
 
 # Fonction pour afficher les messages
 print_message() {
-    echo -e "${BLUE}[MonCabinet]${NC} $1"
+    echo -e "${BLUE}[Qadhya]${NC} $1"
 }
 
 print_success() {
@@ -48,7 +48,7 @@ fi
 clear
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║                                                            ║"
-echo "║     Installation MonCabinet sur VPS Contabo               ║"
+echo "║     Installation Qadhya sur VPS Contabo               ║"
 echo "║     Plateforme de gestion de cabinet juridique            ║"
 echo "║                                                            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
@@ -352,7 +352,7 @@ echo "║              ✅ INSTALLATION TERMINEE !                    ║"
 echo "║                                                            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-print_success "MonCabinet est maintenant installe sur votre VPS"
+print_success "Qadhya est maintenant installe sur votre VPS"
 echo ""
 echo "📋 INFORMATIONS IMPORTANTES :"
 echo ""

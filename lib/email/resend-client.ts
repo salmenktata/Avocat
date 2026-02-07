@@ -87,14 +87,14 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
 export async function sendTestEmail(to: string): Promise<SendEmailResult> {
   return sendEmail({
     to,
-    subject: 'Test Email - MonCabinet',
+    subject: 'Test Email - Qadhya',
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
         <h1>Test Email</h1>
-        <p>Ceci est un email de test envoyé depuis MonCabinet.</p>
+        <p>Ceci est un email de test envoyé depuis Qadhya.</p>
         <p>Si vous recevez ce message, votre configuration Resend fonctionne correctement.</p>
       </div>
     `,
-    text: 'Ceci est un email de test envoyé depuis MonCabinet.',
+    text: 'Ceci est un email de test envoyé depuis Qadhya.',
   })
 }

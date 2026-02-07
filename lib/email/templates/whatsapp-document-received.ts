@@ -3,7 +3,7 @@
  */
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:7002'
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'MonCabinet'
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Qadhya'
 
 // Styles CSS inline pour compatibilité email
 const styles = {

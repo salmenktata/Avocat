@@ -1,11 +1,11 @@
 #!/bin/bash
 # ============================================================================
-# Script de monitoring VPS MonCabinet
+# Script de monitoring VPS Qadhya
 # Usage: bash monitor-vps.sh
 # ============================================================================
 
 echo "=============================================="
-echo "   MonCabinet VPS - Rapport de Performance"
+echo "   Qadhya VPS - Rapport de Performance"
 echo "   $(date '+%Y-%m-%d %H:%M:%S')"
 echo "=============================================="
 echo ""

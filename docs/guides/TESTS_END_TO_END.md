@@ -33,7 +33,7 @@ Guide complet des tests à exécuter pour valider les fonctionnalités Google Dr
 **Résultat attendu** :
 - ✅ OAuth réussie, tokens sauvegardés en BDD
 - ✅ Badge "Connecté" affiché avec email Google
-- ✅ Dossier racine "Clients MonCabinet/" créé dans Google Drive
+- ✅ Dossier racine "Clients Qadhya/" créé dans Google Drive
 
 **Validation BDD** :
 ```sql
@@ -102,7 +102,7 @@ SELECT * FROM cloud_providers_config WHERE user_id = 'user-id';
 
 **Résultat attendu - Structure Google Drive** :
 ```
-Clients MonCabinet/
+Clients Qadhya/
 └── [DUPONT Jean - CIN 12345678]/
     ├── Dossier 2025-001/
     │   └── document.pdf
@@ -158,7 +158,7 @@ FROM documents WHERE dossier_id = 'dossier-id';
 
 **Résultat attendu - Structure Google Drive** :
 ```
-Clients MonCabinet/
+Clients Qadhya/
 ├── [DUPONT Jean - CIN 12345678]/
 │   └── Dossier 2025-001/
 │       ├── document1.pdf
@@ -209,12 +209,12 @@ Clients MonCabinet/
 **Objectif** : Fichier ajouté manuellement dans Drive → apparaît dans app
 
 **Prérequis** :
-- Structure "Clients MonCabinet/[Client]/Dossier 2025-001/" existe
+- Structure "Clients Qadhya/[Client]/Dossier 2025-001/" existe
 - Synchronisation activée (toggle dans paramètres)
 
 **Étapes** :
 1. Ouvrir Google Drive directement
-2. Aller dans "Clients MonCabinet/[DUPONT Jean]/Dossier 2025-001/"
+2. Aller dans "Clients Qadhya/[DUPONT Jean]/Dossier 2025-001/"
 3. Glisser-déposer un fichier `facture.pdf`
 4. Attendre 1-2 minutes (webhook ou polling)
 5. Rafraîchir dashboard application
@@ -240,7 +240,7 @@ AND nom_fichier = 'facture.pdf';
 
 **Étapes** :
 1. Ouvrir Google Drive
-2. Aller dans "Clients MonCabinet/[DUPONT Jean]/Documents non classés/"
+2. Aller dans "Clients Qadhya/[DUPONT Jean]/Documents non classés/"
 3. Glisser-déposer `scan.jpg`
 4. Attendre synchronisation
 5. Aller sur dashboard
@@ -385,7 +385,7 @@ WHERE user_id = 'user-id';
 
 **Validation Google Drive** :
 ```
-Clients MonCabinet/
+Clients Qadhya/
 └── [DUPONT Jean - CIN 12345678]/
     └── Dossier 2025-001/
         └── document_whatsapp.pdf  ← Nouveau fichier

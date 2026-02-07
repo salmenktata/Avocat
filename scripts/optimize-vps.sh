@@ -1,13 +1,13 @@
 #!/bin/bash
 # ============================================================================
-# Script d'optimisation VPS pour MonCabinet
+# Script d'optimisation VPS pour Qadhya
 # Exécuter une fois après l'installation initiale
 # Usage: sudo bash optimize-vps.sh
 # ============================================================================
 
 set -e
 
-echo "=== Optimisation VPS MonCabinet ==="
+echo "=== Optimisation VPS Qadhya ==="
 echo ""
 
 # Vérifier root
@@ -22,7 +22,7 @@ fi
 echo "[1/7] Configuration sysctl pour performances réseau..."
 
 cat > /etc/sysctl.d/99-moncabinet.conf << 'EOF'
-# MonCabinet VPS Optimizations
+# Qadhya VPS Optimizations
 
 # Réseau - TCP
 net.core.somaxconn = 65535
@@ -73,7 +73,7 @@ echo "   ✓ sysctl configuré"
 echo "[2/7] Configuration limites système..."
 
 cat > /etc/security/limits.d/99-moncabinet.conf << 'EOF'
-# MonCabinet - Limites système
+# Qadhya - Limites système
 * soft nofile 65535
 * hard nofile 65535
 * soft nproc 65535

@@ -1,5 +1,5 @@
 /**
- * Erreurs personnalisées pour MonCabinet
+ * Erreurs personnalisées pour Qadhya
  *
  * Hiérarchie d'erreurs typées pour une gestion cohérente des erreurs
  * à travers l'application.

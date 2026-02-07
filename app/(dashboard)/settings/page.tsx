@@ -5,7 +5,7 @@ import { Icons } from '@/lib/icons'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 export const metadata = {
-  title: 'Paramètres - MonCabinet',
+  title: 'Paramètres - Qadhya',
   description: 'Gérer les paramètres de votre cabinet',
 }
 

@@ -1,4 +1,4 @@
-# Guide d'Ergonomie - MonCabinet
+# Guide d'Ergonomie - Qadhya
 
 ## 🎨 Composants UI Améliorés
 

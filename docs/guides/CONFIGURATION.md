@@ -233,7 +233,7 @@ RESEND_API_KEY=re_123456789abcdefghijklmnopqrstuvwxyz
 
 ```bash
 NEXT_PUBLIC_APP_URL=http://localhost:7002
-NEXT_PUBLIC_APP_NAME=MonCabinet
+NEXT_PUBLIC_APP_NAME=Qadhya
 NEXT_PUBLIC_APP_DOMAIN=moncabinet.tn
 NODE_ENV=development
 ```
@@ -331,7 +331,7 @@ RESEND_API_KEY=re_123456789abcdefghijklmnopqrstuvwxyz
 # APPLICATION
 # ============================================
 NEXT_PUBLIC_APP_URL=https://moncabinet.tn
-NEXT_PUBLIC_APP_NAME=MonCabinet
+NEXT_PUBLIC_APP_NAME=Qadhya
 NEXT_PUBLIC_APP_DOMAIN=moncabinet.tn
 NODE_ENV=production
 ```

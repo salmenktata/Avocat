@@ -1,4 +1,4 @@
-# 🚀 Commandes Rapides MonCabinet VPS
+# 🚀 Commandes Rapides Qadhya VPS
 
 Guide de référence rapide des commandes les plus utilisées.
 

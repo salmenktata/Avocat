@@ -42,7 +42,7 @@ vi.mock('next-intl', () => ({
 
 // Mock des variables d'environnement
 process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:7002'
-process.env.NEXT_PUBLIC_APP_NAME = 'MonCabinet'
+process.env.NEXT_PUBLIC_APP_NAME = 'Qadhya'
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test'
 process.env.NEXTAUTH_SECRET = 'test-secret'
 process.env.NEXTAUTH_URL = 'http://localhost:7002'

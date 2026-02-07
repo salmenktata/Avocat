@@ -182,7 +182,7 @@ export default function AuthLayout({
         {/* Footer */}
         <div className="p-4 text-center">
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} MonCabinet. Tous droits réservés. Developed by{' '}
+            © {new Date().getFullYear()} Qadhya. Tous droits réservés. Developed by{' '}
             <a
               href="https://quelyos.com"
               target="_blank"

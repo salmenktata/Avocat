@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL || 'notifications@moncabinet.tn',
         to: [user.email],
-        subject: 'Vérifiez votre adresse email - MonCabinet',
+        subject: 'Vérifiez votre adresse email - Qadhya',
         html: `
           <!DOCTYPE html>
           <html>
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
                 <div class="content">
                   <p>Bonjour ${user.prenom || ''} ${user.nom || ''},</p>
 
-                  <p>Bienvenue sur <strong>MonCabinet</strong> !</p>
+                  <p>Bienvenue sur <strong>Qadhya</strong> !</p>
 
                   <p>Pour activer votre compte, veuillez vérifier votre adresse email en cliquant sur le bouton ci-dessous :</p>
 
@@ -143,10 +143,10 @@ export async function POST(request: NextRequest) {
 
                   <p><strong>Note :</strong> Ce lien est valable pendant 24 heures.</p>
 
-                  <p>Cordialement,<br>L'équipe MonCabinet</p>
+                  <p>Cordialement,<br>L'équipe Qadhya</p>
                 </div>
                 <div class="footer">
-                  <p>&copy; ${new Date().getFullYear()} MonCabinet - Gestion Cabinet Juridique</p>
+                  <p>&copy; ${new Date().getFullYear()} Qadhya - Gestion Cabinet Juridique</p>
                 </div>
               </div>
             </body>
@@ -155,13 +155,13 @@ export async function POST(request: NextRequest) {
         text: `
 Bonjour ${user.prenom || ''} ${user.nom || ''},
 
-Bienvenue sur MonCabinet !
+Bienvenue sur Qadhya !
 
 Vérifiez votre adresse email en cliquant sur ce lien (valable 24h) :
 ${verificationUrl}
 
 Cordialement,
-L'équipe MonCabinet
+L'équipe Qadhya
         `,
       })
 

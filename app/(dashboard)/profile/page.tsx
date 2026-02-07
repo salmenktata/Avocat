@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import ProfileForm from '@/components/profile/ProfileForm'
 
 export const metadata = {
-  title: 'Mon Profil - MonCabinet',
+  title: 'Mon Profil - Qadhya',
   description: 'Gérer vos informations personnelles',
 }
 

@@ -1,5 +1,5 @@
 /**
- * Logger centralisé pour MonCabinet
+ * Logger centralisé pour Qadhya
  *
  * Remplace les console.log/error dispersés par un système unifié
  * avec niveaux, préfixes et formatage cohérent.

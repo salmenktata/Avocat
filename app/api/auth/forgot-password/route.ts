@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL || 'notifications@moncabinet.tn',
         to: [user.email],
-        subject: 'Réinitialisation de votre mot de passe - MonCabinet',
+        subject: 'Réinitialisation de votre mot de passe - Qadhya',
         html: `
           <!DOCTYPE html>
           <html>
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
                 <div class="content">
                   <p>Bonjour ${user.prenom || ''} ${user.nom || ''},</p>
 
-                  <p>Vous avez demandé la réinitialisation de votre mot de passe pour votre compte <strong>MonCabinet</strong>.</p>
+                  <p>Vous avez demandé la réinitialisation de votre mot de passe pour votre compte <strong>Qadhya</strong>.</p>
 
                   <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
 
@@ -139,11 +139,11 @@ export async function POST(request: NextRequest) {
                     </ul>
                   </div>
 
-                  <p>Cordialement,<br>L'équipe MonCabinet</p>
+                  <p>Cordialement,<br>L'équipe Qadhya</p>
                 </div>
                 <div class="footer">
                   <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
-                  <p>&copy; ${new Date().getFullYear()} MonCabinet - Gestion Cabinet Juridique</p>
+                  <p>&copy; ${new Date().getFullYear()} Qadhya - Gestion Cabinet Juridique</p>
                 </div>
               </div>
             </body>
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
         text: `
 Bonjour ${user.prenom || ''} ${user.nom || ''},
 
-Vous avez demandé la réinitialisation de votre mot de passe pour votre compte MonCabinet.
+Vous avez demandé la réinitialisation de votre mot de passe pour votre compte Qadhya.
 
 Utilisez ce lien pour créer un nouveau mot de passe (valable 1 heure) :
 ${resetUrl}
@@ -160,7 +160,7 @@ ${resetUrl}
 Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
 
 Cordialement,
-L'équipe MonCabinet
+L'équipe Qadhya
         `,
       })
 

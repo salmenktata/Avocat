@@ -164,18 +164,18 @@ export async function sendEmail(params: EmailParams): Promise<EmailResult> {
 export async function sendTestEmail(to: string): Promise<EmailResult> {
   return sendEmail({
     to,
-    subject: '[MonCabinet] Test de configuration email',
+    subject: '[Qadhya] Test de configuration email',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h2 style="color: #1a365d;">Configuration Email réussie</h2>
         <p>Cet email confirme que votre configuration email fonctionne correctement.</p>
         <p><strong>Provider utilisé:</strong> sera indiqué dans les logs</p>
         <p style="color: #666; font-size: 12px; margin-top: 20px;">
-          Envoyé depuis MonCabinet - ${new Date().toLocaleString('fr-TN', { timeZone: 'Africa/Tunis' })}
+          Envoyé depuis Qadhya - ${new Date().toLocaleString('fr-TN', { timeZone: 'Africa/Tunis' })}
         </p>
       </div>
     `,
-    text: `Configuration Email réussie\n\nCet email confirme que votre configuration email fonctionne correctement.\n\nEnvoyé depuis MonCabinet - ${new Date().toLocaleString('fr-TN', { timeZone: 'Africa/Tunis' })}`,
+    text: `Configuration Email réussie\n\nCet email confirme que votre configuration email fonctionne correctement.\n\nEnvoyé depuis Qadhya - ${new Date().toLocaleString('fr-TN', { timeZone: 'Africa/Tunis' })}`,
     tags: ['test'],
   })
 }

@@ -1,6 +1,6 @@
-# 🏗️ Architecture de Déploiement MonCabinet
+# 🏗️ Architecture de Déploiement Qadhya
 
-Vue d'ensemble de l'architecture de déploiement de MonCabinet sur VPS Contabo avec Cloudflare.
+Vue d'ensemble de l'architecture de déploiement de Qadhya sur VPS Contabo avec Cloudflare.
 
 ---
 

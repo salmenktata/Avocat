@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import CloudStorageConfig from '@/components/parametres/CloudStorageConfig'
 
 export const metadata = {
-  title: 'Stockage Cloud - MonCabinet',
+  title: 'Stockage Cloud - Qadhya',
   description: 'Configurer le stockage de vos documents sur Google Drive',
 }
 
@@ -77,7 +77,7 @@ export default async function CloudStorageParametresPage({
         <div className="mt-2 text-sm text-green-800">
           <p className="mb-2">L&apos;application crée automatiquement cette structure dans votre Google Drive :</p>
           <pre className="rounded bg-green-100 p-2 font-mono text-xs">
-            {`Clients MonCabinet/
+            {`Clients Qadhya/
 ├── [DUPONT Jean - CIN 12345678]/
 │   ├── Dossier 2025-001 (Divorce)/
 │   │   ├── Requête.pdf

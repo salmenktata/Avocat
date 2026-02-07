@@ -1,7 +1,7 @@
 /**
  * Storage Manager - Orchestrateur Cloud Storage
  * Gère l'upload/download documents vers cloud providers (Google Drive)
- * Architecture hiérarchique : Clients MonCabinet/ → [Client]/ → [Dossier juridique]/ → fichiers
+ * Architecture hiérarchique : Clients Qadhya/ → [Client]/ → [Dossier juridique]/ → fichiers
  */
 
 import { query } from '@/lib/db/postgres'
@@ -71,7 +71,7 @@ export class StorageManager {
       // 4. Créer provider Google Drive
       const provider = createGoogleDriveProvider(accessToken)
 
-      // 5. Créer/vérifier dossier racine "Clients MonCabinet/"
+      // 5. Créer/vérifier dossier racine "Clients Qadhya/"
       const rootFolderId = await this.ensureRootFolder(
         provider,
         cloudConfig.root_folder_id
@@ -251,7 +251,7 @@ export class StorageManager {
   }
 
   /**
-   * Créer/vérifier dossier racine "Clients MonCabinet/"
+   * Créer/vérifier dossier racine "Clients Qadhya/"
    */
   private async ensureRootFolder(
     provider: any,
@@ -272,7 +272,7 @@ export class StorageManager {
 
     // Créer dossier racine
     const rootFolder = await provider.createFolder({
-      folderName: 'Clients MonCabinet',
+      folderName: 'Clients Qadhya',
     })
 
     console.log(

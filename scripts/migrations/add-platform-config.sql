@@ -56,7 +56,7 @@ INSERT INTO platform_config (key, value, description, category, is_secret) VALUE
   ('RESEND_API_KEY', 'CHANGE_ME_RESEND_API_KEY', 'Clé API Resend pour emails transactionnels', 'email', true),
   ('BREVO_API_KEY', 'CHANGE_ME_BREVO_API_KEY', 'Clé API Brevo pour notifications', 'email', true),
   ('BREVO_SENDER_EMAIL', 'notifications@moncabinet.tn', 'Email expéditeur Brevo', 'email', false),
-  ('BREVO_SENDER_NAME', 'MonCabinet', 'Nom expéditeur Brevo', 'email', false),
+  ('BREVO_SENDER_NAME', 'Qadhya', 'Nom expéditeur Brevo', 'email', false),
 
   -- Auth
   ('NEXTAUTH_SECRET', 'CHANGE_ME_NEXTAUTH_SECRET', 'Secret NextAuth pour sessions', 'auth', true),

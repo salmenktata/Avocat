@@ -1,6 +1,6 @@
-# 📂 Scripts de Déploiement MonCabinet
+# 📂 Scripts de Déploiement Qadhya
 
-Ce dossier contient les scripts d'installation et de gestion pour déployer MonCabinet sur un VPS.
+Ce dossier contient les scripts d'installation et de gestion pour déployer Qadhya sur un VPS.
 
 ## 📄 Fichiers
 
@@ -39,7 +39,7 @@ Met à jour l'application déjà installée sur le VPS :
 **Usage :**
 ```bash
 # Sur le VPS, dans le répertoire de l'application
-cd /home/moncabinet/moncabinet
+cd /home/qadhya/qadhya
 ./deploy.sh
 ```
 
@@ -89,18 +89,18 @@ cd /home/moncabinet/moncabinet
 
 Lors de l'exécution de `setup-vps.sh`, ces scripts sont créés automatiquement sur le VPS :
 
-### `/home/moncabinet/moncabinet/deploy.sh`
+### `/home/qadhya/qadhya/deploy.sh`
 Script de déploiement (identique à celui-ci)
 
-### `/home/moncabinet/moncabinet/backup.sh`
+### `/home/qadhya/qadhya/backup.sh`
 Script de sauvegarde automatique :
 - Crée une archive tar.gz de l'application
-- Stocke dans `/var/backups/moncabinet/`
+- Stocke dans `/var/backups/qadhya/`
 - Garde les 7 derniers backups
 
 **Usage :**
 ```bash
-cd /home/moncabinet/moncabinet
+cd /home/qadhya/qadhya
 ./backup.sh
 ```
 
@@ -111,12 +111,12 @@ cd /home/moncabinet/moncabinet
 ### Variables requises pour setup-vps.sh
 
 Le script vous demandera interactivement :
-- Nom de domaine (ex: moncabinet.tn)
-- Email pour SSL (ex: admin@moncabinet.tn)
+- Nom de domaine (ex: qadhya.tn)
+- Email pour SSL (ex: admin@qadhya.tn)
 - Port de l'application (défaut: 7002)
 - URL du repository Git
 - Créer un utilisateur non-root (recommandé)
-- Nom d'utilisateur (défaut: moncabinet)
+- Nom d'utilisateur (défaut: qadhya)
 
 ### Prérequis système
 
@@ -169,23 +169,23 @@ sudo bash setup-vps.sh
 
 ```bash
 # Vérifier les logs
-pm2 logs moncabinet --lines 50
+pm2 logs qadhya --lines 50
 
 # Vérifier les variables d'environnement
 cat .env.production
 
 # Redémarrer manuellement
-pm2 restart moncabinet
+pm2 restart qadhya
 ```
 
 ### Erreur de permissions
 
 ```bash
-# Si vous êtes l'utilisateur moncabinet
-sudo chown -R moncabinet:moncabinet /home/moncabinet/moncabinet
+# Si vous êtes l'utilisateur qadhya
+sudo chown -R qadhya:qadhya /home/qadhya/qadhya
 
 # Si vous êtes root
-chown -R moncabinet:moncabinet /home/moncabinet/moncabinet
+chown -R qadhya:qadhya /home/qadhya/qadhya
 ```
 
 ---
@@ -194,9 +194,9 @@ chown -R moncabinet:moncabinet /home/moncabinet/moncabinet
 
 ### Localisation des logs
 
-- **Application** : `pm2 logs moncabinet`
-- **Nginx Access** : `/var/log/nginx/moncabinet.tn.access.log`
-- **Nginx Error** : `/var/log/nginx/moncabinet.tn.error.log`
+- **Application** : `pm2 logs qadhya`
+- **Nginx Access** : `/var/log/nginx/qadhya.tn.access.log`
+- **Nginx Error** : `/var/log/nginx/qadhya.tn.error.log`
 - **Système** : `/var/log/syslog`
 - **Certbot** : `/var/log/letsencrypt/letsencrypt.log`
 
@@ -204,10 +204,10 @@ chown -R moncabinet:moncabinet /home/moncabinet/moncabinet
 
 ```bash
 # Logs en temps réel
-pm2 logs moncabinet --lines 100
+pm2 logs qadhya --lines 100
 
 # Logs Nginx en temps réel
-sudo tail -f /var/log/nginx/moncabinet.tn.error.log
+sudo tail -f /var/log/nginx/qadhya.tn.error.log
 
 # Derniers logs système
 sudo journalctl -xe
@@ -220,12 +220,12 @@ sudo journalctl -xe
 ### Tâches régulières
 
 #### Quotidiennes
-- Vérifier les logs : `pm2 logs moncabinet`
+- Vérifier les logs : `pm2 logs qadhya`
 - Vérifier le statut : `pm2 status`
 
 #### Hebdomadaires
 - Vérifier l'espace disque : `df -h`
-- Vérifier les backups : `ls -lh /var/backups/moncabinet/`
+- Vérifier les backups : `ls -lh /var/backups/qadhya/`
 
 #### Mensuelles
 - Mettre à jour le système : `sudo apt update && sudo apt upgrade`
@@ -242,11 +242,11 @@ Ajoutez ces alias dans `~/.bashrc` pour gagner du temps :
 
 ```bash
 # Ajouter à ~/.bashrc
-alias mcapp='cd /home/moncabinet/moncabinet'
-alias mclogs='pm2 logs moncabinet'
-alias mcrestart='pm2 restart moncabinet'
-alias mcdeploy='cd /home/moncabinet/moncabinet && ./deploy.sh'
-alias mcbackup='cd /home/moncabinet/moncabinet && ./backup.sh'
+alias mcapp='cd /home/qadhya/qadhya'
+alias mclogs='pm2 logs qadhya'
+alias mcrestart='pm2 restart qadhya'
+alias mcdeploy='cd /home/qadhya/qadhya && ./deploy.sh'
+alias mcbackup='cd /home/qadhya/qadhya && ./backup.sh'
 
 # Recharger
 source ~/.bashrc
@@ -259,14 +259,14 @@ source ~/.bashrc
 crontab -e
 
 # Ajouter (backup quotidien à 2h du matin)
-0 2 * * * /home/moncabinet/moncabinet/backup.sh >> /var/log/backup-moncabinet.log 2>&1
+0 2 * * * /home/qadhya/qadhya/backup.sh >> /var/log/backup-qadhya.log 2>&1
 ```
 
 ---
 
 ## 🌐 URLs Utiles
 
-- **Application** : https://moncabinet.tn
+- **Application** : https://qadhya.tn
 - **Cloudflare Dashboard** : https://dash.cloudflare.com
 - **Supabase Dashboard** : https://app.supabase.com
 - **Resend Dashboard** : https://resend.com

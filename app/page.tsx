@@ -207,7 +207,7 @@ export default async function HomePage() {
               {/* Left: Benefits list */}
               <div>
                 <h2 className="text-3xl font-bold text-white mb-8">
-                  Pourquoi choisir MonCabinet ?
+                  Pourquoi choisir Qadhya ?
                 </h2>
                 <ul className="space-y-4">
                   {[
@@ -267,7 +267,7 @@ export default async function HomePage() {
             Prêt à transformer votre cabinet ?
           </h2>
           <p className="text-lg text-slate-300 mb-10 max-w-2xl mx-auto">
-            Rejoignez des centaines d&apos;avocats qui ont déjà optimisé leur pratique avec MonCabinet
+            Rejoignez des centaines d&apos;avocats qui ont déjà optimisé leur pratique avec Qadhya
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
@@ -307,7 +307,7 @@ export default async function HomePage() {
             </div>
 
             <p className="text-sm text-slate-300">
-              © {new Date().getFullYear()} MonCabinet. Tous droits réservés. Developed by{' '}
+              © {new Date().getFullYear()} Qadhya. Tous droits réservés. Developed by{' '}
               <a
                 href="https://quelyos.com"
                 target="_blank"

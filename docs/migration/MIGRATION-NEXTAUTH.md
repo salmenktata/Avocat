@@ -5,7 +5,7 @@
 
 ## 📋 Résumé
 
-MonCabinet a migré de Supabase Cloud vers une infrastructure auto-hébergée complète :
+Qadhya a migré de Supabase Cloud vers une infrastructure auto-hébergée complète :
 
 | Avant (Supabase) | Après (Auto-hébergé) |
 |-----------------|---------------------|

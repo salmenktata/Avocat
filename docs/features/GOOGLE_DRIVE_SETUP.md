@@ -14,7 +14,7 @@ Ce guide explique comment configurer l'intégration Google Drive pour le stockag
 1. Accéder à [Google Cloud Console](https://console.cloud.google.com/)
 2. Cliquer sur **"Sélectionner un projet"** → **"Nouveau projet"**
 3. Renseigner :
-   - **Nom du projet** : `MonCabinet` (ou nom de votre choix)
+   - **Nom du projet** : `Qadhya` (ou nom de votre choix)
    - **Organisation** : Laisser vide si compte personnel
 4. Cliquer sur **"Créer"**
 5. Attendre quelques secondes que le projet soit créé
@@ -229,7 +229,7 @@ L'application crée automatiquement la structure suivante :
 
 ```
 Google Drive de l'avocat :
-├── Clients MonCabinet/                           ← Dossier racine
+├── Clients Qadhya/                           ← Dossier racine
 │   ├── [DUPONT Jean - CIN 12345678]/         ← Dossier client
 │   │   ├── Dossier 2025-001 (Divorce)/       ← Dossier juridique
 │   │   │   ├── Requête divorce.pdf

@@ -1,8 +1,8 @@
-# Système de Backup MonCabinet
+# Système de Backup Qadhya
 
 ## Vue d'ensemble
 
-MonCabinet inclut un système de backup automatisé pour :
+Qadhya inclut un système de backup automatisé pour :
 - **PostgreSQL** : Base de données (dump SQL compressé)
 - **MinIO** : Documents stockés (mirror S3)
 - **Code source** : Archive tar.gz

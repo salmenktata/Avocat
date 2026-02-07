@@ -11,7 +11,7 @@ import * as Brevo from '@getbrevo/brevo'
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY || ''
 const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || 'notifications@moncabinet.tn'
-const SENDER_NAME = process.env.BREVO_SENDER_NAME || 'MonCabinet'
+const SENDER_NAME = process.env.BREVO_SENDER_NAME || 'Qadhya'
 
 // =============================================================================
 // TYPES
@@ -114,17 +114,17 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
 export async function sendTestEmail(to: string): Promise<SendEmailResult> {
   return sendEmail({
     to,
-    subject: '[MonCabinet] Test de configuration Brevo',
+    subject: '[Qadhya] Test de configuration Brevo',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1a365d;">Configuration Brevo réussie</h2>
         <p>Cet email confirme que votre configuration Brevo fonctionne correctement.</p>
         <p style="color: #666; font-size: 12px;">
-          Envoyé depuis MonCabinet - ${new Date().toLocaleString('fr-TN', { timeZone: 'Africa/Tunis' })}
+          Envoyé depuis Qadhya - ${new Date().toLocaleString('fr-TN', { timeZone: 'Africa/Tunis' })}
         </p>
       </div>
     `,
-    textContent: `Configuration Brevo réussie\n\nCet email confirme que votre configuration Brevo fonctionne correctement.\n\nEnvoyé depuis MonCabinet - ${new Date().toLocaleString('fr-TN', { timeZone: 'Africa/Tunis' })}`,
+    textContent: `Configuration Brevo réussie\n\nCet email confirme que votre configuration Brevo fonctionne correctement.\n\nEnvoyé depuis Qadhya - ${new Date().toLocaleString('fr-TN', { timeZone: 'Africa/Tunis' })}`,
     tags: ['test'],
   })
 }

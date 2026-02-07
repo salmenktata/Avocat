@@ -192,7 +192,7 @@ export default function SettingsPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="p-4 rounded-lg bg-slate-700/50">
               <p className="text-sm text-slate-400">Version</p>
-              <p className="text-white font-medium">MonCabinet v1.0.0</p>
+              <p className="text-white font-medium">Qadhya v1.0.0</p>
             </div>
             <div className="p-4 rounded-lg bg-slate-700/50">
               <p className="text-sm text-slate-400">Environnement</p>

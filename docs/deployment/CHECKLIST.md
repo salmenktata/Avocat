@@ -1,4 +1,4 @@
-# ✅ Checklist Déploiement VPS MonCabinet
+# ✅ Checklist Déploiement VPS Qadhya
 
 Cette checklist permet de suivre étape par étape le déploiement sur VPS Contabo.
 
@@ -321,7 +321,7 @@ Dans GitHub repo → Settings → Secrets → Actions :
 
 Si tous les items sont cochés ✅, félicitations !
 
-Votre application MonCabinet est maintenant en production sur VPS Contabo.
+Votre application Qadhya est maintenant en production sur VPS Contabo.
 
 **Prochaines étapes** :
 

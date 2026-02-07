@@ -1,4 +1,4 @@
-# ❓ FAQ - Déploiement VPS MonCabinet
+# ❓ FAQ - Déploiement VPS Qadhya
 
 Questions fréquentes et solutions aux problèmes courants.
 

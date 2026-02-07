@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
- * Playwright Configuration for MonCabinet E2E Tests
+ * Playwright Configuration for Qadhya E2E Tests
  */
 export default defineConfig({
   testDir: './e2e',

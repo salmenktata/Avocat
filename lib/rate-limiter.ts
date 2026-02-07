@@ -1,5 +1,5 @@
 /**
- * Rate Limiter en mémoire pour MonCabinet
+ * Rate Limiter en mémoire pour Qadhya
  *
  * Implémente un algorithme de fenêtre glissante (sliding window)
  * pour limiter le nombre de requêtes par IP/identifiant.

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ################################################################################
-# Script de déploiement rapide MonCabinet
+# Script de déploiement rapide Qadhya
 #
 # Ce script met à jour l'application déjà installée sur le VPS
 #
@@ -15,7 +15,7 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${BLUE}🚀 Déploiement MonCabinet${NC}"
+echo -e "${BLUE}🚀 Déploiement Qadhya${NC}"
 echo ""
 
 # Vérifier qu'on est dans le bon répertoire

@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
           tokenExpiresAt,
           true,
           true,
-          'Clients MonCabinet',
+          'Clients Qadhya',
           userInfo.email,
           tokens.scope.split(' ')
         ]

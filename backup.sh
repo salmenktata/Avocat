@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Script de backup automatique MonCabinet
+# Script de backup automatique Qadhya
 #
 # Usage: ./backup.sh [--notify]
 #
@@ -61,9 +61,9 @@ send_failure_notification() {
       -H "api-key: $BREVO_API_KEY" \
       -H "content-type: application/json" \
       -d "{
-        \"sender\": {\"name\": \"MonCabinet Backup\", \"email\": \"${BREVO_SENDER_EMAIL:-noreply@moncabinet.tn}\"},
+        \"sender\": {\"name\": \"Qadhya Backup\", \"email\": \"${BREVO_SENDER_EMAIL:-noreply@moncabinet.tn}\"},
         \"to\": [{\"email\": \"${ADMIN_EMAIL:-admin@moncabinet.tn}\"}],
-        \"subject\": \"⚠️ Échec Backup MonCabinet - $DATE\",
+        \"subject\": \"⚠️ Échec Backup Qadhya - $DATE\",
         \"htmlContent\": \"<h2>Échec du backup automatique</h2><p>Date: $DATE</p><p>Erreur:</p><pre>$error_message</pre><p>Vérifiez le serveur et relancez le backup manuellement.</p>\"
       }" > /dev/null 2>&1 || true
     echo -e "${YELLOW}📧 Notification envoyée${NC}"
@@ -83,7 +83,7 @@ mkdir -p "$BACKUP_DIR"
 # Trap pour gérer les erreurs
 trap cleanup_on_error ERR
 
-echo -e "${GREEN}🔄 Backup MonCabinet - $DATE${NC}"
+echo -e "${GREEN}🔄 Backup Qadhya - $DATE${NC}"
 echo "Notify: $NOTIFY"
 
 # ============================================================================
@@ -217,7 +217,7 @@ if [ "$DISK_USAGE" -gt 80 ]; then
   echo "Nettoyer anciens backups ou augmenter capacité disque"
 
   # Optionnel: Envoyer alerte email
-  # echo "Disque VPS à ${DISK_USAGE}%" | mail -s "Alerte Disque MonCabinet" admin@moncabinet.tn
+  # echo "Disque VPS à ${DISK_USAGE}%" | mail -s "Alerte Disque Qadhya" admin@moncabinet.tn
 else
   echo -e "${GREEN}✅ Espace disque OK (${DISK_USAGE}%)${NC}"
 fi

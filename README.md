@@ -142,8 +142,8 @@ qadhya/
 
 1. Cloner le repository
 ```bash
-git clone https://github.com/votre-username/moncabinet.git
-cd moncabinet
+git clone https://github.com/votre-username/qadhya.git
+cd qadhya
 ```
 
 2. Installer les dépendances
@@ -200,7 +200,7 @@ docker-compose logs -f
 docker-compose down
 
 # Backup base de données
-docker exec moncabinet-postgres pg_dump -U moncabinet moncabinet > backup.sql
+docker exec qadhya-postgres pg_dump -U qadhya qadhya > backup.sql
 ```
 
 ## 📊 Schéma de Base de Données

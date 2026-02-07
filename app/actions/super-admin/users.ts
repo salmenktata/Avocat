@@ -78,7 +78,7 @@ function getApprovalEmailHtml(userName: string) {
   const safeName = escapeHtml(userName)
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h1 style="color: #22c55e;">Bienvenue sur MonCabinet !</h1>
+      <h1 style="color: #22c55e;">Bienvenue sur Qadhya !</h1>
       <p>Bonjour ${safeName},</p>
       <p>Nous avons le plaisir de vous informer que votre demande d'inscription a été <strong>approuvée</strong>.</p>
       <p>Vous pouvez maintenant vous connecter et commencer à utiliser la plateforme.</p>
@@ -88,7 +88,7 @@ function getApprovalEmailHtml(userName: string) {
           Se connecter
         </a>
       </div>
-      <p>Cordialement,<br>L'équipe MonCabinet</p>
+      <p>Cordialement,<br>L'équipe Qadhya</p>
     </div>
   `
 }
@@ -103,7 +103,7 @@ function getRejectionEmailHtml(userName: string, reason?: string) {
       <p>Nous sommes désolés de vous informer que votre demande d'inscription a été <strong>refusée</strong>.</p>
       ${safeReason ? `<p><strong>Raison :</strong> ${safeReason}</p>` : ''}
       <p>Si vous pensez qu'il s'agit d'une erreur, n'hésitez pas à nous contacter.</p>
-      <p>Cordialement,<br>L'équipe MonCabinet</p>
+      <p>Cordialement,<br>L'équipe Qadhya</p>
     </div>
   `
 }
@@ -118,7 +118,7 @@ function getSuspensionEmailHtml(userName: string, reason?: string) {
       <p>Nous vous informons que votre compte a été <strong>suspendu</strong>.</p>
       ${safeReason ? `<p><strong>Raison :</strong> ${safeReason}</p>` : ''}
       <p>Si vous souhaitez contester cette décision, veuillez nous contacter.</p>
-      <p>Cordialement,<br>L'équipe MonCabinet</p>
+      <p>Cordialement,<br>L'équipe Qadhya</p>
     </div>
   `
 }
@@ -137,7 +137,7 @@ function getReactivationEmailHtml(userName: string) {
           Se connecter
         </a>
       </div>
-      <p>Cordialement,<br>L'équipe MonCabinet</p>
+      <p>Cordialement,<br>L'équipe Qadhya</p>
     </div>
   `
 }
@@ -198,7 +198,7 @@ export async function approveUserAction(userId: string) {
     const userName = user.prenom && user.nom ? `${user.prenom} ${user.nom}` : user.email
     await sendEmail({
       to: user.email,
-      subject: 'Votre compte MonCabinet a été approuvé',
+      subject: 'Votre compte Qadhya a été approuvé',
       html: getApprovalEmailHtml(userName)
     })
 
@@ -273,7 +273,7 @@ export async function rejectUserAction(userId: string, reason?: string) {
     const userName = user.prenom && user.nom ? `${user.prenom} ${user.nom}` : user.email
     await sendEmail({
       to: user.email,
-      subject: 'Votre demande d\'inscription MonCabinet',
+      subject: 'Votre demande d\'inscription Qadhya',
       html: getRejectionEmailHtml(userName, reason)
     })
 
@@ -352,7 +352,7 @@ export async function suspendUserAction(userId: string, reason?: string) {
     const userName = user.prenom && user.nom ? `${user.prenom} ${user.nom}` : user.email
     await sendEmail({
       to: user.email,
-      subject: 'Votre compte MonCabinet a été suspendu',
+      subject: 'Votre compte Qadhya a été suspendu',
       html: getSuspensionEmailHtml(userName, reason)
     })
 
@@ -424,7 +424,7 @@ export async function reactivateUserAction(userId: string) {
     const userName = user.prenom && user.nom ? `${user.prenom} ${user.nom}` : user.email
     await sendEmail({
       to: user.email,
-      subject: 'Votre compte MonCabinet a été réactivé',
+      subject: 'Votre compte Qadhya a été réactivé',
       html: getReactivationEmailHtml(userName)
     })
 

@@ -9,7 +9,7 @@ async function getKnowledgeBaseService() {
 }
 
 export const metadata = {
-  title: 'Base de Connaissances - MonCabinet',
+  title: 'Base de Connaissances - Qadhya',
   description: 'Gérer la base de connaissances juridique partagée',
 }
 
