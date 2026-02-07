@@ -411,7 +411,7 @@ export async function sendDailyDigestNotifications(): Promise<DigestStats> {
   const errors: string[] = []
 
   // Vérifier la configuration email (Resend ou Brevo)
-  const emailStatus = getEmailProvidersStatus()
+  const emailStatus = await getEmailProvidersStatus()
   if (!emailStatus.primary) {
     throw new Error('Aucun provider email configuré (RESEND_API_KEY ou BREVO_API_KEY)')
   }

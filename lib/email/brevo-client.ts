@@ -4,12 +4,12 @@
  */
 
 import * as Brevo from '@getbrevo/brevo'
+import { getConfig } from '@/lib/config/platform-config'
 
 // =============================================================================
-// CONFIGURATION
+// CONFIGURATION (fallback sur env si DB non disponible)
 // =============================================================================
 
-const BREVO_API_KEY = process.env.BREVO_API_KEY || ''
 const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || 'notifications@moncabinet.tn'
 const SENDER_NAME = process.env.BREVO_SENDER_NAME || 'Qadhya'
 
@@ -33,22 +33,25 @@ export interface SendEmailResult {
 }
 
 // =============================================================================
-// CLIENT SINGLETON
+// CLIENT FACTORY
 // =============================================================================
 
-let apiInstance: Brevo.TransactionalEmailsApi | null = null
+/**
+ * Crée une instance de l'API Brevo avec la clé fournie ou depuis la config
+ */
+async function createApiInstance(apiKeyOverride?: string): Promise<Brevo.TransactionalEmailsApi> {
+  const apiKey = apiKeyOverride || await getConfig('BREVO_API_KEY')
 
-function getApiInstance(): Brevo.TransactionalEmailsApi {
-  if (!apiInstance) {
-    if (!BREVO_API_KEY) {
-      throw new Error('BREVO_API_KEY non configuré')
-    }
-    apiInstance = new Brevo.TransactionalEmailsApi()
-    apiInstance.setApiKey(
-      Brevo.TransactionalEmailsApiApiKeys.apiKey,
-      BREVO_API_KEY
-    )
+  if (!apiKey) {
+    throw new Error('BREVO_API_KEY non configuré')
   }
+
+  const apiInstance = new Brevo.TransactionalEmailsApi()
+  apiInstance.setApiKey(
+    Brevo.TransactionalEmailsApiApiKeys.apiKey,
+    apiKey
+  )
+
   return apiInstance
 }
 
@@ -58,12 +61,17 @@ function getApiInstance(): Brevo.TransactionalEmailsApi {
 
 /**
  * Envoie un email transactionnel via Brevo
+ * @param params Paramètres de l'email
+ * @param apiKeyOverride Clé API optionnelle pour override (tests)
  */
-export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
+export async function sendEmail(
+  params: SendEmailParams,
+  apiKeyOverride?: string
+): Promise<SendEmailResult> {
   const { to, subject, htmlContent, textContent, replyTo, tags } = params
 
   try {
-    const api = getApiInstance()
+    const api = await createApiInstance(apiKeyOverride)
 
     const sendSmtpEmail = new Brevo.SendSmtpEmail()
     sendSmtpEmail.sender = { email: SENDER_EMAIL, name: SENDER_NAME }
@@ -110,8 +118,13 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
 
 /**
  * Envoie un email de test pour vérifier la configuration
+ * @param to Adresse email destinataire
+ * @param apiKeyOverride Clé API optionnelle pour tester une nouvelle clé
  */
-export async function sendTestEmail(to: string): Promise<SendEmailResult> {
+export async function sendTestEmail(
+  to: string,
+  apiKeyOverride?: string
+): Promise<SendEmailResult> {
   return sendEmail({
     to,
     subject: '[Qadhya] Test de configuration Brevo',
@@ -126,12 +139,23 @@ export async function sendTestEmail(to: string): Promise<SendEmailResult> {
     `,
     textContent: `Configuration Brevo réussie\n\nCet email confirme que votre configuration Brevo fonctionne correctement.\n\nEnvoyé depuis Qadhya - ${new Date().toLocaleString('fr-TN', { timeZone: 'Africa/Tunis' })}`,
     tags: ['test'],
-  })
+  }, apiKeyOverride)
 }
 
 /**
- * Vérifie si Brevo est configuré
+ * Vérifie si Brevo est configuré (clé API présente)
+ * @param apiKeyOverride Clé API optionnelle pour vérifier
  */
-export function isBrevoConfigured(): boolean {
-  return !!BREVO_API_KEY
+export async function isBrevoConfigured(apiKeyOverride?: string): Promise<boolean> {
+  if (apiKeyOverride) return true
+  const apiKey = await getConfig('BREVO_API_KEY')
+  return !!apiKey
+}
+
+/**
+ * Version synchrone pour compatibilité - utilise fallback env
+ * @deprecated Préférer isBrevoConfigured() async
+ */
+export function isBrevoConfiguredSync(): boolean {
+  return !!process.env.BREVO_API_KEY
 }

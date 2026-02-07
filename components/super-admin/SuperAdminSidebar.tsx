@@ -73,6 +73,7 @@ const getNavGroups = (pendingCount: number, unreadNotifications: number): NavGro
     group: 'Configuration',
     items: [
       { href: '/super-admin/settings', label: 'Paramètres', icon: 'settings' },
+      { href: '/super-admin/settings/providers', label: 'Providers', icon: 'zap' },
       { href: '/super-admin/settings/messagerie', label: 'WhatsApp Business', icon: 'messageSquare' },
     ],
   },

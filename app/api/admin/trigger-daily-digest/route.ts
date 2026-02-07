@@ -30,7 +30,7 @@ export async function POST() {
     }
 
     // Vérifier config email (Resend ou Brevo)
-    const emailStatus = getEmailProvidersStatus()
+    const emailStatus = await getEmailProvidersStatus()
     if (!emailStatus.primary) {
       return NextResponse.json(
         { error: 'Aucun provider email configuré (RESEND_API_KEY ou BREVO_API_KEY)' },
