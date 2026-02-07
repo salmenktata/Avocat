@@ -55,6 +55,12 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
+# Copier le polyfill File API pour le runtime
+COPY --from=builder /app/scripts/polyfill-file.js ./scripts/
+
+# Charger le polyfill au runtime pour éviter "File is not defined"
+ENV NODE_OPTIONS="--require ./scripts/polyfill-file.js"
+
 # Installer dépendances pour le script entrypoint (ignorer les scripts pour éviter canvas)
 RUN npm install --no-save --ignore-scripts pg bcryptjs
 
