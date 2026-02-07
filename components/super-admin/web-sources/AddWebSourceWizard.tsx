@@ -88,9 +88,9 @@ export function AddWebSourceWizard() {
     category: 'legislation',
     language: 'fr',
     crawlFrequency: '24 hours',
-    maxDepth: 3,
-    maxPages: 200,
-    requiresJavascript: false,
+    maxDepth: 10,
+    maxPages: 10000,
+    requiresJavascript: true,
     downloadFiles: true,
     useSitemap: false,
     sitemapUrl: '',
@@ -388,8 +388,8 @@ export function AddWebSourceWizard() {
                 value={[formData.maxPages]}
                 onValueChange={([v]) => updateField('maxPages', v)}
                 min={10}
-                max={1000}
-                step={10}
+                max={10000}
+                step={100}
                 className="mt-2"
               />
             </div>
