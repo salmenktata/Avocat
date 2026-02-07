@@ -24,6 +24,11 @@ const RERANKER_MODEL = process.env.RERANKER_MODEL || 'Xenova/ms-marco-MiniLM-L-6
 let transformersModule: { pipeline: any; env: any } | null = null
 
 async function loadTransformers() {
+  // Bloquer pendant le build Next.js car @xenova/transformers utilise des APIs navigateur
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    throw new Error('Transformers module not available during build')
+  }
+
   if (transformersModule) return transformersModule
 
   // @ts-ignore - @xenova/transformers n'a pas de types TypeScript complets
