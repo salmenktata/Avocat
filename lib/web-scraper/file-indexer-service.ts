@@ -34,6 +34,7 @@ export interface BatchFileResult {
   downloaded: number
   indexed: number
   failed: number
+  chunksCreated: number
   errors: string[]
 }
 
@@ -164,6 +165,7 @@ export async function downloadPageFiles(
     downloaded: 0,
     indexed: 0,
     failed: 0,
+    chunksCreated: 0,
     errors: [],
   }
 
@@ -243,8 +245,17 @@ export async function indexFile(
   }
 
   try {
-    // Télécharger depuis MinIO
-    const buffer = await downloadFile(file.minioPath, WEB_FILES_BUCKET)
+    // Télécharger depuis le stockage (MinIO ou Google Drive)
+    const downloadResult = await downloadWebFile(file.minioPath)
+    if (!downloadResult.success || !downloadResult.buffer) {
+      return {
+        success: false,
+        fileId: '',
+        chunksCreated: 0,
+        error: downloadResult.error || 'Erreur téléchargement fichier',
+      }
+    }
+    const buffer = downloadResult.buffer
 
     // Parser le fichier
     const parsed = await parseFile(buffer, file.type)
@@ -413,6 +424,7 @@ export async function indexPageFiles(
     downloaded: 0,
     indexed: 0,
     failed: 0,
+    chunksCreated: 0,
     errors: [],
   }
 
@@ -455,6 +467,7 @@ export async function indexPageFiles(
 
     if (indexResult.success) {
       result.indexed++
+      result.chunksCreated += indexResult.chunksCreated
     } else {
       result.failed++
       if (indexResult.error) {
@@ -479,6 +492,7 @@ export async function indexSourceFiles(
     downloaded: 0,
     indexed: 0,
     failed: 0,
+    chunksCreated: 0,
     errors: [],
   }
 
@@ -516,6 +530,7 @@ export async function indexSourceFiles(
     const pageResult = await indexPageFiles(page.id, sourceId, sourceName, category)
     result.downloaded += pageResult.downloaded
     result.indexed += pageResult.indexed
+    result.chunksCreated += pageResult.chunksCreated
     result.failed += pageResult.failed
     result.errors.push(...pageResult.errors)
   }

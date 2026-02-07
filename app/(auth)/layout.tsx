@@ -1,7 +1,13 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Logo } from '@/components/ui/Logo'
 import { getTranslations } from 'next-intl/server'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
+
+export const metadata: Metadata = {
+  title: 'Connexion - Qadhya',
+  description: 'Connectez-vous à Qadhya, la plateforme SaaS de gestion de cabinet juridique en Tunisie. Gérez vos dossiers, clients et factures efficacement.',
+}
 
 function CheckIcon() {
   return (
