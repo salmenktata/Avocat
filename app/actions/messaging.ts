@@ -13,6 +13,24 @@ import { z } from 'zod'
 import { createStorageManager } from '@/lib/integrations/storage-manager'
 
 // ============================================================================
+// HELPER - VÉRIFICATION SUPER ADMIN
+// ============================================================================
+
+async function checkSuperAdminAccess() {
+  const session = await getSession()
+  if (!session?.user?.id) {
+    return { error: 'Non authentifié' }
+  }
+
+  const result = await query('SELECT role FROM users WHERE id = $1', [session.user.id])
+  if (result.rows[0]?.role !== 'super_admin') {
+    return { error: 'Accès réservé aux super administrateurs' }
+  }
+
+  return { userId: session.user.id }
+}
+
+// ============================================================================
 // SCHEMAS VALIDATION
 // ============================================================================
 
@@ -44,15 +62,15 @@ const rejectPendingDocumentSchema = z.object({
 // ============================================================================
 
 /**
- * Récupérer configuration messagerie de l'utilisateur
+ * Récupérer configuration messagerie (super admin only)
  */
 export async function getMessagingConfigAction() {
   try {
-    const session = await getSession()
-    if (!session?.user?.id) {
-      return { error: 'Non authentifié' }
+    const access = await checkSuperAdminAccess()
+    if ('error' in access) {
+      return { error: access.error }
     }
-    const userId = session.user.id
+    const userId = access.userId
 
     const result = await query(
       `SELECT * FROM messaging_webhooks_config
@@ -69,15 +87,15 @@ export async function getMessagingConfigAction() {
 }
 
 /**
- * Sauvegarder/Mettre à jour configuration WhatsApp Business
+ * Sauvegarder/Mettre à jour configuration WhatsApp Business (super admin only)
  */
 export async function saveWhatsAppConfigAction(input: WhatsAppConfigInput) {
   try {
-    const session = await getSession()
-    if (!session?.user?.id) {
-      return { error: 'Non authentifié' }
+    const access = await checkSuperAdminAccess()
+    if ('error' in access) {
+      return { error: access.error }
     }
-    const userId = session.user.id
+    const userId = access.userId
 
     // Valider input
     const validated = whatsappConfigSchema.parse(input)
@@ -120,7 +138,7 @@ export async function saveWhatsAppConfigAction(input: WhatsAppConfigInput) {
         ]
       )
 
-      revalidatePath('/parametres/messagerie')
+      revalidatePath('/super-admin/settings/messagerie')
 
       return {
         success: true,
@@ -151,7 +169,7 @@ export async function saveWhatsAppConfigAction(input: WhatsAppConfigInput) {
         ]
       )
 
-      revalidatePath('/parametres/messagerie')
+      revalidatePath('/super-admin/settings/messagerie')
 
       return {
         success: true,
@@ -171,15 +189,15 @@ export async function saveWhatsAppConfigAction(input: WhatsAppConfigInput) {
 }
 
 /**
- * Désactiver configuration WhatsApp
+ * Désactiver configuration WhatsApp (super admin only)
  */
 export async function disableWhatsAppConfigAction() {
   try {
-    const session = await getSession()
-    if (!session?.user?.id) {
-      return { error: 'Non authentifié' }
+    const access = await checkSuperAdminAccess()
+    if ('error' in access) {
+      return { error: access.error }
     }
-    const userId = session.user.id
+    const userId = access.userId
 
     await query(
       `UPDATE messaging_webhooks_config SET
@@ -189,7 +207,7 @@ export async function disableWhatsAppConfigAction() {
       [userId, 'whatsapp']
     )
 
-    revalidatePath('/parametres/messagerie')
+    revalidatePath('/super-admin/settings/messagerie')
 
     return {
       success: true,

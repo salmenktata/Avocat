@@ -1,22 +1,16 @@
 /**
- * Page Configuration Messagerie
+ * Page Configuration Messagerie WhatsApp - Super Admin Only
  * Configuration WhatsApp Business pour réception automatique documents clients
  */
 
-import { getSession } from '@/lib/auth/session'
-import { redirect } from 'next/navigation'
 import { getMessagingConfigAction } from '@/app/actions/messaging'
 import MessagingConfig from '@/components/parametres/MessagingConfig'
 import { MessageSquare, Lock, Globe } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-export default async function MessagerieSettingsPage() {
-  const session = await getSession()
-
-  if (!session?.user?.id) {
-    redirect('/connexion')
-  }
+export default async function SuperAdminMessagingPage() {
+  // La protection super_admin est automatique via le layout parent
 
   // Récupérer configuration existante
   const result = await getMessagingConfigAction()
@@ -26,57 +20,57 @@ export default async function MessagerieSettingsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Réception Documents</h1>
-        <p className="text-muted-foreground mt-2">
-          Configurez WhatsApp Business pour recevoir automatiquement les documents de vos clients
+        <h2 className="text-2xl font-bold text-white">Réception Documents WhatsApp</h2>
+        <p className="text-slate-400 mt-2">
+          Configurez WhatsApp Business pour recevoir automatiquement les documents des clients
         </p>
       </div>
 
       {/* Info Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+        <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-green-100 p-2">
-                <MessageSquare className="h-5 w-5 text-green-600" />
+              <div className="rounded-lg bg-green-900/50 p-2">
+                <MessageSquare className="h-5 w-5 text-green-400" />
               </div>
-              <CardTitle className="text-base">Automatisation</CardTitle>
+              <CardTitle className="text-base text-white">Automatisation</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <CardDescription>
-              Vos clients envoient documents par WhatsApp, rattachement automatique aux dossiers
+            <CardDescription className="text-slate-400">
+              Les clients envoient documents par WhatsApp, rattachement automatique aux dossiers
             </CardDescription>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-blue-100 p-2">
-                <Lock className="h-5 w-5 text-blue-600" />
+              <div className="rounded-lg bg-blue-900/50 p-2">
+                <Lock className="h-5 w-5 text-blue-400" />
               </div>
-              <CardTitle className="text-base">Sécurité</CardTitle>
+              <CardTitle className="text-base text-white">Sécurité</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <CardDescription>
+            <CardDescription className="text-slate-400">
               Webhooks sécurisés avec validation HMAC SHA256, identification clients automatique
             </CardDescription>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-purple-100 p-2">
-                <Globe className="h-5 w-5 text-purple-600" />
+              <div className="rounded-lg bg-purple-900/50 p-2">
+                <Globe className="h-5 w-5 text-purple-400" />
               </div>
-              <CardTitle className="text-base">WhatsApp Business</CardTitle>
+              <CardTitle className="text-base text-white">WhatsApp Business</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <CardDescription>
+            <CardDescription className="text-slate-400">
               Intégration officielle avec WhatsApp Business API (Meta Graph API v21.0)
             </CardDescription>
           </CardContent>
@@ -84,18 +78,18 @@ export default async function MessagerieSettingsPage() {
       </div>
 
       {/* Alert Guide Configuration */}
-      <Alert>
-        <AlertDescription>
+      <Alert className="bg-slate-800 border-slate-700">
+        <AlertDescription className="text-slate-300">
           <div className="space-y-2">
             <p className="font-medium">📋 Guide de configuration WhatsApp Business</p>
-            <ol className="list-decimal list-inside space-y-1 text-sm">
+            <ol className="list-decimal list-inside space-y-1 text-sm text-slate-400">
               <li>
                 Créez un compte{' '}
                 <a
                   href="https://business.facebook.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary underline"
+                  className="text-blue-400 underline hover:text-blue-300"
                 >
                   Meta Business Manager
                 </a>
@@ -106,7 +100,7 @@ export default async function MessagerieSettingsPage() {
                   href="https://developers.facebook.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary underline"
+                  className="text-blue-400 underline hover:text-blue-300"
                 >
                   Facebook Developers
                 </a>
