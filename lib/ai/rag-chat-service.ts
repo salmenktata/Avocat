@@ -27,11 +27,22 @@ import {
 import { searchKnowledgeBase } from './knowledge-base-service'
 
 // =============================================================================
-// CLIENTS LLM (Groq prioritaire, puis Anthropic, puis OpenAI)
+// CLIENTS LLM (Ollama prioritaire, puis Groq, puis Anthropic)
 // =============================================================================
 
 let anthropicClient: Anthropic | null = null
 let groqClient: OpenAI | null = null
+let ollamaClient: OpenAI | null = null
+
+function getOllamaClient(): OpenAI {
+  if (!ollamaClient) {
+    ollamaClient = new OpenAI({
+      apiKey: 'ollama', // Ollama n'a pas besoin de clé
+      baseURL: `${aiConfig.ollama.baseUrl}/v1`,
+    })
+  }
+  return ollamaClient
+}
 
 function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
@@ -406,8 +417,19 @@ async function searchRelevantContext(
 // CONSTRUCTION DU PROMPT
 // =============================================================================
 
+// Limite de tokens pour le contexte RAG
+const RAG_MAX_CONTEXT_TOKENS = parseInt(process.env.RAG_MAX_CONTEXT_TOKENS || '2000', 10)
+
 /**
- * Construit le contexte à partir des sources
+ * Estime le nombre de tokens dans un texte
+ * Approximation: ~4 caractères = 1 token pour le français/arabe
+ */
+function estimateContextTokens(text: string): number {
+  return Math.ceil(text.length / 4)
+}
+
+/**
+ * Construit le contexte à partir des sources avec limite de tokens
  */
 function buildContextFromSources(sources: ChatSource[]): string {
   if (sources.length === 0) {
@@ -415,19 +437,20 @@ function buildContextFromSources(sources: ChatSource[]): string {
   }
 
   const contextParts: string[] = []
+  let totalTokens = 0
+  let sourcesUsed = 0
 
   for (let i = 0; i < sources.length; i++) {
     const source = sources[i]
     const meta = source.metadata as any
     const sourceType = meta?.type
 
+    let part: string
     if (sourceType === 'jurisprudence') {
-      contextParts.push(
-        `[اجتهاد قضائي ${i + 1}] ${source.documentName}\n` +
-          `الغرفة: ${meta?.chamber || 'غ/م'}, التاريخ: ${meta?.date || 'غ/م'}\n` +
-          `الفصول المذكورة: ${meta?.articles?.join(', ') || 'غ/م'}\n\n` +
-          source.chunkContent
-      )
+      part = `[اجتهاد قضائي ${i + 1}] ${source.documentName}\n` +
+        `الغرفة: ${meta?.chamber || 'غ/م'}, التاريخ: ${meta?.date || 'غ/م'}\n` +
+        `الفصول المذكورة: ${meta?.articles?.join(', ') || 'غ/م'}\n\n` +
+        source.chunkContent
     } else if (sourceType === 'knowledge_base') {
       const categoryLabels: Record<string, string> = {
         jurisprudence: 'اجتهاد قضائي',
@@ -437,16 +460,27 @@ function buildContextFromSources(sources: ChatSource[]): string {
         autre: 'أخرى',
       }
       const categoryLabel = categoryLabels[meta?.category] || 'مرجع'
-      contextParts.push(
-        `[قاعدة المعرفة - ${categoryLabel} ${i + 1}] ${source.documentName}\n\n` +
-          source.chunkContent
-      )
+      part = `[قاعدة المعرفة - ${categoryLabel} ${i + 1}] ${source.documentName}\n\n` +
+        source.chunkContent
     } else {
-      contextParts.push(
-        `[وثيقة ${i + 1}] ${source.documentName}\n\n` + source.chunkContent
-      )
+      part = `[وثيقة ${i + 1}] ${source.documentName}\n\n` + source.chunkContent
     }
+
+    const partTokens = estimateContextTokens(part)
+    const separatorTokens = contextParts.length > 0 ? estimateContextTokens('\n\n---\n\n') : 0
+
+    // Vérifier si on dépasse la limite
+    if (totalTokens + partTokens + separatorTokens > RAG_MAX_CONTEXT_TOKENS) {
+      console.log(`[RAG Context] Limite atteinte: ${sourcesUsed}/${sources.length} sources, ~${totalTokens} tokens`)
+      break
+    }
+
+    contextParts.push(part)
+    totalTokens += partTokens + separatorTokens
+    sourcesUsed++
   }
+
+  console.log(`[RAG Context] ${sourcesUsed}/${sources.length} sources, ~${totalTokens} tokens`)
 
   return contextParts.join('\n\n---\n\n')
 }
@@ -490,7 +524,7 @@ export async function answerQuestion(
   options: ChatOptions = {}
 ): Promise<ChatResponse> {
   if (!isChatEnabled()) {
-    throw new Error('Chat IA désactivé (configurer GROQ_API_KEY, ANTHROPIC_API_KEY ou OPENAI_API_KEY)')
+    throw new Error('Chat IA désactivé (activer OLLAMA_ENABLED ou configurer GROQ_API_KEY)')
   }
 
   const provider = getChatProvider()
@@ -526,8 +560,29 @@ export async function answerQuestion(
   let modelUsed: string
 
   // 5. Appeler le LLM selon le provider configuré
-  if (provider === 'groq') {
-    // Groq (API compatible OpenAI)
+  // Priorité: Ollama (local gratuit) > Groq (cloud rapide) > Anthropic
+  if (provider === 'ollama') {
+    // Ollama (local, gratuit, illimité)
+    const client = getOllamaClient()
+    const response = await client.chat.completions.create({
+      model: aiConfig.ollama.chatModel,
+      max_tokens: aiConfig.anthropic.maxTokens,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPTS.qadhya },
+        ...messages,
+      ],
+      temperature: options.temperature ?? 0.3,
+    })
+
+    answer = response.choices[0]?.message?.content || ''
+    tokensUsed = {
+      input: response.usage?.prompt_tokens || 0,
+      output: response.usage?.completion_tokens || 0,
+      total: response.usage?.total_tokens || 0,
+    }
+    modelUsed = `ollama/${aiConfig.ollama.chatModel}`
+  } else if (provider === 'groq') {
+    // Groq (API compatible OpenAI, fallback cloud)
     const client = getGroqClient()
     const response = await client.chat.completions.create({
       model: aiConfig.groq.model,
@@ -547,7 +602,7 @@ export async function answerQuestion(
     }
     modelUsed = aiConfig.groq.model
   } else {
-    // Anthropic Claude (fallback)
+    // Anthropic Claude (dernier fallback)
     const client = getAnthropicClient()
     const response = await client.messages.create({
       model: aiConfig.anthropic.model,

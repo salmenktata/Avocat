@@ -68,3 +68,5 @@ scripts/create-users-table.sql
 run-migration.js
 components/providers/SessionProvider.tsx
 apply-templates-migration.js
+.env.keys.backup
+exports/

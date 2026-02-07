@@ -220,15 +220,15 @@ export async function disableWhatsAppConfigAction() {
 }
 
 /**
- * Supprimer configuration WhatsApp
+ * Supprimer configuration WhatsApp (super admin only)
  */
 export async function deleteWhatsAppConfigAction() {
   try {
-    const session = await getSession()
-    if (!session?.user?.id) {
-      return { error: 'Non authentifié' }
+    const access = await checkSuperAdminAccess()
+    if ('error' in access) {
+      return { error: access.error }
     }
-    const userId = session.user.id
+    const userId = access.userId
 
     await query(
       `DELETE FROM messaging_webhooks_config
@@ -236,7 +236,7 @@ export async function deleteWhatsAppConfigAction() {
       [userId, 'whatsapp']
     )
 
-    revalidatePath('/parametres/messagerie')
+    revalidatePath('/super-admin/settings/messagerie')
 
     return {
       success: true,

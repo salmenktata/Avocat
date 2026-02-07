@@ -3,6 +3,7 @@ import { Icons } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
 import { BrevoTestButton } from '@/components/super-admin/settings/BrevoTestButton'
 import { DailyDigestStatus } from '@/components/super-admin/settings/DailyDigestStatus'
+import { ApiKeysCard } from '@/components/super-admin/settings/ApiKeysCard'
 
 export default function SettingsPage() {
   // Ces variables sont lues côté serveur
@@ -12,12 +13,27 @@ export default function SettingsPage() {
   const ollamaConfigured = !!process.env.OLLAMA_BASE_URL
   const cronConfigured = !!process.env.CRON_SECRET
 
+  // Clés API pour affichage
+  const apiKeys = [
+    { name: 'GROQ_API_KEY', value: process.env.GROQ_API_KEY, label: 'Groq (LLM)', priority: true },
+    { name: 'OPENAI_API_KEY', value: process.env.OPENAI_API_KEY, label: 'OpenAI (Embeddings)' },
+    { name: 'ANTHROPIC_API_KEY', value: process.env.ANTHROPIC_API_KEY, label: 'Anthropic Claude' },
+    { name: 'RESEND_API_KEY', value: process.env.RESEND_API_KEY, label: 'Resend (Emails)' },
+    { name: 'BREVO_API_KEY', value: process.env.BREVO_API_KEY, label: 'Brevo (Notifications)' },
+    { name: 'NEXTAUTH_SECRET', value: process.env.NEXTAUTH_SECRET, label: 'NextAuth Secret' },
+    { name: 'CRON_SECRET', value: process.env.CRON_SECRET, label: 'Cron Secret' },
+    { name: 'ENCRYPTION_KEY', value: process.env.ENCRYPTION_KEY, label: 'Encryption Key' },
+  ]
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white">Paramètres</h2>
         <p className="text-slate-400">Configuration globale de la plateforme</p>
       </div>
+
+      {/* Clés API */}
+      <ApiKeysCard apiKeys={apiKeys} />
 
       {/* Configuration Email */}
       <Card className="bg-slate-800 border-slate-700">

@@ -23,9 +23,10 @@ export interface AIConfig {
     chatModel: string
   }
 
-  // Ollama (Embeddings locaux gratuits)
+  // Ollama (LLM + Embeddings locaux gratuits)
   ollama: {
     baseUrl: string
+    chatModel: string
     embeddingModel: string
     embeddingDimensions: number
     enabled: boolean
@@ -75,6 +76,7 @@ export const aiConfig: AIConfig = {
 
   ollama: {
     baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+    chatModel: process.env.OLLAMA_CHAT_MODEL || 'qwen3:8b',
     embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL || 'qwen3-embedding:0.6b',
     embeddingDimensions: 1024, // Qwen3 embedding default dimension
     enabled: process.env.OLLAMA_ENABLED === 'true',
@@ -180,10 +182,10 @@ export function validateAIConfig(): {
 
 /**
  * Vérifie si les fonctionnalités IA sont disponibles
- * Priorité: Groq > Anthropic > OpenAI
+ * Priorité: Ollama (local) > Groq > Anthropic > OpenAI
  */
 export function isAIEnabled(): boolean {
-  const hasLLM = !!aiConfig.groq.apiKey || !!aiConfig.anthropic.apiKey || !!aiConfig.openai.apiKey
+  const hasLLM = aiConfig.ollama.enabled || !!aiConfig.groq.apiKey || !!aiConfig.anthropic.apiKey || !!aiConfig.openai.apiKey
   const hasEmbeddings = aiConfig.ollama.enabled || !!aiConfig.openai.apiKey
   return aiConfig.rag.enabled && hasLLM && hasEmbeddings
 }
@@ -216,18 +218,19 @@ export function getEmbeddingDimensions(): number {
 }
 
 /**
- * Vérifie si le chat IA est disponible (Groq, Anthropic OU OpenAI)
+ * Vérifie si le chat IA est disponible (Ollama, Groq, Anthropic OU OpenAI)
  */
 export function isChatEnabled(): boolean {
-  return aiConfig.rag.enabled && (!!aiConfig.groq.apiKey || !!aiConfig.anthropic.apiKey || !!aiConfig.openai.apiKey)
+  return aiConfig.rag.enabled && (aiConfig.ollama.enabled || !!aiConfig.groq.apiKey || !!aiConfig.anthropic.apiKey || !!aiConfig.openai.apiKey)
 }
 
 /**
  * Retourne le provider de chat actif
- * Priorité: Groq > Anthropic > OpenAI
+ * Priorité: Ollama (local gratuit) > Groq > Anthropic > OpenAI
  */
-export function getChatProvider(): 'groq' | 'anthropic' | 'openai' | null {
+export function getChatProvider(): 'ollama' | 'groq' | 'anthropic' | 'openai' | null {
   if (!aiConfig.rag.enabled) return null
+  if (aiConfig.ollama.enabled) return 'ollama'
   if (aiConfig.groq.apiKey) return 'groq'
   if (aiConfig.anthropic.apiKey) return 'anthropic'
   if (aiConfig.openai.apiKey) return 'openai'

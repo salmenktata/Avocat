@@ -66,7 +66,6 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
       { href: '/parametres/cabinet', label: 'cabinet', icon: 'building' },
       { href: '/parametres/notifications', label: 'notifications', icon: 'bell' },
       { href: '/parametres/cloud-storage', label: 'cloudStorage', icon: 'cloud' },
-      { href: '/parametres/messagerie', label: 'messaging', icon: 'messageSquare' },
     ],
   },
 ]

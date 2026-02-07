@@ -73,6 +73,13 @@ async function generateEmbeddingWithOllama(text: string): Promise<EmbeddingResul
 
   const data = await response.json() as OllamaEmbeddingResponse
 
+  // Valider l'embedding
+  const validation = validateEmbedding(data.embedding, 'ollama')
+  if (!validation.valid) {
+    console.error(`[Embeddings] Ollama embedding invalide: ${validation.error}`)
+    throw new Error(`Embedding Ollama invalide: ${validation.error}`)
+  }
+
   return {
     embedding: data.embedding,
     tokenCount: estimateTokenCount(text),
@@ -138,8 +145,17 @@ async function generateEmbeddingWithOpenAI(text: string): Promise<EmbeddingResul
     encoding_format: 'float',
   })
 
+  const embedding = response.data[0].embedding
+
+  // Valider l'embedding
+  const validation = validateEmbedding(embedding, 'openai')
+  if (!validation.valid) {
+    console.error(`[Embeddings] OpenAI embedding invalide: ${validation.error}`)
+    throw new Error(`Embedding OpenAI invalide: ${validation.error}`)
+  }
+
   return {
-    embedding: response.data[0].embedding,
+    embedding,
     tokenCount: response.usage.total_tokens,
     provider: 'openai',
   }
@@ -295,6 +311,69 @@ export function formatEmbeddingForPostgres(embedding: number[]): string {
 export function parseEmbeddingFromPostgres(pgVector: string): number[] {
   const cleaned = pgVector.replace(/[\[\]\(\)]/g, '')
   return cleaned.split(',').map((s) => parseFloat(s.trim()))
+}
+
+// =============================================================================
+// VALIDATION DES EMBEDDINGS
+// =============================================================================
+
+// Dimensions attendues par provider
+const EXPECTED_DIMENSIONS: Record<string, number> = {
+  ollama: aiConfig.ollama.embeddingDimensions,
+  openai: aiConfig.openai.embeddingDimensions,
+}
+
+/**
+ * Valide un embedding généré
+ * Vérifie: dimensions, valeurs finies, norme non-nulle
+ */
+export function validateEmbedding(
+  embedding: number[],
+  provider: 'ollama' | 'openai'
+): { valid: boolean; error?: string } {
+  // Vérifier que l'embedding existe
+  if (!embedding || !Array.isArray(embedding)) {
+    return { valid: false, error: 'Embedding null ou non-tableau' }
+  }
+
+  // Vérifier les dimensions
+  const expectedDim = EXPECTED_DIMENSIONS[provider]
+  if (embedding.length !== expectedDim) {
+    console.warn(
+      `[Embeddings] Dimensions inattendues: ${embedding.length} (attendu: ${expectedDim})`
+    )
+    // On ne bloque pas, juste un warning car les modèles peuvent varier
+  }
+
+  // Vérifier que toutes les valeurs sont des nombres finis
+  let hasInvalidValue = false
+  let normSquared = 0
+
+  for (let i = 0; i < embedding.length; i++) {
+    const val = embedding[i]
+    if (!Number.isFinite(val)) {
+      hasInvalidValue = true
+      break
+    }
+    normSquared += val * val
+  }
+
+  if (hasInvalidValue) {
+    return { valid: false, error: 'Embedding contient des valeurs non-finies (NaN/Infinity)' }
+  }
+
+  // Vérifier que la norme n'est pas nulle (vecteur nul = inutile)
+  const norm = Math.sqrt(normSquared)
+  if (norm === 0) {
+    return { valid: false, error: 'Embedding norme nulle (vecteur nul)' }
+  }
+
+  // Vérifier que la norme est raisonnable (typiquement proche de 1 pour embeddings normalisés)
+  if (norm < 0.1 || norm > 100) {
+    console.warn(`[Embeddings] Norme inhabituelle: ${norm.toFixed(4)}`)
+  }
+
+  return { valid: true }
 }
 
 // =============================================================================
