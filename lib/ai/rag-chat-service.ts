@@ -41,7 +41,7 @@ import {
   triggerSummaryGenerationIfNeeded,
   SUMMARY_CONFIG,
 } from './conversation-summary-service'
-import { encode } from 'gpt-tokenizer'
+import { countTokens } from './token-utils'
 import { getDynamicBoostFactors } from './feedback-service'
 import {
   rerankDocuments,
@@ -49,9 +49,13 @@ import {
   isRerankerEnabled,
   DocumentToRerank,
 } from './reranker-service'
+import { recordRAGMetric } from '@/lib/metrics/rag-metrics'
 
 // Configuration Query Expansion
 const ENABLE_QUERY_EXPANSION = process.env.ENABLE_QUERY_EXPANSION !== 'false'
+
+// Timeout global pour la recherche bilingue (10 secondes par défaut)
+const BILINGUAL_SEARCH_TIMEOUT_MS = parseInt(process.env.BILINGUAL_SEARCH_TIMEOUT_MS || '10000', 10)
 
 // =============================================================================
 // CLIENTS LLM (Ollama prioritaire, puis Groq, puis Anthropic)
@@ -291,6 +295,12 @@ function logSearchMetrics(metrics: SearchMetrics): void {
 // RECHERCHE CONTEXTUELLE
 // =============================================================================
 
+// Type de retour pour les recherches avec info de cache
+interface SearchResult {
+  sources: ChatSource[]
+  cacheHit: boolean
+}
+
 /**
  * Recherche les documents pertinents pour une question
  * Avec cache Redis pour les recherches répétées.
@@ -299,7 +309,7 @@ async function searchRelevantContext(
   question: string,
   userId: string,
   options: ChatOptions = {}
-): Promise<ChatSource[]> {
+): Promise<SearchResult> {
   const startTime = Date.now()
   const {
     dossierId,
@@ -317,7 +327,7 @@ async function searchRelevantContext(
   const cachedResults = await getCachedSearchResults(queryEmbedding.embedding, searchScope)
   if (cachedResults) {
     console.log(`[RAG Search] Cache HIT - ${cachedResults.length} sources (${Date.now() - startTime}ms)`)
-    return cachedResults as ChatSource[]
+    return { sources: cachedResults as ChatSource[], cacheHit: true }
   }
 
   const allSources: ChatSource[] = []
@@ -504,43 +514,104 @@ async function searchRelevantContext(
     await setCachedSearchResults(queryEmbedding.embedding, finalSources, searchScope)
   }
 
-  return finalSources
+  return { sources: finalSources, cacheHit: false }
+}
+
+/**
+ * Helper pour créer une promesse avec timeout
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, context: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout ${context} (${ms}ms)`)), ms)
+    ),
+  ])
 }
 
 /**
  * Recherche bilingue avec query expansion AR ↔ FR
  * Traduit la question et fusionne les résultats des deux langues.
+ * Applique un timeout global pour éviter les latences excessives.
  */
 async function searchRelevantContextBilingual(
   question: string,
   userId: string,
   options: ChatOptions = {}
-): Promise<ChatSource[]> {
+): Promise<SearchResult> {
+  const startTime = Date.now()
+
   // Détecter la langue de la question
   const detectedLang = detectLanguage(question)
   console.log(`[RAG Bilingual] Langue détectée: ${detectedLang}`)
 
-  // Recherche dans la langue originale (poids principal)
-  const primarySources = await searchRelevantContext(question, userId, options)
+  // Recherche dans la langue originale (poids principal) avec timeout
+  let primaryResult: SearchResult
+  try {
+    primaryResult = await withTimeout(
+      searchRelevantContext(question, userId, options),
+      BILINGUAL_SEARCH_TIMEOUT_MS,
+      'recherche primaire'
+    )
+  } catch (error) {
+    console.error('[RAG Bilingual] Timeout recherche primaire:', error instanceof Error ? error.message : error)
+    return { sources: [], cacheHit: false } // Retourner vide en cas de timeout total
+  }
 
   // Si query expansion désactivé ou traduction non disponible, retourner les résultats primaires
   if (!ENABLE_QUERY_EXPANSION || !isTranslationAvailable()) {
-    return primarySources
+    return primaryResult
+  }
+
+  // Vérifier le temps restant pour la recherche secondaire
+  const elapsedMs = Date.now() - startTime
+  const remainingMs = BILINGUAL_SEARCH_TIMEOUT_MS - elapsedMs
+
+  // Si moins de 2s restantes, ne pas lancer la recherche secondaire
+  if (remainingMs < 2000) {
+    console.log(`[RAG Bilingual] Temps restant insuffisant (${remainingMs}ms), skip recherche secondaire`)
+    return primaryResult
   }
 
   // Traduire vers la langue opposée
   const targetLang = getOppositeLanguage(detectedLang)
-  const translation = await translateQuery(question, detectedLang === 'mixed' ? 'fr' : detectedLang, targetLang)
+  let translation: { success: boolean; translatedText: string }
+
+  try {
+    translation = await withTimeout(
+      translateQuery(question, detectedLang === 'mixed' ? 'fr' : detectedLang, targetLang),
+      Math.min(3000, remainingMs / 2), // Max 3s pour la traduction
+      'traduction'
+    )
+  } catch {
+    console.log('[RAG Bilingual] Timeout traduction, retour résultats primaires')
+    return primaryResult
+  }
 
   if (!translation.success || translation.translatedText === question) {
     console.log('[RAG Bilingual] Traduction échouée ou identique, retour résultats primaires')
-    return primarySources
+    return primaryResult
   }
 
   console.log(`[RAG Bilingual] Question traduite: "${translation.translatedText.substring(0, 50)}..."`)
 
-  // Recherche dans la langue traduite
-  const secondarySources = await searchRelevantContext(translation.translatedText, userId, options)
+  // Recherche dans la langue traduite avec timeout restant
+  const newRemainingMs = BILINGUAL_SEARCH_TIMEOUT_MS - (Date.now() - startTime)
+  let secondaryResult: SearchResult = { sources: [], cacheHit: false }
+
+  try {
+    secondaryResult = await withTimeout(
+      searchRelevantContext(translation.translatedText, userId, options),
+      Math.max(2000, newRemainingMs), // Au moins 2s
+      'recherche secondaire'
+    )
+  } catch (error) {
+    console.warn('[RAG Bilingual] Timeout recherche secondaire, retour résultats primaires seuls:', error instanceof Error ? error.message : error)
+    return primaryResult
+  }
+
+  const primarySources = primaryResult.sources
+  const secondarySources = secondaryResult.sources
 
   // Fusionner et re-rank les résultats
   // Poids: primaire 0.7, secondaire 0.3
@@ -581,9 +652,14 @@ async function searchRelevantContextBilingual(
   const maxResults = options.maxContextChunks || aiConfig.rag.maxResults
   const finalSources = mergedSources.slice(0, maxResults)
 
-  console.log(`[RAG Bilingual] Fusion: ${primarySources.length} primaires + ${secondarySources.length} secondaires → ${finalSources.length} finaux`)
+  const totalTimeMs = Date.now() - startTime
+  console.log(`[RAG Bilingual] Fusion: ${primarySources.length} primaires + ${secondarySources.length} secondaires → ${finalSources.length} finaux (${totalTimeMs}ms)`)
 
-  return finalSources
+  // Cache hit si au moins une des deux recherches était en cache
+  return {
+    sources: finalSources,
+    cacheHit: primaryResult.cacheHit || secondaryResult.cacheHit,
+  }
 }
 
 // =============================================================================
@@ -592,19 +668,6 @@ async function searchRelevantContextBilingual(
 
 // Limite de tokens pour le contexte RAG (4000 par défaut pour les LLM modernes 8k+)
 const RAG_MAX_CONTEXT_TOKENS = parseInt(process.env.RAG_MAX_CONTEXT_TOKENS || '4000', 10)
-
-/**
- * Compte le nombre de tokens dans un texte de manière précise
- * Utilise gpt-tokenizer pour un comptage exact compatible GPT-4/Claude
- */
-function countTokens(text: string): number {
-  try {
-    return encode(text).length
-  } catch {
-    // Fallback si erreur d'encodage (caractères spéciaux)
-    return Math.ceil(text.length / 4)
-  }
-}
 
 /**
  * Construit le contexte à partir des sources avec limite de tokens
@@ -743,9 +806,11 @@ export async function answerQuestion(
 
   const startSearch = Date.now()
   try {
-    sources = ENABLE_QUERY_EXPANSION
+    const searchResult = ENABLE_QUERY_EXPANSION
       ? await searchRelevantContextBilingual(question, userId, options)
       : await searchRelevantContext(question, userId, options)
+    sources = searchResult.sources
+    cacheHit = searchResult.cacheHit
     searchTimeMs = Date.now() - startSearch
   } catch (error) {
     // Mode dégradé: continuer sans contexte RAG
@@ -820,67 +885,91 @@ export async function answerQuestion(
   let answer: string
   let tokensUsed: { input: number; output: number; total: number }
   let modelUsed: string
+  let llmError: string | undefined
 
   // 5. Appeler le LLM selon le provider configuré
   // Priorité: Ollama (local gratuit) > Groq (cloud rapide) > Anthropic
-  if (provider === 'ollama') {
-    // Ollama (local, gratuit, illimité)
-    const client = getOllamaClient()
-    const response = await client.chat.completions.create({
-      model: aiConfig.ollama.chatModel,
-      max_tokens: aiConfig.anthropic.maxTokens,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPTS.qadhya },
-        ...messagesOpenAI,
-      ],
-      temperature: options.temperature ?? 0.3,
+  try {
+    if (provider === 'ollama') {
+      // Ollama (local, gratuit, illimité)
+      const client = getOllamaClient()
+      const response = await client.chat.completions.create({
+        model: aiConfig.ollama.chatModel,
+        max_tokens: aiConfig.anthropic.maxTokens,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPTS.qadhya },
+          ...messagesOpenAI,
+        ],
+        temperature: options.temperature ?? 0.3,
+      })
+
+      answer = response.choices[0]?.message?.content || ''
+      tokensUsed = {
+        input: response.usage?.prompt_tokens || 0,
+        output: response.usage?.completion_tokens || 0,
+        total: response.usage?.total_tokens || 0,
+      }
+      modelUsed = `ollama/${aiConfig.ollama.chatModel}`
+    } else if (provider === 'groq') {
+      // Groq (API compatible OpenAI, fallback cloud)
+      const client = getGroqClient()
+      const response = await client.chat.completions.create({
+        model: aiConfig.groq.model,
+        max_tokens: aiConfig.anthropic.maxTokens,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPTS.qadhya },
+          ...messagesOpenAI,
+        ],
+        temperature: options.temperature ?? 0.3,
+      })
+
+      answer = response.choices[0]?.message?.content || ''
+      tokensUsed = {
+        input: response.usage?.prompt_tokens || 0,
+        output: response.usage?.completion_tokens || 0,
+        total: response.usage?.total_tokens || 0,
+      }
+      modelUsed = aiConfig.groq.model
+    } else {
+      // Anthropic Claude (dernier fallback)
+      const client = getAnthropicClient()
+      const response = await client.messages.create({
+        model: aiConfig.anthropic.model,
+        max_tokens: aiConfig.anthropic.maxTokens,
+        system: systemPromptWithSummary,
+        messages: messagesAnthropic,
+        temperature: options.temperature ?? 0.3,
+      })
+
+      answer = response.content[0].type === 'text' ? response.content[0].text : ''
+      tokensUsed = {
+        input: response.usage.input_tokens,
+        output: response.usage.output_tokens,
+        total: response.usage.input_tokens + response.usage.output_tokens,
+      }
+      modelUsed = aiConfig.anthropic.model
+    }
+  } catch (error) {
+    // Enregistrer l'erreur LLM dans les métriques
+    const totalTimeMs = Date.now() - startTotal
+    const llmTimeMs = totalTimeMs - searchTimeMs
+    llmError = `LLM error: ${error instanceof Error ? error.message : String(error)}`
+
+    recordRAGMetric({
+      searchTimeMs,
+      llmTimeMs,
+      totalTimeMs,
+      inputTokens: 0,
+      outputTokens: 0,
+      resultsCount: sources.length,
+      cacheHit,
+      degradedMode: isDegradedMode,
+      provider: provider || 'unknown',
+      error: llmError,
     })
 
-    answer = response.choices[0]?.message?.content || ''
-    tokensUsed = {
-      input: response.usage?.prompt_tokens || 0,
-      output: response.usage?.completion_tokens || 0,
-      total: response.usage?.total_tokens || 0,
-    }
-    modelUsed = `ollama/${aiConfig.ollama.chatModel}`
-  } else if (provider === 'groq') {
-    // Groq (API compatible OpenAI, fallback cloud)
-    const client = getGroqClient()
-    const response = await client.chat.completions.create({
-      model: aiConfig.groq.model,
-      max_tokens: aiConfig.anthropic.maxTokens,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPTS.qadhya },
-        ...messagesOpenAI,
-      ],
-      temperature: options.temperature ?? 0.3,
-    })
-
-    answer = response.choices[0]?.message?.content || ''
-    tokensUsed = {
-      input: response.usage?.prompt_tokens || 0,
-      output: response.usage?.completion_tokens || 0,
-      total: response.usage?.total_tokens || 0,
-    }
-    modelUsed = aiConfig.groq.model
-  } else {
-    // Anthropic Claude (dernier fallback)
-    const client = getAnthropicClient()
-    const response = await client.messages.create({
-      model: aiConfig.anthropic.model,
-      max_tokens: aiConfig.anthropic.maxTokens,
-      system: systemPromptWithSummary,
-      messages: messagesAnthropic,
-      temperature: options.temperature ?? 0.3,
-    })
-
-    answer = response.content[0].type === 'text' ? response.content[0].text : ''
-    tokensUsed = {
-      input: response.usage.input_tokens,
-      output: response.usage.output_tokens,
-      total: response.usage.input_tokens + response.usage.output_tokens,
-    }
-    modelUsed = aiConfig.anthropic.model
+    console.error('[RAG] Erreur LLM:', error)
+    throw error // Re-throw pour que l'appelant puisse gérer
   }
 
   // Déclencher génération de résumé en async si seuil atteint
@@ -893,6 +982,20 @@ export async function answerQuestion(
   // Logging métriques RAG structuré
   const totalTimeMs = Date.now() - startTotal
   const llmTimeMs = totalTimeMs - searchTimeMs
+
+  // Enregistrer dans le service de métriques
+  recordRAGMetric({
+    searchTimeMs,
+    llmTimeMs,
+    totalTimeMs,
+    inputTokens: tokensUsed.input,
+    outputTokens: tokensUsed.output,
+    resultsCount: sources.length,
+    cacheHit: cacheHit,
+    degradedMode: isDegradedMode,
+    provider: modelUsed,
+  })
+
   console.log('RAG_METRICS', JSON.stringify({
     searchTimeMs,
     llmTimeMs,

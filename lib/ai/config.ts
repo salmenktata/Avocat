@@ -355,16 +355,17 @@ export const RAG_THRESHOLDS = {
 
 // =============================================================================
 // SOURCE BOOST - Multiplicateurs de score par type de source
+// Configurables via env: RAG_BOOST_CODE, RAG_BOOST_JURISPRUDENCE, etc.
 // =============================================================================
 
 export const SOURCE_BOOST: Record<string, number> = {
-  code: 1.2, // Codes juridiques prioritaires
-  jurisprudence: 1.1,
-  doctrine: 1.0,
-  modele: 0.95,
-  document: 0.9,
-  knowledge_base: 1.0,
-  autre: 0.85,
+  code: parseFloat(process.env.RAG_BOOST_CODE || '1.2'), // Codes juridiques prioritaires
+  jurisprudence: parseFloat(process.env.RAG_BOOST_JURISPRUDENCE || '1.1'),
+  doctrine: parseFloat(process.env.RAG_BOOST_DOCTRINE || '1.0'),
+  modele: parseFloat(process.env.RAG_BOOST_MODELE || '0.95'),
+  document: parseFloat(process.env.RAG_BOOST_DOCUMENT || '0.9'),
+  knowledge_base: parseFloat(process.env.RAG_BOOST_KB || '1.0'),
+  autre: parseFloat(process.env.RAG_BOOST_AUTRE || '0.85'),
 }
 
 // =============================================================================
@@ -374,6 +375,27 @@ export const SOURCE_BOOST: Record<string, number> = {
 export const RAG_DIVERSITY = {
   maxChunksPerSource: parseInt(process.env.RAG_MAX_CHUNKS_PER_SOURCE || '2', 10),
   minSources: parseInt(process.env.RAG_MIN_SOURCES || '2', 10),
+}
+
+/**
+ * Retourne la configuration RAG complète (utile pour monitoring/debug)
+ */
+export function getRAGConfig(): {
+  thresholds: typeof RAG_THRESHOLDS
+  boost: typeof SOURCE_BOOST
+  diversity: typeof RAG_DIVERSITY
+  maxContextTokens: number
+  bilingualTimeout: number
+  queryExpansion: boolean
+} {
+  return {
+    thresholds: { ...RAG_THRESHOLDS },
+    boost: { ...SOURCE_BOOST },
+    diversity: { ...RAG_DIVERSITY },
+    maxContextTokens: parseInt(process.env.RAG_MAX_CONTEXT_TOKENS || '4000', 10),
+    bilingualTimeout: parseInt(process.env.BILINGUAL_SEARCH_TIMEOUT_MS || '10000', 10),
+    queryExpansion: process.env.ENABLE_QUERY_EXPANSION !== 'false',
+  }
 }
 
 // =============================================================================

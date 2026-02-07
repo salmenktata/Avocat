@@ -254,10 +254,10 @@ export function getRerankerInfo(): {
 // =============================================================================
 
 /**
- * Précharge le modèle cross-encoder au démarrage si PRELOAD_RERANKER=true
+ * Précharge le modèle cross-encoder au démarrage par défaut (sauf si PRELOAD_RERANKER=false)
  * Élimine la latence +500ms sur la première requête de chaque session
  */
-if (process.env.PRELOAD_RERANKER === 'true' && RERANKER_ENABLED) {
+if (process.env.PRELOAD_RERANKER !== 'false' && RERANKER_ENABLED) {
   console.log('[Reranker] Préchargement du modèle au démarrage...')
   preloadReranker()
     .then((success) => {
