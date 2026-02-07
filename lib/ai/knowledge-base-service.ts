@@ -225,12 +225,15 @@ export async function uploadKnowledgeDocument(
     console.error(`Erreur création version initiale pour ${doc.id}:`, error)
   }
 
-  // Auto-indexation si demandée et service disponible
+  // Auto-indexation async via queue si demandée et service disponible
   if (autoIndex && isSemanticSearchEnabled()) {
     try {
-      await indexKnowledgeDocument(doc.id)
+      // Utiliser la queue async au lieu d'indexer synchroniquement
+      const { addToQueue } = await import('./indexing-queue-service')
+      await addToQueue('knowledge_base', doc.id, 5, { title: doc.title })
+      console.log(`[KB] Document ${doc.id} ajouté à la queue d'indexation`)
     } catch (error) {
-      console.error(`Erreur auto-indexation document ${doc.id}:`, error)
+      console.error(`Erreur ajout queue indexation document ${doc.id}:`, error)
       // Continue sans échouer - le document est créé mais pas indexé
     }
   }

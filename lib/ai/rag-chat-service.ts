@@ -25,6 +25,20 @@ import {
   RAG_DIVERSITY,
 } from './config'
 import { searchKnowledgeBase } from './knowledge-base-service'
+import {
+  getCachedSearchResults,
+  setCachedSearchResults,
+  SearchScope,
+} from '@/lib/cache/search-cache'
+import {
+  detectLanguage,
+  getOppositeLanguage,
+  DetectedLanguage,
+} from './language-utils'
+import { translateQuery, isTranslationAvailable } from './translation-service'
+
+// Configuration Query Expansion
+const ENABLE_QUERY_EXPANSION = process.env.ENABLE_QUERY_EXPANSION !== 'false'
 
 // =============================================================================
 // CLIENTS LLM (Ollama prioritaire, puis Groq, puis Anthropic)
@@ -225,6 +239,7 @@ function logSearchMetrics(metrics: SearchMetrics): void {
 
 /**
  * Recherche les documents pertinents pour une question
+ * Avec cache Redis pour les recherches répétées.
  */
 async function searchRelevantContext(
   question: string,
@@ -242,6 +257,14 @@ async function searchRelevantContext(
   // Générer l'embedding de la question
   const queryEmbedding = await generateEmbedding(question)
   const embeddingStr = formatEmbeddingForPostgres(queryEmbedding.embedding)
+
+  // Vérifier le cache de recherche
+  const searchScope: SearchScope = { userId, dossierId }
+  const cachedResults = await getCachedSearchResults(queryEmbedding.embedding, searchScope)
+  if (cachedResults) {
+    console.log(`[RAG Search] Cache HIT - ${cachedResults.length} sources (${Date.now() - startTime}ms)`)
+    return cachedResults as ChatSource[]
+  }
 
   const allSources: ChatSource[] = []
 
@@ -410,6 +433,90 @@ async function searchRelevantContext(
     }))
   }
 
+  // Mettre en cache les résultats
+  if (finalSources.length > 0) {
+    await setCachedSearchResults(queryEmbedding.embedding, finalSources, searchScope)
+  }
+
+  return finalSources
+}
+
+/**
+ * Recherche bilingue avec query expansion AR ↔ FR
+ * Traduit la question et fusionne les résultats des deux langues.
+ */
+async function searchRelevantContextBilingual(
+  question: string,
+  userId: string,
+  options: ChatOptions = {}
+): Promise<ChatSource[]> {
+  // Détecter la langue de la question
+  const detectedLang = detectLanguage(question)
+  console.log(`[RAG Bilingual] Langue détectée: ${detectedLang}`)
+
+  // Recherche dans la langue originale (poids principal)
+  const primarySources = await searchRelevantContext(question, userId, options)
+
+  // Si query expansion désactivé ou traduction non disponible, retourner les résultats primaires
+  if (!ENABLE_QUERY_EXPANSION || !isTranslationAvailable()) {
+    return primarySources
+  }
+
+  // Traduire vers la langue opposée
+  const targetLang = getOppositeLanguage(detectedLang)
+  const translation = await translateQuery(question, detectedLang === 'mixed' ? 'fr' : detectedLang, targetLang)
+
+  if (!translation.success || translation.translatedText === question) {
+    console.log('[RAG Bilingual] Traduction échouée ou identique, retour résultats primaires')
+    return primarySources
+  }
+
+  console.log(`[RAG Bilingual] Question traduite: "${translation.translatedText.substring(0, 50)}..."`)
+
+  // Recherche dans la langue traduite
+  const secondarySources = await searchRelevantContext(translation.translatedText, userId, options)
+
+  // Fusionner et re-rank les résultats
+  // Poids: primaire 0.7, secondaire 0.3
+  const PRIMARY_WEIGHT = 0.7
+  const SECONDARY_WEIGHT = 0.3
+
+  const mergedSources: ChatSource[] = []
+  const seenChunks = new Set<string>()
+
+  // Ajouter les sources primaires avec poids ajusté
+  for (const source of primarySources) {
+    const key = `${source.documentId}:${source.chunkContent.substring(0, 100)}`
+    if (!seenChunks.has(key)) {
+      seenChunks.add(key)
+      mergedSources.push({
+        ...source,
+        similarity: source.similarity * PRIMARY_WEIGHT + (1 - source.similarity) * 0.1,
+      })
+    }
+  }
+
+  // Ajouter les sources secondaires avec poids ajusté
+  for (const source of secondarySources) {
+    const key = `${source.documentId}:${source.chunkContent.substring(0, 100)}`
+    if (!seenChunks.has(key)) {
+      seenChunks.add(key)
+      mergedSources.push({
+        ...source,
+        similarity: source.similarity * SECONDARY_WEIGHT,
+      })
+    }
+  }
+
+  // Re-trier par similarité ajustée
+  mergedSources.sort((a, b) => b.similarity - a.similarity)
+
+  // Limiter au nombre demandé
+  const maxResults = options.maxContextChunks || aiConfig.rag.maxResults
+  const finalSources = mergedSources.slice(0, maxResults)
+
+  console.log(`[RAG Bilingual] Fusion: ${primarySources.length} primaires + ${secondarySources.length} secondaires → ${finalSources.length} finaux`)
+
   return finalSources
 }
 
@@ -529,8 +636,10 @@ export async function answerQuestion(
 
   const provider = getChatProvider()
 
-  // 1. Rechercher le contexte pertinent
-  const sources = await searchRelevantContext(question, userId, options)
+  // 1. Rechercher le contexte pertinent (bilingue si activé)
+  const sources = ENABLE_QUERY_EXPANSION
+    ? await searchRelevantContextBilingual(question, userId, options)
+    : await searchRelevantContext(question, userId, options)
 
   // 2. Construire le contexte
   const context = buildContextFromSources(sources)

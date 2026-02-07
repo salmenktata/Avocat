@@ -2,10 +2,13 @@
  * Service de génération d'embeddings
  * Supporte Ollama (gratuit, local) et OpenAI (payant, cloud)
  * Priorité: Ollama > OpenAI
+ *
+ * Avec cache Redis pour éviter les régénérations inutiles.
  */
 
 import OpenAI from 'openai'
 import { aiConfig, getEmbeddingProvider } from './config'
+import { getCachedEmbedding, setCachedEmbedding } from '@/lib/cache/embedding-cache'
 
 // =============================================================================
 // CLIENTS
@@ -209,15 +212,27 @@ async function generateEmbeddingsBatchWithOpenAI(
 /**
  * Génère un embedding pour un texte unique
  * Utilise automatiquement le provider configuré (Ollama > OpenAI)
+ * Avec cache Redis pour éviter les régénérations.
  * @param text - Texte à encoder
  * @returns Vecteur embedding
  */
 export async function generateEmbedding(text: string): Promise<EmbeddingResult> {
+  // Vérifier le cache d'abord
+  const cached = await getCachedEmbedding(text)
+  if (cached) {
+    return {
+      embedding: cached.embedding,
+      tokenCount: estimateTokenCount(text),
+      provider: cached.provider,
+    }
+  }
+
   const provider = getEmbeddingProvider()
+  let result: EmbeddingResult
 
   if (provider === 'ollama') {
     try {
-      return await generateEmbeddingWithOllama(text)
+      result = await generateEmbeddingWithOllama(text)
     } catch (error) {
       // Fallback sur OpenAI si Ollama échoue et OpenAI est configuré
       if (aiConfig.openai.apiKey) {
@@ -225,19 +240,23 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult> 
           '[Embeddings] Ollama non disponible, fallback sur OpenAI:',
           error instanceof Error ? error.message : error
         )
-        return await generateEmbeddingWithOpenAI(text)
+        result = await generateEmbeddingWithOpenAI(text)
+      } else {
+        throw error
       }
-      throw error
     }
+  } else if (provider === 'openai') {
+    result = await generateEmbeddingWithOpenAI(text)
+  } else {
+    throw new Error(
+      'Aucun provider d\'embeddings configuré. Activez OLLAMA_ENABLED=true ou configurez OPENAI_API_KEY'
+    )
   }
 
-  if (provider === 'openai') {
-    return await generateEmbeddingWithOpenAI(text)
-  }
+  // Mettre en cache le résultat
+  await setCachedEmbedding(text, result.embedding, result.provider)
 
-  throw new Error(
-    'Aucun provider d\'embeddings configuré. Activez OLLAMA_ENABLED=true ou configurez OPENAI_API_KEY'
-  )
+  return result
 }
 
 /**
