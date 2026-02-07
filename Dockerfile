@@ -55,8 +55,19 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Copier le polyfill File API pour le runtime
-COPY --from=builder /app/scripts/polyfill-file.js ./scripts/
+# Créer le polyfill File API inline pour le runtime
+RUN mkdir -p scripts && cat > scripts/polyfill-file.js << 'POLYFILL'
+if (typeof globalThis.File === 'undefined') {
+  class File extends Blob {
+    constructor(fileParts, fileName, options = {}) {
+      super(fileParts, options);
+      this.name = fileName;
+      this.lastModified = options.lastModified || Date.now();
+    }
+  }
+  globalThis.File = File;
+}
+POLYFILL
 
 # Charger le polyfill au runtime pour éviter "File is not defined"
 ENV NODE_OPTIONS="--require ./scripts/polyfill-file.js"
