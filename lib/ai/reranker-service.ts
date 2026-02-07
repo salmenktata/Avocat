@@ -85,10 +85,16 @@ async function getRerankerPipeline(): Promise<TextClassificationPipeline | null>
   pipelineLoading = (async () => {
     try {
       // Charger le module dynamiquement
-      const { pipeline } = await loadTransformers()
+      const transformers = await loadTransformers()
+
+      // Si le module n'est pas disponible (désactivé ou erreur), retourner null
+      if (!transformers) {
+        console.log('[Reranker] Module non disponible, désactivé')
+        return null
+      }
 
       // Charger le pipeline pour le reranking (text-classification avec paires)
-      const pipe = await pipeline('text-classification', RERANKER_MODEL, {
+      const pipe = await transformers.pipeline('text-classification', RERANKER_MODEL, {
         quantized: true, // Utiliser le modèle quantifié (plus rapide, moins de mémoire)
       })
 
@@ -97,7 +103,7 @@ async function getRerankerPipeline(): Promise<TextClassificationPipeline | null>
       return rerankerPipeline
     } catch (error) {
       console.error('[Reranker] Erreur chargement modèle:', error)
-      throw error
+      return null
     } finally {
       pipelineLoading = null
     }
