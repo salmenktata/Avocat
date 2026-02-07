@@ -60,7 +60,7 @@ type TextClassificationPipeline = (
 // =============================================================================
 
 let rerankerPipeline: TextClassificationPipeline | null = null
-let pipelineLoading: Promise<TextClassificationPipeline> | null = null
+let pipelineLoading: Promise<TextClassificationPipeline | null> | null = null
 
 /**
  * Charge le modèle cross-encoder (singleton, lazy loading)
