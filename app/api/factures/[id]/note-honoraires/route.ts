@@ -5,9 +5,18 @@ export const dynamic = 'force-dynamic'
 
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
-import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
-import { NoteHonorairesPDF } from '@/lib/pdf/note-honoraires-pdf'
+
+// Import dynamique pour @react-pdf/renderer (bundle lourd ~500KB)
+async function renderPdfToBuffer(component: React.ReactElement): Promise<Buffer> {
+  const { renderToBuffer } = await import('@react-pdf/renderer')
+  return renderToBuffer(component as any)
+}
+
+async function getNoteHonorairesPDFComponent() {
+  const { NoteHonorairesPDF } = await import('@/lib/pdf/note-honoraires-pdf')
+  return NoteHonorairesPDF
+}
 
 export async function GET(
   request: NextRequest,
@@ -118,9 +127,10 @@ export async function GET(
       langue: 'fr' as const, // TODO: Récupérer depuis préférences utilisateur
     }
 
-    // Générer le PDF
-    const pdfBuffer = await renderToBuffer(
-      React.createElement(NoteHonorairesPDF, pdfData) as any
+    // Générer le PDF (import dynamique pour réduire le bundle initial)
+    const NoteHonorairesPDF = await getNoteHonorairesPDFComponent()
+    const pdfBuffer = await renderPdfToBuffer(
+      React.createElement(NoteHonorairesPDF, pdfData)
     )
 
     // Retourner le PDF

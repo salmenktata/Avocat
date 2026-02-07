@@ -113,7 +113,9 @@
       "minLength": "8 أحرف كحد أدنى"
     },
     "secureConnection": "اتصال آمن SSL",
-    "dataProtected": "بياناتك محمية"
+    "dataProtected": "بياناتك محمية",
+    "showPassword": "إظهار كلمة المرور",
+    "hidePassword": "إخفاء كلمة المرور"
   },
   "authLayout": {
     "tagline": "أدر مكتبك بكل راحة بال",

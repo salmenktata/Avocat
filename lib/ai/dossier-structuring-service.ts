@@ -28,6 +28,7 @@ const log = createLogger('AI:Structuration')
 let anthropicClient: Anthropic | null = null
 let openaiClient: OpenAI | null = null
 let groqClient: OpenAI | null = null
+let deepseekClient: OpenAI | null = null
 
 function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
@@ -61,6 +62,20 @@ function getGroqClient(): OpenAI {
     })
   }
   return groqClient
+}
+
+function getDeepSeekClient(): OpenAI {
+  if (!deepseekClient) {
+    if (!aiConfig.deepseek.apiKey) {
+      throw new Error('DEEPSEEK_API_KEY non configuré')
+    }
+    // DeepSeek utilise une API compatible OpenAI
+    deepseekClient = new OpenAI({
+      apiKey: aiConfig.deepseek.apiKey,
+      baseURL: aiConfig.deepseek.baseUrl,
+    })
+  }
+  return deepseekClient
 }
 
 // =============================================================================
@@ -671,7 +686,32 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, sans texte avant ou après.`
   let jsonStr: string
   let tokensUsed = { input: 0, output: 0, total: 0 }
 
-  if (provider === 'groq') {
+  if (provider === 'deepseek') {
+    // Appeler DeepSeek (API compatible OpenAI, économique)
+    const client = getDeepSeekClient()
+    log.info('Appel DeepSeek avec modèle:', aiConfig.deepseek.model)
+    const response = await client.chat.completions.create({
+      model: aiConfig.deepseek.model,
+      max_tokens: 4000,
+      temperature: 0.3,
+      messages: [
+        { role: 'system', content: STRUCTURATION_SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt },
+      ],
+    })
+
+    const content = response.choices[0]?.message?.content
+    if (!content) {
+      throw new Error('Réponse IA vide ou invalide')
+    }
+    jsonStr = content.trim()
+
+    tokensUsed = {
+      input: response.usage?.prompt_tokens || 0,
+      output: response.usage?.completion_tokens || 0,
+      total: response.usage?.total_tokens || 0,
+    }
+  } else if (provider === 'groq') {
     // Appeler Groq (API compatible OpenAI)
     const client = getGroqClient()
     log.info('Appel Groq avec modèle:', aiConfig.groq.model)

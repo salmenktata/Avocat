@@ -1,3 +1,10 @@
+/**
+ * Icons centralisés - optimisés par modularizeImports dans next.config.js
+ *
+ * L'import individuel de chaque icône est géré automatiquement par Next.js
+ * via la configuration modularizeImports qui transforme les imports en:
+ * import LayoutDashboard from 'lucide-react/dist/esm/icons/layout-dashboard'
+ */
 import {
   LayoutDashboard,
   Users,

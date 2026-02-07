@@ -57,37 +57,61 @@ interface OllamaEmbeddingsResponse {
 // OLLAMA EMBEDDINGS
 // =============================================================================
 
+// Timeout pour les appels Ollama (30 secondes)
+const OLLAMA_TIMEOUT_MS = 30000
+
 /**
  * Génère un embedding via Ollama (local, gratuit)
  */
 async function generateEmbeddingWithOllama(text: string): Promise<EmbeddingResult> {
-  const response = await fetch(`${aiConfig.ollama.baseUrl}/api/embeddings`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: aiConfig.ollama.embeddingModel,
-      prompt: text.substring(0, 30000), // Tronquer si trop long
-    }),
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), OLLAMA_TIMEOUT_MS)
 
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`Ollama embedding error: ${response.status} - ${errorText}`)
-  }
+  try {
+    const response = await fetch(`${aiConfig.ollama.baseUrl}/api/embeddings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: aiConfig.ollama.embeddingModel,
+        prompt: text.substring(0, 30000), // Tronquer si trop long
+      }),
+      signal: controller.signal,
+    })
 
-  const data = await response.json() as OllamaEmbeddingResponse
+    clearTimeout(timeoutId)
 
-  // Valider l'embedding
-  const validation = validateEmbedding(data.embedding, 'ollama')
-  if (!validation.valid) {
-    console.error(`[Embeddings] Ollama embedding invalide: ${validation.error}`)
-    throw new Error(`Embedding Ollama invalide: ${validation.error}`)
-  }
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Ollama embedding error: ${response.status} - ${errorText}`)
+    }
 
-  return {
-    embedding: data.embedding,
-    tokenCount: countTokens(text),
-    provider: 'ollama',
+    const data = await response.json() as OllamaEmbeddingResponse
+
+    // Valider l'embedding
+    const validation = validateEmbedding(data.embedding, 'ollama')
+    if (!validation.valid) {
+      console.error(`[Embeddings] Ollama embedding invalide: ${validation.error}`)
+      throw new Error(`Embedding Ollama invalide: ${validation.error}`)
+    }
+
+    return {
+      embedding: data.embedding,
+      tokenCount: countTokens(text),
+      provider: 'ollama',
+    }
+  } catch (error) {
+    clearTimeout(timeoutId)
+
+    // Erreurs spécifiques avec messages clairs
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error(`Ollama ne répond pas (timeout ${OLLAMA_TIMEOUT_MS / 1000}s). Vérifiez que le service est démarré avec 'ollama serve'.`)
+      }
+      if (error.message.includes('ECONNREFUSED') || error.message.includes('fetch failed')) {
+        throw new Error(`Ollama n'est pas accessible sur ${aiConfig.ollama.baseUrl}. Démarrez-le avec 'ollama serve'.`)
+      }
+    }
+    throw error
   }
 }
 

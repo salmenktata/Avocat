@@ -247,12 +247,13 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? t('hidePassword') : t('showPassword')}
               className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
             >
               {showPassword ? (
-                <EyeOffIcon className="h-5 w-5" />
+                <EyeOffIcon className="h-5 w-5" aria-hidden="true" />
               ) : (
-                <EyeIcon className="h-5 w-5" />
+                <EyeIcon className="h-5 w-5" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -262,7 +263,7 @@ export default function LoginPage() {
         <div className="flex items-center justify-end">
           <Link
             href="/forgot-password"
-            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+            className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-2"
           >
             {t('forgotPassword')}
           </Link>
@@ -290,7 +291,7 @@ export default function LoginPage() {
         {t('noAccount')}{' '}
         <Link
           href="/register"
-          className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
+          className="font-medium text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-2"
         >
           {tCommon('register')}
         </Link>

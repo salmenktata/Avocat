@@ -4,25 +4,68 @@ import { Badge } from '@/components/ui/badge'
 import { BrevoTestButton } from '@/components/super-admin/settings/BrevoTestButton'
 import { DailyDigestStatus } from '@/components/super-admin/settings/DailyDigestStatus'
 import { ApiKeysCard } from '@/components/super-admin/settings/ApiKeysCard'
+import { LLMConfigEditor } from '@/components/super-admin/settings/LLMConfigEditor'
+import { getConfigsByCategory } from '@/lib/config/platform-config'
 
-export default function SettingsPage() {
-  // Ces variables sont lues côté serveur
-  const brevoConfigured = !!process.env.BREVO_API_KEY
-  const resendConfigured = !!process.env.RESEND_API_KEY
-  const openaiConfigured = !!process.env.OPENAI_API_KEY
-  const ollamaConfigured = !!process.env.OLLAMA_BASE_URL
-  const cronConfigured = !!process.env.CRON_SECRET
+export default async function SettingsPage() {
+  // Charger les clés LLM depuis la base de données
+  const llmConfigs = await getConfigsByCategory('llm')
+  const emailConfigs = await getConfigsByCategory('email')
+  const authConfigs = await getConfigsByCategory('auth')
 
-  // Clés API pour affichage
+  // Helper pour obtenir la valeur d'une clé
+  const getValue = (key: string): string | undefined => {
+    const config = [...llmConfigs, ...emailConfigs, ...authConfigs].find(c => c.key === key)
+    return config?.value || process.env[key]
+  }
+
+  // Ces variables sont lues côté serveur (avec fallback env)
+  const brevoConfigured = !!getValue('BREVO_API_KEY')
+  const resendConfigured = !!getValue('RESEND_API_KEY')
+  const deepseekConfigured = !!getValue('DEEPSEEK_API_KEY')
+  const groqConfigured = !!getValue('GROQ_API_KEY')
+  const openaiConfigured = !!getValue('OPENAI_API_KEY')
+  const ollamaConfigured = !!process.env.OLLAMA_ENABLED
+  const cronConfigured = !!getValue('CRON_SECRET')
+
+  // Clés API pour affichage (priorité: DeepSeek > Groq > OpenAI > Anthropic)
   const apiKeys = [
-    { name: 'GROQ_API_KEY', value: process.env.GROQ_API_KEY, label: 'Groq (LLM)', priority: true },
-    { name: 'OPENAI_API_KEY', value: process.env.OPENAI_API_KEY, label: 'OpenAI (Embeddings)' },
+    { name: 'DEEPSEEK_API_KEY', value: getValue('DEEPSEEK_API_KEY'), label: 'DeepSeek (LLM économique)', priority: true },
+    { name: 'GROQ_API_KEY', value: getValue('GROQ_API_KEY'), label: 'Groq (LLM rapide)' },
+    { name: 'OPENAI_API_KEY', value: getValue('OPENAI_API_KEY'), label: 'OpenAI (Embeddings)' },
     { name: 'ANTHROPIC_API_KEY', value: process.env.ANTHROPIC_API_KEY, label: 'Anthropic Claude' },
-    { name: 'RESEND_API_KEY', value: process.env.RESEND_API_KEY, label: 'Resend (Emails)' },
-    { name: 'BREVO_API_KEY', value: process.env.BREVO_API_KEY, label: 'Brevo (Notifications)' },
-    { name: 'NEXTAUTH_SECRET', value: process.env.NEXTAUTH_SECRET, label: 'NextAuth Secret' },
-    { name: 'CRON_SECRET', value: process.env.CRON_SECRET, label: 'Cron Secret' },
-    { name: 'ENCRYPTION_KEY', value: process.env.ENCRYPTION_KEY, label: 'Encryption Key' },
+    { name: 'RESEND_API_KEY', value: getValue('RESEND_API_KEY'), label: 'Resend (Emails)' },
+    { name: 'BREVO_API_KEY', value: getValue('BREVO_API_KEY'), label: 'Brevo (Notifications)' },
+    { name: 'NEXTAUTH_SECRET', value: getValue('NEXTAUTH_SECRET'), label: 'NextAuth Secret' },
+    { name: 'CRON_SECRET', value: getValue('CRON_SECRET'), label: 'Cron Secret' },
+  ]
+
+  // Configurations LLM éditables
+  const llmEditableConfigs = [
+    {
+      key: 'DEEPSEEK_API_KEY',
+      value: getValue('DEEPSEEK_API_KEY') || '',
+      label: 'DeepSeek',
+      description: 'API Key pour DeepSeek (LLM économique - prioritaire)',
+      isSecret: true,
+      priority: 1,
+    },
+    {
+      key: 'GROQ_API_KEY',
+      value: getValue('GROQ_API_KEY') || '',
+      label: 'Groq',
+      description: 'API Key pour Groq (LLM rapide - fallback)',
+      isSecret: true,
+      priority: 2,
+    },
+    {
+      key: 'OPENAI_API_KEY',
+      value: getValue('OPENAI_API_KEY') || '',
+      label: 'OpenAI',
+      description: 'API Key pour OpenAI (Embeddings + LLM fallback)',
+      isSecret: true,
+      priority: 3,
+    },
   ]
 
   return (
@@ -32,7 +75,10 @@ export default function SettingsPage() {
         <p className="text-slate-400">Configuration globale de la plateforme</p>
       </div>
 
-      {/* Clés API */}
+      {/* Éditeur LLM */}
+      <LLMConfigEditor configs={llmEditableConfigs} />
+
+      {/* Clés API (lecture seule) */}
       <ApiKeysCard apiKeys={apiKeys} />
 
       {/* Configuration Email */}
@@ -122,27 +168,48 @@ export default function SettingsPage() {
             Configuration IA
           </CardTitle>
           <CardDescription className="text-slate-400">
-            Paramètres OpenAI / Ollama
+            Providers LLM (priorité: DeepSeek → Groq → OpenAI)
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
               <div>
-                <p className="font-medium text-white">OpenAI API</p>
-                <p className="text-sm text-slate-400">GPT-4, Embeddings, etc.</p>
+                <p className="font-medium text-white">DeepSeek</p>
+                <p className="text-sm text-slate-400">LLM économique (prioritaire)</p>
               </div>
-              <Badge className={openaiConfigured ? 'bg-green-500' : 'bg-red-500'}>
-                {openaiConfigured ? 'Configuré' : 'Non configuré'}
+              <div className="flex items-center gap-2">
+                {deepseekConfigured && <Badge className="bg-blue-500">Actif</Badge>}
+                <Badge className={deepseekConfigured ? 'bg-green-500' : 'bg-red-500'}>
+                  {deepseekConfigured ? 'Configuré' : 'Non configuré'}
+                </Badge>
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
+              <div>
+                <p className="font-medium text-white">Groq</p>
+                <p className="text-sm text-slate-400">LLM rapide (fallback)</p>
+              </div>
+              <Badge className={groqConfigured ? 'bg-green-500' : 'bg-yellow-500'}>
+                {groqConfigured ? 'Configuré' : 'Non configuré'}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
+              <div>
+                <p className="font-medium text-white">OpenAI</p>
+                <p className="text-sm text-slate-400">Embeddings + fallback LLM</p>
+              </div>
+              <Badge className={openaiConfigured ? 'bg-green-500' : 'bg-yellow-500'}>
+                {openaiConfigured ? 'Configuré' : 'Optionnel'}
               </Badge>
             </div>
             <div className="flex items-center justify-between p-4 rounded-lg bg-slate-700/50">
               <div>
                 <p className="font-medium text-white">Ollama (Local)</p>
-                <p className="text-sm text-slate-400">Modèles locaux</p>
+                <p className="text-sm text-slate-400">Embeddings locaux gratuits</p>
               </div>
               <Badge className={ollamaConfigured ? 'bg-green-500' : 'bg-yellow-500'}>
-                {ollamaConfigured ? 'Configuré' : 'Optionnel'}
+                {ollamaConfigured ? 'Activé' : 'Désactivé'}
               </Badge>
             </div>
           </div>

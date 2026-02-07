@@ -1,8 +1,6 @@
-'use client'
-
 import Link from 'next/link'
 import { Logo } from '@/components/ui/Logo'
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 
 function CheckIcon() {
@@ -23,9 +21,7 @@ function CheckIcon() {
   )
 }
 
-function SecurityBadge() {
-  const t = useTranslations('auth')
-
+function SecurityBadge({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-2 text-xs text-slate-400">
       <svg
@@ -41,17 +37,18 @@ function SecurityBadge() {
           d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
         />
       </svg>
-      <span>{t('secureConnection')}</span>
+      <span>{label}</span>
     </div>
   )
 }
 
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const t = useTranslations('authLayout')
+  const t = await getTranslations('authLayout')
+  const tAuth = await getTranslations('auth')
 
   const features = [
     t('feature1'),
@@ -151,7 +148,7 @@ export default function AuthLayout({
       </div>
 
       {/* Panneau droit - Formulaire */}
-      <div className="flex-1 flex flex-col min-h-screen bg-slate-900 lg:bg-slate-900/50">
+      <main className="flex-1 flex flex-col min-h-screen bg-slate-900 lg:bg-slate-900/50">
         {/* Header mobile avec logo */}
         <div className="lg:hidden p-6 flex justify-center">
           <Link href="/">
@@ -174,26 +171,26 @@ export default function AuthLayout({
 
             {/* Badge sécurité */}
             <div className="mt-6 flex justify-center">
-              <SecurityBadge />
+              <SecurityBadge label={tAuth('secureConnection')} />
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-4 text-center">
-          <p className="text-xs text-slate-500">
+        <footer className="p-4 text-center">
+          <p className="text-xs text-slate-400">
             © {new Date().getFullYear()} Qadhya. Tous droits réservés. Developed by{' '}
             <a
               href="https://quelyos.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 transition-colors"
+              className="text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-2"
             >
               quelyos.com
             </a>
           </p>
-        </div>
-      </div>
+        </footer>
+      </main>
     </div>
   )
 }

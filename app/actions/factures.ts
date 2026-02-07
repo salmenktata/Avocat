@@ -5,10 +5,21 @@ import { getSession } from '@/lib/auth/session'
 import { factureSchema, type FactureFormData } from '@/lib/validations/facture'
 import { revalidatePath } from 'next/cache'
 import { Resend } from 'resend'
-import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
-import { FacturePDF } from '@/lib/pdf/facture-pdf'
 import { FactureEmailTemplate, FactureEmailText } from '@/lib/email/templates/facture-email'
+
+// Import dynamique pour @react-pdf/renderer (bundle lourd ~500KB)
+// Chargé uniquement quand nécessaire (envoi email avec PDF)
+async function renderPdfToBuffer(component: React.ReactElement): Promise<Buffer> {
+  const { renderToBuffer } = await import('@react-pdf/renderer')
+  return renderToBuffer(component as any)
+}
+
+// Import dynamique pour le template PDF
+async function getFacturePDFComponent() {
+  const { FacturePDF } = await import('@/lib/pdf/facture-pdf')
+  return FacturePDF
+}
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -323,8 +334,9 @@ export async function envoyerFactureEmailAction(factureId: string) {
       langue: 'fr' as const,
     }
 
-    // Générer le PDF
-    const pdfBuffer = await renderToBuffer(React.createElement(FacturePDF, pdfData) as any)
+    // Générer le PDF (import dynamique pour réduire le bundle initial)
+    const FacturePDF = await getFacturePDFComponent()
+    const pdfBuffer = await renderPdfToBuffer(React.createElement(FacturePDF, pdfData))
 
     // Préparer les données email
     const clientNom =

@@ -39,6 +39,13 @@ export interface AIConfig {
     baseUrl: string
   }
 
+  // DeepSeek (LLM économique et performant)
+  deepseek: {
+    apiKey: string
+    model: string
+    baseUrl: string
+  }
+
   // RAG Configuration
   rag: {
     enabled: boolean
@@ -86,6 +93,12 @@ export const aiConfig: AIConfig = {
     apiKey: process.env.GROQ_API_KEY || '',
     model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
     baseUrl: 'https://api.groq.com/openai/v1',
+  },
+
+  deepseek: {
+    apiKey: process.env.DEEPSEEK_API_KEY || '',
+    model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+    baseUrl: 'https://api.deepseek.com/v1',
   },
 
   rag: {
@@ -218,20 +231,27 @@ export function getEmbeddingDimensions(): number {
 }
 
 /**
- * Vérifie si le chat IA est disponible (Ollama, Groq, Anthropic OU OpenAI)
+ * Vérifie si le chat IA est disponible
  */
 export function isChatEnabled(): boolean {
-  return aiConfig.rag.enabled && (aiConfig.ollama.enabled || !!aiConfig.groq.apiKey || !!aiConfig.anthropic.apiKey || !!aiConfig.openai.apiKey)
+  return aiConfig.rag.enabled && (
+    aiConfig.ollama.enabled ||
+    !!aiConfig.deepseek.apiKey ||
+    !!aiConfig.groq.apiKey ||
+    !!aiConfig.anthropic.apiKey ||
+    !!aiConfig.openai.apiKey
+  )
 }
 
 /**
  * Retourne le provider de chat actif
- * Priorité: Ollama (local gratuit) > Groq > Anthropic > OpenAI
+ * Priorité: DeepSeek (économique) > Groq (rapide) > Ollama (local) > Anthropic > OpenAI
  */
-export function getChatProvider(): 'ollama' | 'groq' | 'anthropic' | 'openai' | null {
+export function getChatProvider(): 'deepseek' | 'groq' | 'ollama' | 'anthropic' | 'openai' | null {
   if (!aiConfig.rag.enabled) return null
-  if (aiConfig.ollama.enabled) return 'ollama'
+  if (aiConfig.deepseek.apiKey) return 'deepseek'
   if (aiConfig.groq.apiKey) return 'groq'
+  if (aiConfig.ollama.enabled) return 'ollama'
   if (aiConfig.anthropic.apiKey) return 'anthropic'
   if (aiConfig.openai.apiKey) return 'openai'
   return null

@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 
 interface TimeTrackingWidgetProps {
@@ -9,51 +10,62 @@ interface TimeTrackingWidgetProps {
 export default function TimeTrackingWidget({ timeEntries }: TimeTrackingWidgetProps) {
   const t = useTranslations('widgets.timeTracking')
   const tCurrency = useTranslations('currency')
-  // Calculer le temps total ce mois-ci
-  const maintenant = new Date()
-  const debutMois = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1)
 
-  const entriesCeMois = timeEntries.filter((e) => {
-    const dateEntree = new Date(e.date)
-    return dateEntree >= debutMois
-  })
+  // Mémoiser tous les calculs coûteux
+  const { entriesCeMois, tempsTotal, revenusTotal, heuresTotal, minutesTotal, tauxMoyen } = useMemo(() => {
+    const maintenant = new Date()
+    const debutMois = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1)
 
-  const tempsTotal = entriesCeMois.reduce((acc, e) => acc + (e.duree_minutes || 0), 0)
-  const revenusTotal = entriesCeMois.reduce(
-    (acc, e) => acc + parseFloat(e.montant_calcule || 0),
-    0
-  )
-
-  const heuresTotal = Math.floor(tempsTotal / 60)
-  const minutesTotal = tempsTotal % 60
-
-  // Temps par semaine (4 dernières semaines)
-  const semaines = Array.from({ length: 4 }, (_, i) => {
-    const debut = new Date()
-    debut.setDate(debut.getDate() - (i + 1) * 7)
-    debut.setHours(0, 0, 0, 0)
-
-    const fin = new Date()
-    fin.setDate(fin.getDate() - i * 7)
-    fin.setHours(23, 59, 59, 999)
-
-    const entresSemaine = timeEntries.filter((e) => {
+    const filteredEntries = timeEntries.filter((e) => {
       const dateEntree = new Date(e.date)
-      return dateEntree >= debut && dateEntree <= fin
+      return dateEntree >= debutMois
     })
 
-    const minutes = entresSemaine.reduce((acc, e) => acc + (e.duree_minutes || 0), 0)
+    const temps = filteredEntries.reduce((acc, e) => acc + (e.duree_minutes || 0), 0)
+    const revenus = filteredEntries.reduce(
+      (acc, e) => acc + parseFloat(e.montant_calcule || 0),
+      0
+    )
 
     return {
-      label: `S${i + 1}`,
-      heures: Math.round(minutes / 60),
+      entriesCeMois: filteredEntries,
+      tempsTotal: temps,
+      revenusTotal: revenus,
+      heuresTotal: Math.floor(temps / 60),
+      minutesTotal: temps % 60,
+      tauxMoyen: temps > 0 ? (revenus / (temps / 60)).toFixed(2) : '0.00'
     }
-  }).reverse()
+  }, [timeEntries])
 
-  const maxHeures = Math.max(...semaines.map((s) => s.heures), 1)
+  // Temps par semaine (4 dernières semaines) - mémorisé
+  const { semaines, maxHeures } = useMemo(() => {
+    const weeks = Array.from({ length: 4 }, (_, i) => {
+      const debut = new Date()
+      debut.setDate(debut.getDate() - (i + 1) * 7)
+      debut.setHours(0, 0, 0, 0)
 
-  // Taux horaire moyen
-  const tauxMoyen = tempsTotal > 0 ? (revenusTotal / (tempsTotal / 60)).toFixed(2) : '0.00'
+      const fin = new Date()
+      fin.setDate(fin.getDate() - i * 7)
+      fin.setHours(23, 59, 59, 999)
+
+      const entresSemaine = timeEntries.filter((e) => {
+        const dateEntree = new Date(e.date)
+        return dateEntree >= debut && dateEntree <= fin
+      })
+
+      const minutes = entresSemaine.reduce((acc, e) => acc + (e.duree_minutes || 0), 0)
+
+      return {
+        label: `S${i + 1}`,
+        heures: Math.round(minutes / 60),
+      }
+    }).reverse()
+
+    return {
+      semaines: weeks,
+      maxHeures: Math.max(...weeks.map((s) => s.heures), 1)
+    }
+  }, [timeEntries])
 
   return (
     <div className="rounded-lg border bg-card p-6 shadow-sm">

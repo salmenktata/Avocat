@@ -13,23 +13,34 @@ interface Shortcut {
   action: () => void
 }
 
+// Génère une clé unique pour le Map de shortcuts
+function getShortcutKey(key: string, ctrl?: boolean, alt?: boolean, shift?: boolean): string {
+  return `${key.toLowerCase()}-${ctrl ? '1' : '0'}-${alt ? '1' : '0'}-${shift ? '1' : '0'}`
+}
+
 export function useKeyboardShortcuts(shortcuts: Shortcut[]) {
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      shortcuts.forEach((shortcut) => {
-        const ctrlMatch = shortcut.ctrl ? event.ctrlKey || event.metaKey : !event.ctrlKey && !event.metaKey
-        const altMatch = shortcut.alt ? event.altKey : !event.altKey
-        const shiftMatch = shortcut.shift ? event.shiftKey : !event.shiftKey
-        const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase()
+    // Map pour lookup O(1) au lieu de forEach O(n)
+    const shortcutMap = new Map<string, Shortcut>()
+    shortcuts.forEach((shortcut) => {
+      const key = getShortcutKey(shortcut.key, shortcut.ctrl, shortcut.alt, shortcut.shift)
+      shortcutMap.set(key, shortcut)
+    })
 
-        if (ctrlMatch && altMatch && shiftMatch && keyMatch) {
-          event.preventDefault()
-          shortcut.action()
-        }
-      })
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const ctrl = event.ctrlKey || event.metaKey
+      const alt = event.altKey
+      const shift = event.shiftKey
+      const key = getShortcutKey(event.key, ctrl, alt, shift)
+
+      const shortcut = shortcutMap.get(key)
+      if (shortcut) {
+        event.preventDefault()
+        shortcut.action()
+      }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, { passive: false })
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [shortcuts])
 }

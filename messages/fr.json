@@ -113,7 +113,9 @@
       "minLength": "8 caractères minimum"
     },
     "secureConnection": "Connexion sécurisée SSL",
-    "dataProtected": "Vos données sont protégées"
+    "dataProtected": "Vos données sont protégées",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe"
   },
   "authLayout": {
     "tagline": "Gérez votre cabinet en toute sérénité",

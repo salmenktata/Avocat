@@ -351,22 +351,22 @@ export function KnowledgeBaseList({
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
-              {!doc.is_indexed && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleIndex(doc.id)}
-                  disabled={loading === doc.id}
-                  className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                  title="Indexer"
-                >
-                  {loading === doc.id ? (
-                    <Icons.loader className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Icons.zap className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleIndex(doc.id)}
+                disabled={loading === doc.id}
+                className={doc.is_indexed
+                  ? "text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                  : "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"}
+                title={doc.is_indexed ? "Réindexer" : "Indexer"}
+              >
+                {loading === doc.id ? (
+                  <Icons.loader className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Icons.zap className="h-4 w-4" />
+                )}
+              </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -397,15 +397,15 @@ export function KnowledgeBaseList({
                       Modifier
                     </Link>
                   </DropdownMenuItem>
-                  {!doc.is_indexed && (
-                    <DropdownMenuItem
-                      onClick={() => handleIndex(doc.id)}
-                      className="text-blue-400 hover:bg-slate-700 cursor-pointer"
-                    >
-                      <Icons.zap className="h-4 w-4 mr-2" />
-                      Indexer
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem
+                    onClick={() => handleIndex(doc.id)}
+                    className={doc.is_indexed
+                      ? "text-amber-400 hover:bg-slate-700 cursor-pointer"
+                      : "text-blue-400 hover:bg-slate-700 cursor-pointer"}
+                  >
+                    <Icons.zap className="h-4 w-4 mr-2" />
+                    {doc.is_indexed ? 'Réindexer' : 'Indexer'}
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-slate-700" />
                   <DropdownMenuItem
                     onClick={() => setDeleteId(doc.id)}

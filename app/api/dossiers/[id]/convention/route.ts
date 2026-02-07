@@ -13,9 +13,18 @@ export const dynamic = 'force-dynamic'
 
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
-import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
-import { ConventionPDF } from '@/lib/pdf/convention-pdf'
+
+// Import dynamique pour @react-pdf/renderer (bundle lourd ~500KB)
+async function renderPdfToBuffer(component: React.ReactElement): Promise<Buffer> {
+  const { renderToBuffer } = await import('@react-pdf/renderer')
+  return renderToBuffer(component as any)
+}
+
+async function getConventionPDFComponent() {
+  const { ConventionPDF } = await import('@/lib/pdf/convention-pdf')
+  return ConventionPDF
+}
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -112,9 +121,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ville: profile.ville || 'Tunis',
     }
 
-    // Générer PDF
+    // Générer PDF (import dynamique pour réduire le bundle initial)
+    const ConventionPDF = await getConventionPDFComponent()
     const pdfElement = createElement(ConventionPDF, conventionData)
-    const pdfBuffer = await renderToBuffer(pdfElement as any)
+    const pdfBuffer = await renderPdfToBuffer(pdfElement)
 
     // Retourner PDF
     return new NextResponse(new Uint8Array(pdfBuffer), {

@@ -189,3 +189,11 @@ export async function getResendApiKey(): Promise<string | null> {
 export async function getBrevoApiKey(): Promise<string | null> {
   return getConfig('BREVO_API_KEY')
 }
+
+export async function getDeepSeekApiKey(): Promise<string | null> {
+  return getConfig('DEEPSEEK_API_KEY')
+}
+
+export async function getDeepSeekModel(): Promise<string> {
+  return (await getConfig('DEEPSEEK_MODEL')) || 'deepseek-chat'
+}

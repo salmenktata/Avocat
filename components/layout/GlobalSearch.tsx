@@ -53,7 +53,7 @@ export function GlobalSearch({ className }: GlobalSearchProps) {
     return () => document.removeEventListener('keydown', down)
   }, [])
 
-  // Debounced search (300ms)
+  // Debounced search (300ms) avec AbortController pour annuler les requêtes précédentes
   React.useEffect(() => {
     if (!query.trim()) {
       setResults([])
@@ -62,11 +62,13 @@ export function GlobalSearch({ className }: GlobalSearchProps) {
     }
 
     setIsSearching(true)
+    const abortController = new AbortController()
+
     const timer = setTimeout(async () => {
       try {
-        // Appel API pour rechercher
         const response = await fetch(
-          `/api/search?q=${encodeURIComponent(query)}`
+          `/api/search?q=${encodeURIComponent(query)}`,
+          { signal: abortController.signal }
         )
 
         if (response.ok) {
@@ -76,14 +78,23 @@ export function GlobalSearch({ className }: GlobalSearchProps) {
           setResults([])
         }
       } catch (error) {
+        // Ignorer les erreurs d'abort (requête annulée)
+        if (error instanceof Error && error.name === 'AbortError') {
+          return
+        }
         console.error('Search error:', error)
         setResults([])
       } finally {
-        setIsSearching(false)
+        if (!abortController.signal.aborted) {
+          setIsSearching(false)
+        }
       }
     }, 300)
 
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      abortController.abort()
+    }
   }, [query])
 
   // Grouper les résultats par type

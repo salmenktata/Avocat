@@ -6,10 +6,9 @@
  *
  * Le cross-encoder améliore significativement la qualité du ranking
  * car il peut capturer les interactions sémantiques entre query et document.
+ *
+ * OPTIMISATION: Import dynamique pour éviter de charger le module au démarrage
  */
-
-// @ts-ignore - @xenova/transformers n'a pas de types TypeScript complets
-import { pipeline, env } from '@xenova/transformers'
 
 // =============================================================================
 // CONFIGURATION
@@ -21,10 +20,23 @@ const RERANKER_ENABLED = process.env.RERANKER_ENABLED !== 'false'
 // Modèle cross-encoder (téléchargé automatiquement au premier appel)
 const RERANKER_MODEL = process.env.RERANKER_MODEL || 'Xenova/ms-marco-MiniLM-L-6-v2'
 
-// Cache le modèle localement
-env.cacheDir = process.env.TRANSFORMERS_CACHE || './.cache/transformers'
-env.allowLocalModels = true
-env.allowRemoteModels = true
+// Variables pour le module chargé dynamiquement
+let transformersModule: { pipeline: any; env: any } | null = null
+
+async function loadTransformers() {
+  if (transformersModule) return transformersModule
+
+  // @ts-ignore - @xenova/transformers n'a pas de types TypeScript complets
+  const module = await import('@xenova/transformers')
+  transformersModule = module
+
+  // Configurer le cache après le chargement
+  module.env.cacheDir = process.env.TRANSFORMERS_CACHE || './.cache/transformers'
+  module.env.allowLocalModels = true
+  module.env.allowRemoteModels = true
+
+  return module
+}
 
 // =============================================================================
 // TYPES
@@ -77,6 +89,9 @@ async function getRerankerPipeline(): Promise<TextClassificationPipeline | null>
 
   pipelineLoading = (async () => {
     try {
+      // Charger le module dynamiquement
+      const { pipeline } = await loadTransformers()
+
       // Charger le pipeline pour le reranking (text-classification avec paires)
       const pipe = await pipeline('text-classification', RERANKER_MODEL, {
         quantized: true, // Utiliser le modèle quantifié (plus rapide, moins de mémoire)

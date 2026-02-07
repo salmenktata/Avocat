@@ -409,6 +409,7 @@ export async function searchKnowledgeBase(
   query: string,
   options: {
     category?: KnowledgeBaseCategory
+    subcategory?: string
     limit?: number
     threshold?: number
   } = {}
@@ -419,6 +420,7 @@ export async function searchKnowledgeBase(
 
   const {
     category,
+    subcategory,
     limit = aiConfig.rag.maxResults,
     threshold = aiConfig.rag.similarityThreshold - 0.05, // Seuil légèrement plus bas
   } = options
@@ -432,8 +434,8 @@ export async function searchKnowledgeBase(
 
   // Recherche via la fonction SQL
   const result = await db.query(
-    `SELECT * FROM search_knowledge_base($1::vector, $2, $3, $4)`,
-    [embeddingStr, category || null, limit, threshold]
+    `SELECT * FROM search_knowledge_base($1::vector, $2, $3, $4, $5)`,
+    [embeddingStr, category || null, subcategory || null, limit, threshold]
   )
 
   return result.rows.map((row) => ({

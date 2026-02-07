@@ -1,5 +1,3 @@
-'use client'
-
 import { cn } from '@/lib/utils'
 
 export type LogoVariant = 'juridique' | 'fiscal' | 'notarial'

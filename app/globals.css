@@ -52,8 +52,9 @@
 }
 
 @layer base {
+  /* Suppression de transition-colors duration-200 pour améliorer LCP */
   * {
-    @apply border-border transition-colors duration-200;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
