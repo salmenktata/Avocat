@@ -256,16 +256,24 @@ export function getRerankerInfo(): {
 /**
  * Précharge le modèle cross-encoder au démarrage par défaut (sauf si PRELOAD_RERANKER=false)
  * Élimine la latence +500ms sur la première requête de chaque session
+ *
+ * IMPORTANT: Désactivé pendant le build Next.js (NEXT_PHASE=phase-production-build)
+ * car @xenova/transformers utilise des APIs navigateur (File) non disponibles
  */
-if (process.env.PRELOAD_RERANKER !== 'false' && RERANKER_ENABLED) {
-  console.log('[Reranker] Préchargement du modèle au démarrage...')
-  preloadReranker()
-    .then((success) => {
-      if (success) {
-        console.log('[Reranker] Modèle préchargé avec succès')
-      }
-    })
-    .catch((err) => {
-      console.error('[Reranker] Erreur préchargement:', err)
-    })
+const isNextBuild = process.env.NEXT_PHASE === 'phase-production-build'
+
+if (!isNextBuild && process.env.PRELOAD_RERANKER !== 'false' && RERANKER_ENABLED) {
+  // Utiliser setTimeout pour éviter de bloquer le démarrage
+  setTimeout(() => {
+    console.log('[Reranker] Préchargement du modèle au démarrage...')
+    preloadReranker()
+      .then((success) => {
+        if (success) {
+          console.log('[Reranker] Modèle préchargé avec succès')
+        }
+      })
+      .catch((err) => {
+        console.error('[Reranker] Erreur préchargement:', err)
+      })
+  }, 1000)
 }
