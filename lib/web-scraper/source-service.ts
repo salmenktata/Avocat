@@ -133,14 +133,16 @@ export async function createWebSource(
       css_selectors, url_patterns, excluded_patterns,
       sitemap_url, rss_feed_url, use_sitemap, download_files,
       respect_robots_txt, rate_limit_ms, custom_headers,
-      created_by, next_crawl_at, ignore_ssl_errors
+      created_by, next_crawl_at, ignore_ssl_errors,
+      seed_urls, form_crawl_config
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7::interval, $8, $9, $10,
       $11, $12, $13,
       $14, $15, $16, $17,
       $18, $19, $20,
-      $21, NOW(), $22
+      $21, NOW(), $22,
+      $23, $24
     )
     RETURNING *`,
     [
@@ -166,6 +168,8 @@ export async function createWebSource(
       JSON.stringify(input.customHeaders || {}),
       createdBy,
       input.ignoreSSLErrors || false,
+      input.seedUrls || [],
+      input.formCrawlConfig ? JSON.stringify(input.formCrawlConfig) : null,
     ]
   )
 
@@ -286,6 +290,16 @@ export async function updateWebSource(
   if (input.ignoreSSLErrors !== undefined) {
     setClauses.push(`ignore_ssl_errors = $${paramIndex++}`)
     params.push(input.ignoreSSLErrors)
+  }
+
+  if (input.seedUrls !== undefined) {
+    setClauses.push(`seed_urls = $${paramIndex++}`)
+    params.push(input.seedUrls as unknown as string)
+  }
+
+  if (input.formCrawlConfig !== undefined) {
+    setClauses.push(`form_crawl_config = $${paramIndex++}`)
+    params.push(JSON.stringify(input.formCrawlConfig) as unknown as string)
   }
 
   if (setClauses.length === 0) {
@@ -626,6 +640,8 @@ function mapRowToWebSource(row: Record<string, unknown>): WebSource {
     excludedPatterns: (row.excluded_patterns as string[]) || [],
     dynamicConfig: (row.dynamic_config as any) || null,
     extractionConfig: (row.extraction_config as any) || null,
+    seedUrls: (row.seed_urls as string[]) || [],
+    formCrawlConfig: (row.form_crawl_config as any) || null,
     maxDepth: row.max_depth as number,
     maxPages: row.max_pages as number,
     followLinks: row.follow_links as boolean,

@@ -155,6 +155,16 @@ export interface DynamicSiteConfig {
   dynamicTimeoutMs?: number
 }
 
+/**
+ * Configuration pour le crawl de formulaires (ex: TYPO3 cassation.tn)
+ */
+export interface FormCrawlConfig {
+  /** Type de formulaire/CMS (extensible) */
+  type: 'typo3-cassation'
+  /** Sous-ensemble de thèmes à crawler (tous si absent) */
+  themes?: string[]
+}
+
 export interface WebSource {
   id: string
   name: string
@@ -177,6 +187,12 @@ export interface WebSource {
   maxPages: number
   followLinks: boolean
   downloadFiles: boolean
+
+  // Seed URLs (pages d'entrée supplémentaires au-delà de baseUrl)
+  seedUrls: string[]
+
+  // Configuration crawl de formulaires (POST avec CSRF, etc.)
+  formCrawlConfig: FormCrawlConfig | null
 
   // Configuration Technique
   requiresJavascript: boolean
@@ -445,6 +461,8 @@ export interface CreateWebSourceInput {
   dynamicConfig?: DynamicSiteConfig
   extractionConfig?: ExtractionConfig
   ignoreSSLErrors?: boolean
+  seedUrls?: string[]
+  formCrawlConfig?: FormCrawlConfig
 }
 
 export interface UpdateWebSourceInput {
@@ -471,6 +489,8 @@ export interface UpdateWebSourceInput {
   extractionConfig?: ExtractionConfig
   isActive?: boolean
   ignoreSSLErrors?: boolean
+  seedUrls?: string[]
+  formCrawlConfig?: FormCrawlConfig | null
 }
 
 // ============================================================================

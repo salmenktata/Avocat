@@ -12,8 +12,9 @@ import type {
   ScrapedContent,
   LinkedFile,
   PageStatus,
+  FormCrawlConfig,
 } from './types'
-import { scrapeUrl, checkForChanges, downloadFile, generatePageIds } from './scraper-service'
+import { scrapeUrl, checkForChanges, downloadFile, generatePageIds, fetchHtml } from './scraper-service'
 import { hashUrl, hashContent, countWords, detectTextLanguage } from './content-extractor'
 import { isUrlAllowed, getRobotsRules } from './robots-parser'
 import { uploadFile } from '@/lib/storage/minio'
@@ -70,6 +71,9 @@ export async function crawlSource(
   const sourceTimeoutMs = s.timeoutMs ?? s.timeout_ms ?? 30000
   const sourceFollowLinks = s.followLinks ?? s.follow_links ?? true
   const sourceId = s.id
+  const sourceSeedUrls: string[] = s.seedUrls ?? s.seed_urls ?? []
+  const sourceFormCrawlConfig: FormCrawlConfig | null = s.formCrawlConfig ?? s.form_crawl_config ?? null
+  const sourceIgnoreSSLErrors: boolean = s.ignoreSSLErrors ?? s.ignore_ssl_errors ?? false
 
   const {
     maxPages = sourceMaxPages,
@@ -81,10 +85,17 @@ export async function crawlSource(
     incrementalMode = true,
   } = options
 
+  // Construire la queue initiale avec seed URLs
+  const seedUrlSet = new Set<string>(sourceSeedUrls)
+  const initialQueue: Array<{ url: string; depth: number }> = [
+    { url: sourceBaseUrl, depth: 0 },
+    ...sourceSeedUrls.map(u => ({ url: u, depth: 1 })),
+  ]
+
   // État du crawl
   const state: CrawlState = {
     visited: new Set<string>(),
-    queue: [{ url: sourceBaseUrl, depth: 0 }],
+    queue: initialQueue,
     pagesProcessed: 0,
     pagesNew: 0,
     pagesChanged: 0,
@@ -186,6 +197,32 @@ export async function crawlSource(
             if (!state.visited.has(linkHash)) {
               state.queue.push({ url: link, depth: depth + 1 })
             }
+          }
+        }
+
+        // Crawl de formulaire si configuré et URL est une seed URL
+        if (sourceFormCrawlConfig && seedUrlSet.has(url)) {
+          try {
+            const formLinks = await crawlFormResults(
+              sourceFormCrawlConfig,
+              url,
+              sourceIgnoreSSLErrors,
+              effectiveRateLimit,
+            )
+            for (const link of formLinks) {
+              const linkHash = hashUrl(link)
+              if (!state.visited.has(linkHash)) {
+                state.queue.push({ url: link, depth: depth + 1 })
+              }
+            }
+            console.log(`[Crawler] Formulaire: ${formLinks.length} liens découverts depuis ${url}`)
+          } catch (formError) {
+            console.error(`[Crawler] Erreur crawl formulaire pour ${url}:`, formError)
+            state.errors.push({
+              url,
+              error: `Form crawl: ${formError instanceof Error ? formError.message : 'Erreur inconnue'}`,
+              timestamp: new Date().toISOString(),
+            })
           }
         }
       }
@@ -432,6 +469,118 @@ async function downloadLinkedFiles(
   }
 
   return result
+}
+
+// =============================================================================
+// CRAWL DE FORMULAIRES (POST CSRF)
+// =============================================================================
+
+/**
+ * Crawle les résultats d'un formulaire POST (ex: TYPO3 cassation.tn)
+ * Soumet le formulaire pour chaque thème et collecte les liens de détail
+ */
+async function crawlFormResults(
+  config: FormCrawlConfig,
+  pageUrl: string,
+  ignoreSSLErrors: boolean,
+  rateLimitMs: number,
+): Promise<string[]> {
+  if (config.type !== 'typo3-cassation') {
+    console.warn(`[Crawler] Type de formulaire inconnu: ${config.type}`)
+    return []
+  }
+
+  const { extractCsrfTokens, buildSearchPostBody, CASSATION_THEMES } = await import('./typo3-csrf-utils')
+  const cheerio = await import('cheerio')
+
+  // Étape 1: Extraire les tokens CSRF
+  const csrfResult = await extractCsrfTokens(pageUrl, { ignoreSSLErrors })
+  if (!csrfResult) {
+    console.warn(`[Crawler] Impossible d'extraire les tokens CSRF depuis ${pageUrl}`)
+    return []
+  }
+
+  const { tokens } = csrfResult
+  const allLinks: string[] = []
+
+  // Déterminer les thèmes à crawler
+  const themeCodes = config.themes || Object.keys(CASSATION_THEMES)
+
+  console.log(`[Crawler] Formulaire TYPO3: ${themeCodes.length} thèmes à crawler`)
+
+  for (const themeCode of themeCodes) {
+    try {
+      // Construire le body POST pour ce thème
+      const body = buildSearchPostBody(tokens, { theme: themeCode })
+
+      // POST de recherche
+      const result = await fetchHtml(tokens.formAction, {
+        method: 'POST',
+        body,
+        ignoreSSLErrors,
+        stealthMode: true,
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'ar,fr;q=0.9,en;q=0.8',
+          'Referer': pageUrl,
+          'Origin': new URL(pageUrl).origin,
+        },
+      })
+
+      if (!result.success || !result.html) {
+        console.warn(`[Crawler] Échec POST thème ${themeCode}: ${result.error}`)
+        continue
+      }
+
+      // Parser les résultats
+      const $ = cheerio.load(result.html)
+      const baseOrigin = new URL(pageUrl).origin
+
+      // Extraire les liens de détail dans le conteneur de résultats
+      $('.tx-upload-example a[href]').each((_, el) => {
+        const href = $(el).attr('href')
+        if (!href) return
+
+        const absoluteUrl = href.startsWith('http')
+          ? href
+          : `${baseOrigin}${href.startsWith('/') ? '' : '/'}${href}`
+
+        // Exclure les liens externes et les ancres
+        if (absoluteUrl.startsWith(baseOrigin) && !absoluteUrl.includes('#')) {
+          allLinks.push(absoluteUrl)
+        }
+      })
+
+      // Extraire les liens PDF
+      $('a[href$=".pdf"], a[href$=".PDF"]').each((_, el) => {
+        const href = $(el).attr('href')
+        if (!href) return
+
+        const absoluteUrl = href.startsWith('http')
+          ? href
+          : `${baseOrigin}${href.startsWith('/') ? '' : '/'}${href}`
+
+        allLinks.push(absoluteUrl)
+      })
+
+      const themeName = CASSATION_THEMES[themeCode]?.fr || themeCode
+      console.log(`[Crawler] Thème "${themeName}": liens trouvés dans résultats`)
+
+    } catch (themeError) {
+      console.error(`[Crawler] Erreur thème ${themeCode}:`, themeError)
+    }
+
+    // Rate limiting entre chaque POST
+    if (rateLimitMs > 0) {
+      await sleep(rateLimitMs)
+    }
+  }
+
+  // Dédupliquer les liens
+  const uniqueLinks = [...new Set(allLinks)]
+  console.log(`[Crawler] Formulaire: ${uniqueLinks.length} liens uniques découverts (total brut: ${allLinks.length})`)
+
+  return uniqueLinks
 }
 
 // =============================================================================
