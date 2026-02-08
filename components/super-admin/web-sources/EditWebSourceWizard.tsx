@@ -87,16 +87,15 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
   const buildPayload = () => {
     const cssSelectors: Record<string, string[]> = {}
     if (formData.contentSelector) {
-      cssSelectors.content = formData.contentSelector.split(',').map((s) => s.trim())
+      cssSelectors.content = formData.contentSelector.split(',').map((s) => s.trim()).filter(Boolean)
     }
     if (formData.excludeSelectors) {
-      cssSelectors.exclude = formData.excludeSelectors.split(',').map((s) => s.trim())
+      cssSelectors.exclude = formData.excludeSelectors.split(',').map((s) => s.trim()).filter(Boolean)
     }
 
     return {
       name: formData.name,
-      baseUrl: formData.baseUrl,
-      description: formData.description || undefined,
+      description: formData.description,
       category: formData.category,
       language: formData.language,
       crawlFrequency: formData.crawlFrequency,
@@ -107,12 +106,12 @@ export function EditWebSourceWizard({ initialData, sourceId }: EditWebSourceWiza
       ignoreSSLErrors: formData.ignoreSSLErrors,
       autoIndexFiles: formData.autoIndexFiles,
       useSitemap: formData.useSitemap,
-      sitemapUrl: formData.sitemapUrl || undefined,
+      sitemapUrl: formData.sitemapUrl,
       respectRobotsTxt: formData.respectRobotsTxt,
       rateLimitMs: formData.rateLimitMs,
-      cssSelectors: Object.keys(cssSelectors).length > 0 ? cssSelectors : undefined,
-      urlPatterns: formData.urlPatterns ? formData.urlPatterns.split('\n').filter(Boolean) : undefined,
-      excludedPatterns: formData.excludedPatterns ? formData.excludedPatterns.split('\n').filter(Boolean) : undefined,
+      cssSelectors: Object.keys(cssSelectors).length > 0 ? cssSelectors : null,
+      urlPatterns: formData.urlPatterns ? formData.urlPatterns.split('\n').filter(Boolean) : [],
+      excludedPatterns: formData.excludedPatterns ? formData.excludedPatterns.split('\n').filter(Boolean) : [],
       isActive: formData.isActive,
     }
   }

@@ -15,6 +15,22 @@ interface PageProps {
   params: Promise<{ id: string }>
 }
 
+// PostgreSQL interval::text → valeurs du Select (ex: '01:00:00' → '1 hour')
+function normalizeCrawlFrequency(pgInterval: string): string {
+  const mapping: Record<string, string> = {
+    '01:00:00': '1 hour',
+    '06:00:00': '6 hours',
+    '12:00:00': '12 hours',
+    '1 day': '24 hours',
+    '1 day 00:00:00': '24 hours',
+    '7 days': '7 days',
+    '7 days 00:00:00': '7 days',
+    '30 days': '30 days',
+    '30 days 00:00:00': '30 days',
+  }
+  return mapping[pgInterval] || pgInterval
+}
+
 async function getWebSource(id: string) {
   const result = await db.query(
     `SELECT
@@ -44,7 +60,7 @@ async function getWebSource(id: string) {
     description: source.description || '',
     category: source.category,
     language: source.language,
-    crawlFrequency: source.crawl_frequency,
+    crawlFrequency: normalizeCrawlFrequency(source.crawl_frequency),
     maxDepth: source.max_depth,
     maxPages: source.max_pages,
     requiresJavascript: source.requires_javascript,

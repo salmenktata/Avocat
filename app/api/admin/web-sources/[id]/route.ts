@@ -14,6 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -151,6 +152,10 @@ export async function PUT(
     if (body.autoIndexFiles !== undefined) input.autoIndexFiles = body.autoIndexFiles
 
     const source = await updateWebSource(id, input)
+
+    // Invalider le cache client pour les pages de détail et d'édition
+    revalidatePath(`/super-admin/web-sources/${id}`)
+    revalidatePath(`/super-admin/web-sources/${id}/edit`)
 
     return NextResponse.json({
       message: 'Source mise à jour',
