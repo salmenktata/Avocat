@@ -50,8 +50,9 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          no-cache: true
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
 
   # Job 2: Déploiement rapide sur VPS
   deploy:
