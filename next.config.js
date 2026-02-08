@@ -91,7 +91,7 @@ const nextConfig = {
   serverExternalPackages: ['canvas', 'pdf-to-img', 'tesseract.js', 'pdf-parse', 'pdfjs-dist'],
 
   // Exclure les polyfills Node.js côté client pour réduire le bundle
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -102,7 +102,17 @@ const nextConfig = {
         buffer: false,
         util: false,
       }
+
     }
+
+    // Ignorer les moments locales non utilisés (économise ~160KB)
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^\.\/locale$/,
+        contextRegExp: /moment$/,
+      })
+    )
+
     return config
   },
 
@@ -143,6 +153,16 @@ const nextConfig = {
   // Optimisation du bundling
   poweredByHeader: false,
   reactStrictMode: true,
+
+  // Optimisation production
+  productionBrowserSourceMaps: false,
+
+  // Compiler moins de polyfills pour les navigateurs modernes
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
 }
 
 module.exports = withNextIntl(nextConfig)
