@@ -1049,6 +1049,44 @@
         "nextSteps": "Prochaines étapes recommandées"
       }
     },
+    "executiveSummary": {
+      "favorable": "Pronostic Favorable",
+      "mixed": "Pronostic Mitigé",
+      "unfavorable": "Pronostic Défavorable",
+      "tempoUrgent": "Urgent",
+      "tempoRapide": "Rapide",
+      "tempoNormal": "Normal",
+      "tempoTemporiser": "Temporiser",
+      "readMore": "Lire la suite",
+      "successRate": "Taux de succès",
+      "urgency": "Urgence",
+      "highRisks": "Risques élevés",
+      "evidence": "Preuves"
+    },
+    "groups": {
+      "synthese": "Synthèse",
+      "analyse": "Analyse Approfondie",
+      "strategie": "Stratégie",
+      "risques": "Risques & Suivi"
+    },
+    "toc": {
+      "executiveSummary": "Verdict Express",
+      "syllogisme": "Syllogisme Juridique",
+      "recommendation": "Recommandation",
+      "diagnostic": "Diagnostic Initial",
+      "analyseFaits": "Analyse Factuelle",
+      "qualification": "Qualification Juridique",
+      "admissibility": "Recevabilité",
+      "jurisdiction": "Juridiction Compétente",
+      "evidence": "Stratégie de Preuve",
+      "strategy": "Stratégie Globale",
+      "argumentation": "Argumentation",
+      "risks": "Évaluation des Risques",
+      "references": "Références Juridiques"
+    },
+    "technicalMetrics": {
+      "title": "Métriques Techniques (Expert)"
+    },
     "documents": {
       "title": "Documents à Générer",
       "description": "L'IA peut vous aider à rédiger ces documents essentiels pour votre dossier.",

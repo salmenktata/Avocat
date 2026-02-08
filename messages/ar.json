@@ -1049,6 +1049,44 @@
         "nextSteps": "الخطوات التالية الموصى بها"
       }
     },
+    "executiveSummary": {
+      "favorable": "تكهن إيجابي",
+      "mixed": "تكهن مختلط",
+      "unfavorable": "تكهن سلبي",
+      "tempoUrgent": "عاجل",
+      "tempoRapide": "سريع",
+      "tempoNormal": "عادي",
+      "tempoTemporiser": "تريث",
+      "readMore": "اقرأ المزيد",
+      "successRate": "نسبة النجاح",
+      "urgency": "الاستعجال",
+      "highRisks": "مخاطر عالية",
+      "evidence": "الأدلة"
+    },
+    "groups": {
+      "synthese": "الملخص",
+      "analyse": "التحليل المعمق",
+      "strategie": "الاستراتيجية",
+      "risques": "المخاطر والمتابعة"
+    },
+    "toc": {
+      "executiveSummary": "الحكم السريع",
+      "syllogisme": "القياس القانوني",
+      "recommendation": "التوصية",
+      "diagnostic": "التشخيص الأولي",
+      "analyseFaits": "التحليل الوقائعي",
+      "qualification": "التكييف القانوني",
+      "admissibility": "قبول الدعوى",
+      "jurisdiction": "المحكمة المختصة",
+      "evidence": "استراتيجية الإثبات",
+      "strategy": "الاستراتيجية العامة",
+      "argumentation": "بناء الحجة",
+      "risks": "تقييم المخاطر",
+      "references": "المراجع القانونية"
+    },
+    "technicalMetrics": {
+      "title": "المقاييس التقنية (خبير)"
+    },
     "documents": {
       "title": "الوثائق للإنشاء",
       "description": "يمكن للذكاء الاصطناعي مساعدتك في صياغة هذه الوثائق الأساسية لملفك.",

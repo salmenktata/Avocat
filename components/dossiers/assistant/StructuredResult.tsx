@@ -13,7 +13,10 @@ import ReferencesSection from './ReferencesSection'
 import LegalAnalysisSection from './LegalAnalysisSection'
 import ConfidenceBreakdown from './ConfidenceBreakdown'
 import RAGInsights from './RAGInsights'
-import { AnalysisTableOfContents, useAnalysisSections } from './AnalysisTableOfContents'
+import ExecutiveSummary from './ExecutiveSummary'
+import { AnalysisTableOfContents } from './AnalysisTableOfContents'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ChevronDown } from 'lucide-react'
 
 interface StructuredResultProps {
   result: StructuredDossier
@@ -122,35 +125,41 @@ export default function StructuredResult({
       {/* Contenu des onglets */}
       {activeTab === 'analysis' && (
         <div className="flex gap-6">
-          {/* Table des matières sticky - Desktop uniquement */}
+          {/* Table des matières sticky */}
           <AnalysisTableOfContents
             sections={[
-              { id: 'confidence', title: t('sections.confidence') || 'Confiance', readingTime: 1 },
-              { id: 'rag-insights', title: t('sections.ragInsights') || 'Métriques RAG', readingTime: 1 },
-              { id: 'legal-analysis', title: t('sections.legalAnalysis') || 'Analyse Juridique', readingTime: 5 },
-              { id: 'references', title: t('sections.references') || 'Références', readingTime: 2 },
-            ].filter((s) => {
-              if (s.id === 'rag-insights' && !result.ragMetrics) return false
-              if (s.id === 'references' && result.references.length === 0) return false
-              return true
-            })}
+              { id: 'executive-summary', title: t('toc.executiveSummary'), readingTime: 1 },
+              { id: 'group-synthese', title: t('groups.synthese'), readingTime: 2, children: [
+                ...(result.analyseJuridique?.syllogisme ? [{ id: 'syllogisme', title: t('toc.syllogisme'), readingTime: 1 }] : []),
+                { id: 'recommendation', title: t('toc.recommendation'), readingTime: 1 },
+              ] },
+              { id: 'group-analyse', title: t('groups.analyse'), readingTime: 4, children: [
+                ...(result.analyseJuridique?.diagnostic ? [{ id: 'diagnostic', title: t('toc.diagnostic'), readingTime: 1 }] : []),
+                ...(result.analyseJuridique?.analyseFaits ? [{ id: 'analyse-faits', title: t('toc.analyseFaits'), readingTime: 1 }] : []),
+                { id: 'qualification', title: t('toc.qualification'), readingTime: 1 },
+                { id: 'admissibility', title: t('toc.admissibility'), readingTime: 1 },
+                { id: 'jurisdiction', title: t('toc.jurisdiction'), readingTime: 1 },
+              ] },
+              { id: 'group-strategie', title: t('groups.strategie'), readingTime: 3, children: [
+                { id: 'evidence', title: t('toc.evidence'), readingTime: 1 },
+                ...(result.analyseJuridique?.strategieGlobale ? [{ id: 'strategy', title: t('toc.strategy'), readingTime: 1 }] : []),
+                ...(result.analyseJuridique?.argumentation ? [{ id: 'argumentation', title: t('toc.argumentation'), readingTime: 1 }] : []),
+              ] },
+              { id: 'group-risques', title: t('groups.risques'), readingTime: 2, children: [
+                { id: 'risks', title: t('toc.risks'), readingTime: 1 },
+                ...(result.references.length > 0 ? [{ id: 'references', title: t('toc.references'), readingTime: 1 }] : []),
+              ] },
+            ]}
             locale="fr"
             className="w-64 shrink-0"
           />
 
           {/* Contenu principal */}
           <div className="flex-1 space-y-6 min-w-0">
-            {/* Confiance de l'analyse */}
-            <div id="confidence">
-              <ConfidenceBreakdown result={result} />
+            {/* Executive Summary - Verdict express */}
+            <div id="executive-summary">
+              <ExecutiveSummary result={result} />
             </div>
-
-            {/* Métriques RAG */}
-            {result.ragMetrics && (
-              <div id="rag-insights">
-                <RAGInsights ragMetrics={result.ragMetrics} />
-              </div>
-            )}
 
             {/* Analyse juridique et stratégie */}
             <div id="legal-analysis">
@@ -163,6 +172,22 @@ export default function StructuredResult({
                 <ReferencesSection references={result.references} />
               </div>
             )}
+
+            {/* Métriques techniques (Expert) - collapsible en bas */}
+            <div id="technical-metrics">
+              <Collapsible>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full px-4 py-3 rounded-lg border bg-muted/50 hover:bg-muted transition-colors text-sm font-medium text-muted-foreground">
+                  <ChevronDown className="h-4 w-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                  {t('technicalMetrics.title')}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3 space-y-4">
+                  <ConfidenceBreakdown result={result} />
+                  {result.ragMetrics && (
+                    <RAGInsights ragMetrics={result.ragMetrics} />
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
           </div>
         </div>
       )}

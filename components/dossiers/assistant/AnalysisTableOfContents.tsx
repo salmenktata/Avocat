@@ -4,12 +4,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { formatReadingTime } from '@/lib/utils/reading-time'
 
 interface Section {
   id: string
   title: string
   readingTime?: number
+  children?: Section[]
 }
 
 interface AnalysisTableOfContentsProps {
@@ -19,7 +21,6 @@ interface AnalysisTableOfContentsProps {
   onNavigate?: (sectionId: string) => void
 }
 
-// Traductions inline pour éviter les dépendances externes
 const translations = {
   fr: {
     tableOfContents: 'Table des matières',
@@ -33,6 +34,18 @@ const translations = {
   },
 }
 
+// Flatten sections for scroll detection
+function flattenSections(sections: Section[]): Section[] {
+  const result: Section[] = []
+  for (const section of sections) {
+    result.push(section)
+    if (section.children) {
+      result.push(...section.children)
+    }
+  }
+  return result
+}
+
 export function AnalysisTableOfContents({
   sections,
   locale = 'fr',
@@ -42,15 +55,15 @@ export function AnalysisTableOfContents({
   const t = translations[locale]
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const [isSticky, setIsSticky] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
-  // Observer le scroll pour mettre à jour la section active
+  const allSections = flattenSections(sections)
+
   useEffect(() => {
     const handleScroll = () => {
-      // Détecter le mode sticky
       setIsSticky(window.scrollY > 200)
 
-      // Détecter la section active
-      for (const section of sections) {
+      for (const section of allSections) {
         const element = document.getElementById(section.id)
         if (element) {
           const rect = element.getBoundingClientRect()
@@ -64,19 +77,17 @@ export function AnalysisTableOfContents({
 
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [sections])
+  }, [allSections])
 
-  // Navigation vers une section
   const handleNavigate = useCallback(
     (sectionId: string) => {
       const element = document.getElementById(sectionId)
       if (element) {
-        const yOffset = -80 // Offset pour le header sticky
+        const yOffset = -80
         const y = element.getBoundingClientRect().top + window.scrollY + yOffset
-
         window.scrollTo({ top: y, behavior: 'smooth' })
         setActiveSection(sectionId)
-
+        setMobileOpen(false)
         if (onNavigate) {
           onNavigate(sectionId)
         }
@@ -85,37 +96,27 @@ export function AnalysisTableOfContents({
     [onNavigate]
   )
 
-  // Calculer le temps de lecture total
   const totalReadingTime = sections.reduce((acc, s) => acc + (s.readingTime || 0), 0)
 
-  return (
-    <div
-      className={cn(
-        'hidden lg:block',
-        isSticky && 'sticky top-4',
-        className
-      )}
-    >
-      <div className="rounded-lg border bg-card p-4">
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-4 pb-3 border-b">
-          <Icons.list className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold text-sm">{t.tableOfContents}</h3>
-        </div>
+  const tocContent = (
+    <div className="rounded-lg border bg-card p-4">
+      <div className="flex items-center gap-2 mb-4 pb-3 border-b">
+        <Icons.list className="h-4 w-4 text-primary" />
+        <h3 className="font-semibold text-sm">{t.tableOfContents}</h3>
+      </div>
 
-        {/* Temps de lecture total */}
-        <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground">
-          <Icons.clock className="h-3 w-3" />
-          <span>
-            {t.totalReadingTime}: {formatReadingTime(totalReadingTime, locale)}
-          </span>
-        </div>
+      <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground">
+        <Icons.clock className="h-3 w-3" />
+        <span>
+          {t.totalReadingTime}: {formatReadingTime(totalReadingTime, locale)}
+        </span>
+      </div>
 
-        {/* Liste des sections */}
-        <nav className="space-y-1">
-          {sections.map((section, index) => (
+      <nav className="space-y-0.5">
+        {sections.map((section, index) => (
+          <div key={section.id}>
+            {/* Parent section */}
             <button
-              key={section.id}
               onClick={() => handleNavigate(section.id)}
               className={cn(
                 'w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-sm',
@@ -135,23 +136,72 @@ export function AnalysisTableOfContents({
                 </span>
               )}
             </button>
-          ))}
-        </nav>
+            {/* Children */}
+            {section.children && section.children.length > 0 && (
+              <div className="ml-7 space-y-0.5">
+                {section.children.map((child) => (
+                  <button
+                    key={child.id}
+                    onClick={() => handleNavigate(child.id)}
+                    className={cn(
+                      'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left text-xs',
+                      'transition-colors hover:bg-muted',
+                      activeSection === child.id
+                        ? 'bg-primary/10 text-primary font-medium border-l-2 border-primary'
+                        : 'text-muted-foreground'
+                    )}
+                  >
+                    <span className="w-1 h-1 rounded-full bg-muted-foreground/40 shrink-0" />
+                    <span className="flex-1 truncate">{child.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </nav>
 
-        {/* Bouton retour en haut */}
-        <div className="mt-4 pt-3 border-t">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full text-xs"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          >
-            <Icons.arrowUp className="h-3 w-3 mr-2" />
-            {t.backToTop}
-          </Button>
-        </div>
+      <div className="mt-4 pt-3 border-t">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full text-xs"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          <Icons.arrowUp className="h-3 w-3 mr-2" />
+          {t.backToTop}
+        </Button>
       </div>
     </div>
+  )
+
+  return (
+    <>
+      {/* Desktop: sidebar sticky */}
+      <div
+        className={cn(
+          'hidden lg:block',
+          isSticky && 'sticky top-4',
+          className
+        )}
+      >
+        {tocContent}
+      </div>
+
+      {/* Mobile: floating button + Sheet */}
+      <div className="lg:hidden fixed bottom-4 right-4 z-40">
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetTrigger asChild>
+            <Button size="icon" className="rounded-full shadow-lg h-12 w-12">
+              <Icons.list className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="max-h-[70vh] overflow-y-auto">
+            {tocContent}
+          </SheetContent>
+        </Sheet>
+      </div>
+    </>
   )
 }
 
@@ -167,16 +217,12 @@ const sectionTitles: Record<string, { fr: string; ar: string }> = {
   references: { fr: 'Références', ar: 'المراجع' },
 }
 
-/**
- * Hook pour extraire les sections d'une analyse
- */
 export function useAnalysisSections(
   analysisData: Record<string, unknown> | null,
   locale: 'fr' | 'ar' = 'fr'
 ): Section[] {
   if (!analysisData) return []
 
-  // Sections standard d'une analyse juridique
   const sectionIds = [
     'qualification',
     'syllogisme',
@@ -197,9 +243,6 @@ export function useAnalysisSections(
     }))
 }
 
-/**
- * Estime le temps de lecture d'une section
- */
 function estimateSectionReadingTime(content: unknown): number {
   if (!content) return 0
 
@@ -211,7 +254,6 @@ function estimateSectionReadingTime(content: unknown): number {
     text = JSON.stringify(content)
   }
 
-  // 200 mots par minute
   const wordCount = text.split(/\s+/).length
   return Math.ceil(wordCount / 200)
 }
