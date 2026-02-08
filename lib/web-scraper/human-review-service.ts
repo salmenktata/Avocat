@@ -399,7 +399,7 @@ async function createAdminNotification(
         notification_type,
         title,
         message,
-        data,
+        metadata,
         priority
       ) VALUES ($1, $2, $3, $4, $5)`,
       [
