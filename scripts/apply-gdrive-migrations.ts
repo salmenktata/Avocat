@@ -35,7 +35,7 @@ async function applyMigrations() {
   }
 
   console.log('✨ Migrations appliquées avec succès!')
-  await db.end()
+  await db.closePool()
 }
 
 applyMigrations().catch((error) => {
