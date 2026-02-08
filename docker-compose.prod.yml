@@ -115,6 +115,7 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
+      HOSTNAME: "0.0.0.0"
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/qadhya
       MINIO_ENDPOINT: minio
@@ -145,7 +146,7 @@ services:
     networks:
       - qadhya-network
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
