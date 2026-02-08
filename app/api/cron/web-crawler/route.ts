@@ -154,6 +154,7 @@ async function processPendingJobs(): Promise<{
         excludedPatterns: job.excluded_patterns || [],
         followLinks: job.follow_links ?? true,
         downloadFiles: job.download_files ?? true,
+        driveConfig: job.drive_config || null,
       }
 
       // Exécuter le crawl
