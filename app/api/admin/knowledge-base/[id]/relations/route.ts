@@ -12,7 +12,7 @@ async function checkAdminAccess(userId: string): Promise<boolean> {
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ documentId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
     const session = await getSession()
@@ -23,9 +23,9 @@ export async function GET(
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
     }
 
-    const { documentId } = await params
+    const { id } = await params
     const { getDocumentRelations } = await import('@/lib/ai/kb-duplicate-detector-service')
-    const relations = await getDocumentRelations(documentId)
+    const relations = await getDocumentRelations(id)
 
     return NextResponse.json({ relations })
   } catch (error) {
@@ -36,7 +36,7 @@ export async function GET(
 
 export async function POST(
   _request: NextRequest,
-  { params }: { params: Promise<{ documentId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
     const session = await getSession()
@@ -47,9 +47,9 @@ export async function POST(
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
     }
 
-    const { documentId } = await params
+    const { id } = await params
     const { detectDuplicatesAndContradictions } = await import('@/lib/ai/kb-duplicate-detector-service')
-    const result = await detectDuplicatesAndContradictions(documentId)
+    const result = await detectDuplicatesAndContradictions(id)
 
     return NextResponse.json({ success: true, result })
   } catch (error) {

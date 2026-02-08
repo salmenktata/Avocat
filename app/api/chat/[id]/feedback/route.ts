@@ -1,8 +1,8 @@
 /**
  * API Route: Feedback sur les messages chat
  *
- * POST /api/chat/[messageId]/feedback - Soumettre un feedback
- * GET /api/chat/[messageId]/feedback - Récupérer le feedback existant
+ * POST /api/chat/[id]/feedback - Soumettre un feedback
+ * GET /api/chat/[id]/feedback - Récupérer le feedback existant
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -35,7 +35,7 @@ const VALID_NEGATIVE_REASONS = [
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ messageId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession()
@@ -43,12 +43,12 @@ export async function GET(
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    const { messageId } = await params
+    const { id } = await params
 
     // Récupérer le feedback de l'utilisateur pour ce message
     const result = await db.query(
       `SELECT * FROM get_message_feedback($1, $2)`,
-      [messageId, session.user.id]
+      [id, session.user.id]
     )
 
     if (result.rows.length === 0) {
@@ -80,7 +80,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ messageId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession()
@@ -88,7 +88,7 @@ export async function POST(
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    const { messageId } = await params
+    const { id } = await params
     const body = await request.json() as FeedbackInput
 
     // Validation
@@ -116,7 +116,7 @@ export async function POST(
       `SELECT m.id FROM chat_messages m
        JOIN chat_conversations c ON m.conversation_id = c.id
        WHERE m.id = $1 AND c.user_id = $2`,
-      [messageId, session.user.id]
+      [id, session.user.id]
     )
 
     if (messageCheck.rows.length === 0) {
@@ -143,7 +143,7 @@ export async function POST(
     const result = await db.query(
       `SELECT upsert_message_feedback($1, $2, $3, $4, $5) as feedback_id`,
       [
-        messageId,
+        id,
         session.user.id,
         body.rating,
         reasons,
@@ -178,7 +178,7 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ messageId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession()
@@ -186,12 +186,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    const { messageId } = await params
+    const { id } = await params
 
     const result = await db.query(
       `DELETE FROM chat_message_feedback
        WHERE message_id = $1 AND user_id = $2`,
-      [messageId, session.user.id]
+      [id, session.user.id]
     )
 
     return NextResponse.json({
