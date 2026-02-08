@@ -116,28 +116,42 @@ async function callOllamaAPI(
   temperature: number,
   maxTokens: number
 ): Promise<{ content: string; tokens?: number }> {
-  const response = await fetch(`${aiConfig.ollama.baseUrl}/api/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: aiConfig.ollama.chatModel,
-      messages,
-      stream: false,
-      options: {
-        temperature,
-        num_predict: maxTokens,
-      },
-    }),
-  })
+  // Timeout de 120s pour Ollama (modèle local peut être lent au premier appel)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 120000)
 
-  if (!response.ok) {
-    throw new Error(`Erreur Ollama: ${response.status}`)
-  }
+  try {
+    const response = await fetch(`${aiConfig.ollama.baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: aiConfig.ollama.chatModel,
+        messages,
+        stream: false,
+        options: {
+          temperature,
+          num_predict: maxTokens,
+        },
+      }),
+      signal: controller.signal,
+    })
 
-  const data = await response.json()
-  return {
-    content: data.message?.content || '',
-    tokens: data.eval_count || 0,
+    if (!response.ok) {
+      throw new Error(`Erreur Ollama: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return {
+      content: data.message?.content || '',
+      tokens: data.eval_count || 0,
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out.')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 
