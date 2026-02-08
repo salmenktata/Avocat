@@ -4,8 +4,6 @@ import { memo, useState, useEffect, useCallback } from 'react'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { Icons } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 
 interface AppLayoutProps {
@@ -59,19 +57,6 @@ function AppLayoutComponent({ children, user }: AppLayoutProps) {
         <Sidebar userRole={user.role} />
       )}
 
-      {/* Mobile Menu Button */}
-      {isMobile && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="fixed left-4 top-4 z-50 lg:hidden"
-          onClick={openMobile}
-          aria-label="Ouvrir le menu"
-        >
-          <Icons.menu className="h-6 w-6" />
-        </Button>
-      )}
-
       {/* Mobile Drawer */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="p-0 w-64">
@@ -81,7 +66,11 @@ function AppLayoutComponent({ children, user }: AppLayoutProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        <Topbar user={user} />
+        <Topbar
+          user={user}
+          onMenuClick={openMobile}
+          showMenuButton={isMobile}
+        />
         <main className={cn(
           'flex-1 overflow-y-auto',
           'px-4 py-6 sm:px-6 lg:px-8'

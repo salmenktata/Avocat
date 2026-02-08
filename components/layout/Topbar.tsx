@@ -23,9 +23,11 @@ interface TopbarProps {
     nom?: string
     prenom?: string
   }
+  onMenuClick?: () => void
+  showMenuButton?: boolean
 }
 
-export function Topbar({ user }: TopbarProps) {
+export function Topbar({ user, onMenuClick, showMenuButton = false }: TopbarProps) {
   const t = useTranslations('common')
 
   // Générer les initiales pour l'avatar
@@ -42,6 +44,19 @@ export function Topbar({ user }: TopbarProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6">
+        {/* Bouton menu mobile */}
+        {showMenuButton && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMenuClick}
+            className="mr-2 lg:hidden shrink-0"
+            aria-label="Ouvrir le menu"
+          >
+            <Icons.menu className="h-5 w-5" />
+          </Button>
+        )}
+
         {/* Breadcrumb à gauche */}
         <div className="flex-1 min-w-0">
           <Breadcrumbs />
