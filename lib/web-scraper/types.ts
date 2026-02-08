@@ -490,6 +490,12 @@ export interface CreateWebSourceInput {
   seedUrls?: string[]
   formCrawlConfig?: FormCrawlConfig
   autoIndexFiles?: boolean
+  driveConfig?: {
+    folderId: string
+    recursive: boolean
+    fileTypes: string[]
+    serviceAccountEmail?: string
+  } | null
 }
 
 

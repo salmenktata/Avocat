@@ -110,36 +110,45 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const body = await request.json()
 
+    console.log('[DEBUG] POST /api/admin/web-sources - Body reçu:', JSON.stringify(body, null, 2))
+
     // Validation
     if (!body.name || !body.baseUrl || !body.category) {
+      console.log('[DEBUG] Validation échouée - champs manquants:', { name: body.name, baseUrl: body.baseUrl, category: body.category })
       return NextResponse.json(
         { error: 'Nom, URL de base et catégorie requis' },
         { status: 400 }
       )
     }
 
-    // Valider l'URL
-    try {
-      new URL(body.baseUrl)
-    } catch {
-      return NextResponse.json(
-        { error: 'URL invalide' },
-        { status: 400 }
-      )
+    console.log('[DEBUG] Validation URL pour:', body.baseUrl)
+    // Valider l'URL (skip pour Google Drive qui utilise gdrive://)
+    if (!body.baseUrl.startsWith('gdrive://')) {
+      try {
+        new URL(body.baseUrl)
+      } catch {
+        return NextResponse.json(
+          { error: 'URL invalide' },
+          { status: 400 }
+        )
+      }
     }
 
     const validCategories: WebSourceCategory[] = [
       'legislation', 'jurisprudence', 'doctrine', 'jort',
       'codes', 'constitution', 'conventions',
       'modeles', 'procedures', 'formulaires',
-      'guides', 'lexique', 'autre'
+      'guides', 'lexique', 'google_drive', 'autre'
     ]
     if (!validCategories.includes(body.category)) {
+      console.log('[DEBUG] Catégorie invalide:', body.category)
       return NextResponse.json(
         { error: `Catégorie invalide. Valeurs acceptées: ${validCategories.join(', ')}` },
         { status: 400 }
       )
     }
+
+    console.log('[DEBUG] Validation OK - Création de la source avec input:', { name: body.name, baseUrl: body.baseUrl, category: body.category, driveConfig: body.driveConfig })
 
     const input: CreateWebSourceInput = {
       name: body.name,
@@ -164,6 +173,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       customHeaders: body.customHeaders || {},
       ignoreSSLErrors: body.ignoreSSLErrors || false,
       autoIndexFiles: body.autoIndexFiles || false,
+      driveConfig: body.driveConfig || null,
     }
 
     const source = await createWebSource(input, session.user.id)

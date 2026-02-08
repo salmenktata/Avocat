@@ -96,7 +96,17 @@ export async function getWebSource(id: string): Promise<WebSource | null> {
  * Récupère une source par son URL de base
  */
 export async function getWebSourceByUrl(baseUrl: string): Promise<WebSource | null> {
-  // Normaliser l'URL
+  // Pour Google Drive, pas de normalisation nécessaire
+  if (baseUrl.startsWith('gdrive://')) {
+    const result = await db.query(
+      `SELECT * FROM web_sources WHERE base_url = $1`,
+      [baseUrl]
+    )
+    if (result.rows.length === 0) return null
+    return mapRowToWebSource(result.rows[0])
+  }
+
+  // Normaliser l'URL pour les sources web
   const url = new URL(baseUrl)
   const normalized = url.origin + url.pathname.replace(/\/$/, '')
 

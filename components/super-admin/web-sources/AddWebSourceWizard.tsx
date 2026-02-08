@@ -141,7 +141,14 @@ export function AddWebSourceWizard() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleNext = () => setStep((s) => Math.min(3, s + 1))
+  const handleNext = () => {
+    // Pour Google Drive, on n'a que 2 étapes (pas d'extraction)
+    if (formData.sourceType === 'google_drive' && step === 2) {
+      handleSubmit()
+      return
+    }
+    setStep((s) => Math.min(3, s + 1))
+  }
   const handlePrev = () => setStep((s) => Math.max(1, s - 1))
 
   const handleGDriveTest = async () => {
@@ -158,10 +165,13 @@ export function AddWebSourceWizard() {
     setGdriveTestResult(null)
 
     try {
+      // Extraire le folderId de l'URL
+      const folderId = parseGDriveFolderId(formData.gdriveFolderId)
+
       const res = await fetch('/api/admin/gdrive/test-connection', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderId: formData.gdriveFolderId }),
+        body: JSON.stringify({ folderId }),
       })
 
       const data = await res.json()
@@ -335,13 +345,17 @@ export function AddWebSourceWizard() {
     setLoading(true)
 
     try {
+      const payload = buildPayload()
+      console.log('[DEBUG Client] Payload envoyé:', payload)
+
       const res = await fetch('/api/admin/web-sources', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildPayload()),
+        body: JSON.stringify(payload),
       })
 
       const data = await res.json()
+      console.log('[DEBUG Client] Réponse serveur:', data)
 
       if (!res.ok) {
         toast({
@@ -373,11 +387,15 @@ export function AddWebSourceWizard() {
       : formData.gdriveFolderId)
   const isStep2Valid = true // Tous les champs ont des valeurs par défaut
 
+  // Google Drive n'a que 2 étapes (pas d'extraction)
+  const totalSteps = formData.sourceType === 'google_drive' ? 2 : 3
+  const steps = formData.sourceType === 'google_drive' ? [1, 2] : [1, 2, 3]
+
   return (
     <div className="max-w-2xl mx-auto">
       {/* Progress */}
       <div className="flex items-center justify-between mb-8">
-        {[1, 2, 3].map((s) => (
+        {steps.map((s) => (
           <div key={s} className="flex items-center">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center font-medium ${
@@ -391,7 +409,7 @@ export function AddWebSourceWizard() {
             <span className={`ml-2 text-sm ${step >= s ? 'text-white' : 'text-slate-400'}`}>
               {s === 1 ? 'Informations' : s === 2 ? 'Configuration' : 'Extraction'}
             </span>
-            {s < 3 && (
+            {s < totalSteps && (
               <div className={`w-24 h-0.5 mx-4 ${step > s ? 'bg-blue-600' : 'bg-slate-700'}`} />
             )}
           </div>
@@ -873,14 +891,23 @@ export function AddWebSourceWizard() {
           Précédent
         </Button>
 
-        {step < 3 ? (
+        {step < totalSteps ? (
           <Button
             onClick={handleNext}
             disabled={step === 1 && !isStep1Valid}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            Suivant
-            <Icons.chevronRight className="h-4 w-4 ml-2" />
+            {formData.sourceType === 'google_drive' && step === 2 ? (
+              <>
+                <Icons.check className="h-4 w-4 mr-2" />
+                Créer la source
+              </>
+            ) : (
+              <>
+                Suivant
+                <Icons.chevronRight className="h-4 w-4 ml-2" />
+              </>
+            )}
           </Button>
         ) : (
           <Button
