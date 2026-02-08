@@ -308,7 +308,9 @@ export async function crawlSource(
   if (state.status === 'running') {
     state.status = shutdownRequested
       ? 'completed'
-      : state.pagesFailed < state.pagesProcessed / 2 ? 'completed' : 'failed'
+      : (state.pagesProcessed === 0 && state.pagesFailed === 0)
+        ? 'completed'
+        : state.pagesFailed < state.pagesProcessed / 2 ? 'completed' : 'failed'
   }
 
   const durationSec = ((Date.now() - crawlStartTime) / 1000).toFixed(1)
@@ -321,7 +323,7 @@ export async function crawlSource(
   console.log(`[Crawler] ${statusMessage}`)
 
   return {
-    success: state.status === 'completed' && state.pagesFailed < state.pagesProcessed / 2,
+    success: state.status === 'completed' && (state.pagesProcessed === 0 || state.pagesFailed < state.pagesProcessed / 2),
     pagesProcessed: state.pagesProcessed,
     pagesNew: state.pagesNew,
     pagesChanged: state.pagesChanged,
