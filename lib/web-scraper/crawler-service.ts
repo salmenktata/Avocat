@@ -17,6 +17,9 @@ import { scrapeUrl, checkForChanges, downloadFile, generatePageIds } from './scr
 import { hashUrl, hashContent, countWords, detectTextLanguage } from './content-extractor'
 import { isUrlAllowed, getRobotsRules } from './robots-parser'
 import { uploadFile } from '@/lib/storage/minio'
+import { withRetry, isRetryableError, DEFAULT_RETRY_CONFIG } from './retry-utils'
+import { getRandomDelay, shouldAddLongPause, detectBan } from './anti-ban-utils'
+import { recordCrawlMetric, markSourceAsBanned, canSourceCrawl } from './monitoring-service'
 
 // Configuration du crawl
 const KNOWLEDGE_BASE_BUCKET = 'knowledge-base'
@@ -40,6 +43,7 @@ interface CrawlState {
   pagesFailed: number
   filesDownloaded: number
   errors: CrawlError[]
+  status?: 'running' | 'banned' | 'completed' | 'failed'
 }
 
 /**
@@ -87,6 +91,7 @@ export async function crawlSource(
     pagesFailed: 0,
     filesDownloaded: 0,
     errors: [],
+    status: 'running',
   }
 
   // Charger les URLs déjà visitées si mode incrémental
@@ -103,6 +108,25 @@ export async function crawlSource(
 
   console.log(`[Crawler] Démarrage crawl ${sourceName}`)
   console.log(`[Crawler] Rate limit: ${effectiveRateLimit}ms, Max pages: ${maxPages}, Max depth: ${maxDepth}`)
+
+  // Vérifier si la source peut crawler (bannissement, quotas)
+  const crawlCheck = await canSourceCrawl(sourceId)
+  if (!crawlCheck.canCrawl) {
+    console.warn(`[Crawler] Crawl impossible pour ${sourceName}: ${crawlCheck.reason}`)
+    return {
+      success: false,
+      pagesProcessed: 0,
+      pagesNew: 0,
+      pagesChanged: 0,
+      pagesFailed: 0,
+      filesDownloaded: 0,
+      errors: [{
+        url: sourceBaseUrl,
+        error: crawlCheck.reason || 'Crawl bloqué',
+        timestamp: new Date().toISOString(),
+      }],
+    }
+  }
 
   // Boucle principale de crawl
   while (state.queue.length > 0 && state.pagesProcessed < maxPages) {
@@ -135,11 +159,24 @@ export async function crawlSource(
     }
 
     try {
-      // Scraper la page
-      const result = await processPage(source, url, depth, state, {
-        downloadFiles,
-        incrementalMode,
-      })
+      // Scraper la page avec retry automatique
+      const result = await withRetry(
+        () => processPage(source, url, depth, state, { downloadFiles, incrementalMode }),
+        (error) => {
+          // Vérifier si l'erreur est retryable (429, 503, timeout, etc.)
+          const statusCode = error instanceof Error && 'statusCode' in error
+            ? (error as any).statusCode
+            : undefined
+          return isRetryableError(error, statusCode)
+        },
+        DEFAULT_RETRY_CONFIG,
+        (attempt, delay, error) => {
+          console.warn(
+            `[Crawler] Retry ${attempt + 1}/${DEFAULT_RETRY_CONFIG.maxRetries} ` +
+            `pour ${url} dans ${delay}ms (erreur: ${error instanceof Error ? error.message : 'inconnue'})`
+          )
+        }
+      )
 
       if (result.success) {
         // Ajouter les liens découverts à la queue
@@ -157,6 +194,25 @@ export async function crawlSource(
 
     } catch (error) {
       state.pagesFailed++
+
+      // Vérifier si c'est un bannissement
+      if (error instanceof Error && error.message.includes('BAN_DETECTED')) {
+        console.error(
+          `[Crawler] 🚨 BANNISSEMENT DÉTECTÉ pour ${sourceName}: ${error.message}`
+        )
+
+        state.errors.push({
+          url,
+          error: `BANNISSEMENT: ${error.message}`,
+          timestamp: new Date().toISOString(),
+        })
+
+        state.status = 'banned'
+
+        // Arrêter le crawl immédiatement
+        break
+      }
+
       state.errors.push({
         url,
         error: error instanceof Error ? error.message : 'Erreur inconnue',
@@ -165,16 +221,34 @@ export async function crawlSource(
       console.error(`[Crawler] Erreur page ${url}:`, error)
     }
 
-    // Rate limiting
+    // Rate limiting avec randomisation
     if (effectiveRateLimit > 0 && state.queue.length > 0) {
-      await sleep(effectiveRateLimit)
+      const randomDelay = getRandomDelay(effectiveRateLimit, 0.2) // ±20%
+
+      // Occasionnellement ajouter une pause plus longue (simulation lecture humaine)
+      if (shouldAddLongPause(0.05)) { // 5% du temps
+        const longPause = getRandomDelay(5000, 0.3)
+        console.log(`[Crawler] Pause longue: ${longPause}ms`)
+        await sleep(longPause)
+      } else {
+        await sleep(randomDelay)
+      }
     }
   }
 
-  console.log(`[Crawler] Terminé: ${state.pagesProcessed} pages, ${state.pagesNew} nouvelles, ${state.pagesChanged} modifiées, ${state.pagesFailed} erreurs`)
+  // Mettre à jour le statut final
+  if (state.status === 'running') {
+    state.status = state.pagesFailed < state.pagesProcessed / 2 ? 'completed' : 'failed'
+  }
+
+  const statusMessage = state.status === 'banned'
+    ? `INTERROMPU (bannissement détecté)`
+    : `Terminé: ${state.pagesProcessed} pages, ${state.pagesNew} nouvelles, ${state.pagesChanged} modifiées, ${state.pagesFailed} erreurs`
+
+  console.log(`[Crawler] ${statusMessage}`)
 
   return {
-    success: state.pagesFailed < state.pagesProcessed / 2,
+    success: state.status === 'completed' && state.pagesFailed < state.pagesProcessed / 2,
     pagesProcessed: state.pagesProcessed,
     pagesNew: state.pagesNew,
     pagesChanged: state.pagesChanged,
@@ -221,15 +295,44 @@ async function processPage(
   }
 
   // Scraper la page
+  const scrapeStartTime = Date.now()
   const scrapeResult = await scrapeUrl(url, source)
+  const scrapeTimeMs = Date.now() - scrapeStartTime
 
   if (!scrapeResult.success || !scrapeResult.content) {
+    // Enregistrer métrique d'échec
+    const statusCode = scrapeResult.fetchResult?.statusCode
+    const isBanDetection = scrapeResult.error?.includes('BAN_DETECTED') || false
+
+    await recordCrawlMetric(sourceId, false, statusCode, scrapeTimeMs, isBanDetection).catch(err =>
+      console.error('[Crawler] Erreur enregistrement métrique échec:', err)
+    )
+
+    // Si bannissement détecté, marquer la source
+    if (isBanDetection) {
+      await markSourceAsBanned(
+        sourceId,
+        scrapeResult.error || 'Bannissement détecté',
+        'high',
+        7200000 // 2 heures
+      ).catch(err => console.error('[Crawler] Erreur marquage ban:', err))
+    }
+
     if (existingPage) {
       await updatePageError(existingPage.id, scrapeResult.error || 'Erreur scraping')
     }
     state.pagesFailed++
     throw new Error(scrapeResult.error || 'Erreur scraping')
   }
+
+  // Enregistrer métrique de succès
+  await recordCrawlMetric(
+    sourceId,
+    true,
+    scrapeResult.fetchResult?.statusCode || 200,
+    scrapeTimeMs,
+    false
+  ).catch(err => console.error('[Crawler] Erreur enregistrement métrique succès:', err))
 
   const content = scrapeResult.content
   const contentHash = hashContent(content.content)

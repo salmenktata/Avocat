@@ -3,9 +3,10 @@
  * Supporte les sites statiques (fetch + cheerio) et dynamiques (Playwright)
  */
 
-import type { WebSource, ScrapedContent, DynamicSiteConfig } from './types'
+import type { WebSource, ScrapedContent, DynamicSiteConfig, ScrapingMetrics } from './types'
 import { extractContent, hashUrl, hashContent } from './content-extractor'
 import { isUrlAllowed } from './robots-parser'
+import { detectBan, getBrowserHeaders, selectUserAgent } from './anti-ban-utils'
 
 // Timeout par défaut
 const DEFAULT_TIMEOUT_MS = 30000
@@ -13,12 +14,239 @@ const DEFAULT_TIMEOUT_MS = 30000
 // User-Agent par défaut
 const DEFAULT_USER_AGENT = 'QadhyaBot/1.0 (+https://qadhya.tn/bot)'
 
+// ==========================================
+// PERFORMANCE OPTIMIZATIONS
+// ==========================================
+
+/**
+ * Pool de navigateurs Playwright pour réutilisation
+ * Évite de relancer Chromium à chaque requête (~1-2s économisés)
+ */
+interface BrowserPool {
+  browser: Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>> | null
+  lastUsed: number
+  useCount: number
+  maxAge: number        // Durée de vie max en ms
+  maxUseCount: number   // Nombre max d'utilisations avant recycle
+}
+
+const browserPool: BrowserPool = {
+  browser: null,
+  lastUsed: 0,
+  useCount: 0,
+  maxAge: 5 * 60 * 1000,    // 5 minutes
+  maxUseCount: 50,          // Recyclage après 50 utilisations
+}
+
+/**
+ * Obtient un navigateur du pool ou en crée un nouveau
+ */
+async function getBrowserFromPool(): Promise<Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>>> {
+  const now = Date.now()
+
+  // Vérifier si le browser existant est encore valide
+  if (browserPool.browser) {
+    const age = now - browserPool.lastUsed
+
+    // Recycler si trop vieux ou trop utilisé
+    if (age > browserPool.maxAge || browserPool.useCount >= browserPool.maxUseCount) {
+      try {
+        await browserPool.browser.close()
+      } catch {
+        // Ignorer les erreurs de fermeture
+      }
+      browserPool.browser = null
+    }
+  }
+
+  // Créer un nouveau browser si nécessaire
+  if (!browserPool.browser) {
+    const { chromium } = await import('playwright')
+    browserPool.browser = await chromium.launch({
+      headless: true,
+      args: [
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+        '--disable-setuid-sandbox',
+        '--no-sandbox',
+        '--disable-background-networking',
+        '--disable-default-apps',
+        '--disable-extensions',
+        '--disable-sync',
+        '--disable-translate',
+        '--metrics-recording-only',
+        '--mute-audio',
+        '--no-first-run',
+        '--safebrowsing-disable-auto-update',
+      ],
+    })
+    browserPool.useCount = 0
+  }
+
+  browserPool.lastUsed = now
+  browserPool.useCount++
+
+  return browserPool.browser
+}
+
+/**
+ * Ferme le navigateur du pool (nettoyage)
+ */
+export async function closeBrowserPool(): Promise<void> {
+  if (browserPool.browser) {
+    try {
+      await browserPool.browser.close()
+    } catch {
+      // Ignorer les erreurs
+    }
+    browserPool.browser = null
+    browserPool.useCount = 0
+  }
+}
+
+/**
+ * Types de ressources à bloquer pour accélérer le chargement
+ */
+const BLOCKED_RESOURCE_TYPES = [
+  'image',
+  'media',
+  'font',
+  'stylesheet', // On bloque les CSS non essentiels
+] as const
+
+/**
+ * Patterns d'URLs à bloquer (analytics, ads, etc.)
+ */
+const BLOCKED_URL_PATTERNS = [
+  /google-analytics\.com/,
+  /googletagmanager\.com/,
+  /facebook\.net/,
+  /twitter\.com\/widgets/,
+  /hotjar\.com/,
+  /intercom\.io/,
+  /crisp\.chat/,
+  /tawk\.to/,
+  /cdn\.segment/,
+  /mixpanel\.com/,
+  /amplitude\.com/,
+  /sentry\.io/,
+  /cloudflareinsights/,
+]
+
+/**
+ * Cache simple en mémoire pour les pages récemment scrapées
+ */
+interface CacheEntry {
+  html: string
+  timestamp: number
+  url: string
+}
+
+const pageCache = new Map<string, CacheEntry>()
+const CACHE_TTL_MS = 10 * 60 * 1000  // 10 minutes
+const MAX_CACHE_SIZE = 100           // Max 100 pages en cache
+
+/**
+ * Nettoie les entrées expirées du cache
+ */
+function cleanExpiredCache(): void {
+  const now = Date.now()
+  for (const [key, entry] of pageCache.entries()) {
+    if (now - entry.timestamp > CACHE_TTL_MS) {
+      pageCache.delete(key)
+    }
+  }
+
+  // Si toujours trop grand, supprimer les plus anciennes
+  if (pageCache.size > MAX_CACHE_SIZE) {
+    const entries = Array.from(pageCache.entries())
+      .sort((a, b) => a[1].timestamp - b[1].timestamp)
+
+    const toDelete = entries.slice(0, pageCache.size - MAX_CACHE_SIZE)
+    for (const [key] of toDelete) {
+      pageCache.delete(key)
+    }
+  }
+}
+
+/**
+ * Récupère une page du cache si disponible
+ */
+function getCachedPage(url: string): string | null {
+  const entry = pageCache.get(url)
+  if (!entry) return null
+
+  const age = Date.now() - entry.timestamp
+  if (age > CACHE_TTL_MS) {
+    pageCache.delete(url)
+    return null
+  }
+
+  return entry.html
+}
+
+/**
+ * Met une page en cache
+ */
+function setCachedPage(url: string, html: string): void {
+  cleanExpiredCache()
+  pageCache.set(url, {
+    html,
+    timestamp: Date.now(),
+    url,
+  })
+}
+
+/**
+ * Vide le cache des pages
+ */
+export function clearPageCache(): void {
+  pageCache.clear()
+}
+
+/**
+ * Obtient les statistiques du cache
+ */
+export function getCacheStats(): { size: number; urls: string[] } {
+  return {
+    size: pageCache.size,
+    urls: Array.from(pageCache.keys()),
+  }
+}
+
+/**
+ * Domaines connus comme nécessitant JavaScript
+ * Évite de faire un fetch statique inutile
+ */
+const KNOWN_DYNAMIC_DOMAINS = [
+  '9anoun.tn',          // Laravel Livewire
+  'legislation.tn',     // JORT (Angular)
+  'e-justice.tn',
+  'iort.gov.tn',
+]
+
+/**
+ * Vérifie si un domaine est connu comme dynamique
+ */
+function isKnownDynamicDomain(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname
+    return KNOWN_DYNAMIC_DOMAINS.some(domain =>
+      hostname === domain || hostname.endsWith('.' + domain)
+    )
+  } catch {
+    return false
+  }
+}
+
 interface FetchOptions {
   userAgent?: string
   timeout?: number
   headers?: Record<string, string>
   respectRobotsTxt?: boolean
   dynamicConfig?: DynamicSiteConfig
+  stealthMode?: boolean
+  referrer?: string
 }
 
 interface FetchResult {
@@ -39,15 +267,20 @@ export async function fetchHtml(
   options: FetchOptions = {}
 ): Promise<FetchResult> {
   const {
-    userAgent = DEFAULT_USER_AGENT,
+    userAgent,
     timeout = DEFAULT_TIMEOUT_MS,
     headers = {},
     respectRobotsTxt = true,
+    stealthMode = false,
+    referrer,
   } = options
+
+  // Sélectionner User-Agent (stealth ou bot)
+  const selectedUserAgent = selectUserAgent(stealthMode, userAgent)
 
   // Vérifier robots.txt si demandé
   if (respectRobotsTxt) {
-    const robotsCheck = await isUrlAllowed(url, userAgent)
+    const robotsCheck = await isUrlAllowed(url, selectedUserAgent)
     if (!robotsCheck.allowed) {
       return {
         success: false,
@@ -61,19 +294,34 @@ export async function fetchHtml(
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeout)
 
+    // Générer headers réalistes
+    const browserHeaders = getBrowserHeaders(url, referrer)
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'User-Agent': userAgent,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'fr-FR,fr;q=0.9,ar;q=0.8,en;q=0.7',
-        ...headers,
+        ...browserHeaders,
+        'User-Agent': selectedUserAgent,
+        ...headers, // Custom headers override defaults
       },
       redirect: 'follow',
       signal: controller.signal,
     })
 
     clearTimeout(timeoutId)
+
+    const html = await response.text()
+
+    // Vérifier bannissement même avant de vérifier response.ok
+    const banCheck = detectBan(html, response.status, response.url)
+    if (banCheck.isBanned) {
+      return {
+        success: false,
+        statusCode: response.status,
+        error: `BAN_DETECTED: ${banCheck.reason}`,
+        finalUrl: response.url,
+      }
+    }
 
     if (!response.ok) {
       return {
@@ -92,8 +340,6 @@ export async function fetchHtml(
         statusCode: response.status,
       }
     }
-
-    const html = await response.text()
 
     // Récupérer les headers de cache
     const etag = response.headers.get('etag') || undefined
@@ -148,6 +394,7 @@ type DetectedFramework =
 
 /**
  * Profils de configuration par framework
+ * OPTIMISÉS: délais réduits avec vérification adaptative
  */
 const FRAMEWORK_PROFILES: Record<DetectedFramework, Partial<DynamicSiteConfig>> = {
   livewire: {
@@ -161,11 +408,11 @@ const FRAMEWORK_PROFILES: Record<DetectedFramework, Partial<DynamicSiteConfig>> 
       '.loading',
       '.skeleton',
     ],
-    postLoadDelayMs: 4000,  // Délai plus long pour Livewire
+    postLoadDelayMs: 2000,  // Réduit de 4000 à 2000 (adaptatif compense)
     scrollToLoad: true,
-    scrollCount: 5,  // Plus de scrolls
+    scrollCount: 3,         // Réduit de 5 à 3
     waitUntil: 'networkidle',
-    dynamicTimeoutMs: 25000,  // Timeout plus long
+    dynamicTimeoutMs: 15000,  // Réduit de 25000 à 15000
   },
   alpine: {
     waitForLoadingToDisappear: true,
@@ -362,10 +609,16 @@ function mergeFrameworkProfiles(frameworks: DetectedFramework[]): DynamicSiteCon
  * Supporte les sites SPA: Livewire, React, Vue, Angular, etc.
  * Détection automatique des frameworks et adaptation du scraping
  * Nécessite Playwright installé
+ *
+ * OPTIMISATIONS:
+ * - Pool de navigateurs (réutilisation)
+ * - Blocage des ressources inutiles (images, fonts, analytics)
+ * - Cache des pages récentes
+ * - Délais adaptatifs
  */
 export async function fetchHtmlDynamic(
   url: string,
-  options: FetchOptions = {}
+  options: FetchOptions & { skipCache?: boolean; blockResources?: boolean } = {}
 ): Promise<FetchResult> {
   const {
     userAgent = DEFAULT_USER_AGENT,
@@ -373,7 +626,23 @@ export async function fetchHtmlDynamic(
     headers = {},
     respectRobotsTxt = true,
     dynamicConfig = {},
+    skipCache = false,
+    blockResources = true,  // Par défaut, on bloque les ressources inutiles
   } = options
+
+  // Vérifier le cache en premier (si pas de skip)
+  if (!skipCache) {
+    const cachedHtml = getCachedPage(url)
+    if (cachedHtml) {
+      console.log(`[Scraper] Cache hit pour ${url}`)
+      return {
+        success: true,
+        html: cachedHtml,
+        statusCode: 200,
+        finalUrl: url,
+      }
+    }
+  }
 
   // La config sera fusionnée après détection du framework
   let config: DynamicSiteConfig = {
@@ -394,22 +663,43 @@ export async function fetchHtmlDynamic(
   }
 
   try {
-    // Import dynamique de Playwright pour éviter l'erreur si non installé
-    const { chromium } = await import('playwright')
+    // Utiliser le pool de navigateurs au lieu de créer un nouveau browser
+    const browser = await getBrowserFromPool()
 
-    const browser = await chromium.launch({
-      headless: true,
+    // Pas de try/finally avec browser.close() car on réutilise le browser
+
+    const context = await browser.newContext({
+      userAgent,
+      extraHTTPHeaders: headers,
+      // Viewport standard pour déclencher le contenu responsive
+      viewport: { width: 1920, height: 1080 },
     })
 
     try {
-      const context = await browser.newContext({
-        userAgent,
-        extraHTTPHeaders: headers,
-        // Viewport standard pour déclencher le contenu responsive
-        viewport: { width: 1920, height: 1080 },
-      })
-
       const page = await context.newPage()
+
+      // OPTIMISATION: Bloquer les ressources inutiles
+      if (blockResources) {
+        await page.route('**/*', (route) => {
+          const request = route.request()
+          const resourceType = request.resourceType()
+          const requestUrl = request.url()
+
+          // Bloquer les types de ressources inutiles
+          if (BLOCKED_RESOURCE_TYPES.includes(resourceType as typeof BLOCKED_RESOURCE_TYPES[number])) {
+            return route.abort()
+          }
+
+          // Bloquer les URLs d'analytics/tracking
+          for (const pattern of BLOCKED_URL_PATTERNS) {
+            if (pattern.test(requestUrl)) {
+              return route.abort()
+            }
+          }
+
+          return route.continue()
+        })
+      }
 
       // Naviguer vers l'URL avec le mode d'attente configuré
       const response = await page.goto(url, {
@@ -501,11 +791,11 @@ export async function fetchHtmlDynamic(
       }
 
       // Pour Livewire: attendre que le contenu principal soit chargé
-      // On attend que des éléments de contenu significatifs apparaissent
-      await waitForContentToLoad(page, config.dynamicTimeoutMs || 10000)
+      // OPTIMISÉ: sortie rapide si contenu prêt
+      const contentStatus = await waitForContentToLoad(page, config.dynamicTimeoutMs || 10000)
 
-      // Stratégie agressive pour Livewire: forcer le re-rendu
-      if (detectedFrameworks.includes('livewire')) {
+      // Stratégie Livewire: forcer le re-rendu SEULEMENT si contenu insuffisant
+      if (detectedFrameworks.includes('livewire') && contentStatus.contentLength < 500) {
         await forceLivewireRerender(page)
       }
 
@@ -519,7 +809,10 @@ export async function fetchHtmlDynamic(
       const lastModifiedStr = responseHeaders['last-modified']
       const lastModified = lastModifiedStr ? new Date(lastModifiedStr) : null
 
-      await context.close()
+      // OPTIMISATION: Mettre en cache le résultat
+      if (!skipCache) {
+        setCachedPage(url, html)
+      }
 
       return {
         success: true,
@@ -531,7 +824,8 @@ export async function fetchHtmlDynamic(
       }
 
     } finally {
-      await browser.close()
+      // Fermer seulement le context, pas le browser (pool)
+      await context.close()
     }
 
   } catch (error) {
@@ -599,7 +893,7 @@ async function waitForLoadingIndicatorsToDisappear(
 
 /**
  * Force le re-rendu des composants Livewire
- * Utile quand le contenu est chargé via Websocket/XHR
+ * OPTIMISÉ: attentes réduites
  */
 async function forceLivewireRerender(
   page: Awaited<ReturnType<Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>>['newPage']>>
@@ -623,12 +917,12 @@ async function forceLivewireRerender(
       window.dispatchEvent(new Event('resize'))
     })
 
-    // Attendre que Livewire traite les événements
-    await page.waitForTimeout(2000)
+    // Attendre que Livewire traite les événements (réduit de 2000 à 1000)
+    await page.waitForTimeout(1000)
 
-    // Attendre la stabilisation du réseau
+    // Attendre la stabilisation du réseau (réduit de 5000 à 2000)
     try {
-      await page.waitForLoadState('networkidle', { timeout: 5000 })
+      await page.waitForLoadState('networkidle', { timeout: 2000 })
     } catch {
       // Ignorer le timeout
     }
@@ -641,16 +935,17 @@ async function forceLivewireRerender(
 
 /**
  * Attend que le contenu principal soit chargé
+ * OPTIMISÉ: intervalles courts + sortie rapide si contenu prêt
  * Vérifie que la page contient suffisamment de texte visible
- * Attend aussi la disparition des indicateurs de chargement arabes/français
  */
 async function waitForContentToLoad(
   page: Awaited<ReturnType<Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>>['newPage']>>,
   timeoutMs: number
-): Promise<void> {
+): Promise<{ contentLength: number; ready: boolean }> {
   const startTime = Date.now()
-  const minContentLength = 500 // Minimum de caractères attendus
-  const checkInterval = 800 // Vérifier toutes les 800ms
+  const minContentLength = 300  // Réduit de 500 à 300 pour sortir plus vite
+  const goodContentLength = 1000  // Suffisant pour sortir immédiatement
+  const checkInterval = 400  // Réduit de 800 à 400ms
 
   // Textes indicateurs de chargement en cours
   const loadingTexts = [
@@ -660,6 +955,9 @@ async function waitForContentToLoad(
     'Chargement...',
     'يتم التحميل',     // arabe: "En train de charger"
   ]
+
+  let lastContentLength = 0
+  let stableCount = 0  // Compteur de stabilité
 
   while (Date.now() - startTime < timeoutMs) {
     try {
@@ -676,20 +974,32 @@ async function waitForContentToLoad(
         return {
           hasLoadingText,
           contentLength: cleanText.length,
-          preview: cleanText.substring(0, 200),
         }
       }, loadingTexts)
 
-      // Si pas d'indicateur de chargement et contenu suffisant
-      if (!result.hasLoadingText && result.contentLength >= minContentLength) {
-        console.log(`[Scraper] Contenu chargé: ${result.contentLength} caractères`)
-        return
+      // OPTIMISATION: Si contenu suffisant et pas de chargement, sortir immédiatement
+      if (!result.hasLoadingText && result.contentLength >= goodContentLength) {
+        console.log(`[Scraper] Contenu prêt: ${result.contentLength} caractères`)
+        return { contentLength: result.contentLength, ready: true }
       }
 
-      // Si contenu très long même avec chargement en cours, on accepte
+      // OPTIMISATION: Vérifier la stabilité du contenu
+      if (result.contentLength === lastContentLength && result.contentLength >= minContentLength) {
+        stableCount++
+        // Si le contenu n'a pas changé depuis 2 vérifications, on considère qu'il est chargé
+        if (stableCount >= 2) {
+          console.log(`[Scraper] Contenu stable: ${result.contentLength} caractères`)
+          return { contentLength: result.contentLength, ready: true }
+        }
+      } else {
+        stableCount = 0
+        lastContentLength = result.contentLength
+      }
+
+      // Si contenu très long même avec chargement, on accepte
       if (result.contentLength >= 2000) {
-        console.log(`[Scraper] Contenu suffisant (${result.contentLength} chars) malgré chargement en cours`)
-        return
+        console.log(`[Scraper] Contenu suffisant (${result.contentLength} chars)`)
+        return { contentLength: result.contentLength, ready: true }
       }
 
       // Attendre avant la prochaine vérification
@@ -701,10 +1011,12 @@ async function waitForContentToLoad(
   }
 
   console.log('[Scraper] Timeout en attendant le chargement du contenu')
+  return { contentLength: lastContentLength, ready: false }
 }
 
 /**
  * Scroll la page pour déclencher le lazy loading
+ * OPTIMISÉ: scrolls rapides avec attente minimale
  */
 async function scrollPageForLazyLoading(
   page: Awaited<ReturnType<Awaited<ReturnType<typeof import('playwright')['chromium']['launch']>>['newPage']>>,
@@ -720,15 +1032,15 @@ async function scrollPageForLazyLoading(
     const scrollTo = Math.min(scrollStep * i, documentHeight - viewportHeight)
 
     await page.evaluate((y) => {
-      window.scrollTo({ top: y, behavior: 'smooth' })
+      window.scrollTo({ top: y, behavior: 'instant' })  // instant au lieu de smooth
     }, scrollTo)
 
-    // Attendre que le contenu se charge
-    await page.waitForTimeout(800)
+    // Attente réduite entre les scrolls
+    await page.waitForTimeout(400)  // Réduit de 800 à 400
 
-    // Attendre la stabilisation du réseau
+    // Attendre la stabilisation du réseau avec timeout court
     try {
-      await page.waitForLoadState('networkidle', { timeout: 3000 })
+      await page.waitForLoadState('networkidle', { timeout: 1500 })  // Réduit de 3000 à 1500
     } catch {
       // Ignorer le timeout
     }
@@ -736,7 +1048,7 @@ async function scrollPageForLazyLoading(
 
   // Revenir en haut de la page
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
-  await page.waitForTimeout(300)
+  await page.waitForTimeout(100)  // Réduit de 300 à 100
 }
 
 /**
@@ -746,7 +1058,17 @@ async function scrollPageForLazyLoading(
 export async function scrapeUrl(
   url: string,
   source: Partial<WebSource>
-): Promise<{ success: boolean; content?: ScrapedContent; error?: string; fetchResult?: FetchResult; detectedFrameworks?: string[] }> {
+): Promise<{
+  success: boolean
+  content?: ScrapedContent
+  error?: string
+  fetchResult?: FetchResult
+  detectedFrameworks?: string[]
+  metrics?: ScrapingMetrics
+}> {
+  const startTime = Date.now()
+  let fetchStartTime = 0
+  let fetchEndTime = 0
 
   const fetchOptions: FetchOptions = {
     userAgent: source.userAgent || DEFAULT_USER_AGENT,
@@ -758,12 +1080,36 @@ export async function scrapeUrl(
 
   let fetchResult: FetchResult
   let detectedFrameworks: string[] = []
+  let scrapingMode: 'static' | 'dynamic' = 'static'
+  let cacheHit = false
 
+  fetchStartTime = Date.now()
+
+  // OPTIMISATION: Vérifier le cache en premier (avant tout fetch)
+  const cachedHtml = getCachedPage(url)
+  if (cachedHtml) {
+    console.log(`[Scraper] Cache hit pour ${url}`)
+    cacheHit = true
+    fetchResult = {
+      success: true,
+      html: cachedHtml,
+      statusCode: 200,
+      finalUrl: url,
+    }
+    scrapingMode = 'dynamic'  // C'était probablement du contenu dynamique
+  }
   // Si requiresJavascript est explicitement défini, l'utiliser
-  if (source.requiresJavascript !== undefined) {
+  else if (source.requiresJavascript !== undefined) {
+    scrapingMode = source.requiresJavascript ? 'dynamic' : 'static'
     fetchResult = source.requiresJavascript
       ? await fetchHtmlDynamic(url, fetchOptions)
       : await fetchHtml(url, fetchOptions)
+  }
+  // OPTIMISATION: Sites connus comme dynamiques → directement Playwright
+  else if (isKnownDynamicDomain(url)) {
+    console.log(`[Scraper] Domaine dynamique connu: ${url}`)
+    scrapingMode = 'dynamic'
+    fetchResult = await fetchHtmlDynamic(url, fetchOptions)
   } else {
     // Mode AUTO-ADAPTATIF: essayer d'abord en statique
     fetchResult = await fetchHtml(url, fetchOptions)
@@ -774,6 +1120,7 @@ export async function scrapeUrl(
 
       if (needsDynamic) {
         console.log(`[Scraper] Contenu dynamique détecté pour ${url}, passage en mode Playwright`)
+        scrapingMode = 'dynamic'
         // Réessayer avec Playwright
         const dynamicResult = await fetchHtmlDynamic(url, fetchOptions)
         if (dynamicResult.success) {
@@ -783,18 +1130,35 @@ export async function scrapeUrl(
     } else if (!fetchResult.success) {
       // Si le fetch statique échoue, essayer dynamique
       console.log(`[Scraper] Fetch statique échoué pour ${url}, tentative dynamique`)
+      scrapingMode = 'dynamic'
       fetchResult = await fetchHtmlDynamic(url, fetchOptions)
     }
   }
+  fetchEndTime = Date.now()
 
   if (!fetchResult.success || !fetchResult.html) {
+    const endTime = Date.now()
     return {
       success: false,
       error: fetchResult.error,
       fetchResult,
+      metrics: {
+        totalTimeMs: endTime - startTime,
+        fetchTimeMs: fetchEndTime - fetchStartTime,
+        extractionTimeMs: 0,
+        htmlSizeBytes: 0,
+        contentLength: 0,
+        linksCount: 0,
+        filesCount: 0,
+        detectedFrameworks,
+        scrapingMode,
+        extractionSuccess: false,
+        error: fetchResult.error,
+      },
     }
   }
 
+  const extractionStartTime = Date.now()
   try {
     // Extraire le contenu
     const content = extractContent(
@@ -802,6 +1166,7 @@ export async function scrapeUrl(
       fetchResult.finalUrl || url,
       source.cssSelectors
     )
+    const extractionEndTime = Date.now()
 
     // Vérifier la qualité du contenu extrait
     if (content.content.length < 100) {
@@ -809,18 +1174,56 @@ export async function scrapeUrl(
       console.log(`[Scraper] Contenu trop court (${content.content.length} chars), possible contenu dynamique non chargé`)
     }
 
+    // Calculer un score de qualité simple
+    const contentQualityScore = Math.min(100, Math.round(
+      (content.content.length > 100 ? 30 : 0) +
+      (content.content.length > 500 ? 20 : 0) +
+      (content.structuredLegalContent?.articleText ? 20 : 0) +
+      (content.legalContext?.documentType !== 'unknown' ? 15 : 0) +
+      (content.links.length > 0 ? 10 : 0) +
+      (content.title ? 5 : 0)
+    ))
+
+    const endTime = Date.now()
     return {
       success: true,
       content,
       fetchResult,
       detectedFrameworks,
+      metrics: {
+        totalTimeMs: endTime - startTime,
+        fetchTimeMs: cacheHit ? 0 : fetchEndTime - fetchStartTime,
+        extractionTimeMs: extractionEndTime - extractionStartTime,
+        htmlSizeBytes: fetchResult.html.length,
+        contentLength: content.content.length,
+        linksCount: content.links.length,
+        filesCount: content.files.length,
+        detectedFrameworks,
+        scrapingMode: cacheHit ? 'cached' as 'static' | 'dynamic' : scrapingMode,
+        extractionSuccess: true,
+        contentQualityScore,
+      },
     }
 
   } catch (error) {
+    const endTime = Date.now()
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Erreur extraction contenu',
       fetchResult,
+      metrics: {
+        totalTimeMs: endTime - startTime,
+        fetchTimeMs: fetchEndTime - fetchStartTime,
+        extractionTimeMs: Date.now() - extractionStartTime,
+        htmlSizeBytes: fetchResult.html?.length || 0,
+        contentLength: 0,
+        linksCount: 0,
+        filesCount: 0,
+        detectedFrameworks,
+        scrapingMode,
+        extractionSuccess: false,
+        error: error instanceof Error ? error.message : 'Erreur extraction contenu',
+      },
     }
   }
 }

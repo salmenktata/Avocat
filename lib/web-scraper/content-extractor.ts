@@ -6,8 +6,64 @@
 import * as cheerio from 'cheerio'
 import type { CheerioAPI, Cheerio } from 'cheerio'
 import type { Element } from 'domhandler'
-import type { CssSelectors, LinkedFile, ScrapedContent, LegalContext, SiteStructure } from './types'
+import type { CssSelectors, LinkedFile, ScrapedContent, LegalContext, SiteStructure, ExtractionConfig, StructuredLegalContent } from './types'
 import { TUNISIAN_CODES } from './types'
+
+/**
+ * Configuration d'extraction par défaut pour 9anoun.tn
+ */
+const EXTRACTION_CONFIGS: Record<string, ExtractionConfig> = {
+  '9anoun.tn': {
+    noisePatterns: [
+      'متوفر باللغة\\s*(FR|AR|EN)(\\s*(FR|AR|EN))*',
+      'تقرير\\s*انشر',
+      'هل كانت هذه المعلومات مفيدة لك\\s*[؟?]?',
+      'النص الموالي',
+      'أو إكتشف أكثر نصوص قانونية على منصة قانون',
+      'جميع النصوص\\s*(المجلات القانونية)?\\s*(الاتفاقيات الدولية)?',
+      'اطلع على الدليل والبودكاست',
+      'عرض الدليل\\s*←?',
+      'صعبوا عليك القوانين\\s*[؟?]?',
+      'القوانين المتعلقة بالمواضيع إلي يهموك أكثر',
+      'ملخصة في أقل من \\d+ نقطة',
+      'تحميل المزيد من العناصر',
+      'التحميل\\.\\.\\.',
+      "'?9anoun'?\\s*لقراءة مبسطة\\s*،?",
+      'نبدأ\\s+',
+      'كل تفاصيل العدد',
+    ],
+    removeSelectors: [
+      '.feedback',
+      '.rating',
+      '.share-buttons',
+      '.language-switcher',
+      '[class*="cookie"]',
+      '.podcast-promo',
+    ],
+    preserveHierarchy: true,
+    hierarchySelectors: {
+      book: '.book-title, .كتاب',
+      part: '.part-title, .باب',
+      chapter: '.chapter-title, .قسم',
+      section: '.section-title, .فرع',
+      article: '.article-number, .فصل',
+    },
+    contentLanguage: 'ar',
+  },
+}
+
+/**
+ * Obtient la configuration d'extraction pour un domaine
+ */
+function getExtractionConfig(url: string, customConfig?: ExtractionConfig): ExtractionConfig {
+  try {
+    const domain = new URL(url).hostname.replace('www.', '')
+    const baseConfig = EXTRACTION_CONFIGS[domain] || {}
+    return { ...baseConfig, ...customConfig }
+  } catch {
+    return customConfig || {}
+  }
+}
 import crypto from 'crypto'
 import { extractSiteStructure } from './site-structure-extractor'
 
@@ -453,14 +509,28 @@ export function extractContent(
   // Supprimer les iframes après extraction des fichiers
   $('iframe').remove()
 
-  // Extraire le texte propre
-  const content = extractCleanText(contentElement)
+  // Obtenir la configuration d'extraction pour ce domaine
+  const extractionConfig = getExtractionConfig(baseUrl, customSelectors as unknown as ExtractionConfig)
+
+  // Supprimer les éléments configurés comme bruit
+  if (extractionConfig.removeSelectors) {
+    $(extractionConfig.removeSelectors.join(', ')).remove()
+  }
+
+  // Extraire le texte propre avec la configuration
+  const content = extractCleanText(contentElement, extractionConfig)
 
   // Garder le HTML du contenu pour référence
   const contentHtml = contentElement.html() || ''
 
   // Extraire le contexte juridique (type de document, code parent, etc.)
   const legalContext = extractLegalContext(baseUrl, title, content)
+
+  // Extraire le contenu juridique structuré (à partir du contenu nettoyé)
+  let structuredLegalContent: StructuredLegalContent | undefined
+  if (legalContext.documentType === 'code_article' || legalContext.documentType === 'code') {
+    structuredLegalContent = extractStructuredLegalContent(content, baseUrl, extractionConfig)
+  }
 
   // Extraire la structure du site (breadcrumbs, URL, navigation)
   let siteStructure: SiteStructure | undefined
@@ -485,6 +555,7 @@ export function extractContent(
     structuredData,
     legalContext,
     siteStructure,
+    structuredLegalContent,
   }
 }
 
@@ -976,9 +1047,81 @@ function getFileExtension(pathname: string): string | null {
 }
 
 /**
- * Extrait le texte propre d'un élément
+ * Extrait le contenu juridique de manière structurée
+ * @param cleanedContent - Le contenu déjà nettoyé (sans bruit)
  */
-function extractCleanText(element: Cheerio<Element>): string {
+export function extractStructuredLegalContent(
+  cleanedContent: string,
+  url: string,
+  config?: ExtractionConfig
+): StructuredLegalContent {
+  const extractionConfig = getExtractionConfig(url, config)
+
+  // Extraire le numéro d'article (الفصل X)
+  let articleNumber: string | undefined
+  const articleMatch = cleanedContent.match(/الفصل\s*(\d+(?:\s*مكرر)?(?:\s*ثانيا)?(?:\s*ثالثا)?)/i)
+  if (articleMatch) {
+    articleNumber = articleMatch[1].trim()
+  }
+
+  // Extraire le nom du code
+  let codeName: string | undefined
+  for (const [, codeInfo] of Object.entries(TUNISIAN_CODES)) {
+    if (cleanedContent.includes(codeInfo.ar)) {
+      codeName = codeInfo.ar
+      break
+    }
+  }
+
+  // Extraire le texte de l'article (après le nom du code)
+  let articleText = cleanedContent
+
+  // Supprimer le préfixe "الفصل X مجلة..."
+  if (articleNumber && codeName) {
+    const prefixPattern = new RegExp(`الفصل\\s*${articleNumber}\\s*${codeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'i')
+    articleText = articleText.replace(prefixPattern, '').trim()
+  } else if (articleNumber) {
+    articleText = articleText.replace(/الفصل\s*\d+\s*/, '').trim()
+  }
+
+  // Supprimer le nom du code restant
+  if (codeName) {
+    articleText = articleText.replace(new RegExp(codeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '').trim()
+  }
+
+  // Extraire les références à d'autres articles mentionnés dans le texte
+  const references: string[] = []
+  const refMatches = articleText.matchAll(/الفصل\s*(\d+)/g)
+  for (const match of refMatches) {
+    if (match[1] !== articleNumber) {
+      references.push(`الفصل ${match[1]}`)
+    }
+  }
+
+  // Hiérarchie (à implémenter selon la source)
+  let hierarchy: StructuredLegalContent['hierarchy']
+  if (extractionConfig.preserveHierarchy) {
+    hierarchy = {
+      book: undefined,
+      part: undefined,
+      chapter: undefined,
+      section: undefined,
+    }
+  }
+
+  return {
+    articleNumber,
+    articleText: articleText || cleanedContent,
+    codeName,
+    hierarchy,
+    references: references.length > 0 ? [...new Set(references)] : undefined,
+  }
+}
+
+/**
+ * Extrait le texte propre d'un élément avec configuration personnalisée
+ */
+function extractCleanText(element: Cheerio<Element>, config?: ExtractionConfig): string {
   // Remplacer les balises de bloc par des sauts de ligne
   let text = element.html() || ''
 
@@ -994,8 +1137,21 @@ function extractCleanText(element: Cheerio<Element>): string {
     .replace(/&#39;/g, "'")
 
   // Supprimer le bruit (textes d'interface, navigation, etc.)
+  // 1. Patterns par défaut
   for (const pattern of NOISE_TEXT_PATTERNS) {
     text = text.replace(pattern, '')
+  }
+
+  // 2. Patterns personnalisés de la configuration
+  if (config?.noisePatterns) {
+    for (const patternStr of config.noisePatterns) {
+      try {
+        const pattern = new RegExp(patternStr, 'gi')
+        text = text.replace(pattern, '')
+      } catch {
+        // Pattern regex invalide, ignorer
+      }
+    }
   }
 
   // Nettoyer les espaces

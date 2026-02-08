@@ -186,6 +186,11 @@ export interface WebSource {
   respectRobotsTxt: boolean
   customHeaders: Record<string, string>
 
+  // Protection anti-bannissement
+  stealthMode?: boolean              // Mode stealth (User-Agent réaliste)
+  maxPagesPerHour?: number           // Quota horaire
+  maxPagesPerDay?: number            // Quota journalier
+
   // Configuration avancée pour sites dynamiques (Livewire, React, Vue, etc.)
   dynamicConfig: DynamicSiteConfig | null
 
@@ -1194,4 +1199,73 @@ export interface SectionContext {
   parentSection: string | null
   currentSection: string | null
   siblingPages: string[]
+}
+
+// =============================================================================
+// TYPES POUR LA PROTECTION ANTI-BANNISSEMENT
+// =============================================================================
+
+/**
+ * Configuration de retry avec exponential backoff
+ */
+export interface RetryConfig {
+  maxRetries: number
+  initialDelayMs: number
+  maxDelayMs: number
+  retryableStatusCodes: number[]
+  retryableErrors: string[]
+}
+
+/**
+ * État de bannissement d'une source
+ */
+export interface SourceBanStatus {
+  sourceId: string
+  isBanned: boolean
+  bannedAt?: Date
+  retryAfter?: Date
+  reason?: string
+  detectionConfidence?: 'low' | 'medium' | 'high'
+}
+
+/**
+ * Statistiques de santé du crawler par source
+ */
+export interface CrawlerHealthStats {
+  sourceId: string
+  sourceName: string
+
+  // Métriques de succès
+  totalRequests: number
+  successfulRequests: number
+  failedRequests: number
+  successRate: number
+
+  // Erreurs HTTP
+  errors429: number // Too Many Requests
+  errors403: number // Forbidden
+  errors503: number // Service Unavailable
+  errors5xx: number // Server errors
+
+  // Bannissement
+  banDetections: number
+  currentlyBanned: boolean
+  lastBanAt?: Date
+
+  // Performance
+  avgResponseTimeMs: number
+  medianResponseTimeMs: number
+  p95ResponseTimeMs: number
+
+  // Quotas
+  pagesThisHour: number
+  pagesThisDay: number
+  quotaHourlyLimit?: number
+  quotaDailyLimit?: number
+  quotaExceeded: boolean
+
+  // Période
+  periodStart: Date
+  periodEnd: Date
+  lastCrawlAt?: Date
 }
