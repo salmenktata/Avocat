@@ -103,8 +103,9 @@ export async function processPage(
   } catch (error) {
     errors.push(`Analyse qualité: ${error instanceof Error ? error.message : 'Erreur'}`)
     console.error('[Pipeline] Erreur analyse qualité:', error)
-    // Score par défaut dans la zone de revue (pas rejet) quand LLM échoue
-    qualityScore = 75
+    // Score par défaut au-dessus du seuil d'auto-indexation (80) quand LLM échoue
+    // Les pages de sources juridiques de confiance doivent être indexées par défaut
+    qualityScore = 85
   }
 
   // ==========================================================================
