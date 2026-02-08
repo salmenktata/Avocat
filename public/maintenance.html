@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="30">
+  <title>Qadhya - Maintenance en cours</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #ffffff;
+      --fg: #1e293b;
+      --card-bg: #f8fafc;
+      --card-border: #e2e8f0;
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --muted: #64748b;
+      --muted-light: #94a3b8;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --fg: #f1f5f9;
+        --card-bg: #1e293b;
+        --card-border: #334155;
+        --primary: #60a5fa;
+        --primary-dark: #3b82f6;
+        --muted: #94a3b8;
+        --muted-light: #64748b;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .container {
+      max-width: 540px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .logo {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.02em;
+      margin-bottom: 2.5rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1rem;
+      padding: 2.5rem 2rem;
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    .icon {
+      margin-bottom: 1.5rem;
+    }
+
+    .icon svg {
+      width: 64px;
+      height: 64px;
+      color: var(--primary);
+      animation: spin 4s linear infinite;
+    }
+
+    .section {
+      margin-bottom: 1.5rem;
+    }
+
+    .section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: var(--fg);
+    }
+
+    .section p {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--card-border);
+      margin: 1.5rem 0;
+    }
+
+    .section-ar {
+      direction: rtl;
+      font-family: 'Segoe UI', Tahoma, 'Noto Sans Arabic', sans-serif;
+    }
+
+    .section-ar h1 {
+      font-size: 1.4rem;
+    }
+
+    .section-ar p {
+      line-height: 1.9;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--muted-light);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #f59e0b;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 2rem 1.25rem;
+      }
+
+      .section h1 {
+        font-size: 1.25rem;
+      }
+
+      .section p {
+        font-size: 0.9rem;
+      }
+
+      .icon svg {
+        width: 48px;
+        height: 48px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">Qadhya</div>
+    <div class="card">
+      <div class="icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </div>
+
+      <div class="section">
+        <h1>Maintenance en cours</h1>
+        <p>Notre plateforme est temporairement indisponible. Nous travaillons pour rétablir le service dans les plus brefs délais.</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section section-ar">
+        <h1>صيانة جارية</h1>
+        <p>منصتنا غير متاحة مؤقتًا. نحن نعمل على استعادة الخدمة في أقرب وقت ممكن.</p>
+      </div>
+
+      <div class="status">
+        <span class="status-dot"></span>
+        Actualisation automatique toutes les 30 secondes
+      </div>
+    </div>
+  </div>
+</body>
+</html>
