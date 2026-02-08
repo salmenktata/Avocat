@@ -21,10 +21,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const startTime = Date.now()
   let totalIndexed = 0
   let totalFailed = 0
-  const batchSize = 10
-  const maxBatches = 50 // Max 500 documents par appel
+  const batchSize = 2 // Réduit à 2 pour Ollama lent
+  const maxBatches = 50 // Max 100 documents par appel
 
-  console.log('[IndexKB] Démarrage indexation knowledge_base')
+  console.log('[IndexKB] Démarrage indexation knowledge_base (batch de 2)')
 
   try {
     for (let i = 0; i < maxBatches; i++) {
