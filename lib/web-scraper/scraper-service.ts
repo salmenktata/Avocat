@@ -462,11 +462,11 @@ const FRAMEWORK_PROFILES: Record<DetectedFramework, Partial<DynamicSiteConfig>> 
       '.loading',
       '.skeleton',
     ],
-    postLoadDelayMs: 2000,  // Réduit de 4000 à 2000 (adaptatif compense)
+    postLoadDelayMs: 1500,
     scrollToLoad: true,
-    scrollCount: 3,         // Réduit de 5 à 3
-    waitUntil: 'networkidle',
-    dynamicTimeoutMs: 15000,  // Réduit de 25000 à 15000
+    scrollCount: 2,
+    waitUntil: 'load',  // 'networkidle' bloque sur sites Livewire (WebSocket/polling)
+    dynamicTimeoutMs: 10000,
   },
   alpine: {
     waitForLoadingToDisappear: true,
@@ -716,8 +716,12 @@ export async function fetchHtmlDynamic(
     }
   }
 
+  // Timeout global : double du timeout de navigation pour couvrir les étapes post-load
+  const GLOBAL_TIMEOUT_MS = timeout * 2
+
   try {
     // Utiliser le pool de navigateurs au lieu de créer un nouveau browser
+    console.log(`[Scraper] Playwright: lancement pour ${url}`)
     const browser = await getBrowserFromPool()
 
     // Pas de try/finally avec browser.close() car on réutilise le browser
@@ -732,6 +736,14 @@ export async function fetchHtmlDynamic(
 
     try {
       const page = await context.newPage()
+      const globalStart = Date.now()
+
+      // Helper pour vérifier le timeout global
+      const checkGlobalTimeout = () => {
+        if (Date.now() - globalStart > GLOBAL_TIMEOUT_MS) {
+          throw new Error(`Timeout global Playwright (${GLOBAL_TIMEOUT_MS}ms) dépassé pour ${url}`)
+        }
+      }
 
       // OPTIMISATION: Bloquer les ressources inutiles
       if (blockResources) {
@@ -757,6 +769,7 @@ export async function fetchHtmlDynamic(
       }
 
       // Naviguer vers l'URL avec le mode d'attente configuré
+      console.log(`[Scraper] Playwright: navigation vers ${url} (waitUntil=${config.waitUntil || 'networkidle'}, timeout=${timeout}ms)`)
       const response = await page.goto(url, {
         timeout,
         waitUntil: config.waitUntil || 'networkidle',
@@ -779,6 +792,9 @@ export async function fetchHtmlDynamic(
 
       // Attendre que le contenu soit chargé
       await page.waitForLoadState('domcontentloaded')
+      console.log(`[Scraper] Playwright: DOM chargé pour ${url} (${Date.now() - globalStart}ms)`)
+
+      checkGlobalTimeout()
 
       // Détection automatique des frameworks et adaptation
       const detectedFrameworks = await detectFramework(page)
@@ -792,11 +808,13 @@ export async function fetchHtmlDynamic(
         console.log(`[Scraper] Frameworks détectés: ${detectedFrameworks.join(', ')} - Configuration adaptée`)
       }
 
+      checkGlobalTimeout()
+
       // Attendre un sélecteur spécifique si configuré
       if (config.waitForSelector) {
         try {
           await page.waitForSelector(config.waitForSelector, {
-            timeout: config.dynamicTimeoutMs || 10000,
+            timeout: Math.min(config.dynamicTimeoutMs || 10000, GLOBAL_TIMEOUT_MS - (Date.now() - globalStart)),
             state: 'visible',
           })
         } catch {
@@ -805,15 +823,23 @@ export async function fetchHtmlDynamic(
         }
       }
 
+      checkGlobalTimeout()
+
       // Attendre la disparition des indicateurs de chargement
       if (config.waitForLoadingToDisappear && config.loadingIndicators?.length) {
-        await waitForLoadingIndicatorsToDisappear(page, config.loadingIndicators, config.dynamicTimeoutMs || 10000)
+        const remainingTime = Math.max(2000, GLOBAL_TIMEOUT_MS - (Date.now() - globalStart))
+        await waitForLoadingIndicatorsToDisappear(page, config.loadingIndicators, Math.min(config.dynamicTimeoutMs || 10000, remainingTime))
       }
+
+      checkGlobalTimeout()
 
       // Scroller la page pour déclencher le lazy loading
       if (config.scrollToLoad) {
         await scrollPageForLazyLoading(page, config.scrollCount || 3)
+        console.log(`[Scraper] Playwright: scroll terminé pour ${url} (${Date.now() - globalStart}ms)`)
       }
+
+      checkGlobalTimeout()
 
       // Cliquer sur des éléments si configuré (ex: "Voir plus", "Charger plus")
       if (config.clickBeforeExtract?.length) {
@@ -822,12 +848,12 @@ export async function fetchHtmlDynamic(
             const element = page.locator(selector).first()
             if (await element.isVisible()) {
               await element.click()
-              // Attendre après le clic
               await page.waitForTimeout(1000)
             }
           } catch {
             // Ignorer les erreurs de clic
           }
+          checkGlobalTimeout()
         }
       }
 
@@ -845,12 +871,15 @@ export async function fetchHtmlDynamic(
         await page.waitForTimeout(config.postLoadDelayMs)
       }
 
+      checkGlobalTimeout()
+
       // Pour Livewire: attendre que le contenu principal soit chargé
       // OPTIMISÉ: sortie rapide si contenu prêt
-      const contentStatus = await waitForContentToLoad(page, config.dynamicTimeoutMs || 10000)
+      const remainingForContent = Math.max(2000, GLOBAL_TIMEOUT_MS - (Date.now() - globalStart))
+      const contentStatus = await waitForContentToLoad(page, Math.min(config.dynamicTimeoutMs || 10000, remainingForContent))
 
-      // Stratégie Livewire: forcer le re-rendu SEULEMENT si contenu insuffisant
-      if (detectedFrameworks.includes('livewire') && contentStatus.contentLength < 500) {
+      // Stratégie Livewire: forcer le re-rendu SEULEMENT si contenu insuffisant et temps restant
+      if (detectedFrameworks.includes('livewire') && contentStatus.contentLength < 500 && (Date.now() - globalStart) < GLOBAL_TIMEOUT_MS - 5000) {
         await forceLivewireRerender(page)
       }
 
@@ -869,6 +898,9 @@ export async function fetchHtmlDynamic(
         setCachedPage(url, html)
       }
 
+      const totalMs = Date.now() - globalStart
+      console.log(`[Scraper] Playwright: terminé ${url} en ${totalMs}ms (HTML: ${html.length} chars)`)
+
       return {
         success: true,
         html,
@@ -884,6 +916,9 @@ export async function fetchHtmlDynamic(
     }
 
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Erreur inconnue'
+    console.error(`[Scraper] Playwright erreur pour ${url}: ${errorMsg}`)
+
     // Si Playwright n'est pas installé, on suggère de l'installer
     if (error instanceof Error && error.message.includes('Cannot find module')) {
       return {
@@ -893,10 +928,10 @@ export async function fetchHtmlDynamic(
     }
 
     if (error instanceof Error) {
-      if (error.message.includes('Timeout')) {
+      if (error.message.includes('Timeout') || error.message.includes('timeout')) {
         return {
           success: false,
-          error: `Timeout après ${timeout}ms`,
+          error: `Timeout Playwright: ${error.message}`,
         }
       }
       return {
