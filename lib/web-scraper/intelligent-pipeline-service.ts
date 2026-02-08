@@ -103,8 +103,8 @@ export async function processPage(
   } catch (error) {
     errors.push(`Analyse qualité: ${error instanceof Error ? error.message : 'Erreur'}`)
     console.error('[Pipeline] Erreur analyse qualité:', error)
-    // Continuer avec un score par défaut pour permettre la revue manuelle
-    qualityScore = 50
+    // Score par défaut dans la zone de revue (pas rejet) quand LLM échoue
+    qualityScore = 75
   }
 
   // ==========================================================================

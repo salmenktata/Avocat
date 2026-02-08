@@ -24,7 +24,7 @@ import { processBatch as processPipelineBatch, getPendingPages } from '@/lib/web
 
 // Configuration du pipeline intelligent
 const ENABLE_INTELLIGENT_PIPELINE = process.env.ENABLE_INTELLIGENT_PIPELINE !== 'false'
-const PIPELINE_BATCH_SIZE = parseInt(process.env.PIPELINE_BATCH_SIZE || '10', 10)
+const PIPELINE_BATCH_SIZE = parseInt(process.env.PIPELINE_BATCH_SIZE || '5', 10)
 
 // =============================================================================
 // VÉRIFICATION CRON SECRET
@@ -331,7 +331,7 @@ async function processIntelligentPipeline(): Promise<{
 
     // Traiter le batch
     const { summary } = await processPipelineBatch(pendingPageIds, {
-      skipContradictionCheck: false, // Activer la détection de contradictions
+      skipContradictionCheck: true, // Désactivé : trop lent avec modèle local Ollama
       concurrency: 1, // Séquentiel pour éviter la surcharge Ollama sur VPS
     })
 
