@@ -1,7 +1,28 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import type { StructuredDossier, LegalAnalysis } from '@/lib/ai/dossier-structuring-service'
+import { useLocale } from 'next-intl'
+import type {
+  StructuredDossier,
+  LegalAnalysis,
+  Diagnostic,
+  AnalyseFaits,
+  StrategieGlobale,
+  Argumentation,
+  DecisiveNode,
+  Actor,
+  ChronologyEvent,
+  StrategicScenario,
+  HierarchizedArgument,
+  AnticipatedObjection,
+} from '@/lib/ai/dossier-structuring-service'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { calculateReadingTimeFromObject, formatReadingTime } from '@/lib/utils/reading-time'
 
 interface LegalAnalysisSectionProps {
   result: StructuredDossier
@@ -11,9 +32,27 @@ export default function LegalAnalysisSection({
   result,
 }: LegalAnalysisSectionProps) {
   const t = useTranslations('assistant')
+  const locale = useLocale()
 
   // Utiliser l'analyse de l'IA si disponible, sinon générer localement
   const analysis = result.analyseJuridique
+
+  // Calculer les temps de lecture pour chaque section
+  const readingTimes = {
+    diagnostic: calculateReadingTimeFromObject(analysis?.diagnostic || {}),
+    analyseFaits: calculateReadingTimeFromObject(analysis?.analyseFaits || {}),
+    qualification: calculateReadingTimeFromObject(analysis?.qualification || {}),
+    recevabilite: calculateReadingTimeFromObject(analysis?.recevabilite || {}),
+    competence: calculateReadingTimeFromObject(analysis?.competence || {}),
+    strategiePreuve: calculateReadingTimeFromObject(analysis?.strategiePreuve || {}),
+    strategieGlobale: calculateReadingTimeFromObject(analysis?.strategieGlobale || {}),
+    argumentation: calculateReadingTimeFromObject(analysis?.argumentation || {}),
+    risques: calculateReadingTimeFromObject(analysis?.risques || []),
+    recommandation: calculateReadingTimeFromObject({
+      recommandation: analysis?.recommandationStrategique,
+      etapes: analysis?.prochainesEtapes,
+    }),
+  }
 
   return (
     <div className="space-y-6">
@@ -47,17 +86,276 @@ export default function LegalAnalysisSection({
         </div>
       )}
 
-      {/* 1. Qualification Juridique */}
-      <div className="rounded-lg border bg-card p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">&#9878;</span>
-          <h3 className="text-lg font-semibold text-foreground">
-            {t('legalAnalysis.qualification.title')}
-          </h3>
-          <span className="text-sm text-muted-foreground" dir="rtl">
-            (التكييف القانوني)
-          </span>
+      {/* PHASE 1 - Diagnostic Initial (si disponible) */}
+      {analysis?.diagnostic && (
+        <div className="rounded-lg border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">&#128269;</span>
+            <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-200">
+              {t('legalAnalysis.diagnostic.title')}
+            </h3>
+            <span className="text-sm text-amber-600 dark:text-amber-400" dir="rtl">
+              (التشخيص الأولي)
+            </span>
+            <span className="ml-auto text-xs text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-full">
+              ⏱ {formatReadingTime(readingTimes.diagnostic, locale)}
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            {/* Objectif Client */}
+            {analysis.diagnostic.objectifClient && (
+              <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4">
+                <h4 className="font-medium text-amber-900 dark:text-amber-200 mb-3 flex items-center gap-2">
+                  <span>&#127919;</span>
+                  {t('legalAnalysis.diagnostic.clientObjective')}
+                </h4>
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3">
+                    <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase">{t('legalAnalysis.diagnostic.principal')}</span>
+                    <p className="mt-1 text-green-900 dark:text-green-200 text-sm">{analysis.diagnostic.objectifClient.principal}</p>
+                  </div>
+                  <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3">
+                    <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase">{t('legalAnalysis.diagnostic.secondary')}</span>
+                    <ul className="mt-1 text-blue-900 dark:text-blue-200 text-sm list-disc list-inside">
+                      {analysis.diagnostic.objectifClient.secondaires.map((s, i) => (
+                        <li key={i}>{s}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+                    <span className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase">{t('legalAnalysis.diagnostic.redLine')}</span>
+                    <p className="mt-1 text-red-900 dark:text-red-200 text-sm">{analysis.diagnostic.objectifClient.ligneRouge}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Séparation Faits / Interprétations / Ressentis */}
+            <div className="grid gap-4 md:grid-cols-3">
+              {/* Faits Juridiques */}
+              <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4">
+                <h4 className="font-medium text-green-900 dark:text-green-200 mb-2 flex items-center gap-2">
+                  <span>&#9989;</span>
+                  {t('legalAnalysis.diagnostic.legalFacts')}
+                </h4>
+                <p className="text-xs text-green-700 dark:text-green-400 mb-2">{t('legalAnalysis.diagnostic.legalFactsDesc')}</p>
+                <ul className="space-y-1">
+                  {analysis.diagnostic.faitsJuridiques?.slice(0, 5).map((fact, i) => (
+                    <li key={i} className="text-sm text-green-800 dark:text-green-300 flex items-start gap-1">
+                      <span className="text-green-600">•</span>
+                      <span>{fact.label}: {fact.valeur}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Interprétations */}
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
+                <h4 className="font-medium text-amber-900 dark:text-amber-200 mb-2 flex items-center gap-2">
+                  <span>&#128161;</span>
+                  {t('legalAnalysis.diagnostic.interpretations')}
+                </h4>
+                <p className="text-xs text-amber-700 dark:text-amber-400 mb-2">{t('legalAnalysis.diagnostic.interpretationsDesc')}</p>
+                <ul className="space-y-1">
+                  {analysis.diagnostic.interpretations?.map((interp, i) => (
+                    <li key={i} className="text-sm text-amber-800 dark:text-amber-300 flex items-start gap-1">
+                      <span className="text-amber-600">?</span>
+                      <span>{interp}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Ressentis */}
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 p-4">
+                <h4 className="font-medium text-gray-900 dark:text-gray-200 mb-2 flex items-center gap-2">
+                  <span>&#128167;</span>
+                  {t('legalAnalysis.diagnostic.feelings')}
+                </h4>
+                <p className="text-xs text-gray-700 dark:text-gray-400 mb-2">{t('legalAnalysis.diagnostic.feelingsDesc')}</p>
+                <ul className="space-y-1">
+                  {analysis.diagnostic.ressentis?.map((ressenti, i) => (
+                    <li key={i} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-1 line-through opacity-70">
+                      <span>~</span>
+                      <span>{ressenti}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Champs Juridiques */}
+            {analysis.diagnostic.champsJuridiques && (
+              <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4">
+                <h4 className="font-medium text-amber-900 dark:text-amber-200 mb-2">
+                  {t('legalAnalysis.diagnostic.legalFields')}
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full bg-amber-200 dark:bg-amber-800 px-3 py-1 text-sm font-medium text-amber-800 dark:text-amber-200">
+                    {analysis.diagnostic.champsJuridiques.principal}
+                  </span>
+                  {analysis.diagnostic.champsJuridiques.satellites?.map((sat, i) => (
+                    <span key={i} className="rounded-full bg-amber-100 dark:bg-amber-900/50 px-3 py-1 text-sm text-amber-700 dark:text-amber-300">
+                      {sat}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+      )}
+
+      {/* PHASE 2 - Analyse Factuelle (si disponible) */}
+      {analysis?.analyseFaits && (
+        <div className="rounded-lg border-2 border-cyan-200 dark:border-cyan-800 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">&#128200;</span>
+            <h3 className="text-lg font-semibold text-cyan-900 dark:text-cyan-200">
+              {t('legalAnalysis.analyseFaits.title')}
+            </h3>
+            <span className="text-sm text-cyan-600 dark:text-cyan-400" dir="rtl">
+              (التحليل الوقائعي)
+            </span>
+            <span className="ml-auto text-xs text-cyan-700 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-900/30 px-2 py-1 rounded-full">
+              ⏱ {formatReadingTime(readingTimes.analyseFaits, locale)}
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            {/* Nœuds Décisifs */}
+            {analysis.analyseFaits.noeudsDecisifs && analysis.analyseFaits.noeudsDecisifs.length > 0 && (
+              <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4">
+                <h4 className="font-medium text-cyan-900 dark:text-cyan-200 mb-3 flex items-center gap-2">
+                  <span>&#11088;</span>
+                  {t('legalAnalysis.analyseFaits.decisiveNodes')}
+                </h4>
+                <div className="space-y-3">
+                  {analysis.analyseFaits.noeudsDecisifs.map((node, i) => (
+                    <div
+                      key={i}
+                      className={`rounded-lg p-3 border ${
+                        node.importance === 'critique'
+                          ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
+                          : node.importance === 'important'
+                          ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20'
+                          : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-semibold uppercase px-2 py-0.5 rounded ${
+                              node.importance === 'critique'
+                                ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'
+                                : node.importance === 'important'
+                                ? 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200'
+                                : 'bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
+                            }`}>
+                              {node.importance === 'critique' ? t('legalAnalysis.analyseFaits.critical') : node.importance === 'important' ? t('legalAnalysis.analyseFaits.important') : t('legalAnalysis.analyseFaits.secondary')}
+                            </span>
+                          </div>
+                          <p className="mt-2 font-medium">{node.point}</p>
+                          <div className="mt-2 grid gap-2 md:grid-cols-2 text-sm">
+                            <div>
+                              <span className="text-green-600 dark:text-green-400">{t('legalAnalysis.analyseFaits.currentProof')}:</span>
+                              <span className="ml-1">{node.preuveActuelle || t('legalAnalysis.analyseFaits.none')}</span>
+                            </div>
+                            <div>
+                              <span className="text-amber-600 dark:text-amber-400">{t('legalAnalysis.analyseFaits.missingProof')}:</span>
+                              <span className="ml-1">{node.preuveManquante || t('legalAnalysis.analyseFaits.none')}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Acteurs */}
+            {analysis.analyseFaits.acteurs && analysis.analyseFaits.acteurs.length > 0 && (
+              <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4">
+                <h4 className="font-medium text-cyan-900 dark:text-cyan-200 mb-3 flex items-center gap-2">
+                  <span>&#128101;</span>
+                  {t('legalAnalysis.analyseFaits.actors')}
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.analyseFaits.acteurs.map((actor, i) => (
+                    <div
+                      key={i}
+                      className={`rounded-lg px-3 py-2 border ${
+                        actor.interet === 'favorable'
+                          ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20'
+                          : actor.interet === 'defavorable'
+                          ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
+                          : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20'
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{actor.nom}</div>
+                      <div className="text-xs text-muted-foreground">{actor.role}</div>
+                      <div className="mt-1 flex items-center gap-1">
+                        <span className={`text-xs ${
+                          actor.interet === 'favorable' ? 'text-green-600' : actor.interet === 'defavorable' ? 'text-red-600' : 'text-gray-600'
+                        }`}>
+                          {actor.interet === 'favorable' ? '&#128994;' : actor.interet === 'defavorable' ? '&#128308;' : '&#128993;'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{actor.fiabilite}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Chronologie */}
+            {analysis.analyseFaits.chronologie && analysis.analyseFaits.chronologie.length > 0 && (
+              <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4">
+                <h4 className="font-medium text-cyan-900 dark:text-cyan-200 mb-3 flex items-center gap-2">
+                  <span>&#128197;</span>
+                  {t('legalAnalysis.analyseFaits.chronology')}
+                </h4>
+                <div className="space-y-2">
+                  {analysis.analyseFaits.chronologie.slice(0, 5).map((event, i) => (
+                    <div key={i} className="flex items-start gap-3 text-sm">
+                      <span className="font-mono text-xs text-cyan-600 dark:text-cyan-400 whitespace-nowrap">{event.date}</span>
+                      <span className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${
+                        event.importance === 'decisif' ? 'bg-red-500' : event.importance === 'important' ? 'bg-amber-500' : 'bg-gray-400'
+                      }`} />
+                      <span>{event.evenement}</span>
+                      {event.preuve && (
+                        <span className="text-xs text-green-600 dark:text-green-400 ml-auto">&#128196; {event.preuve}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Accordéon pour les sections d'analyse */}
+      <Accordion type="multiple" defaultValue={["qualification", "admissibility", "strategy", "recommendation"]} className="space-y-4">
+        {/* 1. Qualification Juridique */}
+        <AccordionItem value="qualification" className="rounded-lg border bg-card shadow-sm">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-2 flex-wrap flex-1">
+              <span className="text-xl">&#9878;</span>
+              <h3 className="text-lg font-semibold text-foreground">
+                {t('legalAnalysis.qualification.title')}
+              </h3>
+              <span className="text-sm text-muted-foreground" dir="rtl">
+                (التكييف القانوني)
+              </span>
+              <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                ⏱ {formatReadingTime(readingTimes.qualification, locale)}
+              </span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
 
         <div className="grid gap-4 md:grid-cols-2">
           {/* Type d'action */}
@@ -99,16 +397,23 @@ export default function LegalAnalysisSection({
             </p>
           </div>
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* 2. Analyse de Recevabilité */}
-      <div className="rounded-lg border bg-card p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">&#128270;</span>
-          <h3 className="text-lg font-semibold text-foreground">
-            {t('legalAnalysis.admissibility.title')}
-          </h3>
-        </div>
+        {/* 2. Analyse de Recevabilité */}
+        <AccordionItem value="admissibility" className="rounded-lg border bg-card shadow-sm">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-2 flex-wrap flex-1">
+              <span className="text-xl">&#128270;</span>
+              <h3 className="text-lg font-semibold text-foreground">
+                {t('legalAnalysis.admissibility.title')}
+              </h3>
+              <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                ⏱ {formatReadingTime(readingTimes.recevabilite, locale)}
+              </span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
 
         <div className="space-y-4">
           {/* Utiliser les données de l'IA si disponibles */}
@@ -255,19 +560,26 @@ export default function LegalAnalysisSection({
           ))
           )}
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* 3. Juridiction Compétente */}
-      <div className="rounded-lg border bg-card p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">&#127963;</span>
-          <h3 className="text-lg font-semibold text-foreground">
-            {t('legalAnalysis.jurisdiction.title')}
-          </h3>
-          <span className="text-sm text-muted-foreground" dir="rtl">
-            (الاختصاص)
-          </span>
-        </div>
+        {/* 3. Juridiction Compétente */}
+        <AccordionItem value="jurisdiction" className="rounded-lg border bg-card shadow-sm">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-2 flex-wrap flex-1">
+              <span className="text-xl">&#127963;</span>
+              <h3 className="text-lg font-semibold text-foreground">
+                {t('legalAnalysis.jurisdiction.title')}
+              </h3>
+              <span className="text-sm text-muted-foreground" dir="rtl">
+                (الاختصاص)
+              </span>
+              <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                ⏱ {formatReadingTime(readingTimes.competence, locale)}
+              </span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-lg bg-muted/50 p-4">
@@ -296,16 +608,23 @@ export default function LegalAnalysisSection({
             {analysis.competence.justification}
           </p>
         )}
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* 4. Stratégie de Preuve */}
-      <div className="rounded-lg border bg-card p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">&#128206;</span>
-          <h3 className="text-lg font-semibold text-foreground">
-            {t('legalAnalysis.evidence.title')}
-          </h3>
-        </div>
+        {/* 4. Stratégie de Preuve */}
+        <AccordionItem value="evidence" className="rounded-lg border bg-card shadow-sm">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-2 flex-wrap flex-1">
+              <span className="text-xl">&#128206;</span>
+              <h3 className="text-lg font-semibold text-foreground">
+                {t('legalAnalysis.evidence.title')}
+              </h3>
+              <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                ⏱ {formatReadingTime(readingTimes.strategiePreuve, locale)}
+              </span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
 
         {analysis?.strategiePreuve ? (
           <div className="space-y-4">
@@ -391,16 +710,244 @@ export default function LegalAnalysisSection({
             </div>
           </>
         )}
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* 5. Évaluation des Risques */}
-      <div className="rounded-lg border bg-card p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">&#9888;</span>
-          <h3 className="text-lg font-semibold text-foreground">
-            {t('legalAnalysis.risks.title')}
-          </h3>
-        </div>
+        {/* 5. Stratégie Globale (PHASE 5) */}
+        {analysis?.strategieGlobale && (
+        <AccordionItem value="strategy" className="rounded-lg border-2 border-violet-200 dark:border-violet-800 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 shadow-sm">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-2 flex-wrap flex-1">
+              <span className="text-xl">&#127919;</span>
+              <h3 className="text-lg font-semibold text-violet-900 dark:text-violet-200">
+                {t('legalAnalysis.strategy.title')}
+              </h3>
+              <span className="text-sm text-violet-600 dark:text-violet-400" dir="rtl">
+                (الاستراتيجية العامة)
+              </span>
+              <span className="ml-auto text-xs text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 px-2 py-1 rounded-full">
+                ⏱ {formatReadingTime(readingTimes.strategieGlobale, locale)}
+              </span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
+            <div className="space-y-4">
+              {/* Scénarios */}
+              <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4">
+                <h4 className="font-medium text-violet-900 dark:text-violet-200 mb-3 flex items-center gap-2">
+                  <span>&#128202;</span>
+                  {t('legalAnalysis.strategy.scenarios')}
+                </h4>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {analysis.strategieGlobale.scenarios?.map((scenario, i) => (
+                    <div
+                      key={i}
+                      className={`rounded-lg p-4 border ${
+                        scenario.option === analysis.strategieGlobale?.scenarioRecommande
+                          ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 ring-2 ring-green-500/50'
+                          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h5 className="font-medium">{scenario.option}</h5>
+                        {scenario.option === analysis.strategieGlobale?.scenarioRecommande && (
+                          <span className="text-xs bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 px-2 py-0.5 rounded-full">
+                            {t('legalAnalysis.strategy.recommended')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">{t('legalAnalysis.strategy.successRate')}:</span>
+                          <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                scenario.probabiliteSucces >= 70 ? 'bg-green-500' : scenario.probabiliteSucces >= 40 ? 'bg-amber-500' : 'bg-red-500'
+                              }`}
+                              style={{ width: `${scenario.probabiliteSucces}%` }}
+                            />
+                          </div>
+                          <span className="font-medium">{scenario.probabiliteSucces}%</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>&#128176; {scenario.coutEstime}</span>
+                          <span>&#128197; {scenario.delaiEstime}</span>
+                        </div>
+                        {scenario.avantages?.length > 0 && (
+                          <div className="mt-2">
+                            <span className="text-xs text-green-600 dark:text-green-400">{t('legalAnalysis.strategy.advantages')}:</span>
+                            <ul className="list-disc list-inside text-xs text-green-700 dark:text-green-300">
+                              {scenario.avantages.slice(0, 2).map((a, j) => <li key={j}>{a}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                        {scenario.risques?.length > 0 && (
+                          <div className="mt-1">
+                            <span className="text-xs text-red-600 dark:text-red-400">{t('legalAnalysis.strategy.risks')}:</span>
+                            <ul className="list-disc list-inside text-xs text-red-700 dark:text-red-300">
+                              {scenario.risques.slice(0, 2).map((r, j) => <li key={j}>{r}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tempo */}
+              <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4">
+                <h4 className="font-medium text-violet-900 dark:text-violet-200 mb-2 flex items-center gap-2">
+                  <span>&#9200;</span>
+                  {t('legalAnalysis.strategy.tempo')}
+                </h4>
+                <div className="flex items-center gap-4">
+                  <span className={`px-4 py-2 rounded-full font-medium ${
+                    analysis.strategieGlobale.tempo === 'urgent'
+                      ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'
+                      : analysis.strategieGlobale.tempo === 'rapide'
+                      ? 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200'
+                      : analysis.strategieGlobale.tempo === 'temporiser'
+                      ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
+                      : 'bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
+                  }`}>
+                    {analysis.strategieGlobale.tempo === 'urgent' ? '&#128680; Urgent' :
+                     analysis.strategieGlobale.tempo === 'rapide' ? '&#9889; Rapide' :
+                     analysis.strategieGlobale.tempo === 'temporiser' ? '&#128260; Temporiser' : '&#128336; Normal'}
+                  </span>
+                  <p className="text-sm text-muted-foreground">{analysis.strategieGlobale.justificationTempo}</p>
+                </div>
+              </div>
+
+              {/* Plan B */}
+              {analysis.strategieGlobale.planB && (
+                <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
+                  <h4 className="font-medium text-amber-900 dark:text-amber-200 mb-2 flex items-center gap-2">
+                    <span>&#128260;</span>
+                    {t('legalAnalysis.strategy.planB')}
+                  </h4>
+                  <div className="text-sm space-y-1">
+                    <p><strong>{t('legalAnalysis.strategy.condition')}:</strong> {analysis.strategieGlobale.planB.condition}</p>
+                    <p><strong>{t('legalAnalysis.strategy.action')}:</strong> {analysis.strategieGlobale.planB.action}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+        )}
+
+        {/* 6. Argumentation (PHASE 6) */}
+        {analysis?.argumentation && (
+        <AccordionItem value="argumentation" className="rounded-lg border-2 border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50 to-emerald-50 dark:from-teal-900/20 dark:to-emerald-900/20 shadow-sm">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-2 flex-wrap flex-1">
+              <span className="text-xl">&#128172;</span>
+              <h3 className="text-lg font-semibold text-teal-900 dark:text-teal-200">
+                {t('legalAnalysis.argumentation.title')}
+              </h3>
+              <span className="text-sm text-teal-600 dark:text-teal-400" dir="rtl">
+                (بناء الحجة)
+              </span>
+              <span className="ml-auto text-xs text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-900/30 px-2 py-1 rounded-full">
+                ⏱ {formatReadingTime(readingTimes.argumentation, locale)}
+              </span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
+            <div className="space-y-4">
+              {/* Moyens hiérarchisés */}
+              {analysis.argumentation.moyensHierarchises && analysis.argumentation.moyensHierarchises.length > 0 && (
+                <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4">
+                  <h4 className="font-medium text-teal-900 dark:text-teal-200 mb-3 flex items-center gap-2">
+                    <span>&#128203;</span>
+                    {t('legalAnalysis.argumentation.hierarchizedArguments')}
+                  </h4>
+                  <div className="space-y-2">
+                    {analysis.argumentation.moyensHierarchises.map((moyen, i) => (
+                      <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-900/10">
+                        <span className="flex-shrink-0 w-8 h-8 rounded-full bg-teal-200 dark:bg-teal-800 flex items-center justify-center font-bold text-teal-800 dark:text-teal-200">
+                          {moyen.rang}
+                        </span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-xs px-2 py-0.5 rounded uppercase font-medium ${
+                              moyen.type === 'recevabilite' ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200' :
+                              moyen.type === 'nullite' ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200' :
+                              moyen.type === 'fond' ? 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200' :
+                              'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200'
+                            }`}>
+                              {moyen.type}
+                            </span>
+                          </div>
+                          <p className="text-sm">{moyen.moyen}</p>
+                          {moyen.piecesSupportant?.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {moyen.piecesSupportant.map((piece, j) => (
+                                <span key={j} className="text-xs bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded">
+                                  &#128196; {piece}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Objections anticipées */}
+              {analysis.argumentation.objectionsAnticipees && analysis.argumentation.objectionsAnticipees.length > 0 && (
+                <div className="rounded-lg bg-white/60 dark:bg-white/5 p-4">
+                  <h4 className="font-medium text-teal-900 dark:text-teal-200 mb-3 flex items-center gap-2">
+                    <span>&#128172;</span>
+                    {t('legalAnalysis.argumentation.anticipatedObjections')}
+                  </h4>
+                  <div className="space-y-3">
+                    {analysis.argumentation.objectionsAnticipees.map((obj, i) => (
+                      <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div className="bg-red-50 dark:bg-red-900/20 p-3">
+                          <span className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase">{t('legalAnalysis.argumentation.objection')}</span>
+                          <p className="text-sm text-red-800 dark:text-red-300 mt-1">{obj.objection}</p>
+                        </div>
+                        <div className="bg-green-50 dark:bg-green-900/20 p-3 border-t border-gray-200 dark:border-gray-700">
+                          <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase">{t('legalAnalysis.argumentation.response')}</span>
+                          <p className="text-sm text-green-800 dark:text-green-300 mt-1">{obj.reponse}</p>
+                          {obj.piecesReponse?.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {obj.piecesReponse.map((piece, j) => (
+                                <span key={j} className="text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-2 py-0.5 rounded">
+                                  &#128196; {piece}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+        )}
+
+        {/* 7. Évaluation des Risques */}
+        <AccordionItem value="risks" className="rounded-lg border bg-card shadow-sm">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-2 flex-wrap flex-1">
+              <span className="text-xl">&#9888;</span>
+              <h3 className="text-lg font-semibold text-foreground">
+                {t('legalAnalysis.risks.title')}
+              </h3>
+              <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                ⏱ {formatReadingTime(readingTimes.risques, locale)}
+              </span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
 
         <div className="grid gap-3">
           {(analysis?.risques || getRisks(result)).map((risk, index) => {
@@ -468,16 +1015,23 @@ export default function LegalAnalysisSection({
             )
           })}
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* 6. Recommandation Stratégique */}
-      <div className="rounded-lg border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">&#128161;</span>
-          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
-            {t('legalAnalysis.recommendation.title')}
-          </h3>
-        </div>
+        {/* 6. Recommandation Stratégique */}
+        <AccordionItem value="recommendation" className="rounded-lg border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 shadow-sm">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-2 flex-wrap flex-1">
+              <span className="text-2xl">&#128161;</span>
+              <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
+                {t('legalAnalysis.recommendation.title')}
+              </h3>
+              <span className="ml-auto text-xs text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded-full">
+                ⏱ {formatReadingTime(readingTimes.recommandation, locale)}
+              </span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
 
         <div className="space-y-4">
           <p className="text-blue-900 dark:text-blue-200">
@@ -496,7 +1050,9 @@ export default function LegalAnalysisSection({
             </ol>
           </div>
         </div>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   )
 }

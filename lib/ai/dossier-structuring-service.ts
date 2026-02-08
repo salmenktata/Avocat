@@ -103,6 +103,9 @@ export interface ExtractedFact {
   valeur: string
   type: 'date' | 'montant' | 'personne' | 'bien' | 'duree' | 'lieu' | 'autre'
   confidence: number
+  source?: string | null // D'où vient l'info
+  preuve?: string | null // Document associé
+  importance?: 'decisif' | 'important' | 'contexte'
 }
 
 export interface ExtractedChild {
@@ -149,6 +152,14 @@ export interface LegalReference {
   article?: string | null
   extrait?: string | null
   pertinence: number
+  // Métadonnées étendues
+  metadata?: {
+    chunkPosition?: number
+    date?: string
+    juridiction?: string
+    source?: 'KB' | 'Jurisprudence' | 'Cache'
+    documentId?: string
+  }
 }
 
 export interface LegalRisk {
@@ -158,7 +169,150 @@ export interface LegalRisk {
   mitigation?: string | null
 }
 
+// =============================================================================
+// PHASE 1 - Diagnostic initial enrichi (التكييف الأولي)
+// =============================================================================
+
+export interface ClientObjective {
+  principal: string // Objectif prioritaire
+  secondaires: string[] // Objectifs négociables
+  ligneRouge: string // Ce qu'on refuse
+}
+
+export interface LegalFields {
+  principal: string // Ex: "civil_contractuel"
+  satellites: string[] // Ex: ["pénal_abus_confiance", "commercial"]
+}
+
+export interface Diagnostic {
+  faitsJuridiques: ExtractedFact[] // Faits prouvables
+  interpretations: string[] // Hypothèses à vérifier
+  ressentis: string[] // Éléments non juridiques (sentiments, opinions)
+  objectifClient: ClientObjective
+  champsJuridiques: LegalFields
+}
+
+// =============================================================================
+// PHASE 2 - Analyse factuelle approfondie (التحليل الوقائعي)
+// =============================================================================
+
+export interface ChronologyEvent {
+  date: string
+  evenement: string
+  source: string // D'où vient l'info
+  preuve: string | null // Document associé
+  importance: 'decisif' | 'important' | 'contexte'
+}
+
+export interface Actor {
+  nom: string
+  role: string // Ex: "témoin", "débiteur", "garant"
+  interet: 'favorable' | 'defavorable' | 'neutre'
+  fiabilite: number // 0-100
+}
+
+export interface DecisiveNode {
+  point: string // Point qui fait gagner/perdre
+  preuveActuelle: string | null // Preuve disponible
+  preuveManquante: string | null // Preuve à obtenir
+  importance: 'critique' | 'important' | 'secondaire'
+}
+
+export interface CoherenceCheck {
+  declarations: string
+  pieceCorrespondante: string | null
+  statut: 'confirme' | 'contredit' | 'non_prouve'
+}
+
+export interface AnalyseFaits {
+  chronologie: ChronologyEvent[]
+  acteurs: Actor[]
+  noeudsDecisifs: DecisiveNode[]
+  coherence: CoherenceCheck[]
+}
+
+// =============================================================================
+// PHASE 3 - Qualification juridique enrichie (التحليل القانوني)
+// =============================================================================
+
+export interface AlternativeQualification {
+  qualification: string
+  avantages: string[]
+  inconvenients: string[]
+}
+
+// =============================================================================
+// PHASE 4 - Analyse probatoire enrichie (التحليل الإثباتي)
+// =============================================================================
+
+export interface EvidenceHierarchy {
+  type: 'ecrit_officiel' | 'ecrit_prive' | 'temoignage' | 'expertise' | 'technique'
+  documents: string[]
+  forceProbante: 'absolue' | 'forte' | 'moyenne' | 'faible'
+  risqueContestation: string | null
+}
+
+export interface CounterEvidence {
+  risque: string
+  mitigation: string
+}
+
+// =============================================================================
+// PHASE 5 - Analyse stratégique enrichie (التحليل الاستراتيجي)
+// =============================================================================
+
+export interface StrategicScenario {
+  option: string // Ex: "action_judiciaire", "negociation", "refere"
+  probabiliteSucces: number // 0-100
+  coutEstime: string
+  delaiEstime: string
+  risques: string[]
+  avantages: string[]
+}
+
+export interface PlanB {
+  condition: string // Quand basculer
+  action: string
+}
+
+export interface StrategieGlobale {
+  scenarios: StrategicScenario[]
+  scenarioRecommande: string
+  tempo: 'urgent' | 'rapide' | 'normal' | 'temporiser'
+  justificationTempo: string
+  planB: PlanB | null
+}
+
+// =============================================================================
+// PHASE 6 - Argumentation (بناء الحجة)
+// =============================================================================
+
+export interface HierarchizedArgument {
+  rang: number
+  type: 'recevabilite' | 'nullite' | 'fond' | 'quantum'
+  moyen: string
+  piecesSupportant: string[]
+}
+
+export interface AnticipatedObjection {
+  objection: string
+  reponse: string
+  piecesReponse: string[]
+}
+
+export interface Argumentation {
+  moyensHierarchises: HierarchizedArgument[]
+  objectionsAnticipees: AnticipatedObjection[]
+}
+
 export interface LegalAnalysis {
+  // PHASE 1 - Diagnostic initial enrichi
+  diagnostic?: Diagnostic | null
+
+  // PHASE 2 - Analyse factuelle approfondie
+  analyseFaits?: AnalyseFaits | null
+
+  // PHASE 3 - Qualification juridique (existant enrichi)
   syllogisme: {
     majeure: string
     mineure: string
@@ -169,6 +323,7 @@ export interface LegalAnalysis {
     codeApplicable: string
     articlesVises: string[]
     fondementJuridique: string
+    qualificationsAlternatives?: AlternativeQualification[] | null // NOUVEAU
   }
   recevabilite: {
     prescription: {
@@ -191,12 +346,24 @@ export interface LegalAnalysis {
     materielle: string
     justification: string
   }
+
+  // PHASE 4 - Analyse probatoire enrichie
   strategiePreuve: {
     chargeDeLaPreuve: string
     preuvesDisponibles: string[]
     preuvesManquantes: string[]
     modeDePreuve: string
+    hierarchiePreuves?: EvidenceHierarchy[] | null // NOUVEAU
+    contrePreuves?: CounterEvidence[] | null // NOUVEAU
   }
+
+  // PHASE 5 - Stratégie globale (NOUVEAU)
+  strategieGlobale?: StrategieGlobale | null
+
+  // PHASE 6 - Argumentation (NOUVEAU)
+  argumentation?: Argumentation | null
+
+  // Existant
   risques: LegalRisk[]
   recommandationStrategique: string
   prochainesEtapes: string[]
@@ -268,6 +435,21 @@ export interface StructuredDossier {
     output: number
     total: number
   }
+
+  // Métriques RAG (optionnel)
+  ragMetrics?: {
+    totalFound: number
+    aboveThreshold: number
+    scoreRange: {
+      min: number
+      max: number
+      avg: number
+    }
+    sourceDistribution: Record<string, number>
+    searchTimeMs: number
+    provider?: string
+    cacheHit?: boolean
+  }
 }
 
 export interface StructuringOptions {
@@ -287,6 +469,239 @@ export interface CreateDossierResult {
   actionsCreees: number
   echeancesCreees: number
 }
+
+// =============================================================================
+// CONSTANTES JURIDIQUES TUNISIENNES
+// =============================================================================
+
+/**
+ * Hiérarchie des juridictions tunisiennes
+ */
+export const JURIDICTIONS_TUNISIENNES = {
+  juge_cantonal: {
+    seuil: 7000, // TND
+    appel: 'tribunal_premiere_instance',
+    description_fr: 'Juge Cantonal (قاضي الناحية)',
+    description_ar: 'قاضي الناحية',
+  },
+  tribunal_premiere_instance: {
+    nombre: 27,
+    chambres: ['civile', 'commerciale', 'famille', 'penale'] as const,
+    appel: 'cour_appel',
+    description_fr: 'Tribunal de Première Instance (المحكمة الابتدائية)',
+    description_ar: 'المحكمة الابتدائية',
+  },
+  cour_appel: {
+    sieges: [
+      'Tunis',
+      'Nabeul',
+      'Bizerte',
+      'Kef',
+      'Sousse',
+      'Monastir',
+      'Sfax',
+      'Gafsa',
+      'Gabes',
+      'Medenine',
+    ] as const,
+    chambres: ['civile', 'commerciale', 'correctionnelle', 'criminelle', 'accusation'] as const,
+    cassation: 'cour_cassation',
+    description_fr: 'Cour d\'Appel (محكمة الاستئناف)',
+    description_ar: 'محكمة الاستئناف',
+  },
+  cour_cassation: {
+    siege: 'Tunis',
+    chambres_civiles: 27,
+    chambres_penales: 11,
+    magistrats_siege: 126,
+    magistrats_parquet: 33,
+    description_fr: 'Cour de Cassation (محكمة التعقيب)',
+    description_ar: 'محكمة التعقيب',
+  },
+} as const
+
+/**
+ * Délais de prescription tunisiens
+ */
+export const PRESCRIPTIONS_TUNISIENNES = {
+  civil: {
+    droit_commun: {
+      delai: '15 ans',
+      article: 'Art. 402 COC',
+      description_fr: 'Prescription de droit commun',
+      description_ar: 'التقادم العادي',
+    },
+    responsabilite_delictuelle: {
+      delai: '3 ans',
+      article: 'Art. 107 COC',
+      description_fr: 'Responsabilité délictuelle',
+      description_ar: 'المسؤولية التقصيرية',
+    },
+    creance_periodique: {
+      delai: '5 ans',
+      article: 'Art. 403 COC',
+      description_fr: 'Créances périodiques (loyers, intérêts)',
+      description_ar: 'الديون الدورية',
+    },
+  },
+  commercial: {
+    effets_commerce: {
+      delai: '1 an',
+      article: 'Art. 362 C.Com',
+      description_fr: 'Actions relatives aux effets de commerce',
+      description_ar: 'دعاوى الأوراق التجارية',
+    },
+    actions_commerciales: {
+      delai: '3 ans',
+      article: 'Art. 413 COC',
+      description_fr: 'Actions commerciales générales',
+      description_ar: 'الدعاوى التجارية',
+    },
+    cheque_impaye: {
+      delai: '6 mois',
+      article: 'Art. 327 C.Com',
+      description_fr: 'Action en paiement chèque impayé',
+      description_ar: 'دعوى الشيك بدون رصيد',
+    },
+  },
+  famille: {
+    action_divorce: {
+      delai: 'imprescriptible',
+      article: 'CSP',
+      description_fr: 'Action en divorce',
+      description_ar: 'دعوى الطلاق',
+    },
+    pension_alimentaire: {
+      delai: 'imprescriptible',
+      article: 'Art. 46 CSP',
+      description_fr: 'Pension alimentaire',
+      description_ar: 'النفقة',
+    },
+    filiation: {
+      delai: '10 ans',
+      article: 'Art. 68 CSP',
+      description_fr: 'Action en contestation de filiation',
+      description_ar: 'دعوى إنكار النسب',
+    },
+  },
+  travail: {
+    salaires: {
+      delai: '3 ans',
+      article: 'Art. 374 C.Travail',
+      description_fr: 'Réclamation de salaires',
+      description_ar: 'المطالبة بالأجور',
+    },
+    licenciement_abusif: {
+      delai: '1 an',
+      article: 'Art. 23 C.Travail',
+      description_fr: 'Contestation licenciement',
+      description_ar: 'الطعن في الطرد',
+    },
+  },
+} as const
+
+/**
+ * Codes juridiques tunisiens de référence
+ */
+export const CODES_TUNISIENS = {
+  COC: {
+    nom_fr: 'Code des Obligations et Contrats',
+    nom_ar: 'مجلة الالتزامات والعقود',
+    date: '1907-06-01',
+    domaines: ['contrats', 'responsabilite', 'obligations', 'paiement', 'prescription'],
+    abreviation: 'COC',
+  },
+  CSP: {
+    nom_fr: 'Code du Statut Personnel',
+    nom_ar: 'مجلة الأحوال الشخصية',
+    date: '1956-08-13',
+    domaines: ['mariage', 'divorce', 'filiation', 'succession', 'garde', 'pension'],
+    abreviation: 'CSP',
+  },
+  CPC: {
+    nom_fr: 'Code de Procédure Civile et Commerciale',
+    nom_ar: 'مجلة المرافعات المدنية والتجارية',
+    date: '1959',
+    domaines: ['procedure', 'competence', 'voies_recours', 'delais', 'execution'],
+    abreviation: 'CPC',
+  },
+  CODE_COMMERCE: {
+    nom_fr: 'Code de Commerce',
+    nom_ar: 'المجلة التجارية',
+    date: '1959',
+    domaines: ['societes', 'faillite', 'effets_commerce', 'bail_commercial', 'cheques'],
+    abreviation: 'C.Com',
+  },
+  CODE_PENAL: {
+    nom_fr: 'Code Pénal',
+    nom_ar: 'المجلة الجزائية',
+    date: '1913',
+    domaines: ['infractions', 'peines', 'responsabilite_penale'],
+    abreviation: 'CP',
+  },
+  CODE_TRAVAIL: {
+    nom_fr: 'Code du Travail',
+    nom_ar: 'مجلة الشغل',
+    date: '1966',
+    domaines: ['contrat_travail', 'licenciement', 'salaires', 'syndicats'],
+    abreviation: 'C.Travail',
+  },
+} as const
+
+/**
+ * Hiérarchie des preuves en droit tunisien
+ */
+export const HIERARCHIE_PREUVES_TUNISIE = {
+  ecrit_officiel: {
+    rang: 1,
+    forceProbante: 'absolue' as const,
+    description_fr: 'Acte authentique (notarié, huissier)',
+    description_ar: 'الحجة الرسمية',
+    exemples: ['Acte notarié', 'Procès-verbal huissier', 'Jugement'],
+  },
+  ecrit_prive: {
+    rang: 2,
+    forceProbante: 'forte' as const,
+    description_fr: 'Acte sous seing privé reconnu',
+    description_ar: 'الكتب الخطي',
+    exemples: ['Contrat signé', 'Reconnaissance de dette', 'Échanges écrits signés'],
+  },
+  aveu: {
+    rang: 3,
+    forceProbante: 'forte' as const,
+    description_fr: 'Aveu judiciaire ou extrajudiciaire',
+    description_ar: 'الإقرار',
+    exemples: ['Déclaration à l\'audience', 'Courrier d\'aveu'],
+  },
+  expertise: {
+    rang: 4,
+    forceProbante: 'moyenne' as const,
+    description_fr: 'Rapport d\'expert judiciaire',
+    description_ar: 'الخبرة',
+    exemples: ['Expertise médicale', 'Expertise comptable', 'Expertise technique'],
+  },
+  temoignage: {
+    rang: 5,
+    forceProbante: 'moyenne' as const,
+    description_fr: 'Témoignage (2 hommes ou 1 homme + 2 femmes en matière civile)',
+    description_ar: 'الشهادة',
+    exemples: ['Attestation de témoin', 'Témoignage à l\'audience'],
+  },
+  presomption: {
+    rang: 6,
+    forceProbante: 'faible' as const,
+    description_fr: 'Présomptions et indices',
+    description_ar: 'القرائن',
+    exemples: ['Faisceau d\'indices', 'Comportement révélateur'],
+  },
+  serment: {
+    rang: 7,
+    forceProbante: 'faible' as const,
+    description_fr: 'Serment (décisoire ou supplétoire)',
+    description_ar: 'اليمين',
+    exemples: ['Serment judiciaire'],
+  },
+} as const
 
 // =============================================================================
 // CALCULS JURIDIQUES TUNISIENS
@@ -934,14 +1349,16 @@ async function enrichirAvecKnowledgeBase(
   if (!searchTerms) return structure
 
   try {
+    const startTime = Date.now()
     const kbResults = await searchKnowledgeBase(searchTerms, {
       limit: 5,
       threshold: 0.6,
     })
+    const searchTimeMs = Date.now() - startTime
 
     if (kbResults.length > 0) {
       // Ajouter les références trouvées
-      const newReferences: LegalReference[] = kbResults.map((result) => ({
+      const newReferences: LegalReference[] = kbResults.map((result, index) => ({
         type: mapCategoryToRefType(result.category),
         titre: result.title,
         article: null,
@@ -949,6 +1366,11 @@ async function enrichirAvecKnowledgeBase(
           result.chunkContent.substring(0, 200) +
           (result.chunkContent.length > 200 ? '...' : ''),
         pertinence: Math.round(result.similarity * 100),
+        metadata: {
+          chunkPosition: result.chunkIndex,
+          source: 'KB',
+          documentId: result.documentId,
+        },
       }))
 
       // Fusionner avec les références existantes, éviter les doublons
@@ -964,6 +1386,28 @@ async function enrichirAvecKnowledgeBase(
         structure.confidence + kbResults.length * 2,
         100
       )
+
+      // Collecter les métriques RAG
+      const scores = kbResults.map((r) => r.similarity)
+      const sourceDistribution: Record<string, number> = {}
+      kbResults.forEach((r) => {
+        const type = mapCategoryToRefType(r.category)
+        sourceDistribution[type] = (sourceDistribution[type] || 0) + 1
+      })
+
+      structure.ragMetrics = {
+        totalFound: kbResults.length,
+        aboveThreshold: kbResults.filter((r) => r.similarity >= 0.6).length,
+        scoreRange: {
+          min: Math.min(...scores),
+          max: Math.max(...scores),
+          avg: scores.reduce((a, b) => a + b, 0) / scores.length,
+        },
+        sourceDistribution,
+        searchTimeMs,
+        provider: 'knowledge-base',
+        cacheHit: false,
+      }
     }
   } catch (error) {
     console.error('Erreur recherche knowledge base:', error)

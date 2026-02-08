@@ -44,8 +44,9 @@
     "cloudStorage": "Stockage Cloud",
     "messaging": "Messagerie",
     "knowledgeBase": "Base de Connaissances",
-    "assistantIA": "Assistant IA",
-    "modeRapide": "Mode Rapide"
+    "assistantIA": "Qadhya Chat",
+    "modeRapide": "Mode Rapide",
+    "consultation": "Consultation"
   },
   "breadcrumbs": {
     "home": "Accueil",
@@ -122,7 +123,7 @@
     "feature1": "Gestion intelligente des dossiers",
     "feature2": "Suivi automatique des délais légaux",
     "feature3": "Facturation simplifiée",
-    "feature4": "Assistant IA juridique intégré",
+    "feature4": "Qadhya Chat juridique intégré",
     "stats": {
       "lawyers": "500+ avocats",
       "lawyersLabel": "nous font confiance",
@@ -797,7 +798,7 @@
     "tnd": "TND"
   },
   "assistantIA": {
-    "title": "Assistant IA Juridique",
+    "title": "Qadhya Chat",
     "subtitle": "Chat conversationnel avec l'assistant IA juridique",
     "newConversation": "Nouvelle conversation",
     "searchConversations": "Rechercher...",
@@ -811,7 +812,7 @@
     "placeholder": "Décrivez votre cas juridique ou posez une question...",
     "enterToSend": "Entrée",
     "disclaimer": "L'IA peut faire des erreurs. Vérifiez les informations importantes.",
-    "welcomeTitle": "Bienvenue sur l'Assistant IA",
+    "welcomeTitle": "Bienvenue sur Qadhya Chat",
     "welcomeMessage": "Posez vos questions juridiques et obtenez des réponses contextualisées basées sur vos documents et la jurisprudence tunisienne.",
     "exampleQuestions": "Exemples de questions :",
     "examples": {
@@ -832,10 +833,23 @@
     "quickMode": "Mode Rapide",
     "viewReferences": "Voir les références",
     "copyConversation": "Copier",
-    "exportConversation": "Exporter"
+    "exportConversation": "Exporter",
+    "advancedSearch": "Recherche",
+    "searchInConversations": "Rechercher dans les conversations",
+    "searchPlaceholder": "Tapez votre recherche...",
+    "role": "Rôle",
+    "all": "Tous",
+    "user": "Vous",
+    "assistant": "Assistant",
+    "from": "Du",
+    "to": "Au",
+    "reset": "Réinitialiser",
+    "resultsFound": "{count} résultat(s) trouvé(s)",
+    "enterSearchTerm": "Entrez au moins 2 caractères pour rechercher",
+    "you": "Vous"
   },
   "assistant": {
-    "title": "Assistant IA Juridique",
+    "title": "Structuration de Dossier",
     "subtitle": "Décrivez votre dossier en langage naturel. L'IA analysera, structurera et proposera une stratégie.",
     "tip": {
       "title": "Conseil",
@@ -953,6 +967,32 @@
       "other": "Autres références"
     },
     "legalAnalysis": {
+      "diagnostic": {
+        "title": "Diagnostic Initial",
+        "clientObjective": "Objectif du Client",
+        "principal": "Principal",
+        "secondary": "Secondaires",
+        "redLine": "Ligne Rouge",
+        "legalFacts": "Faits Juridiques",
+        "legalFactsDesc": "Ce qui peut être prouvé",
+        "interpretations": "Interprétations",
+        "interpretationsDesc": "Hypothèses à vérifier",
+        "feelings": "Ressentis",
+        "feelingsDesc": "Sans valeur juridique",
+        "legalFields": "Champs Juridiques"
+      },
+      "analyseFaits": {
+        "title": "Analyse Factuelle",
+        "decisiveNodes": "Nœuds Décisifs",
+        "critical": "Critique",
+        "important": "Important",
+        "secondary": "Secondaire",
+        "currentProof": "Preuve actuelle",
+        "missingProof": "Preuve manquante",
+        "none": "Aucune",
+        "actors": "Cartographie des Acteurs",
+        "chronology": "Chronologie"
+      },
       "qualification": {
         "title": "Qualification Juridique",
         "actionType": "Type d'action",
@@ -976,6 +1016,25 @@
         "title": "Stratégie de Preuve",
         "description": "En droit tunisien, la preuve écrite est primordiale. Voici les documents à réunir.",
         "essential": "Essentiel"
+      },
+      "strategy": {
+        "title": "Stratégie Globale",
+        "scenarios": "Scénarios Stratégiques",
+        "recommended": "Recommandé",
+        "successRate": "Probabilité de succès",
+        "advantages": "Avantages",
+        "risks": "Risques",
+        "tempo": "Tempo",
+        "planB": "Plan B",
+        "condition": "Condition",
+        "action": "Action"
+      },
+      "argumentation": {
+        "title": "Argumentation",
+        "hierarchizedArguments": "Moyens Hiérarchisés",
+        "anticipatedObjections": "Objections Anticipées",
+        "objection": "Objection adverse",
+        "response": "Réponse préparée"
       },
       "risks": {
         "title": "Évaluation des Risques",
@@ -1099,5 +1158,44 @@
       "arabicPreferred": "Privilégiez les textes en arabe pour une meilleure recherche en langue arabe"
     },
     "byCategory": "Répartition par catégorie"
+  },
+  "consultation": {
+    "title": "Consultation Juridique",
+    "subtitle": "Obtenez un conseil juridique rapide basé sur vos documents et la jurisprudence tunisienne",
+    "inputTitle": "Posez votre question",
+    "inputDescription": "Décrivez votre situation juridique en détail pour obtenir un conseil personnalisé",
+    "questionLabel": "Votre question juridique",
+    "questionPlaceholder": "Décrivez votre situation ou posez votre question juridique...",
+    "contextLabel": "Contexte additionnel",
+    "contextPlaceholder": "Ajoutez des détails supplémentaires si nécessaire...",
+    "dossierLabel": "Lier à un dossier existant",
+    "dossierPlaceholder": "Sélectionner un dossier (optionnel)",
+    "dossierHint": "Le contexte du dossier sera utilisé pour personnaliser la réponse",
+    "noDossier": "Aucun dossier sélectionné",
+    "optional": "optionnel",
+    "examplesTitle": "Exemples de questions :",
+    "exampleQuestion1": "Quels sont les délais de prescription pour une créance commerciale ?",
+    "exampleQuestion2": "Comment calculer la pension alimentaire selon le CSP ?",
+    "exampleQuestion3": "Quelles sont les conditions pour obtenir un référé ?",
+    "reset": "Réinitialiser",
+    "consult": "Consulter",
+    "consulting": "Consultation en cours...",
+    "yourQuestion": "Votre question",
+    "legalAdvice": "Conseil Juridique",
+    "copyAnswer": "Copier la réponse",
+    "references": "Références",
+    "relevance": "pertinence",
+    "showLess": "Voir moins",
+    "showMore": "Voir {count} de plus",
+    "recommendedActions": "Actions Recommandées",
+    "newConsultation": "Nouvelle consultation",
+    "createDossierFromThis": "Créer un dossier",
+    "continueInChat": "Continuer dans le chat",
+    "tipTitle1": "Soyez précis",
+    "tipDescription1": "Plus votre question est détaillée, plus le conseil sera pertinent et adapté à votre situation.",
+    "tipTitle2": "Références juridiques",
+    "tipDescription2": "Les réponses incluent les articles de loi et la jurisprudence tunisienne pertinents.",
+    "tipTitle3": "Dossiers liés",
+    "tipDescription3": "Liez votre question à un dossier existant pour un conseil personnalisé."
   }
 }

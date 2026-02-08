@@ -44,8 +44,9 @@
     "cloudStorage": "التخزين السحابي",
     "messaging": "المراسلة",
     "knowledgeBase": "قاعدة المعرفة",
-    "assistantIA": "المساعد الذكي",
-    "modeRapide": "الوضع السريع"
+    "assistantIA": "دردشة قضية",
+    "modeRapide": "الوضع السريع",
+    "consultation": "استشارة"
   },
   "breadcrumbs": {
     "home": "الرئيسية",
@@ -122,7 +123,7 @@
     "feature1": "إدارة ذكية للملفات",
     "feature2": "متابعة تلقائية للمواعيد القانونية",
     "feature3": "فوترة مبسطة",
-    "feature4": "مساعد ذكاء اصطناعي قانوني مدمج",
+    "feature4": "دردشة قضية القانونية المدمجة",
     "stats": {
       "lawyers": "+500 محامي",
       "lawyersLabel": "يثقون بنا",
@@ -797,7 +798,7 @@
     "tnd": "دينار"
   },
   "assistantIA": {
-    "title": "المساعد القانوني الذكي",
+    "title": "دردشة قضية",
     "subtitle": "محادثة مع المساعد القانوني الذكي",
     "newConversation": "محادثة جديدة",
     "searchConversations": "بحث...",
@@ -811,7 +812,7 @@
     "placeholder": "صف قضيتك القانونية أو اطرح سؤالاً...",
     "enterToSend": "Enter",
     "disclaimer": "قد يرتكب الذكاء الاصطناعي أخطاء. تحقق من المعلومات المهمة.",
-    "welcomeTitle": "مرحباً بك في المساعد الذكي",
+    "welcomeTitle": "مرحباً بك في دردشة قضية",
     "welcomeMessage": "اطرح أسئلتك القانونية واحصل على إجابات مبنية على وثائقك والاجتهاد القضائي التونسي.",
     "exampleQuestions": "أمثلة على الأسئلة:",
     "examples": {
@@ -832,10 +833,23 @@
     "quickMode": "الوضع السريع",
     "viewReferences": "عرض المراجع",
     "copyConversation": "نسخ",
-    "exportConversation": "تصدير"
+    "exportConversation": "تصدير",
+    "advancedSearch": "بحث",
+    "searchInConversations": "البحث في المحادثات",
+    "searchPlaceholder": "اكتب بحثك...",
+    "role": "الدور",
+    "all": "الكل",
+    "user": "أنت",
+    "assistant": "المساعد",
+    "from": "من",
+    "to": "إلى",
+    "reset": "إعادة تعيين",
+    "resultsFound": "تم العثور على {count} نتيجة",
+    "enterSearchTerm": "أدخل حرفين على الأقل للبحث",
+    "you": "أنت"
   },
   "assistant": {
-    "title": "المساعد القانوني الذكي",
+    "title": "هيكلة الملف",
     "subtitle": "صف ملفك بلغة طبيعية. سيقوم الذكاء الاصطناعي بالتحليل والهيكلة واقتراح الاستراتيجية.",
     "tip": {
       "title": "نصيحة",
@@ -953,6 +967,32 @@
       "other": "مراجع أخرى"
     },
     "legalAnalysis": {
+      "diagnostic": {
+        "title": "التشخيص الأولي",
+        "clientObjective": "هدف الموكل",
+        "principal": "الرئيسي",
+        "secondary": "الثانوية",
+        "redLine": "الخط الأحمر",
+        "legalFacts": "الوقائع القانونية",
+        "legalFactsDesc": "ما يمكن إثباته",
+        "interpretations": "التفسيرات",
+        "interpretationsDesc": "فرضيات للتحقق منها",
+        "feelings": "المشاعر",
+        "feelingsDesc": "بدون قيمة قانونية",
+        "legalFields": "المجالات القانونية"
+      },
+      "analyseFaits": {
+        "title": "التحليل الوقائعي",
+        "decisiveNodes": "النقاط الحاسمة",
+        "critical": "حرج",
+        "important": "مهم",
+        "secondary": "ثانوي",
+        "currentProof": "الدليل الحالي",
+        "missingProof": "الدليل المفقود",
+        "none": "لا يوجد",
+        "actors": "خريطة الأطراف",
+        "chronology": "التسلسل الزمني"
+      },
       "qualification": {
         "title": "التكييف القانوني",
         "actionType": "نوع الدعوى",
@@ -976,6 +1016,25 @@
         "title": "استراتيجية الإثبات",
         "description": "في القانون التونسي، الدليل الكتابي هو الأساس. هذه الوثائق الواجب جمعها.",
         "essential": "أساسي"
+      },
+      "strategy": {
+        "title": "الاستراتيجية العامة",
+        "scenarios": "السيناريوهات الاستراتيجية",
+        "recommended": "موصى به",
+        "successRate": "احتمال النجاح",
+        "advantages": "المزايا",
+        "risks": "المخاطر",
+        "tempo": "التوقيت",
+        "planB": "الخطة البديلة",
+        "condition": "الشرط",
+        "action": "الإجراء"
+      },
+      "argumentation": {
+        "title": "بناء الحجة",
+        "hierarchizedArguments": "الحجج المرتبة",
+        "anticipatedObjections": "الاعتراضات المتوقعة",
+        "objection": "اعتراض الخصم",
+        "response": "الرد المعد"
       },
       "risks": {
         "title": "تقييم المخاطر",
@@ -1099,5 +1158,44 @@
       "arabicPreferred": "يُفضل إضافة النصوص العربية للاستفادة من البحث باللغة العربية"
     },
     "byCategory": "التوزيع حسب الفئة"
+  },
+  "consultation": {
+    "title": "استشارة قانونية",
+    "subtitle": "احصل على استشارة قانونية سريعة بناءً على وثائقك والاجتهاد القضائي التونسي",
+    "inputTitle": "اطرح سؤالك",
+    "inputDescription": "صف وضعيتك القانونية بالتفصيل للحصول على استشارة مخصصة",
+    "questionLabel": "سؤالك القانوني",
+    "questionPlaceholder": "صف وضعيتك أو اطرح سؤالك القانوني...",
+    "contextLabel": "سياق إضافي",
+    "contextPlaceholder": "أضف تفاصيل إضافية إذا لزم الأمر...",
+    "dossierLabel": "ربط بملف موجود",
+    "dossierPlaceholder": "اختر ملفاً (اختياري)",
+    "dossierHint": "سيتم استخدام سياق الملف لتخصيص الإجابة",
+    "noDossier": "لم يتم اختيار ملف",
+    "optional": "اختياري",
+    "examplesTitle": "أمثلة على الأسئلة:",
+    "exampleQuestion1": "ما هي آجال التقادم للديون التجارية؟",
+    "exampleQuestion2": "كيف يتم احتساب النفقة حسب مجلة الأحوال الشخصية؟",
+    "exampleQuestion3": "ما هي شروط الحصول على الاستعجالي؟",
+    "reset": "إعادة تعيين",
+    "consult": "استشارة",
+    "consulting": "جاري الاستشارة...",
+    "yourQuestion": "سؤالك",
+    "legalAdvice": "الاستشارة القانونية",
+    "copyAnswer": "نسخ الإجابة",
+    "references": "المراجع",
+    "relevance": "صلة",
+    "showLess": "عرض أقل",
+    "showMore": "عرض {count} إضافية",
+    "recommendedActions": "الإجراءات الموصى بها",
+    "newConsultation": "استشارة جديدة",
+    "createDossierFromThis": "إنشاء ملف",
+    "continueInChat": "متابعة في الدردشة",
+    "tipTitle1": "كن دقيقاً",
+    "tipDescription1": "كلما كان سؤالك مفصلاً أكثر، كانت الاستشارة أكثر صلة ومناسبة لوضعيتك.",
+    "tipTitle2": "المراجع القانونية",
+    "tipDescription2": "تتضمن الإجابات مواد القانون والاجتهاد القضائي التونسي ذات الصلة.",
+    "tipTitle3": "الملفات المرتبطة",
+    "tipDescription3": "اربط سؤالك بملف موجود للحصول على استشارة مخصصة."
   }
 }
