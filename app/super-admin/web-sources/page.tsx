@@ -88,9 +88,58 @@ async function getWebSourcesData(params: {
     [...queryParams, limit, offset]
   )
 
-  // Statistiques globales
-  const statsResult = await db.query('SELECT * FROM get_web_sources_stats()')
-  const stats = statsResult.rows[0]
+  // Statistiques globales - avec fallback si la fonction n'existe pas
+  let stats = {
+    total_sources: 0,
+    active_sources: 0,
+    healthy_sources: 0,
+    failing_sources: 0,
+    total_pages: 0,
+    indexed_pages: 0,
+    pending_jobs: 0,
+    running_jobs: 0,
+  }
+
+  try {
+    const statsResult = await db.query('SELECT * FROM get_web_sources_stats()')
+    if (statsResult.rows[0]) {
+      stats = statsResult.rows[0]
+    }
+  } catch (error) {
+    // Fallback: calculer les stats manuellement si la fonction n'existe pas
+    console.warn('get_web_sources_stats() non disponible, calcul manuel des stats')
+    try {
+      const [sourcesStats, pagesStats, jobsStats] = await Promise.all([
+        db.query(`
+          SELECT
+            COUNT(*) as total_sources,
+            COUNT(*) FILTER (WHERE is_active = true) as active_sources,
+            COUNT(*) FILTER (WHERE health_status = 'healthy') as healthy_sources,
+            COUNT(*) FILTER (WHERE health_status = 'failing') as failing_sources
+          FROM web_sources
+        `),
+        db.query(`
+          SELECT
+            COUNT(*) as total_pages,
+            COUNT(*) FILTER (WHERE is_indexed = true) as indexed_pages
+          FROM web_pages
+        `),
+        db.query(`
+          SELECT
+            COUNT(*) FILTER (WHERE status = 'pending') as pending_jobs,
+            COUNT(*) FILTER (WHERE status = 'running') as running_jobs
+          FROM web_crawl_jobs
+        `),
+      ])
+      stats = {
+        ...sourcesStats.rows[0],
+        ...pagesStats.rows[0],
+        ...jobsStats.rows[0],
+      }
+    } catch {
+      // Garder les valeurs par défaut
+    }
+  }
 
   // Sérialiser les dates PostgreSQL pour les passer aux composants client
   const serializedSources = sourcesResult.rows.map(source => ({

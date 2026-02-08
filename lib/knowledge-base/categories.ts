@@ -32,12 +32,24 @@ export type LegislationSubcategory =
 
 export type JurisprudenceSubcategory =
   | 'cassation'
+  // Cours d'appel (11 total)
   | 'appel_tunis'
+  | 'appel_nabeul'
+  | 'appel_bizerte'
+  | 'appel_kef'
   | 'appel_sousse'
+  | 'appel_monastir'
+  | 'appel_kairouan'
   | 'appel_sfax'
+  | 'appel_gafsa'
+  | 'appel_gabes'
+  | 'appel_medenine'
+  // Autres tribunaux
   | 'premiere_instance'
   | 'tribunal_immobilier'
   | 'tribunal_administratif'
+  | 'tribunal_commerce'
+  | 'tribunal_travail'
   | 'conseil_constitutionnel';
 
 export type DoctrineSubcategory =
@@ -135,12 +147,30 @@ export const KNOWLEDGE_CATEGORIES: CategoryInfo[] = [
     description: 'Décisions de justice tunisiennes',
     subcategories: [
       { id: 'cassation', labelFr: 'Cour de Cassation', labelAr: 'محكمة التعقيب' },
-      { id: 'appel_tunis', labelFr: "Cour d'Appel de Tunis", labelAr: 'محكمة الاستئناف بتونس' },
-      { id: 'appel_sousse', labelFr: "Cour d'Appel de Sousse", labelAr: 'محكمة الاستئناف بسوسة' },
+
+      // Cours d'appel (ordre alphabétique ville)
+      { id: 'appel_bizerte', labelFr: "Cour d'Appel de Bizerte", labelAr: 'محكمة الاستئناف ببنزرت' },
+      { id: 'appel_gabes', labelFr: "Cour d'Appel de Gabès", labelAr: 'محكمة الاستئناف بقابس' },
+      { id: 'appel_gafsa', labelFr: "Cour d'Appel de Gafsa", labelAr: 'محكمة الاستئناف بقفصة' },
+      { id: 'appel_kairouan', labelFr: "Cour d'Appel de Kairouan", labelAr: 'محكمة الاستئناف بالقيروان' },
+      { id: 'appel_kef', labelFr: "Cour d'Appel du Kef", labelAr: 'محكمة الاستئناف بالكاف' },
+      { id: 'appel_medenine', labelFr: "Cour d'Appel de Médenine", labelAr: 'محكمة الاستئناف بمدنين' },
+      { id: 'appel_monastir', labelFr: "Cour d'Appel de Monastir", labelAr: 'محكمة الاستئناف بالمنستير' },
+      { id: 'appel_nabeul', labelFr: "Cour d'Appel de Nabeul", labelAr: 'محكمة الاستئناف بنابل' },
       { id: 'appel_sfax', labelFr: "Cour d'Appel de Sfax", labelAr: 'محكمة الاستئناف بصفاقس' },
+      { id: 'appel_sousse', labelFr: "Cour d'Appel de Sousse", labelAr: 'محكمة الاستئناف بسوسة' },
+      { id: 'appel_tunis', labelFr: "Cour d'Appel de Tunis", labelAr: 'محكمة الاستئناف بتونس' },
+
+      // Tribunaux de première instance
       { id: 'premiere_instance', labelFr: 'Première Instance', labelAr: 'المحكمة الابتدائية' },
+
+      // Juridictions spécialisées
       { id: 'tribunal_immobilier', labelFr: 'Tribunal Immobilier', labelAr: 'المحكمة العقارية' },
       { id: 'tribunal_administratif', labelFr: 'Tribunal Administratif', labelAr: 'المحكمة الإدارية' },
+      { id: 'tribunal_commerce', labelFr: 'Tribunal de Commerce', labelAr: 'المحكمة التجارية' },
+      { id: 'tribunal_travail', labelFr: 'Tribunal du Travail', labelAr: 'محكمة الشغل' },
+
+      // Haute juridiction
       { id: 'conseil_constitutionnel', labelFr: 'Conseil Constitutionnel', labelAr: 'المجلس الدستوري' },
     ],
   },

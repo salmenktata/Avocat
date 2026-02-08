@@ -5,6 +5,7 @@ import { BrevoTestButton } from '@/components/super-admin/settings/BrevoTestButt
 import { DailyDigestStatus } from '@/components/super-admin/settings/DailyDigestStatus'
 import { ApiKeysCard } from '@/components/super-admin/settings/ApiKeysCard'
 import { LLMConfigEditor } from '@/components/super-admin/settings/LLMConfigEditor'
+import { PurgeRAGCard } from '@/components/super-admin/settings/PurgeRAGCard'
 import { getConfigsByCategory } from '@/lib/config/platform-config'
 
 export default async function SettingsPage() {
@@ -276,6 +277,9 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Zone Dangereuse - Purge RAG */}
+      <PurgeRAGCard />
     </div>
   )
 }

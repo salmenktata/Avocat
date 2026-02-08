@@ -17,6 +17,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Qadhya - Gestion de Cabinet Juridique',
   description: 'Qadhya - Plateforme SaaS pour la gestion de cabinet juridique en Tunisie',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export const viewport: Viewport = {
