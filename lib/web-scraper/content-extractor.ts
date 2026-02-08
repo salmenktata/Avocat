@@ -8,6 +8,7 @@ import type { CheerioAPI, Cheerio } from 'cheerio'
 import type { Element } from 'domhandler'
 import type { CssSelectors, LinkedFile, ScrapedContent, LegalContext, SiteStructure, ExtractionConfig, StructuredLegalContent } from './types'
 import { TUNISIAN_CODES } from './types'
+import { normalizeArabicText } from './arabic-text-utils'
 
 /**
  * Configuration d'extraction par défaut pour 9anoun.tn
@@ -502,6 +503,37 @@ const IFRAME_DOC_PATTERNS = [
 ]
 
 /**
+ * Détecte et convertit l'encodage non-UTF-8
+ * Certains vieux sites juridiques utilisent windows-1256 ou iso-8859-6
+ */
+function decodeHtmlEncoding(html: string): string {
+  // Détecter l'encodage via <meta charset> ou <meta http-equiv="Content-Type">
+  const charsetMatch = html.match(/<meta[^>]*charset=["']?([^"';\s>]+)/i)
+    || html.match(/<meta[^>]*content=["'][^"']*charset=([^"';\s]+)/i)
+
+  if (charsetMatch) {
+    const charset = charsetMatch[1].toLowerCase().trim()
+    // Si déjà UTF-8, pas besoin de conversion
+    if (charset === 'utf-8' || charset === 'utf8') return html
+
+    // Tenter la conversion pour les encodages arabes courants
+    const supportedEncodings = ['windows-1256', 'iso-8859-6', 'cp1256']
+    if (supportedEncodings.includes(charset)) {
+      try {
+        const decoder = new TextDecoder(charset)
+        // Convertir le HTML (string) en bytes puis décoder
+        const bytes = Buffer.from(html, 'binary')
+        return decoder.decode(bytes)
+      } catch {
+        // Échec de conversion, retourner tel quel
+      }
+    }
+  }
+
+  return html
+}
+
+/**
  * Extrait le contenu principal d'une page HTML
  */
 export function extractContent(
@@ -509,7 +541,9 @@ export function extractContent(
   baseUrl: string,
   customSelectors?: CssSelectors
 ): ScrapedContent {
-  const $ = cheerio.load(html)
+  // C2. Détection et conversion d'encodage non-UTF-8
+  const decodedHtml = decodeHtmlEncoding(html)
+  const $ = cheerio.load(decodedHtml)
   const url = new URL(baseUrl)
 
   // Supprimer les éléments indésirables
@@ -1195,9 +1229,33 @@ export function extractStructuredLegalContent(
 }
 
 /**
+ * Convertit les tableaux HTML en texte structuré pipe-delimited
+ * Les textes juridiques contiennent souvent des tableaux (barèmes, juridictions)
+ */
+function convertTablesToText(element: Cheerio<Element>): void {
+  const $ = cheerio.load(element.html() || '')
+  $('table').each((_, table) => {
+    const rows: string[] = []
+    $(table).find('tr').each((_, tr) => {
+      const cells: string[] = []
+      $(tr).find('th, td').each((_, cell) => { cells.push($(cell).text().trim()) })
+      if (cells.length) rows.push(cells.join(' | '))
+    })
+    $(table).replaceWith('\n' + rows.join('\n') + '\n')
+  })
+  // Réécrire le HTML modifié dans l'élément
+  const updatedHtml = $.html()
+  const parent$ = cheerio.load('<div>' + updatedHtml + '</div>')
+  element.html(parent$('div').html() || '')
+}
+
+/**
  * Extrait le texte propre d'un élément avec configuration personnalisée
  */
 function extractCleanText(element: Cheerio<Element>, config?: ExtractionConfig): string {
+  // C1. Convertir les tableaux en texte structuré avant le stripping HTML
+  convertTablesToText(element)
+
   // Remplacer les balises de bloc par des sauts de ligne
   let text = element.html() || ''
 
@@ -1211,6 +1269,9 @@ function extractCleanText(element: Cheerio<Element>, config?: ExtractionConfig):
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    // C3. Entités HTML numériques résiduelles
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
 
   // Supprimer le bruit (textes d'interface, navigation, etc.)
   // 1. Patterns par défaut
@@ -1398,9 +1459,10 @@ export function countWords(text: string): number {
 
 /**
  * Nettoie et normalise le texte unicode
+ * Intègre la normalisation arabe pour les textes juridiques tunisiens
  */
-export function normalizeText(text: string): string {
-  return text
+export function normalizeText(text: string, options?: { stripDiacritics?: boolean }): string {
+  let result = text
     // Normaliser les caractères unicode composés
     .normalize('NFC')
     // Supprimer les caractères de contrôle
@@ -1413,7 +1475,11 @@ export function normalizeText(text: string): string {
     .replace(/[\u2018\u2019\u201B]/g, "'")
     // Normaliser les guillemets
     .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
-    .trim()
+
+  // Normalisation arabe (alef variants, chiffres, espaces, diacritiques optionnels)
+  result = normalizeArabicText(result, options)
+
+  return result.trim()
 }
 
 /**

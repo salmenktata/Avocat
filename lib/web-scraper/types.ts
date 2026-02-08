@@ -210,6 +210,9 @@ export interface WebSource {
   // SSL
   ignoreSSLErrors?: boolean          // Ignorer les certificats SSL invalides (sites gouvernementaux)
 
+  // Auto-indexation des fichiers
+  autoIndexFiles?: boolean           // Parser + indexer les PDFs automatiquement pendant le crawl
+
   // Configuration avancée pour sites dynamiques (Livewire, React, Vue, etc.)
   dynamicConfig: DynamicSiteConfig | null
 
@@ -463,7 +466,9 @@ export interface CreateWebSourceInput {
   ignoreSSLErrors?: boolean
   seedUrls?: string[]
   formCrawlConfig?: FormCrawlConfig
+  autoIndexFiles?: boolean
 }
+
 
 export interface UpdateWebSourceInput {
   name?: string
@@ -491,6 +496,7 @@ export interface UpdateWebSourceInput {
   ignoreSSLErrors?: boolean
   seedUrls?: string[]
   formCrawlConfig?: FormCrawlConfig | null
+  autoIndexFiles?: boolean
 }
 
 // ============================================================================

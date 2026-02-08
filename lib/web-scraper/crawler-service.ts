@@ -425,6 +425,7 @@ async function processPage(
   }
 
   // Sauvegarder ou mettre à jour la page
+  let savedPageId: string
   if (existingPage) {
     await updatePage(existingPage.id, {
       content,
@@ -432,10 +433,11 @@ async function processPage(
       files: downloadedFiles,
       fetchResult: scrapeResult.fetchResult,
     })
+    savedPageId = existingPage.id
     state.pagesChanged++
     console.log(`[Crawler] Page mise à jour: ${url}`)
   } else {
-    await insertPage(sourceId, url, urlHash, depth, {
+    savedPageId = await insertPage(sourceId, url, urlHash, depth, {
       content,
       contentHash,
       files: downloadedFiles,
@@ -443,6 +445,14 @@ async function processPage(
     })
     state.pagesNew++
     console.log(`[Crawler] Nouvelle page: ${url}`)
+  }
+
+  // Auto-indexation des fichiers si activée (D3)
+  const sourceAutoIndex = s.autoIndexFiles ?? s.auto_index_files ?? false
+  if (sourceAutoIndex && savedPageId && downloadedFiles.length > 0) {
+    const sourceCategory = s.category || 'autre'
+    const sName = s.name || 'Unknown'
+    await autoIndexFilesForPage(savedPageId, downloadedFiles, sourceId, sName, sourceCategory)
   }
 
   return { success: true, links: content.links }
@@ -645,7 +655,7 @@ async function getPageByUrlHash(sourceId: string, urlHash: string): Promise<WebP
 }
 
 /**
- * Insère une nouvelle page
+ * Insère une nouvelle page et retourne son ID
  */
 async function insertPage(
   sourceId: string,
@@ -658,7 +668,7 @@ async function insertPage(
     files: LinkedFile[]
     fetchResult?: { etag?: string; lastModified?: Date | null }
   }
-): Promise<void> {
+): Promise<string> {
   const { content, contentHash, files, fetchResult } = data
 
   const insertResult = await db.query(
@@ -698,15 +708,19 @@ async function insertPage(
     ]
   )
 
+  const pageId = insertResult.rows[0]?.id as string
+
   // Créer la version initiale
-  if (insertResult.rows[0]?.id) {
+  if (pageId) {
     try {
       const { createWebPageVersion } = await import('./source-service')
-      await createWebPageVersion(insertResult.rows[0].id, 'initial_crawl')
+      await createWebPageVersion(pageId, 'initial_crawl')
     } catch (err) {
       console.error('[Crawler] Erreur création version initiale:', err)
     }
   }
+
+  return pageId
 }
 
 /**
@@ -856,6 +870,43 @@ function mapRowToWebPage(row: Record<string, unknown>): WebPage {
     freshnessScore: row.freshness_score as number,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
+  }
+}
+
+// =============================================================================
+// AUTO-INDEXATION DES FICHIERS (D3)
+// =============================================================================
+
+/**
+ * Indexe automatiquement les fichiers téléchargés d'une page
+ * Ne bloque JAMAIS le crawl en cas d'erreur
+ */
+async function autoIndexFilesForPage(
+  pageId: string,
+  files: LinkedFile[],
+  sourceId: string,
+  sourceName: string,
+  category: string
+): Promise<void> {
+  const downloadedFiles = files.filter(f => f.downloaded && f.minioPath)
+  if (downloadedFiles.length === 0) return
+
+  try {
+    const { indexFile } = await import('./file-indexer-service')
+    for (const file of downloadedFiles) {
+      try {
+        const result = await indexFile(file, pageId, sourceId, sourceName, category)
+        if (result.success) {
+          console.log(`[Crawler] Auto-indexé: ${file.filename} (${result.chunksCreated} chunks)`)
+        } else {
+          console.warn(`[Crawler] Échec auto-indexation ${file.filename}: ${result.error}`)
+        }
+      } catch (err) {
+        console.error(`[Crawler] Erreur auto-indexation ${file.filename}:`, err)
+      }
+    }
+  } catch (err) {
+    console.error('[Crawler] Erreur import file-indexer-service:', err)
   }
 }
 

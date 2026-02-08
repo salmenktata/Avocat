@@ -35,12 +35,18 @@ async function getPDFParse() {
 const OCR_CONFIG = {
   // Seuil minimum de caractères pour considérer qu'un PDF a du texte extractible
   MIN_TEXT_THRESHOLD: 50,
+  // Seuil minimum de caractères par page (détecte les PDFs avec peu de texte réparti)
+  MIN_CHARS_PER_PAGE: 100,
   // Nombre maximum de pages à traiter avec OCR (performance)
   MAX_OCR_PAGES: 20,
   // Langues supportées pour l'OCR (arabe + français)
   LANGUAGES: 'ara+fra',
-  // Résolution DPI pour la conversion PDF -> image (scale factor for pdf-to-img)
-  SCALE: 2.0,
+  // Scale factor pour pdf-to-img (3.0 ≈ 300 DPI, meilleur pour l'arabe)
+  SCALE: 3.0,
+  // Seuil minimum de confiance OCR (0-100)
+  MIN_OCR_CONFIDENCE: 40,
+  // Nombre maximum d'utilisations du worker avant recyclage
+  MAX_WORKER_USES: 50,
 }
 
 // Modules chargés dynamiquement pour éviter les erreurs de build
@@ -84,6 +90,7 @@ export interface ParsedFile {
     wordCount: number
     ocrApplied?: boolean
     ocrPagesProcessed?: number
+    ocrConfidence?: number
   }
   error?: string
 }
@@ -114,15 +121,18 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
     const info = infoResult.info
     const pageCount = textResult.total || infoResult.total || 0
 
-    // Vérifier si le PDF nécessite l'OCR (texte insuffisant)
+    // Vérifier si le PDF nécessite l'OCR (texte insuffisant ou trop peu par page)
+    const avgCharsPerPage = pageCount > 0 ? text.length / pageCount : text.length
     const needsOcr = text.length < OCR_CONFIG.MIN_TEXT_THRESHOLD
+      || (pageCount > 0 && avgCharsPerPage < OCR_CONFIG.MIN_CHARS_PER_PAGE)
 
     let ocrApplied = false
     let ocrPagesProcessed = 0
+    let ocrConfidence: number | undefined
 
     if (needsOcr) {
       console.log(
-        `[FileParser] PDF avec peu de texte (${text.length} chars), application de l'OCR...`
+        `[FileParser] PDF avec peu de texte (${text.length} chars, ${avgCharsPerPage.toFixed(0)} chars/page), application de l'OCR...`
       )
 
       try {
@@ -132,13 +142,13 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
           wordCount = countWords(text)
           ocrApplied = true
           ocrPagesProcessed = ocrResult.pagesProcessed
+          ocrConfidence = ocrResult.avgConfidence
           console.log(
-            `[FileParser] OCR terminé: ${ocrPagesProcessed} pages, ${wordCount} mots extraits`
+            `[FileParser] OCR terminé: ${ocrPagesProcessed} pages, ${wordCount} mots, confiance: ${ocrConfidence?.toFixed(1)}%`
           )
         }
       } catch (ocrError) {
         console.error('[FileParser] Erreur OCR (fallback au texte original):', ocrError)
-        // On continue avec le texte original (même vide)
       }
     }
 
@@ -155,6 +165,7 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
         wordCount,
         ocrApplied,
         ocrPagesProcessed: ocrApplied ? ocrPagesProcessed : undefined,
+        ocrConfidence: ocrApplied ? ocrConfidence : undefined,
       },
     }
   } catch (error) {
@@ -172,86 +183,130 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
 // OCR POUR PDFS SCANNÉS
 // =============================================================================
 
+// =============================================================================
+// POOL WORKER TESSERACT (A6)
+// =============================================================================
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let tesseractWorker: any = null
+let workerUseCount = 0
+
+/**
+ * Obtient ou crée un worker Tesseract réutilisable
+ * Le worker est recyclé après MAX_WORKER_USES utilisations
+ */
+async function getOrCreateWorker() {
+  if (tesseractWorker && workerUseCount < OCR_CONFIG.MAX_WORKER_USES) {
+    workerUseCount++
+    return tesseractWorker
+  }
+
+  // Terminer l'ancien worker si existant
+  if (tesseractWorker) {
+    try { await tesseractWorker.terminate() } catch { /* ignore */ }
+  }
+
+  const Tesseract = await loadTesseract()
+  tesseractWorker = await Tesseract.createWorker(OCR_CONFIG.LANGUAGES, 1)
+  workerUseCount = 1
+  return tesseractWorker
+}
+
+/**
+ * Termine le worker Tesseract (pour nettoyage en fin de process)
+ */
+export async function terminateOcrWorker(): Promise<void> {
+  if (tesseractWorker) {
+    try { await tesseractWorker.terminate() } catch { /* ignore */ }
+    tesseractWorker = null
+    workerUseCount = 0
+  }
+}
+
+// =============================================================================
+// PRÉTRAITEMENT D'IMAGE (A2)
+// =============================================================================
+
+/**
+ * Prétraite une image pour améliorer la qualité OCR
+ * Optimisé pour le texte arabe (script connecté, ligatures)
+ */
+async function preprocessImageForOcr(imageBuffer: Buffer): Promise<Buffer> {
+  const sharp = (await import('sharp')).default
+  return sharp(imageBuffer)
+    .greyscale()
+    .normalize()
+    .sharpen({ sigma: 1.5 })
+    .threshold(128)
+    .png()
+    .toBuffer()
+}
+
+// =============================================================================
+// EXTRACTION OCR (A1, A4, A5)
+// =============================================================================
+
 /**
  * Extrait le texte d'un PDF scanné en utilisant l'OCR
- * Utilise pdftoppm (poppler) pour convertir en images, puis Tesseract pour l'OCR
+ * Utilise pdf-to-img pour convertir en images + sharp pour prétraitement + Tesseract pour l'OCR
  */
 async function extractTextWithOcr(
   buffer: Buffer,
   totalPages: number
-): Promise<{ text: string; pagesProcessed: number }> {
+): Promise<{ text: string; pagesProcessed: number; avgConfidence: number }> {
   const pagesToProcess = Math.min(totalPages || OCR_CONFIG.MAX_OCR_PAGES, OCR_CONFIG.MAX_OCR_PAGES)
   const textParts: string[] = []
+  const confidences: number[] = []
 
   console.log(`[FileParser] OCR: traitement de ${pagesToProcess} pages (max: ${OCR_CONFIG.MAX_OCR_PAGES})`)
 
-  // Imports dynamiques
-  const { execSync } = await import('child_process')
-  const fs = await import('fs')
-  const path = await import('path')
-  const os = await import('os')
-  const Tesseract = await loadTesseract()
+  const { cleanArabicOcrText } = await import('./arabic-text-utils')
+  const { pdf } = await loadPdfToImg()
 
-  // Créer un dossier temporaire
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ocr-'))
-  const pdfPath = path.join(tmpDir, 'input.pdf')
+  // Obtenir le worker Tesseract (réutilisable)
+  const worker = await getOrCreateWorker()
 
-  try {
-    // Écrire le PDF dans un fichier temporaire
-    fs.writeFileSync(pdfPath, buffer)
+  let pageIndex = 0
+  const doc = await pdf(buffer, { scale: OCR_CONFIG.SCALE })
 
-    // Convertir le PDF en images PNG avec pdftoppm
-    const outputPrefix = path.join(tmpDir, 'page')
-    execSync(`pdftoppm -png -r 200 -l ${pagesToProcess} "${pdfPath}" "${outputPrefix}"`, {
-      timeout: 60000,
-    })
-
-    // Lister les images générées
-    const images = fs.readdirSync(tmpDir)
-      .filter((f: string) => f.startsWith('page') && f.endsWith('.png'))
-      .sort()
-      .slice(0, pagesToProcess)
-
-    console.log(`[FileParser] OCR: ${images.length} images générées`)
-
-    // Créer un worker Tesseract
-    const worker = await Tesseract.createWorker(OCR_CONFIG.LANGUAGES, 1)
+  for await (const pageImage of doc) {
+    if (pageIndex >= pagesToProcess) break
 
     try {
-      for (let i = 0; i < images.length; i++) {
-        const imagePath = path.join(tmpDir, images[i])
+      // Prétraiter l'image avec sharp (A2)
+      const preprocessed = await preprocessImageForOcr(Buffer.from(pageImage))
 
-        try {
-          const imageBuffer = fs.readFileSync(imagePath)
-          const { data } = await worker.recognize(imageBuffer)
-          const pageText = cleanText(data.text)
+      // OCR avec Tesseract
+      const { data } = await worker.recognize(preprocessed)
 
-          if (pageText.length > 0) {
-            textParts.push(`--- Page ${i + 1} ---\n${pageText}`)
-          }
-        } catch (pageError) {
-          console.error(`[FileParser] Erreur OCR page ${i + 1}:`, pageError)
-        }
+      // Vérifier la confiance (A4)
+      if (data.confidence < OCR_CONFIG.MIN_OCR_CONFIDENCE) {
+        console.warn(`[FileParser] OCR page ${pageIndex + 1} faible confiance: ${data.confidence}%`)
       }
-    } finally {
-      await worker.terminate()
-    }
-  } finally {
-    // Nettoyer les fichiers temporaires
-    try {
-      const files = fs.readdirSync(tmpDir)
-      for (const file of files) {
-        fs.unlinkSync(path.join(tmpDir, file))
+      confidences.push(data.confidence)
+
+      // Nettoyage du texte : cleanText de base + nettoyage post-OCR arabe (A5)
+      let pageText = cleanText(data.text)
+      pageText = cleanArabicOcrText(pageText)
+
+      if (pageText.length > 0) {
+        textParts.push(`--- Page ${pageIndex + 1} ---\n${pageText}`)
       }
-      fs.rmdirSync(tmpDir)
-    } catch {
-      // Ignorer les erreurs de nettoyage
+    } catch (pageError) {
+      console.error(`[FileParser] Erreur OCR page ${pageIndex + 1}:`, pageError)
     }
+
+    pageIndex++
   }
+
+  const avgConfidence = confidences.length > 0
+    ? confidences.reduce((a, b) => a + b, 0) / confidences.length
+    : 0
 
   return {
     text: textParts.join('\n\n'),
     pagesProcessed: textParts.length,
+    avgConfidence,
   }
 }
 

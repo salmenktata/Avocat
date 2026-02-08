@@ -134,7 +134,7 @@ export async function createWebSource(
       sitemap_url, rss_feed_url, use_sitemap, download_files,
       respect_robots_txt, rate_limit_ms, custom_headers,
       created_by, next_crawl_at, ignore_ssl_errors,
-      seed_urls, form_crawl_config
+      seed_urls, form_crawl_config, auto_index_files
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7::interval, $8, $9, $10,
@@ -142,7 +142,7 @@ export async function createWebSource(
       $14, $15, $16, $17,
       $18, $19, $20,
       $21, NOW(), $22,
-      $23, $24
+      $23, $24, $25
     )
     RETURNING *`,
     [
@@ -170,6 +170,7 @@ export async function createWebSource(
       input.ignoreSSLErrors || false,
       input.seedUrls || [],
       input.formCrawlConfig ? JSON.stringify(input.formCrawlConfig) : null,
+      input.autoIndexFiles || false,
     ]
   )
 
@@ -300,6 +301,11 @@ export async function updateWebSource(
   if (input.formCrawlConfig !== undefined) {
     setClauses.push(`form_crawl_config = $${paramIndex++}`)
     params.push(JSON.stringify(input.formCrawlConfig) as unknown as string)
+  }
+
+  if (input.autoIndexFiles !== undefined) {
+    setClauses.push(`auto_index_files = $${paramIndex++}`)
+    params.push(input.autoIndexFiles)
   }
 
   if (setClauses.length === 0) {
@@ -666,6 +672,7 @@ function mapRowToWebSource(row: Record<string, unknown>): WebSource {
     avgPagesPerCrawl: row.avg_pages_per_crawl as number,
     avgCrawlDurationMs: row.avg_crawl_duration_ms as number,
     ignoreSSLErrors: (row.ignore_ssl_errors as boolean) || false,
+    autoIndexFiles: (row.auto_index_files as boolean) || false,
     createdBy: row.created_by as string | null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
