@@ -1,15 +1,24 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { query } from '@/lib/db/postgres'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
-import { KnowledgeBaseUpload } from '@/components/super-admin/knowledge-base/KnowledgeBaseUpload'
-import { KnowledgeBaseList } from '@/components/super-admin/knowledge-base/KnowledgeBaseList'
-import { SimpleCategorySelect } from '@/components/super-admin/knowledge-base/CategorySelector'
 import { getCategoryLabel } from '@/lib/knowledge-base/categories'
+
+// Dynamic imports pour réduire le bundle initial
+const KnowledgeBaseUpload = dynamic(
+  () => import('@/components/super-admin/knowledge-base/KnowledgeBaseUpload').then(m => ({ default: m.KnowledgeBaseUpload })),
+  { loading: () => <div className="h-32 bg-slate-800 animate-pulse rounded-lg" /> }
+)
+
+const KnowledgeBaseList = dynamic(
+  () => import('@/components/super-admin/knowledge-base/KnowledgeBaseList').then(m => ({ default: m.KnowledgeBaseList })),
+  { loading: () => <div className="h-64 bg-slate-800 animate-pulse rounded-lg" /> }
+)
 
 interface PageProps {
   searchParams: Promise<{

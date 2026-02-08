@@ -47,6 +47,16 @@ export async function middleware(request: NextRequest) {
   try {
     const { payload } = await jwtVerify(token, SECRET_KEY)
     const tokenPayload = payload as unknown as TokenPayload
+
+    // Valider la structure du token
+    if (!tokenPayload?.user?.id || !tokenPayload?.user?.email) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('error', 'invalid_token')
+      const response = NextResponse.redirect(loginUrl)
+      response.cookies.delete(COOKIE_NAME)
+      return response
+    }
+
     const user = tokenPayload.user
 
     // Vérifier le status de l'utilisateur

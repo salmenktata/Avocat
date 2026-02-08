@@ -165,7 +165,7 @@ export async function POST(
       `SELECT COUNT(*) as count FROM chat_messages WHERE conversation_id = $1`,
       [activeConversationId]
     )
-    const msgCount = parseInt(messageCount.rows[0].count)
+    const msgCount = parseInt(messageCount.rows[0]?.count || '0', 10) || 0
 
     if (msgCount <= 2) {
       const title = await generateConversationTitle(activeConversationId)
@@ -390,7 +390,7 @@ async function handleStreamingResponse(
           `SELECT COUNT(*) as count FROM chat_messages WHERE conversation_id = $1`,
           [conversationId]
         )
-        const msgCount = parseInt(messageCount.rows[0].count)
+        const msgCount = parseInt(messageCount.rows[0]?.count || '0', 10) || 0
 
         if (msgCount <= 2) {
           const title = await generateConversationTitle(conversationId)

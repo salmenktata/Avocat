@@ -6,6 +6,9 @@
  */
 
 import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('DB')
 
 // Pool de connexions singleton
 let pool: Pool | null = null
@@ -29,13 +32,13 @@ export function getPool(): Pool {
 
     // Gestion des erreurs du pool
     pool.on('error', (err) => {
-      console.error('Erreur inattendue du pool PostgreSQL:', err)
+      log.error('Erreur inattendue du pool PostgreSQL:', err)
     })
 
     // Log pour debug (désactiver en production)
     if (process.env.NODE_ENV !== 'production') {
       pool.on('connect', () => {
-        console.log('✅ Nouvelle connexion PostgreSQL établie')
+        log.debug('Nouvelle connexion PostgreSQL établie')
       })
     }
   }
@@ -62,14 +65,14 @@ export async function query<T extends QueryResultRow = any>(
     // Log performance (désactiver en production)
     if (process.env.NODE_ENV !== 'production') {
       const duration = Date.now() - start
-      console.log('⚡ Requête exécutée en', duration, 'ms:', text.substring(0, 100))
+      log.debug(`Requête exécutée en ${duration}ms: ${text.substring(0, 80)}`)
     }
 
     return result
   } catch (error) {
-    console.error('❌ Erreur requête PostgreSQL:', error)
-    console.error('Requête:', text)
-    console.error('Params:', params)
+    log.error('Erreur requête PostgreSQL:', error)
+    log.error(`Requête: ${text}`)
+    log.error('Params:', params)
     throw error
   }
 }
@@ -131,7 +134,7 @@ export async function closePool(): Promise<void> {
   if (pool) {
     await pool.end()
     pool = null
-    console.log('✅ Pool PostgreSQL fermé')
+    log.info('Pool PostgreSQL fermé')
   }
 }
 
@@ -144,7 +147,7 @@ export async function healthCheck(): Promise<boolean> {
     const result = await query('SELECT 1 as health')
     return result.rows[0]?.health === 1
   } catch (error) {
-    console.error('❌ Health check PostgreSQL échoué:', error)
+    log.error('Health check PostgreSQL échoué:', error)
     return false
   }
 }

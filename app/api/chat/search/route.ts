@@ -30,8 +30,12 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo')
     const role = searchParams.get('role') // 'user' | 'assistant' | null
     const conversationId = searchParams.get('conversationId')
-    const limit = parseInt(searchParams.get('limit') || '20', 10)
-    const offset = parseInt(searchParams.get('offset') || '0', 10)
+
+    // Validation et sanitization des paramètres de pagination
+    const rawLimit = parseInt(searchParams.get('limit') || '20', 10)
+    const rawOffset = parseInt(searchParams.get('offset') || '0', 10)
+    const limit = Math.max(1, Math.min(isNaN(rawLimit) ? 20 : rawLimit, 100)) // Entre 1 et 100
+    const offset = Math.max(0, isNaN(rawOffset) ? 0 : rawOffset) // Minimum 0
 
     if (!query || query.length < 2) {
       return NextResponse.json({
