@@ -147,6 +147,8 @@ export async function PUT(
     if (body.rateLimitMs !== undefined) input.rateLimitMs = body.rateLimitMs
     if (body.customHeaders !== undefined) input.customHeaders = body.customHeaders
     if (body.isActive !== undefined) input.isActive = body.isActive
+    if (body.ignoreSSLErrors !== undefined) input.ignoreSSLErrors = body.ignoreSSLErrors
+    if (body.autoIndexFiles !== undefined) input.autoIndexFiles = body.autoIndexFiles
 
     const source = await updateWebSource(id, input)
 

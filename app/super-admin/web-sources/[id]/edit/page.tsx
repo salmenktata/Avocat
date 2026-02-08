@@ -26,7 +26,7 @@ async function getWebSource(id: string) {
       use_sitemap, sitemap_url,
       respect_robots_txt, rate_limit_ms,
       css_selectors, url_patterns, excluded_patterns,
-      is_active
+      is_active, ignore_ssl_errors, auto_index_files
     FROM web_sources WHERE id = $1`,
     [id]
   )
@@ -49,6 +49,8 @@ async function getWebSource(id: string) {
     maxPages: source.max_pages,
     requiresJavascript: source.requires_javascript,
     downloadFiles: source.download_files,
+    ignoreSSLErrors: source.ignore_ssl_errors ?? false,
+    autoIndexFiles: source.auto_index_files ?? false,
     useSitemap: source.use_sitemap,
     sitemapUrl: source.sitemap_url || '',
     respectRobotsTxt: source.respect_robots_txt,

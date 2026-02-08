@@ -33,6 +33,8 @@ interface FormData {
   maxPages: number
   requiresJavascript: boolean
   downloadFiles: boolean
+  ignoreSSLErrors: boolean
+  autoIndexFiles: boolean
   useSitemap: boolean
   sitemapUrl: string
   respectRobotsTxt: boolean
@@ -50,9 +52,14 @@ const CATEGORIES = [
   { value: 'jurisprudence', label: 'Jurisprudence' },
   { value: 'doctrine', label: 'Doctrine' },
   { value: 'jort', label: 'JORT' },
+  { value: 'codes', label: 'Codes juridiques' },
+  { value: 'constitution', label: 'Constitution' },
+  { value: 'conventions', label: 'Conventions internationales' },
   { value: 'modeles', label: 'Modèles' },
   { value: 'procedures', label: 'Procédures' },
   { value: 'formulaires', label: 'Formulaires' },
+  { value: 'guides', label: 'Guides pratiques' },
+  { value: 'lexique', label: 'Lexique juridique' },
   { value: 'autre', label: 'Autre' },
 ]
 
@@ -92,6 +99,8 @@ export function AddWebSourceWizard() {
     maxPages: 10000,
     requiresJavascript: true,
     downloadFiles: true,
+    ignoreSSLErrors: false,
+    autoIndexFiles: false,
     useSitemap: false,
     sitemapUrl: '',
     respectRobotsTxt: true,
@@ -186,6 +195,8 @@ export function AddWebSourceWizard() {
       maxPages: formData.maxPages,
       requiresJavascript: formData.requiresJavascript,
       downloadFiles: formData.downloadFiles,
+      ignoreSSLErrors: formData.ignoreSSLErrors,
+      autoIndexFiles: formData.autoIndexFiles,
       useSitemap: formData.useSitemap,
       sitemapUrl: formData.sitemapUrl || undefined,
       respectRobotsTxt: formData.respectRobotsTxt,
@@ -462,6 +473,29 @@ export function AddWebSourceWizard() {
                   />
                 </div>
               )}
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-slate-300">Ignorer les erreurs SSL</Label>
+                  <p className="text-xs text-slate-400">Pour les sites gouvernementaux avec certificats expirés</p>
+                </div>
+                <Switch
+                  checked={formData.ignoreSSLErrors}
+                  onCheckedChange={(v) => updateField('ignoreSSLErrors', v)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className={formData.downloadFiles ? 'text-slate-300' : 'text-slate-500'}>Auto-indexer les fichiers PDF</Label>
+                  <p className="text-xs text-slate-400">Parser et indexer automatiquement les PDFs pendant le crawl</p>
+                </div>
+                <Switch
+                  checked={formData.autoIndexFiles}
+                  onCheckedChange={(v) => updateField('autoIndexFiles', v)}
+                  disabled={!formData.downloadFiles}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

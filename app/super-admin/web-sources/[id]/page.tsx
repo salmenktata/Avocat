@@ -24,9 +24,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   jurisprudence: 'Jurisprudence',
   doctrine: 'Doctrine',
   jort: 'JORT',
+  codes: 'Codes juridiques',
+  constitution: 'Constitution',
+  conventions: 'Conventions internationales',
   modeles: 'Modèles',
   procedures: 'Procédures',
   formulaires: 'Formulaires',
+  guides: 'Guides pratiques',
+  lexique: 'Lexique juridique',
   autre: 'Autre',
 }
 
@@ -41,6 +46,7 @@ async function getWebSourceData(id: string) {
       max_depth, max_pages, follow_links, download_files,
       requires_javascript, user_agent, rate_limit_ms, timeout_ms,
       respect_robots_txt, custom_headers, sitemap_url, rss_feed_url, use_sitemap,
+      ignore_ssl_errors, auto_index_files,
       is_active, health_status, consecutive_failures,
       last_crawl_at, last_successful_crawl_at, next_crawl_at,
       total_pages_discovered, total_pages_indexed,
@@ -253,6 +259,14 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
             <div>
               <span className="text-slate-400">Téléchargement fichiers</span>
               <p className="text-white">{source.download_files ? 'Oui' : 'Non'}</p>
+            </div>
+            <div>
+              <span className="text-slate-400">SSL strict</span>
+              <p className="text-white">{source.ignore_ssl_errors ? 'Désactivé' : 'Oui'}</p>
+            </div>
+            <div>
+              <span className="text-slate-400">Auto-indexation PDF</span>
+              <p className="text-white">{source.auto_index_files ? 'Oui' : 'Non'}</p>
             </div>
             <div>
               <span className="text-slate-400">Dernier crawl</span>

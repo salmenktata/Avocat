@@ -130,7 +130,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const validCategories: WebSourceCategory[] = [
       'legislation', 'jurisprudence', 'doctrine', 'jort',
-      'modeles', 'procedures', 'formulaires', 'autre'
+      'codes', 'constitution', 'conventions',
+      'modeles', 'procedures', 'formulaires',
+      'guides', 'lexique', 'autre'
     ]
     if (!validCategories.includes(body.category)) {
       return NextResponse.json(
@@ -160,6 +162,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       respectRobotsTxt: body.respectRobotsTxt !== false,
       rateLimitMs: body.rateLimitMs || 1000,
       customHeaders: body.customHeaders || {},
+      ignoreSSLErrors: body.ignoreSSLErrors || false,
+      autoIndexFiles: body.autoIndexFiles || false,
     }
 
     const source = await createWebSource(input, session.user.id)
