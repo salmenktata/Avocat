@@ -153,14 +153,14 @@ async function getWebSourcesData(params: {
     total,
     totalPages: Math.ceil(total / limit),
     stats: {
-      totalSources: parseInt(stats.total_sources) || 0,
-      activeSources: parseInt(stats.active_sources) || 0,
-      healthySources: parseInt(stats.healthy_sources) || 0,
-      failingSources: parseInt(stats.failing_sources) || 0,
-      totalPages: parseInt(stats.total_pages) || 0,
-      indexedPages: parseInt(stats.indexed_pages) || 0,
-      pendingJobs: parseInt(stats.pending_jobs) || 0,
-      runningJobs: parseInt(stats.running_jobs) || 0,
+      totalSources: Number(stats.total_sources) || 0,
+      activeSources: Number(stats.active_sources) || 0,
+      healthySources: Number(stats.healthy_sources) || 0,
+      failingSources: Number(stats.failing_sources) || 0,
+      totalPages: Number(stats.total_pages) || 0,
+      indexedPages: Number(stats.indexed_pages) || 0,
+      pendingJobs: Number(stats.pending_jobs) || 0,
+      runningJobs: Number(stats.running_jobs) || 0,
     },
   }
 }

@@ -57,10 +57,10 @@ const CATEGORY_LABELS: Record<LegalContentCategory, string> = {
 const DOMAINS: LegalDomain[] = [
   'civil', 'commercial', 'penal', 'famille', 'fiscal',
   'social', 'administratif', 'immobilier', 'bancaire',
-  'propriete_intellectuelle', 'international', 'autre',
+  'propriete_intellectuelle', 'international_public', 'autre',
 ]
 
-const DOMAIN_LABELS: Record<LegalDomain, string> = {
+const DOMAIN_LABELS: Partial<Record<LegalDomain, string>> = {
   civil: 'Droit civil',
   commercial: 'Droit commercial',
   penal: 'Droit pénal',
@@ -71,7 +71,7 @@ const DOMAIN_LABELS: Record<LegalDomain, string> = {
   immobilier: 'Droit immobilier',
   bancaire: 'Droit bancaire',
   propriete_intellectuelle: 'Propriété intellectuelle',
-  international: 'Droit international',
+  international_public: 'Droit international',
   autre: 'Autre',
 }
 
@@ -83,7 +83,7 @@ const DOCUMENT_NATURES: DocumentNature[] = [
   'guide_pratique', 'faq', 'actualite', 'autre',
 ]
 
-const NATURE_LABELS: Record<DocumentNature, string> = {
+const NATURE_LABELS: Partial<Record<DocumentNature, string>> = {
   loi: 'Loi',
   decret: 'Décret',
   arrete: 'Arrêté',

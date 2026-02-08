@@ -3,7 +3,7 @@
  * Utilise node-cron pour exécuter des tâches périodiques
  */
 
-import cron from 'node-cron'
+import * as cron from 'node-cron'
 import { runLearningCycle, getLearningStats } from '@/lib/web-scraper/classification-learning-service'
 
 // =============================================================================
@@ -68,7 +68,6 @@ export function scheduleLearningCycle() {
       }
     },
     {
-      scheduled: true,
       timezone: 'Africa/Tunis',
     }
   )

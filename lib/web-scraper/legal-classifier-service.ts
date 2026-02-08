@@ -461,7 +461,7 @@ async function classifyWithMultiSignals(
   const result: ClassificationResult = {
     primaryCategory: validateCategory(fused.category),
     subcategory: null,
-    domain: validateDomain(finalDomain),
+    domain: validateDomain(finalDomain ?? null),
     subdomain: null,
     documentNature: validateDocumentNature(fused.documentType),
     confidenceScore: finalConfidence,
@@ -870,7 +870,7 @@ function validateDomain(domain: string | null): LegalDomain | null {
   const validDomains: LegalDomain[] = [
     'civil', 'commercial', 'penal', 'famille', 'fiscal',
     'social', 'administratif', 'immobilier', 'bancaire',
-    'propriete_intellectuelle', 'international', 'autre',
+    'propriete_intellectuelle', 'international_public', 'autre',
   ]
 
   if (!domain) return null

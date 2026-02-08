@@ -125,7 +125,7 @@ export function selectUserAgent(stealthMode: boolean = false, customUserAgent?: 
 /**
  * Génère des headers HTTP réalistes
  */
-export function getBrowserHeaders(url: string, referrer?: string): HeadersInit {
+export function getBrowserHeaders(url: string, referrer?: string): Record<string, string> {
   return {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     'Accept-Language': 'fr-FR,fr;q=0.9,ar;q=0.8,en-US;q=0.7,en;q=0.6',

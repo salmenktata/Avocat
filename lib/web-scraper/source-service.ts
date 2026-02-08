@@ -517,6 +517,8 @@ function mapRowToWebSource(row: Record<string, unknown>): WebSource {
     cssSelectors: (row.css_selectors as CssSelectors) || {},
     urlPatterns: (row.url_patterns as string[]) || [],
     excludedPatterns: (row.excluded_patterns as string[]) || [],
+    dynamicConfig: (row.dynamic_config as any) || null,
+    extractionConfig: (row.extraction_config as any) || null,
     maxDepth: row.max_depth as number,
     maxPages: row.max_pages as number,
     followLinks: row.follow_links as boolean,

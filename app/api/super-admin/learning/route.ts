@@ -4,8 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/config'
+import { getSession } from '@/lib/auth/session'
 import {
   runLearningCycle,
   getLearningStats,
@@ -20,8 +19,8 @@ import { getClassificationStats } from '@/lib/web-scraper/legal-classifier-servi
  */
 export async function GET(request: NextRequest) {
   // Vérifier l'authentification
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.isSuperAdmin) {
+  const session = await getSession()
+  if (!session?.user || session.user.role !== 'super_admin') {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
   }
 
@@ -88,8 +87,8 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   // Vérifier l'authentification
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.isSuperAdmin) {
+  const session = await getSession()
+  if (!session?.user || session.user.role !== 'super_admin') {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
   }
 

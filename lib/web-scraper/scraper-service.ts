@@ -525,7 +525,7 @@ async function detectFramework(
 
     return {
       // Livewire (Laravel)
-      livewire: html.includes('wire:') || html.includes('livewire') || !!window.Livewire,
+      livewire: html.includes('wire:') || html.includes('livewire') || !!(window as any).Livewire,
       // Alpine.js
       alpine: html.includes('x-data') || html.includes('x-show') || html.includes('x-if'),
       // React
