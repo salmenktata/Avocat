@@ -470,7 +470,14 @@ RÈGLES IMPORTANTES
 1. Score de confiance (0-100) basé sur la complétude des informations
 2. Si une information n'est pas dans le récit → null (pas d'invention)
 3. Calculs: formules exactes du droit tunisien
-4. La langue détectée détermine les labels (arabe ou français)
+4. **RÈGLE DE LANGUE STRICTE:**
+   - Si langue détectée = "ar" → TOUTES les valeurs textuelles du JSON DOIVENT être en arabe.
+     Cela inclut: labels, descriptions, analyses, recommandations, résumés, titres, étapes,
+     risques, fondements juridiques, noms d'actions, justifications — TOUT en arabe.
+     Seules exceptions: noms propres de personnes, numéros d'articles de loi (ex: "Art. 31 CSP"),
+     et abréviations de codes (COC, CSP, CPC).
+   - Si langue détectée = "fr" → Toutes les valeurs en français.
+   - Ne JAMAIS mélanger les langues dans une même valeur textuelle.
 5. Sépare toujours FAITS PROUVABLES / INTERPRÉTATIONS / RESSENTIS
 6. Identifie les NŒUDS DÉCISIFS (3-5 points clés)
 7. Propose des QUALIFICATIONS ALTERNATIVES quand pertinent
