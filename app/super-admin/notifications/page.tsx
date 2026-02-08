@@ -1,11 +1,17 @@
+import dynamic from 'next/dynamic'
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
+import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
-import { NotificationActions } from '@/components/super-admin/notifications/NotificationActions'
+
+const NotificationActions = dynamic(
+  () => import('@/components/super-admin/notifications/NotificationActions').then(mod => mod.NotificationActions),
+  { loading: () => <Skeleton className="h-9 w-32" /> }
+)
 
 interface PageProps {
   searchParams: Promise<{

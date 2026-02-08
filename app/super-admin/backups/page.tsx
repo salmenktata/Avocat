@@ -1,7 +1,13 @@
+import dynamic from 'next/dynamic'
 import { Metadata } from 'next'
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
-import BackupsManager from '@/components/super-admin/backups/BackupsManager'
+import { Skeleton } from '@/components/ui/skeleton'
+
+const BackupsManager = dynamic(
+  () => import('@/components/super-admin/backups/BackupsManager'),
+  { loading: () => <Skeleton className="h-96 w-full" /> }
+)
 
 export const metadata: Metadata = {
   title: 'Backups - Super Admin',

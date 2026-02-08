@@ -84,6 +84,9 @@ const nextConfig = {
       'clsx',
       'cmdk',
       'next-intl',
+      'react-markdown',
+      'react-syntax-highlighter',
+      'remark-gfm',
     ],
   },
 

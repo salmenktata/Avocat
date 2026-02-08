@@ -1,12 +1,30 @@
+import dynamic from 'next/dynamic'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Icons } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
-import { BrevoTestButton } from '@/components/super-admin/settings/BrevoTestButton'
-import { DailyDigestStatus } from '@/components/super-admin/settings/DailyDigestStatus'
-import { ApiKeysCard } from '@/components/super-admin/settings/ApiKeysCard'
-import { LLMConfigEditor } from '@/components/super-admin/settings/LLMConfigEditor'
-import { PurgeRAGCard } from '@/components/super-admin/settings/PurgeRAGCard'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getConfigsByCategory } from '@/lib/config/platform-config'
+
+const BrevoTestButton = dynamic(
+  () => import('@/components/super-admin/settings/BrevoTestButton').then(mod => mod.BrevoTestButton),
+  { loading: () => <Skeleton className="h-9 w-24" /> }
+)
+const DailyDigestStatus = dynamic(
+  () => import('@/components/super-admin/settings/DailyDigestStatus').then(mod => mod.DailyDigestStatus),
+  { loading: () => <Skeleton className="h-24 w-full" /> }
+)
+const ApiKeysCard = dynamic(
+  () => import('@/components/super-admin/settings/ApiKeysCard').then(mod => mod.ApiKeysCard),
+  { loading: () => <Skeleton className="h-48 w-full" /> }
+)
+const LLMConfigEditor = dynamic(
+  () => import('@/components/super-admin/settings/LLMConfigEditor').then(mod => mod.LLMConfigEditor),
+  { loading: () => <Skeleton className="h-48 w-full" /> }
+)
+const PurgeRAGCard = dynamic(
+  () => import('@/components/super-admin/settings/PurgeRAGCard').then(mod => mod.PurgeRAGCard),
+  { loading: () => <Skeleton className="h-32 w-full" /> }
+)
 
 export default async function SettingsPage() {
   // Charger les clés LLM depuis la base de données

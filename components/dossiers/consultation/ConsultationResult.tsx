@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Icons } from '@/lib/icons'
@@ -8,7 +9,20 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { MarkdownMessage } from '@/components/assistant-ia/MarkdownMessage'
+import { Skeleton } from '@/components/ui/skeleton'
+
+const MarkdownMessage = dynamic(
+  () => import('@/components/assistant-ia/MarkdownMessage').then(mod => mod.MarkdownMessage),
+  {
+    loading: () => (
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-4 w-2/3" />
+      </div>
+    ),
+  }
+)
 import type { ConsultationResponse } from '@/app/actions/consultation'
 
 interface ConsultationResultProps {

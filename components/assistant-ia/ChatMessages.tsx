@@ -1,13 +1,25 @@
 'use client'
 
 import { useEffect, useRef, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { MarkdownMessage } from './MarkdownMessage'
 import { SourcesPanel } from './SourcesPanel'
+
+const MarkdownMessage = dynamic(
+  () => import('./MarkdownMessage').then(mod => mod.MarkdownMessage),
+  {
+    loading: () => (
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
+    ),
+  }
+)
 import { useVirtualizedMessages, useShouldVirtualize } from '@/lib/hooks/useVirtualizedMessages'
 
 export interface ChatSource {

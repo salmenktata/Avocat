@@ -3,12 +3,13 @@
  * Liste et gestion des contradictions entre contenus juridiques
  */
 
-import { Suspense } from 'react'
+import nextDynamic from 'next/dynamic'
 import Link from 'next/link'
 import { db } from '@/lib/db/postgres'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -21,10 +22,14 @@ import {
   getContradictions,
   getContradictionsStats,
 } from '@/app/actions/super-admin/content-review'
-import { ContradictionFilters } from '@/components/super-admin/contradictions/ContradictionFilters'
 import type { ContradictionStatus, ContradictionSeverity } from '@/lib/web-scraper/types'
 
 export const dynamic = 'force-dynamic'
+
+const ContradictionFilters = nextDynamic(
+  () => import('@/components/super-admin/contradictions/ContradictionFilters').then(mod => mod.ContradictionFilters),
+  { loading: () => <Skeleton className="h-12 w-full" /> }
+)
 
 interface PageProps {
   searchParams: Promise<{

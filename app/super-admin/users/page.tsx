@@ -1,12 +1,20 @@
-import { Suspense } from 'react'
+import dynamic from 'next/dynamic'
 import { query } from '@/lib/db/postgres'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
+import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
-import { UsersFilters } from '@/components/super-admin/users/UsersFilters'
-import { UsersDataTable } from '@/components/super-admin/users/UsersDataTable'
+
+const UsersFilters = dynamic(
+  () => import('@/components/super-admin/users/UsersFilters').then(mod => mod.UsersFilters),
+  { loading: () => <Skeleton className="h-12 w-full" /> }
+)
+const UsersDataTable = dynamic(
+  () => import('@/components/super-admin/users/UsersDataTable').then(mod => mod.UsersDataTable),
+  { loading: () => <Skeleton className="h-64 w-full" /> }
+)
 
 interface PageProps {
   searchParams: Promise<{
