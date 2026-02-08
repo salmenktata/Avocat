@@ -8,7 +8,7 @@ import { Icons } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SourcesPanel } from './SourcesPanel'
-import { useVirtualizedMessages, useShouldVirtualize } from '@/lib/hooks/useVirtualizedMessages'
+import { useVirtualizedMessages } from '@/lib/hooks/useVirtualizedMessages'
 
 const MarkdownMessage = dynamic(
   () => import('./MarkdownMessage').then(mod => mod.MarkdownMessage),
@@ -48,9 +48,6 @@ interface ChatMessagesProps {
 export function ChatMessages({ messages, isLoading, streamingContent }: ChatMessagesProps) {
   const t = useTranslations('assistantIA')
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  // Virtualisation pour les longues conversations (50+ messages)
-  const shouldVirtualize = useShouldVirtualize(messages.length, 50)
 
   // Convertir les messages pour le hook de virtualisation
   const virtualMessages = useMemo(() =>
