@@ -59,10 +59,11 @@ export async function POST(
     }
 
     // Compter les pages à indexer
+    // FIX: Inclure aussi les pages 'unchanged' qui n'ont jamais été indexées
     const countResult = await db.query(
       `SELECT COUNT(*) as count FROM web_pages
        WHERE web_source_id = $1
-       AND status = 'crawled'
+       AND status IN ('crawled', 'unchanged')
        ${reindex ? '' : 'AND is_indexed = false'}`,
       [id]
     )

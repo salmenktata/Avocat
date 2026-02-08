@@ -249,10 +249,11 @@ export async function indexSourcePages(
   const { limit = 50, reindex = false } = options
 
   // Récupérer les pages à indexer
+  // FIX: Inclure aussi les pages 'unchanged' qui n'ont jamais été indexées
   let sql = `
     SELECT id FROM web_pages
     WHERE web_source_id = $1
-    AND status = 'crawled'
+    AND status IN ('crawled', 'unchanged')
     AND extracted_text IS NOT NULL
     AND LENGTH(extracted_text) >= 100
   `
@@ -293,10 +294,11 @@ export async function queueSourcePagesForIndexing(
   const { limit = 100, priority = 5 } = options
 
   // Récupérer les pages à indexer
+  // FIX: Inclure aussi les pages 'unchanged' qui n'ont jamais été indexées
   const pagesResult = await db.query(
     `SELECT id FROM web_pages
      WHERE web_source_id = $1
-     AND status = 'crawled'
+     AND status IN ('crawled', 'unchanged')
      AND is_indexed = false
      AND extracted_text IS NOT NULL
      AND LENGTH(extracted_text) >= 100
@@ -338,11 +340,12 @@ export async function getSourceIndexingStats(sourceId: string): Promise<{
   failedPages: number
   totalChunks: number
 }> {
+  // FIX: Inclure aussi les pages 'unchanged' dans les pending_pages
   const result = await db.query(
     `SELECT
       COUNT(*) as total_pages,
       COUNT(*) FILTER (WHERE is_indexed = true) as indexed_pages,
-      COUNT(*) FILTER (WHERE status = 'crawled' AND is_indexed = false) as pending_pages,
+      COUNT(*) FILTER (WHERE status IN ('crawled', 'unchanged') AND is_indexed = false) as pending_pages,
       COUNT(*) FILTER (WHERE status = 'failed') as failed_pages,
       COALESCE(SUM(chunks_count), 0) as total_chunks
      FROM web_pages
