@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     params.push(limit, offset)
     const messagesResult = await db.query(
       `SELECT m.id, m.role, m.content, m.created_at, m.conversation_id,
-              c.titre as conversation_title,
+              c.title as conversation_title,
               COUNT(*) OVER() as total_count
        FROM chat_messages m
        INNER JOIN chat_conversations c ON c.id = m.conversation_id
