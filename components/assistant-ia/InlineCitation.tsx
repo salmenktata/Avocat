@@ -15,6 +15,18 @@ interface InlineCitationProps {
 export function InlineCitation({ citationNumber, source, className }: InlineCitationProps) {
   const [showPopover, setShowPopover] = useState(false)
 
+  // Fallback gracieux : badge désactivé si source undefined
+  if (!source) {
+    return (
+      <Badge variant="outline" className={cn(
+        'inline-flex items-center gap-1 text-xs mx-0.5 align-super opacity-50 cursor-default',
+        className
+      )}>
+        {citationNumber}
+      </Badge>
+    )
+  }
+
   // Déterminer le type de citation
   const getCitationType = () => {
     if (citationNumber.startsWith('KB-')) return 'knowledge_base'

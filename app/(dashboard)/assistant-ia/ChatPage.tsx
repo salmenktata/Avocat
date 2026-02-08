@@ -163,6 +163,7 @@ export function ChatPage({ userId }: ChatPageProps) {
         body: JSON.stringify({
           question: content,
           conversationId: selectedConversationId,
+          includeJurisprudence: true,
         }),
       })
 

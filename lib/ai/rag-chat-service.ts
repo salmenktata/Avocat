@@ -765,18 +765,18 @@ function buildContextFromSources(sources: ChatSource[], questionLang?: DetectedL
     const meta = source.metadata as any
     const sourceType = meta?.type
 
+    // Labels fixes [Source-N], [Juris-N], [KB-N] — compatibles avec le regex frontend
     let part: string
     if (sourceType === 'jurisprudence') {
-      part = `[${labels.jurisprudence} ${i + 1}] ${source.documentName}\n` +
+      part = `[Juris-${i + 1}] ${source.documentName}\n` +
         `${labels.chamber}: ${meta?.chamber || labels.na}, ${labels.date}: ${meta?.date || labels.na}\n` +
         `${labels.articles}: ${meta?.articles?.join(', ') || labels.na}\n\n` +
         source.chunkContent
     } else if (sourceType === 'knowledge_base') {
-      const categoryLabel = labels.categoryLabels[meta?.category] || labels.defaultCategory
-      part = `[${labels.knowledgeBase} - ${categoryLabel} ${i + 1}] ${source.documentName}\n\n` +
+      part = `[KB-${i + 1}] ${source.documentName}\n\n` +
         source.chunkContent
     } else {
-      part = `[${labels.document} ${i + 1}] ${source.documentName}\n\n` + source.chunkContent
+      part = `[Source-${i + 1}] ${source.documentName}\n\n` + source.chunkContent
     }
 
     const partTokens = countTokens(part)
@@ -849,6 +849,24 @@ async function getConversationHistoryWithSummary(
 }
 
 // =============================================================================
+// SANITIZER CITATIONS — Supprime les citations inventées par le LLM
+// =============================================================================
+
+/**
+ * Supprime les citations dont le numéro dépasse le nombre de sources réelles.
+ * Empêche le LLM d'halluciner des [Source-5] quand il n'y a que 3 sources.
+ */
+function sanitizeCitations(answer: string, sourceCount: number): string {
+  return answer.replace(
+    /\[(Source|KB|Juris)-?(\d+)\]/g,
+    (fullMatch, _type: string, numStr: string) => {
+      const num = parseInt(numStr, 10)
+      return (num >= 1 && num <= sourceCount) ? fullMatch : ''
+    }
+  )
+}
+
+// =============================================================================
 // FONCTION PRINCIPALE: RÉPONDRE À UNE QUESTION
 // =============================================================================
 
@@ -893,7 +911,24 @@ export async function answerQuestion(
     searchTimeMs = Date.now() - startSearch
   }
 
-  // 2. Construire le contexte (bloquer si mode dégradé pour éviter les hallucinations)
+  // 2. Si la recherche a réussi mais n'a trouvé aucune source pertinente,
+  // retourner un message clair au lieu d'appeler le LLM (évite les hallucinations)
+  if (!isDegradedMode && sources.length === 0) {
+    const noSourcesLang = detectLanguage(question)
+    const noSourcesMessage = noSourcesLang === 'ar'
+      ? 'لم أجد وثائق ذات صلة بسؤالك في قاعدة البيانات. يرجى إعادة صياغة السؤال أو التأكد من رفع المستندات المتعلقة بالموضوع.'
+      : 'Je n\'ai trouvé aucun document pertinent pour votre question. Veuillez reformuler ou vérifier que les documents nécessaires ont été téléversés.'
+
+    return {
+      answer: noSourcesMessage,
+      sources: [],
+      tokensUsed: { input: 0, output: 0, total: 0 },
+      model: 'none',
+      conversationId: options.conversationId,
+    }
+  }
+
+  // 3. Construire le contexte (bloquer si mode dégradé pour éviter les hallucinations)
   if (isDegradedMode) {
     // Enregistrer la métrique d'erreur
     const totalTimeMs = Date.now() - startTotal
@@ -1093,6 +1128,9 @@ export async function answerQuestion(
     conversationId: options.conversationId || null,
     dossierId: options.dossierId || null,
   }))
+
+  // Sanitizer: supprimer les citations inventées par le LLM
+  answer = sanitizeCitations(answer, sources.length)
 
   return {
     answer,

@@ -77,6 +77,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
             conversationId,
             dossierId,
             stream,
+            includeJurisprudence: true,
           }),
           signal: abortControllerRef.current.signal,
         })
