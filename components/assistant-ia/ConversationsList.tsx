@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
@@ -17,6 +18,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+
+const VIRTUALIZATION_THRESHOLD = 50
+const ITEM_HEIGHT = 68 // hauteur approximative d'un item
 
 export interface Conversation {
   id: string
@@ -49,10 +53,25 @@ export function ConversationsList({
   const [searchQuery, setSearchQuery] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const listRef = useRef<HTMLDivElement>(null)
 
-  const filteredConversations = conversations.filter((conv) => {
-    const title = conv.title || t('newConversation')
-    return title.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredConversations = useMemo(() =>
+    conversations.filter((conv) => {
+      const title = conv.title || t('newConversation')
+      return title.toLowerCase().includes(searchQuery.toLowerCase())
+    }),
+    [conversations, searchQuery, t]
+  )
+
+  // Virtualisation pour les longues listes (50+)
+  const shouldVirtualize = filteredConversations.length > VIRTUALIZATION_THRESHOLD
+
+  const virtualizer = useVirtualizer({
+    count: filteredConversations.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => ITEM_HEIGHT,
+    overscan: 5,
+    enabled: shouldVirtualize,
   })
 
   const handleDelete = async () => {
@@ -103,7 +122,7 @@ export function ConversationsList({
       </div>
 
       {/* Liste */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={listRef} className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="p-4 space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -117,46 +136,54 @@ export function ConversationsList({
           <div className="p-4 text-center text-muted-foreground text-sm">
             {searchQuery ? t('noResults') : t('noConversations')}
           </div>
-        ) : (
-          <div className="py-2">
-            {filteredConversations.map((conv) => (
-              <div
-                key={conv.id}
-                className={cn(
-                  'group flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors',
-                  selectedId === conv.id && 'bg-accent'
-                )}
-                onClick={() => onSelect(conv.id)}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Icons.messageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="font-medium truncate text-sm">
-                      {conv.title || t('newConversation')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                    <span>{formatDate(conv.lastMessageAt)}</span>
-                    {conv.dossierNumero && (
-                      <>
-                        <span>•</span>
-                        <span className="truncate">{conv.dossierNumero}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setDeleteId(conv.id)
+        ) : shouldVirtualize ? (
+          // Rendu virtualisé pour 50+ conversations
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const conv = filteredConversations[virtualItem.index]
+              return (
+                <div
+                  key={virtualItem.key}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: `${virtualItem.size}px`,
+                    transform: `translateY(${virtualItem.start}px)`,
                   }}
                 >
-                  <Icons.delete className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                </Button>
-              </div>
+                  <ConversationItem
+                    conv={conv}
+                    isSelected={selectedId === conv.id}
+                    onSelect={onSelect}
+                    onDelete={(id) => setDeleteId(id)}
+                    formatDate={formatDate}
+                    t={t}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          // Rendu standard pour < 50 conversations
+          <div className="py-2">
+            {filteredConversations.map((conv) => (
+              <ConversationItem
+                key={conv.id}
+                conv={conv}
+                isSelected={selectedId === conv.id}
+                onSelect={onSelect}
+                onDelete={(id) => setDeleteId(id)}
+                formatDate={formatDate}
+                t={t}
+              />
             ))}
           </div>
         )}
@@ -181,6 +208,65 @@ export function ConversationsList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  )
+}
+
+// Composant extrait pour réutilisation avec virtualisation
+interface ConversationItemProps {
+  conv: Conversation
+  isSelected: boolean
+  onSelect: (id: string) => void
+  onDelete: (id: string) => void
+  formatDate: (date: Date) => string
+  t: ReturnType<typeof useTranslations>
+}
+
+function ConversationItem({
+  conv,
+  isSelected,
+  onSelect,
+  onDelete,
+  formatDate,
+  t,
+}: ConversationItemProps) {
+  return (
+    <div
+      className={cn(
+        'group flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors',
+        isSelected && 'bg-accent'
+      )}
+      onClick={() => onSelect(conv.id)}
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <Icons.messageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="font-medium truncate text-sm">
+            {conv.title || t('newConversation')}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+          <span>{formatDate(conv.lastMessageAt)}</span>
+          {conv.dossierNumero && (
+            <>
+              <span>•</span>
+              <span className="truncate">{conv.dossierNumero}</span>
+            </>
+          )}
+        </div>
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={t('deleteConfirmTitle')}
+        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+        onClick={(e) => {
+          e.stopPropagation()
+          onDelete(conv.id)
+        }}
+      >
+        <Icons.delete className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+      </Button>
     </div>
   )
 }

@@ -81,6 +81,7 @@ export function ChatInput({ onSend, disabled = false, placeholder }: ChatInputPr
           onClick={handleSend}
           disabled={!canSend}
           size="icon"
+          aria-label={t('enterToSend')}
           className="h-[52px] w-[52px] shrink-0"
         >
           {disabled ? (

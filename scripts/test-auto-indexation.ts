@@ -69,7 +69,7 @@ async function main() {
     maxPages,
     maxDepth: 3,
     downloadFiles: true,
-    incrementalMode: true, // Sauter les pages déjà crawlées
+    incrementalMode: false, // Re-vérifier toutes les pages (nécessaire pour form crawl)
   })
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)

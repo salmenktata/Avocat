@@ -71,6 +71,7 @@ export function SuperAdminTopbar({
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Notifications"
             className="relative text-slate-400 hover:text-white hover:bg-slate-800"
           >
             <Icons.bell className="h-5 w-5" />

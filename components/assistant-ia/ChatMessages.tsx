@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MarkdownMessage } from './MarkdownMessage'
 import { SourcesPanel } from './SourcesPanel'
+import { useVirtualizedMessages, useShouldVirtualize } from '@/lib/hooks/useVirtualizedMessages'
 
 export interface ChatSource {
   documentId: string
@@ -35,12 +36,41 @@ interface ChatMessagesProps {
 export function ChatMessages({ messages, isLoading, streamingContent }: ChatMessagesProps) {
   const t = useTranslations('assistantIA')
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll vers le bas
+  // Virtualisation pour les longues conversations (50+ messages)
+  const shouldVirtualize = useShouldVirtualize(messages.length, 50)
+
+  // Convertir les messages pour le hook de virtualisation
+  const virtualMessages = useMemo(() =>
+    messages.map(m => ({
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      created_at: m.createdAt?.toISOString(),
+      sources: m.sources,
+    })),
+    [messages]
+  )
+
+  const {
+    containerRef,
+    isVirtualized,
+    virtualItems,
+    totalHeight,
+    scrollToBottom,
+    measureElement,
+  } = useVirtualizedMessages(virtualMessages, {
+    threshold: 50,
+    overscan: 5,
+    autoScrollToBottom: true,
+  })
+
+  // Auto-scroll vers le bas pour les conversations non virtualisées
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, streamingContent])
+    if (!isVirtualized) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages, streamingContent, isVirtualized])
 
   if (messages.length === 0 && !isLoading && !streamingContent) {
     return (
@@ -66,6 +96,61 @@ export function ChatMessages({ messages, isLoading, streamingContent }: ChatMess
     )
   }
 
+  // Rendu virtualisé pour 50+ messages
+  if (isVirtualized) {
+    return (
+      <div ref={containerRef} className="flex-1 overflow-y-auto p-4">
+        <div
+          style={{
+            height: `${totalHeight}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {virtualItems.map((virtualItem) => {
+            const message = messages[virtualItem.index]
+            return (
+              <div
+                key={virtualItem.key}
+                ref={measureElement}
+                data-index={virtualItem.index}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+                className="pb-4"
+              >
+                <MessageBubble message={message} />
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Message en cours de streaming */}
+        {streamingContent && (
+          <div className="pb-4">
+            <MessageBubble
+              message={{
+                id: 'streaming',
+                role: 'assistant',
+                content: streamingContent,
+                createdAt: new Date(),
+                isStreaming: true,
+              }}
+            />
+          </div>
+        )}
+
+        {/* Indicateur de chargement */}
+        {isLoading && !streamingContent && <LoadingIndicator />}
+      </div>
+    )
+  }
+
+  // Rendu standard pour < 50 messages
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
       {messages.map((message) => (
@@ -86,20 +171,24 @@ export function ChatMessages({ messages, isLoading, streamingContent }: ChatMess
       )}
 
       {/* Indicateur de chargement */}
-      {isLoading && !streamingContent && (
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Icons.zap className="h-4 w-4 text-primary" />
-          </div>
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-4 w-2/3" />
-          </div>
-        </div>
-      )}
+      {isLoading && !streamingContent && <LoadingIndicator />}
 
       <div ref={messagesEndRef} />
+    </div>
+  )
+}
+
+function LoadingIndicator() {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+        <Icons.zap className="h-4 w-4 text-primary" />
+      </div>
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-4 w-2/3" />
+      </div>
     </div>
   )
 }
