@@ -304,10 +304,10 @@ SELECT
   kb.id,
   kb.title,
   kb.category,
-  kb.source_type,
-  kb.file_size,
+  kb.file_type,
+  kb.source_file,
   kb.is_indexed,
-  kb.indexed_at,
+  kb.created_at,
   -- Métadonnées structurées
   meta.document_date,
   meta.document_number,
