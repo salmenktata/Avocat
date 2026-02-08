@@ -70,3 +70,12 @@ components/providers/SessionProvider.tsx
 apply-templates-migration.js
 .env.keys.backup
 exports/
+
+# Rapports Lighthouse
+lighthouse-*.html
+lighthouse-*.json
+lighthouse-*
+lighthouse-analysis.json
+
+# Données Tesseract OCR
+*.traineddata
