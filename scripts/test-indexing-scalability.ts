@@ -269,7 +269,7 @@ async function main() {
     console.error('\n❌ Erreur durant les tests:', error)
     process.exit(1)
   } finally {
-    await db.end()
+    await db.closePool()
   }
 }
 
