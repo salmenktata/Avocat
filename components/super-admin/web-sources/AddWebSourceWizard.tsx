@@ -20,12 +20,20 @@ import { useToast } from '@/lib/hooks/use-toast'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 interface FormData {
+  // Type de source
+  sourceType: 'web' | 'google_drive'
+
   // Étape 1 - Informations de base
   name: string
   baseUrl: string
   description: string
   category: string
   language: string
+
+  // Google Drive spécifique
+  gdriveFolderId: string
+  gdriveRecursive: boolean
+  gdriveFileTypes: string[]
 
   // Étape 2 - Configuration du crawl
   crawlFrequency: string
@@ -60,7 +68,15 @@ const CATEGORIES = [
   { value: 'formulaires', label: 'Formulaires' },
   { value: 'guides', label: 'Guides pratiques' },
   { value: 'lexique', label: 'Lexique juridique' },
+  { value: 'google_drive', label: 'Google Drive' },
   { value: 'autre', label: 'Autre' },
+]
+
+const FILE_TYPES = [
+  { value: 'pdf', label: 'PDF' },
+  { value: 'docx', label: 'Word (DOCX/DOC)' },
+  { value: 'xlsx', label: 'Excel (XLSX)' },
+  { value: 'pptx', label: 'PowerPoint (PPTX)' },
 ]
 
 const FREQUENCIES = [
@@ -77,6 +93,12 @@ export function AddWebSourceWizard() {
   const { toast } = useToast()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [gdriveTestLoading, setGdriveTestLoading] = useState(false)
+  const [gdriveTestResult, setGdriveTestResult] = useState<{
+    success: boolean
+    fileCount?: number
+    error?: string
+  } | null>(null)
   const [testResult, setTestResult] = useState<{
     success: boolean
     extraction?: {
@@ -89,11 +111,15 @@ export function AddWebSourceWizard() {
   } | null>(null)
 
   const [formData, setFormData] = useState<FormData>({
+    sourceType: 'web',
     name: '',
     baseUrl: '',
     description: '',
     category: 'legislation',
     language: 'fr',
+    gdriveFolderId: '',
+    gdriveRecursive: true,
+    gdriveFileTypes: ['pdf', 'docx'],
     crawlFrequency: '24 hours',
     maxDepth: 10,
     maxPages: 10000,
@@ -117,6 +143,81 @@ export function AddWebSourceWizard() {
 
   const handleNext = () => setStep((s) => Math.min(3, s + 1))
   const handlePrev = () => setStep((s) => Math.max(1, s - 1))
+
+  const handleGDriveTest = async () => {
+    if (!formData.gdriveFolderId) {
+      toast({
+        title: 'Erreur',
+        description: 'Veuillez saisir une URL ou un ID de dossier Google Drive',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setGdriveTestLoading(true)
+    setGdriveTestResult(null)
+
+    try {
+      const res = await fetch('/api/admin/gdrive/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderId: formData.gdriveFolderId }),
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        setGdriveTestResult({
+          success: true,
+          fileCount: data.fileCount,
+        })
+        toast({
+          title: 'Connexion réussie',
+          description: `${data.fileCount} fichier(s) découvert(s)`,
+        })
+      } else {
+        setGdriveTestResult({
+          success: false,
+          error: data.error,
+        })
+        toast({
+          title: 'Erreur de connexion',
+          description: data.error,
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      setGdriveTestResult({
+        success: false,
+        error: 'Erreur réseau',
+      })
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de tester la connexion',
+        variant: 'destructive',
+      })
+    } finally {
+      setGdriveTestLoading(false)
+    }
+  }
+
+  const parseGDriveFolderId = (input: string): string => {
+    if (!input) return ''
+
+    // Format gdrive://
+    if (input.startsWith('gdrive://')) {
+      return input.substring(9)
+    }
+
+    // Format URL Google Drive
+    const match = input.match(/\/folders\/([a-zA-Z0-9_-]+)/)
+    if (match) {
+      return match[1]
+    }
+
+    // Retourner l'input tel quel (folderId direct)
+    return input
+  }
 
   const handleTest = async () => {
     setLoading(true)
@@ -176,6 +277,29 @@ export function AddWebSourceWizard() {
   }
 
   const buildPayload = () => {
+    // Google Drive
+    if (formData.sourceType === 'google_drive') {
+      const folderId = parseGDriveFolderId(formData.gdriveFolderId)
+      return {
+        name: formData.name,
+        baseUrl: `gdrive://${folderId}`,
+        description: formData.description || undefined,
+        category: formData.category,
+        language: formData.language,
+        crawlFrequency: formData.crawlFrequency,
+        maxPages: formData.maxPages,
+        downloadFiles: true,
+        autoIndexFiles: formData.autoIndexFiles,
+        rateLimitMs: formData.rateLimitMs,
+        driveConfig: {
+          folderId,
+          recursive: formData.gdriveRecursive,
+          fileTypes: formData.gdriveFileTypes,
+        },
+      }
+    }
+
+    // Web
     const cssSelectors: Record<string, string[]> = {}
     if (formData.contentSelector) {
       cssSelectors.content = formData.contentSelector.split(',').map((s) => s.trim())
@@ -243,7 +367,10 @@ export function AddWebSourceWizard() {
     }
   }
 
-  const isStep1Valid = formData.name && formData.baseUrl && formData.category
+  const isStep1Valid = formData.name && formData.category &&
+    (formData.sourceType === 'web'
+      ? formData.baseUrl
+      : formData.gdriveFolderId)
   const isStep2Valid = true // Tous les champs ont des valeurs par défaut
 
   return (
@@ -279,25 +406,162 @@ export function AddWebSourceWizard() {
             <CardDescription>Identifiez la source et sa catégorie</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Type de source */}
+            <div>
+              <Label className="text-slate-300">Type de source *</Label>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => updateField('sourceType', 'web')}
+                  className={`p-4 rounded-lg border-2 transition-colors ${
+                    formData.sourceType === 'web'
+                      ? 'border-blue-500 bg-blue-500/10 text-white'
+                      : 'border-slate-600 bg-slate-900 text-slate-400 hover:border-slate-500'
+                  }`}
+                >
+                  <Icons.globe className="h-6 w-6 mx-auto mb-2" />
+                  <div className="font-medium">Web Scraping</div>
+                  <div className="text-xs mt-1">Sites juridiques</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField('sourceType', 'google_drive')}
+                  className={`p-4 rounded-lg border-2 transition-colors ${
+                    formData.sourceType === 'google_drive'
+                      ? 'border-blue-500 bg-blue-500/10 text-white'
+                      : 'border-slate-600 bg-slate-900 text-slate-400 hover:border-slate-500'
+                  }`}
+                >
+                  <Icons.cloud className="h-6 w-6 mx-auto mb-2" />
+                  <div className="font-medium">Google Drive</div>
+                  <div className="text-xs mt-1">Dossiers partagés</div>
+                </button>
+              </div>
+            </div>
+
             <div>
               <Label className="text-slate-300">Nom de la source *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => updateField('name', e.target.value)}
-                placeholder="Ex: JORT Tunisie"
+                placeholder={formData.sourceType === 'web' ? 'Ex: JORT Tunisie' : 'Ex: Codes Juridiques Cabinet'}
                 className="mt-1 bg-slate-900 border-slate-600 text-white"
               />
             </div>
 
-            <div>
-              <Label className="text-slate-300">URL de base *</Label>
-              <Input
-                value={formData.baseUrl}
-                onChange={(e) => updateField('baseUrl', e.target.value)}
-                placeholder="https://www.jort.gov.tn"
-                className="mt-1 bg-slate-900 border-slate-600 text-white"
-              />
-            </div>
+            {/* Champs conditionnels selon le type */}
+            {formData.sourceType === 'web' ? (
+              <div>
+                <Label className="text-slate-300">URL de base *</Label>
+                <Input
+                  value={formData.baseUrl}
+                  onChange={(e) => updateField('baseUrl', e.target.value)}
+                  placeholder="https://www.jort.gov.tn"
+                  className="mt-1 bg-slate-900 border-slate-600 text-white"
+                />
+              </div>
+            ) : (
+              <>
+                <div>
+                  <Label className="text-slate-300">URL du dossier Google Drive *</Label>
+                  <Input
+                    value={formData.gdriveFolderId}
+                    onChange={(e) => updateField('gdriveFolderId', e.target.value)}
+                    placeholder="https://drive.google.com/drive/folders/... ou ID direct"
+                    className="mt-1 bg-slate-900 border-slate-600 text-white"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">
+                    Collez l'URL du dossier partagé ou son ID
+                  </p>
+                </div>
+
+                {/* Test connexion Google Drive */}
+                {formData.gdriveFolderId && (
+                  <div className="rounded-lg border border-slate-600 bg-slate-900 p-4">
+                    <Button
+                      type="button"
+                      onClick={handleGDriveTest}
+                      disabled={gdriveTestLoading}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      {gdriveTestLoading ? (
+                        <>
+                          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                          Test en cours...
+                        </>
+                      ) : (
+                        <>
+                          <Icons.check className="mr-2 h-4 w-4" />
+                          Tester la connexion
+                        </>
+                      )}
+                    </Button>
+
+                    {gdriveTestResult && (
+                      <div className={`mt-3 p-3 rounded ${
+                        gdriveTestResult.success
+                          ? 'bg-green-500/10 border border-green-500/20'
+                          : 'bg-red-500/10 border border-red-500/20'
+                      }`}>
+                        {gdriveTestResult.success ? (
+                          <div className="text-green-400 text-sm">
+                            ✓ Connexion réussie - {gdriveTestResult.fileCount} fichier(s) découvert(s)
+                          </div>
+                        ) : (
+                          <div className="text-red-400 text-sm">
+                            ✗ {gdriveTestResult.error}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Options Google Drive */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-slate-300">Parcourir récursivement</Label>
+                      <p className="text-xs text-slate-400">Inclure les sous-dossiers</p>
+                    </div>
+                    <Switch
+                      checked={formData.gdriveRecursive}
+                      onCheckedChange={(v) => updateField('gdriveRecursive', v)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-slate-300">Types de fichiers *</Label>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {FILE_TYPES.map((type) => (
+                        <button
+                          key={type.value}
+                          type="button"
+                          onClick={() => {
+                            const current = formData.gdriveFileTypes
+                            const updated = current.includes(type.value)
+                              ? current.filter((t) => t !== type.value)
+                              : [...current, type.value]
+                            updateField('gdriveFileTypes', updated)
+                          }}
+                          className={`p-2 rounded border text-sm transition-colors ${
+                            formData.gdriveFileTypes.includes(type.value)
+                              ? 'border-blue-500 bg-blue-500/10 text-white'
+                              : 'border-slate-600 bg-slate-900 text-slate-400 hover:border-slate-500'
+                          }`}
+                        >
+                          {type.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Sélectionnez au moins un type de fichier
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div>
               <Label className="text-slate-300">Description</Label>

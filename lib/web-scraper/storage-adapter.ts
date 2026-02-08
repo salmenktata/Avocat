@@ -112,46 +112,99 @@ async function downloadFromMinio(
 // GOOGLE DRIVE FUNCTIONS
 // =============================================================================
 
-async function getGoogleDriveClient() {
-  // Récupérer le token système depuis la base de données
-  const result = await db.query(
-    `SELECT value FROM system_settings WHERE key = 'google_drive_system_token'`
-  )
-
-  if (result.rows.length === 0) {
-    throw new Error('Token Google Drive système non configuré. Exécutez: npx tsx scripts/setup-google-drive-system.ts')
-  }
-
-  const tokenData = JSON.parse(result.rows[0].value)
-
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET
-  )
-
-  oauth2Client.setCredentials({
-    access_token: tokenData.access_token,
-    refresh_token: tokenData.refresh_token,
-    expiry_date: tokenData.expiry_date,
-  })
-
-  // Rafraîchir le token si nécessaire
-  if (tokenData.expiry_date && Date.now() >= tokenData.expiry_date - 60000) {
-    const { credentials } = await oauth2Client.refreshAccessToken()
-    oauth2Client.setCredentials(credentials)
-
-    // Mettre à jour le token en base
-    await db.query(
-      `UPDATE system_settings SET value = $1, updated_at = NOW() WHERE key = 'google_drive_system_token'`,
-      [JSON.stringify({
-        ...tokenData,
-        access_token: credentials.access_token,
-        expiry_date: credentials.expiry_date,
-      })]
+/**
+ * Obtenir un client Google Drive authentifié
+ * Supporte plusieurs méthodes d'authentification:
+ * 1. Service Account JSON (recommandé pour production)
+ * 2. Token OAuth système (via DB)
+ * 3. Variables d'environnement simples (pour test)
+ */
+export async function getGoogleDriveClient() {
+  // Méthode 1: Service Account (recommandé)
+  try {
+    const saResult = await db.query(
+      `SELECT value FROM system_settings WHERE key = 'google_drive_service_account'`
     )
+
+    if (saResult.rows.length > 0) {
+      const serviceAccountJson = JSON.parse(saResult.rows[0].value)
+      const auth = new google.auth.GoogleAuth({
+        credentials: serviceAccountJson,
+        scopes: [
+          'https://www.googleapis.com/auth/drive.readonly',
+          'https://www.googleapis.com/auth/drive.metadata.readonly',
+        ],
+      })
+      return google.drive({ version: 'v3', auth })
+    }
+  } catch (error) {
+    // Table n'existe pas encore ou pas de service account configuré
+    console.log('[GoogleDrive] Service account non configuré, essai méthode OAuth...')
   }
 
-  return google.drive({ version: 'v3', auth: oauth2Client })
+  // Méthode 2: Token OAuth système (via DB)
+  try {
+    const tokenResult = await db.query(
+      `SELECT value FROM system_settings WHERE key = 'google_drive_system_token'`
+    )
+
+    if (tokenResult.rows.length > 0) {
+      const tokenData = JSON.parse(tokenResult.rows[0].value)
+
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET
+      )
+
+      oauth2Client.setCredentials({
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        expiry_date: tokenData.expiry_date,
+      })
+
+      // Rafraîchir le token si nécessaire
+      if (tokenData.expiry_date && Date.now() >= tokenData.expiry_date - 60000) {
+        const { credentials } = await oauth2Client.refreshAccessToken()
+        oauth2Client.setCredentials(credentials)
+
+        // Mettre à jour le token en base
+        await db.query(
+          `UPDATE system_settings SET value = $1, updated_at = NOW() WHERE key = 'google_drive_system_token'`,
+          [JSON.stringify({
+            ...tokenData,
+            access_token: credentials.access_token,
+            expiry_date: credentials.expiry_date,
+          })]
+        )
+      }
+
+      return google.drive({ version: 'v3', auth: oauth2Client })
+    }
+  } catch (error) {
+    console.log('[GoogleDrive] Token OAuth système non configuré')
+  }
+
+  // Méthode 3: Mode test avec variables d'environnement (pour développement)
+  // ATTENTION: Ne fonctionne que si un token valide existe déjà
+  if (process.env.GOOGLE_DRIVE_TEST_ACCESS_TOKEN) {
+    console.log('[GoogleDrive] Utilisation token de test (dev only)')
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET
+    )
+    oauth2Client.setCredentials({
+      access_token: process.env.GOOGLE_DRIVE_TEST_ACCESS_TOKEN,
+    })
+    return google.drive({ version: 'v3', auth: oauth2Client })
+  }
+
+  // Aucune méthode d'authentification disponible
+  throw new Error(
+    'Google Drive non configuré. Options:\n' +
+    '1. Service Account: Configurer google_drive_service_account dans system_settings\n' +
+    '2. OAuth système: Configurer google_drive_system_token dans system_settings\n' +
+    '3. Voir documentation: GDRIVE_IMPLEMENTATION.md'
+  )
 }
 
 async function getOrCreateWebScraperFolder(drive: any): Promise<string> {
@@ -244,6 +297,80 @@ async function downloadFromGoogleDrive(fileId: string): Promise<DownloadResult> 
     return {
       success: true,
       buffer: Buffer.from(response.data as ArrayBuffer),
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur Google Drive',
+    }
+  }
+}
+
+/**
+ * Télécharge un fichier Google Drive pour indexation
+ * Gère l'export automatique des Google Docs natifs en format standard
+ *
+ * @param fileId ID du fichier Google Drive
+ * @param mimeType MIME type du fichier
+ * @returns Buffer du fichier téléchargé avec son MIME type final
+ */
+export async function downloadGoogleDriveFileForIndexing(
+  fileId: string,
+  mimeType: string
+): Promise<DownloadResult & { mimeType?: string }> {
+  try {
+    const drive = await getGoogleDriveClient()
+
+    // Google Docs natifs: export en format standard
+    if (mimeType.includes('google-apps.document')) {
+      const exportMimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      const response = await drive.files.export(
+        { fileId, mimeType: exportMimeType },
+        { responseType: 'arraybuffer' }
+      )
+      return {
+        success: true,
+        buffer: Buffer.from(response.data as ArrayBuffer),
+        mimeType: exportMimeType,
+      }
+    }
+
+    if (mimeType.includes('google-apps.spreadsheet')) {
+      const exportMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      const response = await drive.files.export(
+        { fileId, mimeType: exportMimeType },
+        { responseType: 'arraybuffer' }
+      )
+      return {
+        success: true,
+        buffer: Buffer.from(response.data as ArrayBuffer),
+        mimeType: exportMimeType,
+      }
+    }
+
+    if (mimeType.includes('google-apps.presentation')) {
+      const exportMimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      const response = await drive.files.export(
+        { fileId, mimeType: exportMimeType },
+        { responseType: 'arraybuffer' }
+      )
+      return {
+        success: true,
+        buffer: Buffer.from(response.data as ArrayBuffer),
+        mimeType: exportMimeType,
+      }
+    }
+
+    // Fichiers standards: téléchargement direct
+    const response = await drive.files.get(
+      { fileId, alt: 'media' },
+      { responseType: 'arraybuffer' }
+    )
+
+    return {
+      success: true,
+      buffer: Buffer.from(response.data as ArrayBuffer),
+      mimeType,
     }
   } catch (error) {
     return {

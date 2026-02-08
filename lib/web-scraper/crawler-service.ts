@@ -57,9 +57,17 @@ export async function crawlSource(
   source: WebSource,
   options: CrawlOptions = {}
 ): Promise<CrawlResult> {
-  // Support snake_case (DB) et camelCase (types)
+  // Router: Google Drive vs Web
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const s = source as any
+  const baseUrl = s.baseUrl ?? s.base_url
+  if (baseUrl?.startsWith('gdrive://')) {
+    const { crawlGoogleDriveFolder } = await import('./gdrive-crawler-service')
+    return crawlGoogleDriveFolder(source, options)
+  }
+
+  // Support snake_case (DB) et camelCase (types)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sourceMaxPages = s.maxPages ?? s.max_pages ?? 100
   const sourceMaxDepth = s.maxDepth ?? s.max_depth ?? 3
   const sourceRateLimit = s.rateLimitMs ?? s.rate_limit_ms ?? 1000

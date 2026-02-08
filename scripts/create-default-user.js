@@ -8,7 +8,13 @@ const { Pool } = require('pg');
 
 async function createDefaultUser() {
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://moncabinet:dev_password_change_in_production@localhost:5433/moncabinet'
+    connectionString: process.env.DATABASE_URL || 'postgresql://moncabinet:dev_password_change_in_production@localhost:5433/moncabinet',
+    // Paramètres pour éviter les ECONNRESET
+    max: 2,
+    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 5000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
   });
 
   try {

@@ -1,0 +1,45 @@
+/**
+ * API Route: Test de connexion Google Drive
+ *
+ * POST /api/admin/gdrive/test-connection
+ * Body: { folderId: string }
+ *
+ * Vérifie que le service account peut accéder au dossier
+ * et liste les premiers fichiers pour validation.
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { validateDriveFolderAccess } from '@/lib/web-scraper/gdrive-utils'
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const { folderId } = body
+
+    if (!folderId || typeof folderId !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'Missing or invalid folderId' },
+        { status: 400 }
+      )
+    }
+
+    // Valider l'accès au dossier
+    const result = await validateDriveFolderAccess(folderId)
+
+    if (!result.success) {
+      return NextResponse.json(result, { status: 400 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      fileCount: result.fileCount,
+      message: `Connexion réussie. ${result.fileCount} fichier(s) découvert(s).`,
+    })
+  } catch (error: any) {
+    console.error('[API] Test connection error:', error)
+    return NextResponse.json(
+      { success: false, error: error.message || 'Erreur inconnue' },
+      { status: 500 }
+    )
+  }
+}

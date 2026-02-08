@@ -19,6 +19,7 @@ export type WebSourceCategory =
   | 'formulaires'      // الاستمارات - Formulaires
   | 'guides'           // الأدلة - Guides pratiques
   | 'lexique'          // المصطلحات - Lexique juridique
+  | 'google_drive'     // مستندات جوجل درايف - Google Drive
   | 'autre'            // أخرى - Autres
 
 /**
@@ -37,6 +38,7 @@ export const CATEGORY_TRANSLATIONS: Record<WebSourceCategory, { ar: string; fr: 
   formulaires: { ar: 'الاستمارات', fr: 'Formulaires' },
   guides: { ar: 'الأدلة', fr: 'Guides pratiques' },
   lexique: { ar: 'المصطلحات', fr: 'Lexique juridique' },
+  google_drive: { ar: 'مستندات جوجل درايف', fr: 'Google Drive' },
   autre: { ar: 'أخرى', fr: 'Autres' },
 }
 
@@ -219,6 +221,14 @@ export interface WebSource {
   // Configuration d'extraction personnalisée (patterns de bruit, sélecteurs)
   extractionConfig: ExtractionConfig | null
 
+  // Google Drive configuration (null pour sources web)
+  driveConfig?: {
+    folderId: string
+    recursive: boolean
+    fileTypes: ('pdf' | 'docx' | 'doc' | 'xlsx' | 'pptx')[]
+    serviceAccountEmail?: string
+  } | null
+
   // Sitemap & RSS
   sitemapUrl: string | null
   rssFeedUrl: string | null
@@ -308,8 +318,8 @@ export interface LinkedFile {
   minioPath?: string
   /** URL originale (avant transformation pour les liens cloud) */
   originalUrl?: string
-  /** Source de détection: 'link' | 'iframe' | 'global' */
-  source?: 'link' | 'iframe' | 'global'
+  /** Source de détection: 'link' | 'iframe' | 'global' | 'gdrive' */
+  source?: 'link' | 'iframe' | 'global' | 'gdrive'
 }
 
 export interface WebCrawlJob {
@@ -336,6 +346,19 @@ export interface CrawlError {
   url: string
   error: string
   timestamp: string
+}
+
+/**
+ * Fichier Google Drive découvert pendant le crawl
+ */
+export interface GoogleDriveFile {
+  id: string
+  name: string
+  mimeType: string
+  size: string
+  modifiedTime: string
+  webViewLink: string
+  webContentLink?: string
 }
 
 export interface WebCrawlLog {
