@@ -37,7 +37,7 @@ export function ConsultationInput({
   const t = useTranslations('consultation')
   const [question, setQuestion] = useState('')
   const [context, setContext] = useState('')
-  const [selectedDossierId, setSelectedDossierId] = useState<string>('')
+  const [selectedDossierId, setSelectedDossierId] = useState<string>('none')
   const [dossiers, setDossiers] = useState<Dossier[]>([])
   const [loadingDossiers, setLoadingDossiers] = useState(true)
 
@@ -71,7 +71,7 @@ export function ConsultationInput({
       const result = await submitConsultation({
         question: question.trim(),
         context: context.trim() || undefined,
-        dossierId: selectedDossierId || undefined,
+        dossierId: selectedDossierId !== 'none' ? selectedDossierId : undefined,
       })
 
       if (result.success && result.data) {
@@ -164,7 +164,7 @@ export function ConsultationInput({
             <SelectValue placeholder={t('dossierPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">
+            <SelectItem value="none">
               <span className="text-muted-foreground">{t('noDossier')}</span>
             </SelectItem>
             {dossiers.map((dossier) => (
@@ -191,7 +191,7 @@ export function ConsultationInput({
           onClick={() => {
             setQuestion('')
             setContext('')
-            setSelectedDossierId('')
+            setSelectedDossierId('none')
           }}
           disabled={isLoading}
         >
