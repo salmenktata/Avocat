@@ -55,13 +55,14 @@ RUN npx next build
 FROM node:18-slim AS runner
 WORKDIR /app
 
-# Dépendances runtime pour canvas et Playwright Chromium
+# Dépendances runtime pour canvas, Playwright Chromium et OCR (Tesseract)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpixman-1-0 libcairo2 libpango-1.0-0 libpangocairo-1.0-0 \
     libjpeg62-turbo libgif7 \
     libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
     libdrm2 libdbus-1-3 libxkbcommon0 libatspi2.0-0 libxcomposite1 \
     libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
+    tesseract-ocr tesseract-ocr-ara tesseract-ocr-fra \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
