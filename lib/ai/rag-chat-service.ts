@@ -65,6 +65,10 @@ import {
   LLMMessage,
   LLMResponse,
 } from './llm-fallback-service'
+import {
+  validateArticleCitations,
+  formatValidationWarnings,
+} from './citation-validator-service'
 
 // Configuration Query Expansion
 const ENABLE_QUERY_EXPANSION = process.env.ENABLE_QUERY_EXPANSION !== 'false'
@@ -151,6 +155,7 @@ export interface ChatResponse {
   }
   model: string
   conversationId?: string
+  citationWarnings?: string[] // Phase 2.2 - Citations non vérifiées
 }
 
 export interface ChatOptions {
@@ -1327,12 +1332,29 @@ export async function answerQuestion(
   // Sanitizer: supprimer les citations inventées par le LLM
   answer = sanitizeCitations(answer, sources.length)
 
+  // Phase 2.2 : Valider citations juridiques
+  let citationWarnings: string[] = []
+  if (process.env.ENABLE_CITATION_VALIDATION !== 'false') {
+    try {
+      const validationResult = validateArticleCitations(answer, sources)
+
+      if (validationResult.warnings.length > 0) {
+        console.warn('[RAG] Citations non vérifiées:', formatValidationWarnings(validationResult))
+        citationWarnings = validationResult.warnings.map(w => w.citation)
+      }
+    } catch (error) {
+      console.error('[RAG] Erreur validation citations:', error)
+      // Ne pas bloquer la réponse
+    }
+  }
+
   return {
     answer,
     sources,
     tokensUsed,
     model: modelUsed,
     conversationId: options.conversationId,
+    citationWarnings: citationWarnings.length > 0 ? citationWarnings : undefined,
   }
 }
 
