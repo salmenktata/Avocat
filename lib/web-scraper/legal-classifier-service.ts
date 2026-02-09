@@ -57,6 +57,10 @@ import {
   enrichWithContext,
   type EnrichmentResult,
 } from './contextual-enrichment-service'
+import {
+  requiresValidation as requiresValidationAdaptive,
+  getClassificationThreshold,
+} from './adaptive-thresholds'
 
 // =============================================================================
 // CONFIGURATION
@@ -464,7 +468,16 @@ async function classifyWithMultiSignals(
   let llmResult: LLMResult | null = null
   let parsedLLM: LLMClassificationResponse | null = null
 
-  if (structureRulesConfidence < LLM_THRESHOLD || signals.length === 0) {
+  // Décision adaptative d'activation LLM (économie tokens)
+  // Note : contextBoost = 0 car enrichissement contextuel fait après LLM
+  const activateLLM = shouldActivateLLM(
+    structureRulesConfidence,
+    signals,
+    legalDensity.density,
+    0 // contextBoost sera pris en compte dans une future itération si besoin
+  )
+
+  if (activateLLM) {
     // Préparer le prompt
     const userPrompt = formatPrompt(LEGAL_CLASSIFICATION_USER_PROMPT, {
       url: context.url,
@@ -517,6 +530,9 @@ async function classifyWithMultiSignals(
   let contextualEnrichment: EnrichmentResult | null = null
   try {
     const preliminaryFusion = fuseClassificationSignals(signals)
+    // Calculer confiance préliminaire pour décider si enrichissement nécessaire
+    const preliminaryConfidence = calculateCombinedConfidence(signals)
+
     contextualEnrichment = await enrichWithContext(
       context.pageId,
       context.url,
@@ -525,7 +541,8 @@ async function classifyWithMultiSignals(
         category: validateCategory(preliminaryFusion.category),
         domain: validateDomain(preliminaryFusion.domain),
         documentType: validateDocumentNature(preliminaryFusion.documentType),
-      }
+      },
+      preliminaryConfidence // Skip si confiance déjà > 0.85
     )
 
     // Ajouter les signaux contextuels
@@ -572,16 +589,23 @@ async function classifyWithMultiSignals(
   const finalDomain = fused.domain || contextualEnrichment?.suggestedDomain
 
   // Construire le résultat final
+  const finalCategory = validateCategory(fused.category)
+  const finalDomainValidated = validateDomain(finalDomain ?? null)
+
+  // Utiliser seuils adaptatifs selon le domaine/catégorie (Sprint 2 - Phase 3.1)
+  const adaptiveThreshold = getClassificationThreshold(finalCategory, finalDomainValidated)
+  const needsValidation = requiresValidationAdaptive(finalConfidence, finalCategory, finalDomainValidated)
+
   const result: ClassificationResult = {
-    primaryCategory: validateCategory(fused.category),
+    primaryCategory: finalCategory,
     subcategory: null,
-    domain: validateDomain(finalDomain ?? null),
+    domain: finalDomainValidated,
     subdomain: null,
     documentNature: validateDocumentNature(fused.documentType),
     confidenceScore: finalConfidence,
-    requiresValidation: finalConfidence < CLASSIFICATION_CONFIDENCE_THRESHOLD,
-    validationReason: fused.confidence < CLASSIFICATION_CONFIDENCE_THRESHOLD
-      ? `Confiance faible (${(fused.confidence * 100).toFixed(0)}%)`
+    requiresValidation: needsValidation,
+    validationReason: needsValidation
+      ? `Confiance ${(finalConfidence * 100).toFixed(0)}% < seuil ${(adaptiveThreshold * 100).toFixed(0)}% (${finalDomainValidated || finalCategory || 'default'})`
       : null,
     alternativeClassifications: parsedLLM?.alternative_classifications?.map(alt => ({
       category: validateCategory(alt.category),
@@ -1011,6 +1035,81 @@ function validateDocumentNature(nature: string | null): DocumentNature | null {
   return validNatures.includes(normalized as DocumentNature)
     ? (normalized as DocumentNature)
     : 'autre'
+}
+
+/**
+ * Décide de manière adaptative s'il faut activer le LLM pour classification
+ *
+ * Logique de décision intelligente basée sur la qualité des signaux disponibles :
+ * - CAS 1 : Règles très confiantes → skip LLM (économie tokens)
+ * - CAS 2 : Keywords + contexte forts → skip LLM
+ * - CAS 3 : Signaux contradictoires → nécessite LLM (arbitrage)
+ * - CAS 4 : Confiance faible ou aucun signal → nécessite LLM
+ *
+ * @param structureRulesConfidence Confiance combinée des signaux structure+règles
+ * @param signals Liste des signaux de classification disponibles
+ * @param keywordDensity Densité de mots-clés juridiques (0-1)
+ * @param contextBoost Boost apporté par l'enrichissement contextuel (0-1)
+ * @returns true si LLM doit être activé, false sinon
+ */
+function shouldActivateLLM(
+  structureRulesConfidence: number,
+  signals: ClassificationSignal[],
+  keywordDensity: number,
+  contextBoost: number
+): boolean {
+  // CAS 1 : Règles très confiantes (> 0.8) → skip LLM
+  // Économie : ~30% des cas
+  if (structureRulesConfidence > 0.8) {
+    console.log('[LLM Decision] Skip LLM - Règles très confiantes:', structureRulesConfidence.toFixed(2))
+    return false
+  }
+
+  // CAS 2 : Keywords + contexte forts → skip LLM
+  // Seuils : confiance > 0.65, densité keywords > 0.7, boost contexte > 0.15
+  // Économie : ~20% des cas
+  if (
+    structureRulesConfidence > 0.65 &&
+    keywordDensity > 0.7 &&
+    contextBoost > 0.15
+  ) {
+    console.log(
+      '[LLM Decision] Skip LLM - Signaux combinés forts:',
+      { confidence: structureRulesConfidence.toFixed(2), keywordDensity: keywordDensity.toFixed(2), contextBoost: contextBoost.toFixed(2) }
+    )
+    return false
+  }
+
+  // CAS 3 : Signaux contradictoires → nécessite LLM
+  // Détection : 3+ catégories différentes suggérées
+  const uniqueCategories = new Set(
+    signals.map(s => s.category).filter(Boolean)
+  )
+  if (uniqueCategories.size >= 3) {
+    console.log('[LLM Decision] Activate LLM - Signaux contradictoires:', uniqueCategories.size, 'catégories')
+    return true
+  }
+
+  // CAS 4 : Confiance faible (< 0.5) ou aucun signal → nécessite LLM
+  if (structureRulesConfidence < 0.5 || signals.length === 0) {
+    console.log('[LLM Decision] Activate LLM - Confiance faible ou aucun signal:', structureRulesConfidence.toFixed(2))
+    return true
+  }
+
+  // CAS 5 : Entre 0.5 et seuil LLM_THRESHOLD (défaut 0.6) → vérifier densité keywords
+  // Si keywords forts (> 0.6), on peut skip LLM même si confiance moyenne
+  if (structureRulesConfidence >= 0.5 && structureRulesConfidence < LLM_THRESHOLD) {
+    if (keywordDensity > 0.6) {
+      console.log('[LLM Decision] Skip LLM - Keywords compensent confiance moyenne:', keywordDensity.toFixed(2))
+      return false
+    }
+    console.log('[LLM Decision] Activate LLM - Confiance moyenne sans keywords forts')
+    return true
+  }
+
+  // Par défaut : ne pas activer LLM (confiance suffisante)
+  console.log('[LLM Decision] Skip LLM - Confiance suffisante:', structureRulesConfidence.toFixed(2))
+  return false
 }
 
 /**

@@ -232,6 +232,104 @@ function similarityScore(a: string, b: string): number {
 }
 
 // =============================================================================
+// HELPER FUNCTIONS - DÉTECTION CHAMPS APPLICABLES
+// =============================================================================
+
+/**
+ * Retourne la liste des champs métadonnées applicables selon la catégorie
+ *
+ * Permet d'éviter des appels LLM inutiles pour extraction de champs non pertinents.
+ * Par exemple : pas besoin d'extraire "loiNumber" pour une page de jurisprudence.
+ *
+ * @param category Catégorie de la page (legislation, jurisprudence, doctrine, etc.)
+ * @returns Liste des noms de champs applicables
+ */
+function getApplicableFields(category: string): string[] {
+  const fieldsByCategory: Record<string, string[]> = {
+    legislation: [
+      'loiNumber',
+      'jortNumber',
+      'jortDate',
+      'effectiveDate',
+      'ministry',
+      'codeName',
+      'legalReferences',
+    ],
+    jurisprudence: [
+      'tribunalCode',
+      'chambreCode',
+      'decisionNumber',
+      'decisionDate',
+      'parties',
+      'solution',
+      'legalReferences',
+      'summary',
+    ],
+    doctrine: [
+      'author',
+      'coAuthors',
+      'publicationName',
+      'publicationDate',
+      'university',
+      'keywords',
+      'summary',
+      'legalReferences',
+    ],
+    jort: [
+      'jortNumber',
+      'jortDate',
+      'loiNumber',
+      'ministry',
+      'legalReferences',
+    ],
+    modeles: [
+      'documentType',
+      'keywords',
+      'summary',
+      'effectiveDate',
+    ],
+    procedures: [
+      'keywords',
+      'summary',
+      'tribunalCode',
+      'legalReferences',
+    ],
+    autre: [
+      'keywords',
+      'summary',
+    ],
+  }
+
+  return fieldsByCategory[category] || fieldsByCategory.autre
+}
+
+/**
+ * Décide s'il faut activer le LLM pour extraction métadonnées
+ *
+ * Skip LLM si < 3 champs applicables pour la catégorie (économie tokens).
+ * Par exemple : une page "autre" n'a que 2 champs applicables → skip LLM.
+ *
+ * @param category Catégorie de la page
+ * @returns true si LLM doit être activé, false sinon
+ */
+function shouldExtractWithLLM(category: string): boolean {
+  const applicableFields = getApplicableFields(category)
+  const threshold = 3 // Minimum 3 champs applicables pour justifier LLM
+
+  if (applicableFields.length < threshold) {
+    console.log(
+      `[Metadata Extraction] Skip LLM - Seulement ${applicableFields.length} champs applicables pour catégorie "${category}"`
+    )
+    return false
+  }
+
+  console.log(
+    `[Metadata Extraction] Activate LLM - ${applicableFields.length} champs applicables pour catégorie "${category}"`
+  )
+  return true
+}
+
+// =============================================================================
 // FONCTIONS PRINCIPALES
 // =============================================================================
 
@@ -277,7 +375,26 @@ export async function extractStructuredMetadata(
     return getStructuredMetadata(pageId) as Promise<WebPageStructuredMetadata>
   }
 
-  // Préparer le prompt
+  // Décider si extraction LLM est nécessaire (économie tokens)
+  // Skip LLM si < 3 champs applicables pour la catégorie
+  const useLLM = shouldExtractWithLLM(page.source_category)
+
+  let parsed: MetadataExtractionResponse
+
+  if (!useLLM) {
+    // Skip LLM - retourner métadonnées minimales (extraction regex basique si disponible)
+    // Note : L'extraction regex basique pourrait être implémentée ici dans une future itération
+    // Pour l'instant, on retourne juste les métadonnées par défaut
+    parsed = getDefaultMetadataResponse()
+    parsed.extraction_confidence = 0.3 // Confiance faible sans LLM
+    parsed.extraction_method = 'minimal' // Indiquer méthode minimal
+
+    await upsertStructuredMetadata(pageId, parsed, 'none', 'minimal')
+
+    return getStructuredMetadata(pageId) as Promise<WebPageStructuredMetadata>
+  }
+
+  // Préparer le prompt LLM
   const userPrompt = formatPrompt(METADATA_EXTRACTION_USER_PROMPT, {
     url: page.url,
     title: page.title || 'Sans titre',
@@ -292,7 +409,7 @@ export async function extractStructuredMetadata(
   )
 
   // Parser la réponse
-  const parsed = parseMetadataResponse(llmResult.content)
+  parsed = parseMetadataResponse(llmResult.content)
 
   // Valider les champs juridiques contre les listes de référence
   const tribunalValidation = validateTribunal(parsed.tribunal)
