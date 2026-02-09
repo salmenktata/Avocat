@@ -89,8 +89,9 @@ COPY --from=builder /app/node_modules/canvas ./node_modules/canvas
 COPY --from=builder /app/node_modules/pg ./node_modules/pg
 COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
 
-# Créer le polyfill File API inline pour le runtime
+# Créer le polyfill File API + DOMMatrix inline pour le runtime
 RUN mkdir -p scripts && cat > scripts/polyfill-file.js << 'POLYFILL'
+// Polyfill File API
 if (typeof globalThis.File === 'undefined') {
   class File extends Blob {
     constructor(fileParts, fileName, options = {}) {
@@ -100,6 +101,18 @@ if (typeof globalThis.File === 'undefined') {
     }
   }
   globalThis.File = File;
+}
+
+// Polyfill DOMMatrix from canvas (pour pdf-to-img / pdf-parse)
+if (typeof globalThis.DOMMatrix === 'undefined') {
+  try {
+    const canvas = require('canvas');
+    if (canvas.DOMMatrix) {
+      globalThis.DOMMatrix = canvas.DOMMatrix;
+    }
+  } catch (err) {
+    // Canvas not available, skip DOMMatrix polyfill
+  }
 }
 POLYFILL
 
