@@ -300,6 +300,20 @@ async function upsertWebPage(
 
     // Vérifier si le contenu a changé
     if (page.content_hash === contentHash) {
+      // Hash identique MAIS forcer update extracted_text si disponible et manquant
+      if (extractedText && !page.extracted_text) {
+        console.log(`[GDriveCrawler] Force update extracted_text: ${file.name}`)
+        await db.query(
+          `UPDATE web_pages
+           SET extracted_text = $1,
+               status = 'changed',
+               last_changed_at = NOW()
+           WHERE id = $2`,
+          [extractedText, page.id]
+        )
+        return { isNew: false, hasChanged: true, pageId: page.id }
+      }
+
       // Pas de changement
       return { isNew: false, hasChanged: false, pageId: page.id }
     }
