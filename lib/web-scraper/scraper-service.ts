@@ -3,10 +3,11 @@
  * Supporte les sites statiques (fetch + cheerio) et dynamiques (Playwright)
  */
 
-import type { WebSource, ScrapedContent, DynamicSiteConfig, ScrapingMetrics } from './types'
+import type { WebSource, ScrapedContent, DynamicSiteConfig, ScrapingMetrics, DetectedFramework, FetchResult } from './types'
 import { extractContent, hashUrl, hashContent } from './content-extractor'
 import { isUrlAllowed } from './robots-parser'
 import { detectBan, getBrowserHeaders, selectUserAgent } from './anti-ban-utils'
+import { discoverLinksViaInteraction } from './menu-discovery-service'
 
 // Timeout par défaut
 const DEFAULT_TIMEOUT_MS = 30000
@@ -253,15 +254,7 @@ interface FetchOptions {
   ignoreSSLErrors?: boolean
 }
 
-interface FetchResult {
-  success: boolean
-  html?: string
-  statusCode?: number
-  error?: string
-  finalUrl?: string
-  etag?: string
-  lastModified?: Date | null
-}
+// FetchResult importé depuis types.ts
 
 /**
  * Récupère le contenu HTML d'une URL (statique)
@@ -429,22 +422,7 @@ export async function fetchHtml(
   }
 }
 
-/**
- * Types de frameworks détectables
- */
-type DetectedFramework =
-  | 'livewire'
-  | 'alpine'
-  | 'react'
-  | 'vue'
-  | 'angular'
-  | 'svelte'
-  | 'htmx'
-  | 'turbo'
-  | 'stimulus'
-  | 'jquery-ajax'
-  | 'spa-generic'
-  | 'static'
+// DetectedFramework importé depuis types.ts
 
 /**
  * Profils de configuration par framework
@@ -535,6 +513,15 @@ const FRAMEWORK_PROFILES: Record<DetectedFramework, Partial<DynamicSiteConfig>> 
     waitUntil: 'networkidle',
     dynamicTimeoutMs: 10000,
   },
+  webdev: {
+    waitUntil: 'networkidle',
+    postLoadDelayMs: 2500,
+    waitForLoadingToDisappear: true,
+    loadingIndicators: ['<!--loading-->', '[data-loading]', '.loading'],
+    scrollToLoad: true,
+    scrollCount: 2,
+    dynamicTimeoutMs: 20000,
+  },
   static: {
     postLoadDelayMs: 0,
     waitUntil: 'domcontentloaded',
@@ -602,6 +589,13 @@ async function detectFramework(
       // jQuery avec AJAX patterns
       jqueryAjax: (scripts.some(s => s.includes('jquery')) && html.includes('ajax')) ||
                   html.includes('$.ajax') || html.includes('$.get') || html.includes('$.post'),
+      // WebDev (framework français utilisé par IORT.tn)
+      webdev: /PAGE_[A-Z_]+\/[A-Za-z0-9]+\?WD_ACTION_=/.test(window.location.href) ||
+              html.includes('WD_ACTION_') ||
+              html.includes('WD_BUTTON_') ||
+              html.includes('PAGE_Principal') ||
+              html.includes('AWP_') ||
+              scripts.some(s => s.includes('gbWDInit') || s.includes('WD_MODE_AJAX')),
       // SPA générique (hashtag routing, history API patterns)
       spaGeneric: html.includes('router') || html.includes('app-root') ||
                   !!document.querySelector('#app') || !!document.querySelector('#root'),
@@ -618,6 +612,7 @@ async function detectFramework(
   if (checks.turbo) detected.push('turbo')
   if (checks.stimulus) detected.push('stimulus')
   if (checks.jqueryAjax) detected.push('jquery-ajax')
+  if (checks.webdev) detected.push('webdev')
   if (checks.spaGeneric && detected.length === 0) detected.push('spa-generic')
   if (detected.length === 0) detected.push('static')
 
@@ -841,6 +836,29 @@ export async function fetchHtmlDynamic(
 
       checkGlobalTimeout()
 
+      // 🆕 DÉCOUVERTE AUTOMATIQUE DE LIENS DYNAMIQUES
+      let discoveredUrls: string[] = []
+      if (detectedFrameworks.length > 0 && detectedFrameworks[0] !== 'static') {
+        try {
+          const framework = detectedFrameworks[0]
+          const result = await discoverLinksViaInteraction(page, framework, url)
+
+          discoveredUrls = result.urls
+
+          if (discoveredUrls.length > 0) {
+            console.log(
+              `[Scraper] Découverte: ${discoveredUrls.length} URLs ` +
+              `(${result.clicksPerformed} clics)`
+            )
+          }
+        } catch (err) {
+          console.warn('[Scraper] Erreur découverte:', err)
+          // Ne pas bloquer le scraping principal
+        }
+      }
+
+      checkGlobalTimeout()
+
       // Cliquer sur des éléments si configuré (ex: "Voir plus", "Charger plus")
       if (config.clickBeforeExtract?.length) {
         for (const selector of config.clickBeforeExtract) {
@@ -908,6 +926,7 @@ export async function fetchHtmlDynamic(
         finalUrl,
         etag,
         lastModified,
+        discoveredUrls: discoveredUrls.length > 0 ? discoveredUrls : undefined,
       }
 
     } finally {

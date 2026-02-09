@@ -131,6 +131,28 @@ export interface StructuredLegalContent {
 }
 
 /**
+ * Configuration pour la découverte automatique de liens dynamiques
+ */
+export interface LinkDiscoveryConfig {
+  /** Activer la découverte de liens (défaut: true pour sites dynamiques) */
+  enabled: boolean
+  /** Sélecteurs CSS des éléments à cliquer pour révéler des liens */
+  clickSelectors: string[]
+  /** Nombre maximum de clics à effectuer */
+  maxClicks: number
+  /** Délai d'attente après chaque clic (ms) */
+  waitAfterClickMs: number
+  /** Timeout global pour la phase de découverte (ms) */
+  discoveryTimeoutMs: number
+  /** Stratégie de capture des URLs */
+  captureStrategy: 'dom' | 'history' | 'xhr' | 'hybrid'
+  /** Utiliser le scoring de pertinence pour prioriser les clics */
+  useRelevanceScoring?: boolean
+  /** Patterns à exclure (logout, admin, etc.) */
+  excludePatterns?: string[]
+}
+
+/**
  * Configuration avancée pour les sites dynamiques
  * (Livewire, React, Vue, Angular, etc.)
  */
@@ -155,6 +177,8 @@ export interface DynamicSiteConfig {
   waitUntil?: 'networkidle' | 'domcontentloaded' | 'load'
   /** Timeout spécifique pour le chargement dynamique (ms) */
   dynamicTimeoutMs?: number
+  /** Configuration de découverte automatique de liens */
+  linkDiscoveryConfig?: LinkDiscoveryConfig
 }
 
 /**
@@ -383,6 +407,39 @@ export interface WebCrawlLog {
   errors: CrawlError[]
 }
 
+/**
+ * Types de frameworks détectables
+ */
+export type DetectedFramework =
+  | 'livewire'
+  | 'alpine'
+  | 'react'
+  | 'vue'
+  | 'angular'
+  | 'svelte'
+  | 'htmx'
+  | 'turbo'
+  | 'stimulus'
+  | 'jquery-ajax'
+  | 'spa-generic'
+  | 'webdev'
+  | 'static'
+
+/**
+ * Résultat du fetch HTTP/Playwright
+ */
+export interface FetchResult {
+  success: boolean
+  html?: string
+  statusCode?: number
+  error?: string
+  finalUrl?: string
+  etag?: string
+  lastModified?: Date | null
+  /** URLs découvertes via interaction JavaScript (menus, navigation) */
+  discoveredUrls?: string[]
+}
+
 export interface ScrapedContent {
   url: string
   title: string
@@ -402,6 +459,8 @@ export interface ScrapedContent {
   siteStructure?: SiteStructure
   /** Contenu juridique structuré (article, hiérarchie, références) */
   structuredLegalContent?: StructuredLegalContent
+  /** Résultat du fetch avec métadonnées HTTP et URLs découvertes */
+  fetchResult?: FetchResult
 }
 
 /**

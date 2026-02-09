@@ -223,12 +223,23 @@ export async function crawlSource(
       if (result.success) {
         consecutiveFailures = 0
 
-        // Ajouter les liens découverts à la queue
+        // Ajouter les liens découverts à la queue (liens statiques HTML)
         if (sourceFollowLinks && result.links) {
           for (const link of result.links) {
             const linkHash = hashUrl(link)
             if (!state.visited.has(linkHash)) {
               state.queue.push({ url: link, depth: depth + 1 })
+            }
+          }
+        }
+
+        // 🆕 Ajouter les liens dynamiques découverts via interaction JavaScript
+        if (sourceFollowLinks && result.fetchResult?.discoveredUrls) {
+          for (const link of result.fetchResult.discoveredUrls) {
+            const linkHash = hashUrl(link)
+            if (!state.visited.has(linkHash)) {
+              state.queue.push({ url: link, depth: depth + 1 })
+              console.log(`[Crawler] 🔗 Lien dynamique → ${link}`)
             }
           }
         }
@@ -356,7 +367,7 @@ async function processPage(
   depth: number,
   state: CrawlState,
   options: { downloadFiles: boolean; incrementalMode: boolean }
-): Promise<{ success: boolean; links?: string[] }> {
+): Promise<{ success: boolean; links?: string[]; fetchResult?: import('./types').FetchResult }> {
   // Support snake_case (DB) et camelCase (types)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const s = source as any
@@ -460,7 +471,7 @@ async function processPage(
     }
 
     await updatePageTimestamp(existingPage.id, scrapeResult.fetchResult)
-    return { success: true, links: content.links }
+    return { success: true, links: content.links, fetchResult: scrapeResult.fetchResult }
   }
 
   // Télécharger les fichiers liés si demandé
@@ -501,7 +512,7 @@ async function processPage(
     await autoIndexFilesForPage(savedPageId, downloadedFiles, sourceId, sName, sourceCategory)
   }
 
-  return { success: true, links: content.links }
+  return { success: true, links: content.links, fetchResult: scrapeResult.fetchResult }
 }
 
 /**
