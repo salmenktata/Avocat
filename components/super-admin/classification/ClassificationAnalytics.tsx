@@ -103,10 +103,10 @@ export function ClassificationAnalytics() {
               <CardDescription>Top Domaine</CardDescription>
             </CardHeader>
             <CardContent>
-              {Object.entries(data.byDomain)
-                .sort(([, a], [, b]) => b - a)
+              {(Object.entries(data.byDomain) as [string, number][])
+                .sort(([, a], [, b]) => (b as number) - (a as number))
                 .slice(0, 1)
-                .map(([domain, count]) => (
+                .map(([domain, count]: [string, number]) => (
                   <div key={domain}>
                     <div className="text-2xl font-bold">{count}</div>
                     <div className="text-sm text-muted-foreground">{domain}</div>
@@ -120,10 +120,10 @@ export function ClassificationAnalytics() {
               <CardDescription>Top Source</CardDescription>
             </CardHeader>
             <CardContent>
-              {Object.entries(data.bySource)
-                .sort(([, a], [, b]) => b - a)
+              {(Object.entries(data.bySource) as [string, number][])
+                .sort(([, a], [, b]) => (b as number) - (a as number))
                 .slice(0, 1)
-                .map(([source, count]) => (
+                .map(([source, count]: [string, number]) => (
                   <div key={source}>
                     <div className="text-2xl font-bold">{count}</div>
                     <div className="text-sm text-muted-foreground truncate">{source}</div>
