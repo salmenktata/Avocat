@@ -103,6 +103,7 @@ const getNavGroups = (
     group: 'Système',
     items: [
       { href: '/super-admin/ai-costs', label: 'Coûts IA', icon: 'dollar' },
+      { href: '/super-admin/provider-usage', label: 'Monitoring Providers', icon: 'activity' },
       { href: '/super-admin/audit-logs', label: 'Journal d\'audit', icon: 'shield' },
       { href: '/super-admin/backups', label: 'Sauvegardes', icon: 'database' },
       { href: '/super-admin/settings', label: 'Paramètres', icon: 'settings' },
