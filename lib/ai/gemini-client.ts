@@ -104,13 +104,15 @@ let geminiClient: GoogleGenerativeAI | null = null
 
 function getGeminiClient(): GoogleGenerativeAI {
   if (!geminiClient) {
-    if (!aiConfig.gemini.apiKey) {
+    // Lire directement process.env pour éviter problème init module
+    const apiKey = process.env.GOOGLE_API_KEY || aiConfig.gemini.apiKey
+    if (!apiKey) {
       throw new Error(
         'GOOGLE_API_KEY non configuré. ' +
         'Créez une clé sur https://aistudio.google.com/app/apikey'
       )
     }
-    geminiClient = new GoogleGenerativeAI(aiConfig.gemini.apiKey)
+    geminiClient = new GoogleGenerativeAI(apiKey)
   }
   return geminiClient
 }

@@ -1225,6 +1225,7 @@ export async function answerQuestion(
           temperature,
           maxTokens: promptConfig.maxTokens,
           systemPrompt: systemPromptWithSummary,
+          context: 'rag-chat', // Stratégie optimisée : Gemini → DeepSeek → Ollama
         },
         options.usePremiumModel ?? false // Mode premium si demandé
       )
