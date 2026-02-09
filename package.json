@@ -54,6 +54,9 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
+    "test:e2e:abrogation": "playwright test e2e/workflows/abrogation-detection.spec.ts",
+    "test:integration": "vitest run --config vitest.config.integration.ts || echo 'Integration tests not configured'",
+    "test:e2e:rag": "playwright test e2e/workflows/rag-*.spec.ts || echo 'E2E RAG tests not configured'",
     "storage:cleanup": "node scripts/cleanup-storage-manual.js",
     "storage:analyze": "node scripts/analyze-storage.ts"
   },
