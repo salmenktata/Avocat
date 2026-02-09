@@ -88,8 +88,8 @@ POLYFILL
 # Charger le polyfill au runtime pour éviter "File is not defined"
 ENV NODE_OPTIONS="--require ./scripts/polyfill-file.js"
 
-# Installer dépendances pour le script entrypoint (ignorer les scripts pour éviter canvas)
-RUN npm install --no-save --ignore-scripts pg bcryptjs
+# Installer dépendances pour le script entrypoint et canvas
+RUN npm install --no-save pg bcryptjs canvas
 
 # Copier script entrypoint
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
