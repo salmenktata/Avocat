@@ -71,6 +71,9 @@ COPY --from=builder /app/public ./public
 # Copier les browsers Playwright depuis le builder
 COPY --from=builder /app/.playwright ./.playwright
 
+# Copier canvas (module natif) depuis builder car Next.js standalone ne le bundlerait pas
+COPY --from=builder /app/node_modules/canvas ./node_modules/canvas
+
 # Créer le polyfill File API inline pour le runtime
 RUN mkdir -p scripts && cat > scripts/polyfill-file.js << 'POLYFILL'
 if (typeof globalThis.File === 'undefined') {
@@ -88,8 +91,8 @@ POLYFILL
 # Charger le polyfill au runtime pour éviter "File is not defined"
 ENV NODE_OPTIONS="--require ./scripts/polyfill-file.js"
 
-# Installer dépendances pour le script entrypoint et canvas
-RUN npm install --no-save pg bcryptjs canvas
+# Installer dépendances pour le script entrypoint (canvas est bundlé par Next.js)
+RUN npm install --no-save pg bcryptjs
 
 # Copier script entrypoint
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
