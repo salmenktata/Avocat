@@ -25,6 +25,10 @@ import {
   RAG_DIVERSITY,
 } from './config'
 import {
+  batchEnrichSourcesWithMetadata,
+  type ChatSource as EnhancedChatSource,
+} from './enhanced-rag-search-service'
+import {
   getSystemPromptForContext,
   PROMPT_CONFIG,
   type PromptContextType,
@@ -832,13 +836,24 @@ async function buildContextFromSources(sources: ChatSource[], questionLang?: Det
   let totalTokens = 0
   let sourcesUsed = 0
 
-  // Enrichir sources avec métadonnées structurées (parallèle)
-  const enrichedSources = await Promise.all(
-    sources.map(async (source) => ({
-      ...source,
-      metadata: await enrichSourceWithStructuredMetadata(source),
-    }))
-  )
+  // Enrichir sources avec métadonnées structurées (batch - une seule requête SQL)
+  const metadataMap = await batchEnrichSourcesWithMetadata(sources)
+
+  const enrichedSources = sources.map((source) => {
+    if (!source.documentId) return source
+
+    const batchMetadata = metadataMap.get(source.documentId)
+    if (batchMetadata) {
+      return {
+        ...source,
+        metadata: {
+          ...source.metadata,
+          ...batchMetadata,
+        },
+      }
+    }
+    return source
+  })
 
   for (let i = 0; i < enrichedSources.length; i++) {
     const source = enrichedSources[i]

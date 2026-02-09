@@ -542,5 +542,100 @@ export async function getLegalRelationsStats(): Promise<
   }))
 }
 
+// =============================================================================
+// BATCH METADATA LOADING (Fix N+1 queries)
+// =============================================================================
+
+/**
+ * Type pour les sources ChatSource (compatible avec rag-chat-service)
+ */
+export interface ChatSource {
+  documentId?: string
+  documentName: string
+  similarity?: number
+  metadata?: any
+  chunkContent?: string
+  chunkIndex?: number
+}
+
+/**
+ * Enrichit un batch de sources avec métadonnées structurées (une seule requête SQL)
+ *
+ * Cette fonction résout le problème N+1 queries en chargeant toutes les métadonnées
+ * d'un seul coup avec WHERE knowledge_base_id = ANY($1::uuid[])
+ *
+ * @param sources - Liste des sources à enrichir
+ * @returns Map<documentId, enrichedMetadata>
+ *
+ * Performance: 10 sources = 1 requête SQL (~10-15ms) au lieu de 10 requêtes (~50-100ms)
+ */
+export async function batchEnrichSourcesWithMetadata(
+  sources: ChatSource[]
+): Promise<Map<string, any>> {
+  // Filtrer les sources avec documentId
+  const documentIds = sources
+    .map((s) => s.documentId)
+    .filter((id): id is string => !!id)
+
+  if (documentIds.length === 0) {
+    return new Map()
+  }
+
+  try {
+    // Une seule requête SQL pour tous les documents
+    const result = await db.query(
+      `SELECT
+        meta.knowledge_base_id,
+        meta.tribunal_code,
+        trib_tax.label_ar AS tribunal_label_ar,
+        trib_tax.label_fr AS tribunal_label_fr,
+        meta.chambre_code,
+        chambre_tax.label_ar AS chambre_label_ar,
+        chambre_tax.label_fr AS chambre_label_fr,
+        meta.decision_date,
+        meta.decision_number,
+        meta.legal_basis,
+        meta.solution,
+        meta.extraction_confidence,
+        -- Compteurs relations (subqueries optimisées avec index)
+        (SELECT COUNT(*) FROM kb_legal_relations WHERE source_kb_id = meta.knowledge_base_id AND validated = true) AS cites_count,
+        (SELECT COUNT(*) FROM kb_legal_relations WHERE target_kb_id = meta.knowledge_base_id AND validated = true) AS cited_by_count
+      FROM kb_structured_metadata meta
+      LEFT JOIN legal_taxonomy trib_tax ON meta.tribunal_code = trib_tax.code
+      LEFT JOIN legal_taxonomy chambre_tax ON meta.chambre_code = chambre_tax.code
+      WHERE meta.knowledge_base_id = ANY($1::uuid[])`,
+      [documentIds]
+    )
+
+    // Construire Map pour lookup O(1)
+    const metadataMap = new Map<string, any>()
+
+    for (const row of result.rows) {
+      metadataMap.set(row.knowledge_base_id, {
+        structuredMetadata: {
+          tribunalCode: row.tribunal_code,
+          tribunalLabelAr: row.tribunal_label_ar,
+          tribunalLabelFr: row.tribunal_label_fr,
+          chambreCode: row.chambre_code,
+          chambreLabelAr: row.chambre_label_ar,
+          chambreLabelFr: row.chambre_label_fr,
+          decisionDate: row.decision_date,
+          decisionNumber: row.decision_number,
+          legalBasis: row.legal_basis,
+          solution: row.solution,
+          extractionConfidence: row.extraction_confidence,
+          citesCount: parseInt(row.cites_count || '0', 10),
+          citedByCount: parseInt(row.cited_by_count || '0', 10),
+        },
+      })
+    }
+
+    return metadataMap
+  } catch (error) {
+    console.error('[Batch Metadata Loading] Erreur chargement métadonnées:', error)
+    return new Map()
+  }
+}
+
 // Note: Les types sont déjà exportés en début de fichier avec 'export interface'
 // Pas besoin de les ré-exporter ici

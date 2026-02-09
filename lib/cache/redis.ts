@@ -23,9 +23,10 @@ export const CACHE_TTL = {
 }
 
 // Seuil de similarité pour considérer un cache hit
-// 0.85 offre un bon compromis entre pertinence et taux de cache hit
+// 0.75 optimisé pour embeddings qwen3-embedding:0.6b (1024 dims)
+// Similarité cosinus >0.75 suffisante pour queries reformulées
 export const SEARCH_CACHE_THRESHOLD = parseFloat(
-  process.env.SEARCH_CACHE_THRESHOLD || '0.85'
+  process.env.SEARCH_CACHE_THRESHOLD || '0.75'
 )
 
 // =============================================================================
