@@ -84,11 +84,21 @@ COPY --from=builder /app/public ./public
 # Copier les browsers Playwright depuis le builder
 COPY --from=builder /app/.playwright ./.playwright
 
-# Copier modules natifs depuis builder (canvas, pg, bcryptjs)
+# Copier modules natifs et externes depuis builder
 # Next.js standalone ne bundle pas les modules natifs utilisés uniquement dans scripts
 COPY --from=builder /app/node_modules/canvas ./node_modules/canvas
 COPY --from=builder /app/node_modules/pg ./node_modules/pg
 COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
+
+# Copier dépendances PDF (pdf-parse + pdf-to-img + pdfjs-dist)
+COPY --from=builder /app/node_modules/pdfjs-dist ./node_modules/pdfjs-dist
+COPY --from=builder /app/node_modules/pdf-parse ./node_modules/pdf-parse
+COPY --from=builder /app/node_modules/pdf-to-img ./node_modules/pdf-to-img
+
+# Copier dépendances parsing documents (mammoth pour DOCX, tesseract.js pour OCR, sharp pour images)
+COPY --from=builder /app/node_modules/mammoth ./node_modules/mammoth
+COPY --from=builder /app/node_modules/tesseract.js ./node_modules/tesseract.js
+COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
 
 # Créer le polyfill File API + DOMMatrix inline pour le runtime
 RUN mkdir -p scripts && cat > scripts/polyfill-file.js << 'POLYFILL'
