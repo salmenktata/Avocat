@@ -124,12 +124,18 @@ export async function crawlSource(
     }
   }
 
-  // Récupérer les règles robots.txt
-  const robotsRules = await getRobotsRules(sourceBaseUrl, sourceUserAgent)
+  // Récupérer les règles robots.txt (si activé)
+  const sourceRespectRobots = s.respectRobotsTxt ?? s.respect_robots_txt ?? true
+  const robotsRules = sourceRespectRobots
+    ? await getRobotsRules(sourceBaseUrl, sourceUserAgent)
+    : { allowed: true, crawlDelay: null, sitemaps: [], disallowedPaths: [] }
   const effectiveRateLimit = Math.max(rateLimit, robotsRules.crawlDelay || 0)
 
   console.log(`[Crawler] Démarrage crawl ${sourceName}`)
   console.log(`[Crawler] Rate limit: ${effectiveRateLimit}ms, Max pages: ${maxPages}, Max depth: ${maxDepth}`)
+  console.log(`[Crawler] Queue initiale: ${state.queue.length} URLs`, state.queue.map(q => q.url))
+  console.log(`[Crawler] Include patterns: ${includePatterns.length}`, includePatterns.map(p => p.source))
+  console.log(`[Crawler] Exclude patterns: ${excludePatterns.length}`, excludePatterns.map(p => p.source))
 
   // Vérifier si la source peut crawler (bannissement, quotas)
   const crawlCheck = await canSourceCrawl(sourceId)
@@ -193,11 +199,13 @@ export async function crawlSource(
       continue
     }
 
-    // Vérifier robots.txt
-    const robotsCheck = await isUrlAllowed(url, sourceUserAgent)
-    if (!robotsCheck.allowed) {
-      console.log(`[Crawler] URL bloquée par robots.txt: ${url}`)
-      continue
+    // Vérifier robots.txt (si activé)
+    if (sourceRespectRobots) {
+      const robotsCheck = await isUrlAllowed(url, sourceUserAgent)
+      if (!robotsCheck.allowed) {
+        console.log(`[Crawler] URL bloquée par robots.txt: ${url}`)
+        continue
+      }
     }
 
     try {
