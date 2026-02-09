@@ -174,7 +174,7 @@ export function ClassificationAnalytics() {
             </div>
           ) : (
             <div className="space-y-4">
-              {data.errors.map((error, index) => (
+              {data.errors.map((error: TopError, index: number) => (
                 <div
                   key={error.key}
                   className="flex items-start justify-between border-b pb-4 last:border-0"
@@ -212,7 +212,7 @@ export function ClassificationAnalytics() {
                     {error.examples.length > 0 && (
                       <div className="text-xs text-muted-foreground space-y-1 ml-8">
                         <div className="font-medium">Exemples:</div>
-                        {error.examples.map((example, i) => (
+                        {error.examples.map((example: { url: string; title: string | null; priority: string | null }, i: number) => (
                           <div key={i} className="flex items-center gap-2">
                             <span>•</span>
                             <a

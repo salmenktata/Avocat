@@ -132,7 +132,7 @@ export function CorrectionsHistory() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.items.map(item => (
+              {data.items.map((item: CorrectionHistoryItem) => (
                 <TableRow key={item.id}>
                   <TableCell className="whitespace-nowrap">
                     {formatDistanceToNow(new Date(item.createdAt), {

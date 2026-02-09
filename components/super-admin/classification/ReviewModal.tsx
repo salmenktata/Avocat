@@ -148,7 +148,7 @@ export function ReviewModal({ pageId, onClose, onComplete }: ReviewModalProps) {
 
       return response.json()
     },
-    onSuccess: (result) => {
+    onSuccess: (result: { success: boolean; correctionId: string; hasGeneratedRule: boolean; message: string }) => {
       toast({
         title: 'Correction enregistrée',
         description: result.hasGeneratedRule
@@ -159,7 +159,7 @@ export function ReviewModal({ pageId, onClose, onComplete }: ReviewModalProps) {
       queryClient.invalidateQueries({ queryKey: ['classification-corrections'] })
       onComplete()
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: 'Erreur',
         description: error instanceof Error ? error.message : 'Erreur inconnue',
@@ -258,7 +258,7 @@ export function ReviewModal({ pageId, onClose, onComplete }: ReviewModalProps) {
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-2">
-                    {pageData.signals.map((signal, i) => (
+                    {pageData.signals.map((signal: { source: string; category: string; confidence: number }, i: number) => (
                       <div key={i} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           <Badge variant="outline">{signal.source}</Badge>

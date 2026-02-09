@@ -152,7 +152,7 @@ export function ReviewQueue() {
   })
 
   // Filtrer localement par search (titre/URL)
-  const filteredItems = data?.items.filter(item => {
+  const filteredItems = data?.items.filter((item: ReviewQueueItem) => {
     if (!filters.search) return true
     const searchLower = filters.search.toLowerCase()
     return (
@@ -288,7 +288,7 @@ export function ReviewQueue() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredItems.map(item => (
+              {filteredItems.map((item: ReviewQueueItem) => (
                 <TableRow key={item.webPageId}>
                   <TableCell className="max-w-[400px]">
                     <div className="space-y-1">
