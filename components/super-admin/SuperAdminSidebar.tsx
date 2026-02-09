@@ -97,6 +97,7 @@ const getNavGroups = (
         badgeVariant: 'secondary' as const
       },
       { href: '/super-admin/classification/metrics', label: 'Classification', icon: 'barChart' },
+      { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'search' },
     ],
   },
   {

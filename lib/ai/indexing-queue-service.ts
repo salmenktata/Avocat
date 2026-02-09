@@ -6,6 +6,7 @@
  */
 
 import { db } from '@/lib/db/postgres'
+import * as v8 from 'v8'
 
 // =============================================================================
 // TYPES
@@ -139,7 +140,6 @@ export async function completeJob(
  */
 function getMemoryUsage(): { heapUsedMB: number; heapLimitMB: number; usagePercent: number } {
   const usage = process.memoryUsage()
-  const v8 = require('v8')
   const stats = v8.getHeapStatistics()
 
   const heapUsedMB = usage.heapUsed / 1024 / 1024

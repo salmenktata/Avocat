@@ -26,18 +26,18 @@ export function StorageCleanupProvider({
   maxSize = 3 * 1024 * 1024, // 3 MB (réduit de 5MB pour plus de sécurité)
 }: StorageCleanupProviderProps) {
 
+  // Appeler le hook au top-level (règle ESLint react-hooks/rules-of-hooks)
+  const cleanup = useStorageCleanup({
+    interval,
+    maxAge,
+    maxSize,
+    enabled
+  })
+
+  // Nettoyer à l'unmount
   useEffect(() => {
-    if (!enabled || typeof window === 'undefined') return
-
-    const cleanup = useStorageCleanup({
-      interval,
-      maxAge,
-      maxSize,
-      enabled
-    })
-
     return cleanup
-  }, [enabled, interval, maxAge, maxSize])
+  }, [cleanup])
 
   return <>{children}</>
 }

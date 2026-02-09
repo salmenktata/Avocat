@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 export default function GlobalError({
   error,
   reset,
@@ -68,9 +70,9 @@ export default function GlobalError({
               <button className="btn btn-primary" onClick={() => reset()}>
                 Réessayer
               </button>
-              <a className="btn btn-secondary" href="/">
+              <Link className="btn btn-secondary" href="/">
                 Retour à l&apos;accueil
-              </a>
+              </Link>
             </div>
           </div>
         </div>
