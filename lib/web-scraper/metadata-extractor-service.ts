@@ -16,6 +16,7 @@ import {
   formatPrompt,
   truncateContent,
 } from '@/lib/ai/prompts/legal-analysis'
+import { logUsage } from '@/lib/ai/usage-tracker'
 import type { WebPageStructuredMetadata } from './types'
 
 // =============================================================================
@@ -297,6 +298,23 @@ export async function extractStructuredMetadata(
   const tribunalValidation = validateTribunal(parsed.tribunal)
   parsed.tribunal = tribunalValidation.value
   parsed.chambre = validateChambre(parsed.chambre)
+
+  // Track LLM usage for metadata extraction
+  await logUsage({
+    userId: 'system',
+    operationType: 'extraction',
+    provider: llmResult.provider,
+    model: llmResult.model,
+    inputTokens: llmResult.usage?.promptTokens || Math.floor(content.length / 4),
+    outputTokens: llmResult.usage?.completionTokens || Math.floor(llmResult.content.length / 4),
+    context: {
+      pageId,
+      category: page.source_category,
+      fieldsExtracted: Object.keys(parsed).filter(k => parsed[k as keyof typeof parsed]).length
+    }
+  }).catch(err => {
+    console.error('[MetadataExtractor] Failed to log usage:', err)
+  })
 
   // UPSERT dans la table web_page_structured_metadata
   await upsertStructuredMetadata(

@@ -16,6 +16,7 @@ import {
   formatPrompt,
   truncateContent,
 } from '@/lib/ai/prompts/legal-analysis'
+import { logUsage } from '@/lib/ai/usage-tracker'
 import type {
   ContentQualityAssessment,
   LegalReference,
@@ -222,6 +223,24 @@ export async function analyzeContentQuality(
 
   // Parser la réponse
   const parsed = parseQualityResponse(llmResult.content)
+
+  // Track LLM usage for quality analysis
+  await logUsage({
+    userId: 'system',
+    operationType: 'extraction',
+    provider: llmResult.provider,
+    model: llmResult.model,
+    inputTokens: llmResult.usage?.promptTokens || Math.floor(content.length / 4),
+    outputTokens: llmResult.usage?.completionTokens || Math.floor(llmResult.content.length / 4),
+    context: {
+      pageId,
+      category: page.source_category,
+      qualityScore: parsed.overall_score,
+      operation: 'quality_analysis'
+    }
+  }).catch(err => {
+    console.error('[ContentAnalyzer] Failed to log usage:', err)
+  })
 
   // Construire le résultat
   const result: QualityAnalysisResult = {

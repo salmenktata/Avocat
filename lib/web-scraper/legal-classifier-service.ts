@@ -21,6 +21,13 @@ import {
   formatPrompt,
   truncateContent,
 } from '@/lib/ai/prompts/legal-analysis'
+import { logUsage } from '@/lib/ai/usage-tracker'
+import {
+  generateCacheKey,
+  getCachedClassification,
+  setCachedClassification,
+  type CachedClassification
+} from '@/lib/cache/classification-cache-service'
 import type {
   LegalClassification,
   LegalContentCategory,
@@ -60,6 +67,15 @@ export const CLASSIFICATION_CONFIDENCE_THRESHOLD = parseFloat(
   process.env.CLASSIFICATION_CONFIDENCE_MIN || '0.7'
 )
 
+// Cache classification (défaut: activé)
+const ENABLE_CLASSIFICATION_CACHE = process.env.ENABLE_CLASSIFICATION_CACHE !== 'false'
+
+// TTL cache classification en secondes (défaut: 7 jours)
+const CLASSIFICATION_CACHE_TTL = parseInt(process.env.CLASSIFICATION_CACHE_TTL || '604800', 10)
+
+// Seuil pour utiliser un cache hit (défaut: 0.75)
+const CACHE_CONFIDENCE_MIN = parseFloat(process.env.CLASSIFICATION_CACHE_CONFIDENCE_MIN || '0.75')
+
 // Longueur minimum pour classifier
 const MIN_CONTENT_LENGTH = 100
 
@@ -71,7 +87,7 @@ const SIGNAL_WEIGHTS = {
 }
 
 // Seuil pour utiliser le LLM (si structure+rules donnent confiance < ce seuil)
-const LLM_THRESHOLD = 0.6
+const LLM_THRESHOLD = parseFloat(process.env.LLM_ACTIVATION_THRESHOLD || '0.6')
 
 // =============================================================================
 // CLIENTS LLM
@@ -222,6 +238,56 @@ export async function classifyLegalContent(
 
   // Vérifier le contenu minimum
   const content = page.extracted_text || ''
+
+  // ===== CACHE CLASSIFICATION =====
+  // Vérifier si classification déjà en cache (économise appels LLM)
+  let cacheKey: string | null = null
+  let cachedClassification: CachedClassification | null = null
+
+  if (ENABLE_CLASSIFICATION_CACHE) {
+    cacheKey = generateCacheKey(page.url, page.source_name, page.source_category)
+    cachedClassification = await getCachedClassification(cacheKey)
+  }
+
+  if (cachedClassification && cachedClassification.confidenceScore >= CACHE_CONFIDENCE_MIN) {
+    console.log(`[LegalClassifier] Cache hit for page ${pageId}, confidence: ${cachedClassification.confidenceScore}`)
+
+    // Reconstruire résultat depuis cache
+    const result: ClassificationResult = {
+      primaryCategory: cachedClassification.primaryCategory,
+      subcategory: null,
+      domain: cachedClassification.domain,
+      subdomain: null,
+      documentNature: cachedClassification.documentType,
+      confidenceScore: cachedClassification.confidenceScore,
+      requiresValidation: cachedClassification.confidenceScore < 0.8,
+      validationReason: cachedClassification.confidenceScore < 0.8 ? 'Classification depuis cache' : null,
+      alternativeClassifications: [],
+      legalKeywords: [],
+      llmProvider: 'cache',
+      llmModel: 'cached',
+      tokensUsed: 0,
+      classificationSource: 'cache',
+      signalsUsed: [
+        {
+          source: 'cache',
+          category: cachedClassification.primaryCategory,
+          domain: cachedClassification.domain,
+          documentType: cachedClassification.documentType,
+          confidence: cachedClassification.confidenceScore,
+          weight: 1.0,
+          evidence: `Cached depuis ${cachedClassification.cachedAt}`
+        }
+      ],
+      rulesMatched: [],
+      structureHints: null,
+    }
+
+    // Sauvegarder dans DB (pour avoir le même flow que classification normale)
+    await saveClassification(pageId, result)
+    return result
+  }
+
   if (content.length < MIN_CONTENT_LENGTH) {
     // Contenu trop court - utiliser la catégorie de la source
     const result: ClassificationResult = {
@@ -262,6 +328,35 @@ export async function classifyLegalContent(
 
   // Classification multi-signaux
   const result = await classifyWithMultiSignals(context)
+
+  // ===== METTRE EN CACHE LA CLASSIFICATION =====
+  // Cacher seulement si :
+  // - Cache activé
+  // - Confiance suffisante (>= seuil) pour éviter de propager erreurs
+  // - Tous les champs requis présents
+  if (
+    ENABLE_CLASSIFICATION_CACHE &&
+    cacheKey &&
+    result.confidenceScore >= CLASSIFICATION_CONFIDENCE_THRESHOLD &&
+    result.primaryCategory &&
+    result.domain &&
+    result.documentNature
+  ) {
+    const cachedData: CachedClassification = {
+      primaryCategory: result.primaryCategory,
+      domain: result.domain,
+      documentType: result.documentNature,
+      confidenceScore: result.confidenceScore,
+      cachedAt: new Date().toISOString(),
+      sourceName: page.source_name
+    }
+
+    await setCachedClassification(cacheKey, cachedData, CLASSIFICATION_CACHE_TTL).catch(err => {
+      console.error('[LegalClassifier] Failed to cache classification:', err)
+    })
+
+    console.log(`[LegalClassifier] Cached classification for page ${pageId}, confidence: ${result.confidenceScore}, TTL: ${CLASSIFICATION_CACHE_TTL}s`)
+  }
 
   // Sauvegarder la classification
   await saveClassification(pageId, result)
@@ -394,6 +489,24 @@ async function classifyWithMultiSignals(
         confidence: parsedLLM.confidence_score,
         weight: SIGNAL_WEIGHTS.llm,
         evidence: `LLM ${llmResult.provider}/${llmResult.model}`,
+      })
+
+      // Track LLM usage for classification
+      await logUsage({
+        userId: 'system',
+        operationType: 'classification',
+        provider: llmResult.provider,
+        model: llmResult.model,
+        inputTokens: llmResult.usage?.promptTokens || Math.floor(truncatedContent.length / 4),
+        outputTokens: llmResult.usage?.completionTokens || Math.floor(llmResult.content.length / 4),
+        context: {
+          pageId: context.pageId,
+          webSourceId: context.webSourceId,
+          classificationSource: 'llm',
+          confidence: parsedLLM.confidence_score
+        }
+      }).catch(err => {
+        console.error('[LegalClassifier] Failed to log usage:', err)
       })
     } catch (error) {
       console.warn('[LegalClassifier] LLM indisponible, utilisation des autres signaux uniquement')
