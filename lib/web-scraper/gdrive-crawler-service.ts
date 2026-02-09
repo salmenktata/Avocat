@@ -9,7 +9,7 @@
  */
 
 import type { WebSource, CrawlResult, CrawlError, GoogleDriveFile, LinkedFile } from './types'
-import { getGoogleDriveClient } from './storage-adapter'
+import { getGoogleDriveClient, downloadFromGoogleDrive } from './storage-adapter'
 import {
   extractFolderIdFromBaseUrl,
   isAllowedFileType,
@@ -17,6 +17,7 @@ import {
 } from './gdrive-utils'
 import { createHash } from 'crypto'
 import { db } from '@/lib/db/postgres'
+import { parseFile } from './file-parser-service'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const DEFAULT_PAGE_SIZE = 1000 // Max Google Drive API
@@ -96,8 +97,45 @@ export async function crawlGoogleDriveFolder(
         // Créer LinkedFile
         const linkedFile = mapGoogleDriveFileToLinkedFile(file)
 
-        // Créer ou mettre à jour web_page
-        const pageResult = await upsertWebPage(source, file, linkedFile)
+        // Télécharger et extraire le texte si downloadFiles est activé
+        let extractedText: string | null = null
+        if (source.downloadFiles) {
+          try {
+            console.log(`[GDriveCrawler] Downloading and parsing: ${file.name}`)
+
+            // Télécharger le fichier depuis Google Drive
+            const downloadResult = await downloadFromGoogleDrive(file.id)
+            if (downloadResult.success && downloadResult.buffer) {
+              // Marquer le fichier comme téléchargé
+              linkedFile.downloaded = true
+
+              // Parser le fichier pour extraire le texte
+              // Extraire l'extension du nom de fichier
+              const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'pdf'
+
+              const parseResult = await parseFile(
+                downloadResult.buffer,
+                fileExtension
+              )
+
+              if (parseResult.success && parseResult.text) {
+                extractedText = parseResult.text.trim()
+                const wordCount = extractedText.split(/\s+/).length
+                console.log(`[GDriveCrawler] Extracted ${wordCount} words from ${file.name}`)
+              } else {
+                console.warn(`[GDriveCrawler] Failed to parse ${file.name}: ${parseResult.error}`)
+              }
+            } else {
+              console.warn(`[GDriveCrawler] Failed to download ${file.name}: ${downloadResult.error}`)
+            }
+          } catch (downloadError: any) {
+            console.error(`[GDriveCrawler] Error downloading/parsing ${file.name}:`, downloadError.message)
+            // Continue même si le téléchargement/parsing échoue
+          }
+        }
+
+        // Créer ou mettre à jour web_page avec le texte extrait
+        const pageResult = await upsertWebPage(source, file, linkedFile, extractedText)
 
         if (pageResult.isNew) {
           result.pagesNew++
@@ -239,7 +277,8 @@ async function listDriveFiles(
 async function upsertWebPage(
   source: WebSource,
   file: GoogleDriveFile,
-  linkedFile: LinkedFile
+  linkedFile: LinkedFile,
+  extractedText: string | null = null
 ): Promise<{ isNew: boolean; hasChanged: boolean; pageId: string }> {
   const url = file.webViewLink
   const urlHash = createHash('sha256').update(url).digest('hex')
@@ -272,12 +311,13 @@ async function upsertWebPage(
          title = $1,
          content_hash = $2,
          linked_files = $3,
+         extracted_text = $5,
          status = 'changed',
          last_crawled_at = NOW(),
          last_changed_at = NOW(),
          updated_at = NOW()
        WHERE id = $4`,
-      [file.name, contentHash, JSON.stringify([linkedFile]), page.id]
+      [file.name, contentHash, JSON.stringify([linkedFile]), page.id, extractedText]
     )
 
     // Créer une version
@@ -321,12 +361,13 @@ async function upsertWebPage(
        title,
        content_hash,
        linked_files,
+       extracted_text,
        status,
        crawl_depth,
        first_seen_at,
        last_crawled_at
      )
-     VALUES ($1, $2, $3, $4, $5, $6, 'crawled', 0, NOW(), NOW())
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'crawled', 0, NOW(), NOW())
      RETURNING id`,
     [
       source.id,
@@ -335,6 +376,7 @@ async function upsertWebPage(
       file.name,
       contentHash,
       JSON.stringify([linkedFile]),
+      extractedText,
     ]
   )
 

@@ -287,7 +287,7 @@ async function uploadToGoogleDrive(
   }
 }
 
-async function downloadFromGoogleDrive(fileId: string): Promise<DownloadResult> {
+export async function downloadFromGoogleDrive(fileId: string): Promise<DownloadResult> {
   try {
     const drive = await getGoogleDriveClient()
 
