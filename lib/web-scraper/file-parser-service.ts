@@ -112,6 +112,15 @@ export type SupportedFileType = 'pdf' | 'docx' | 'doc' | 'txt'
  * Utilise OCR si le texte extrait est insuffisant (PDF scanné)
  */
 export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
+  let pageCount = 0
+  let text = ''
+  let wordCount = 0
+  let info: any = {}
+
+  // CORRECTION: pdf-parse peut échouer si DOMMatrix n'est pas disponible (Docker)
+  // Dans ce cas, on force directement l'OCR
+  let pdfParseSuccess = false
+
   try {
     // pdf-parse v2 utilise une classe PDFParse (import dynamique)
     const PDFParse = await getPDFParse()
@@ -119,13 +128,25 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
 
     // Récupérer le texte avec pdf-parse (rapide)
     const textResult = await parser.getText()
-    let text = cleanText(textResult.text)
-    let wordCount = countWords(text)
+    text = cleanText(textResult.text)
+    wordCount = countWords(text)
 
     // Récupérer les métadonnées
     const infoResult = await parser.getInfo()
-    const info = infoResult.info
-    const pageCount = textResult.total || infoResult.total || 0
+    info = infoResult.info
+    pageCount = textResult.total || infoResult.total || 0
+
+    pdfParseSuccess = true
+  } catch (pdfParseError: any) {
+    // Si pdf-parse échoue (ex: DOMMatrix not defined), on continue avec OCR
+    console.warn('[FileParser] pdf-parse échoué, fallback OCR:', pdfParseError.message)
+    // On essaie d'estimer le nombre de pages (ou on force OCR sans limite)
+    pageCount = OCR_CONFIG.MAX_OCR_PAGES
+  }
+
+  try {
+    // Si pdf-parse a échoué complètement, forcer l'OCR
+    const forcedOcr = !pdfParseSuccess
 
     // Vérifier si le PDF nécessite l'OCR
     const avgCharsPerPage = pageCount > 0 ? text.length / pageCount : text.length
@@ -138,14 +159,16 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
       && text.length >= OCR_CONFIG.GARBLED_DETECTION_MIN_CHARS
       && isTextGarbled(text)
 
-    const needsOcr = tooLittleText || garbledText
+    const needsOcr = forcedOcr || tooLittleText || garbledText
 
     let ocrApplied = false
     let ocrPagesProcessed = 0
     let ocrConfidence: number | undefined
 
     if (needsOcr) {
-      const reason = garbledText
+      const reason = forcedOcr
+        ? `pdf-parse indisponible (fallback OCR)`
+        : garbledText
         ? `texte garbled (ratio arabe trop bas pour un PDF arabe)`
         : `peu de texte (${text.length} chars, ${avgCharsPerPage.toFixed(0)} chars/page)`
       console.log(`[FileParser] PDF: ${reason}, application de l'OCR...`)
@@ -366,9 +389,27 @@ function parsePdfDate(dateStr: string): Date | undefined {
 
 /**
  * Extrait le texte d'un fichier DOCX
+ * CORRECTION : Vérifie que le fichier est bien un .docx (ZIP) et non un ancien .doc (OLE2)
  */
 export async function parseDocx(buffer: Buffer): Promise<ParsedFile> {
   try {
+    // Vérifier la signature du fichier :
+    // - .docx (Office Open XML) : commence par "PK" (ZIP header: 0x504B)
+    // - .doc ancien (OLE2) : commence par 0xD0CF11E0 ou autres signatures binaires
+    const header = buffer.subarray(0, 2).toString('hex')
+    const isZip = buffer[0] === 0x50 && buffer[1] === 0x4B  // PK (ZIP)
+
+    if (!isZip) {
+      // Ancien format .doc (OLE2) non supporté par mammoth
+      console.warn('[FileParser] Ancien format .doc détecté (non-.docx), skip')
+      return {
+        success: false,
+        text: '',
+        metadata: { wordCount: 0 },
+        error: 'Ancien format .doc non supporté (nécessite .docx)',
+      }
+    }
+
     const mammoth = await getMammoth()
     const result = await mammoth.extractRawText({ buffer })
 
