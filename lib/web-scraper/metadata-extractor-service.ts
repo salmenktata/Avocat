@@ -18,6 +18,7 @@ import {
 } from '@/lib/ai/prompts/legal-analysis'
 import { logUsage, type Provider } from '@/lib/ai/usage-tracker'
 import type { WebPageStructuredMetadata } from './types'
+import { validateAllMetadata } from './metadata-validators'
 
 // =============================================================================
 // CONFIGURATION
@@ -162,6 +163,39 @@ const KNOWN_CHAMBERS: string[] = [
 ]
 
 /**
+ * Extrait le numéro depuis une référence JORT
+ * Ex: "JORT n° 45 du 2024-06-15" → "45"
+ */
+function extractNumberFromJortReference(jortRef: string | null): string | null {
+  if (!jortRef) return null
+
+  const match = jortRef.match(/n°?\s*(\d+)/i)
+  return match ? match[1] : null
+}
+
+/**
+ * Extrait la date depuis une référence JORT
+ * Ex: "JORT n° 45 du 2024-06-15" → "2024-06-15"
+ */
+function extractDateFromJortReference(jortRef: string | null): string | null {
+  if (!jortRef) return null
+
+  const dateMatch = jortRef.match(/(\d{4}-\d{2}-\d{2})|(\d{2}\/\d{2}\/\d{4})/)
+  if (!dateMatch) return null
+
+  const dateStr = dateMatch[0]
+  // Normaliser au format YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr
+  } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+    const [day, month, year] = dateStr.split('/')
+    return `${year}-${month}-${day}`
+  }
+
+  return null
+}
+
+/**
  * Valide et corrige le champ tribunal par rapport aux juridictions connues
  * Utilise la distance de Levenshtein simplifiée pour détecter les typos
  */
@@ -234,6 +268,215 @@ function similarityScore(a: string, b: string): number {
   }
 
   return (2 * intersection) / (a.length - 1 + b.length - 1)
+}
+
+// =============================================================================
+// HELPER FUNCTIONS - EXTRACTION REGEX BASIQUE
+// =============================================================================
+
+/**
+ * Extrait des métadonnées basiques via regex (sans LLM)
+ *
+ * Patterns simples pour extraire :
+ * - Dates (YYYY-MM-DD, DD/MM/YYYY, etc.)
+ * - Numéros structurés (X/YYYY, N° XXXX)
+ * - Références légales
+ *
+ * @param content Contenu de la page
+ * @param category Catégorie pour cibler les patterns pertinents
+ * @returns Métadonnées extraites par regex
+ */
+function extractWithRegex(
+  content: string,
+  category: string
+): Partial<LLMMetadataResponse> {
+  const metadata: Partial<LLMMetadataResponse> = {}
+
+  // Pattern dates : YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY
+  const datePatterns = [
+    /\b(\d{4})-(\d{2})-(\d{2})\b/g, // YYYY-MM-DD
+    /\b(\d{2})\/(\d{2})\/(\d{4})\b/g, // DD/MM/YYYY
+    /\b(\d{2})-(\d{2})-(\d{4})\b/g, // DD-MM-YYYY
+  ]
+
+  // Pattern numéro décision : X/YYYY, N° XXXX/YYYY
+  const decisionNumberPattern = /(?:n°|n°|numéro|décision|arrêt)\s*[:\s]*(\d+\/\d{4}|\d{4}\/\d+)/gi
+
+  // Pattern numéro loi : Loi n° XXXX-YY, loi-YYYY-XX
+  const loiNumberPattern = /loi\s*n°?\s*(\d{4}-\d+|\d+-\d{4})/gi
+
+  // Pattern JORT : JORT n° XX du YYYY-MM-DD
+  const jortPattern = /JORT\s*n°?\s*(\d+)\s*(?:du|de|dated?)?\s*(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/gi
+
+  // Extraction dates
+  let dates: string[] = []
+  for (const pattern of datePatterns) {
+    const matches = content.matchAll(pattern)
+    for (const match of matches) {
+      dates.push(match[0])
+    }
+  }
+
+  // Prendre la première date valide pour decision_date
+  if (dates.length > 0 && (category === 'jurisprudence' || category === 'legislation')) {
+    // Normaliser au format YYYY-MM-DD
+    const firstDate = dates[0]
+    if (/^\d{4}-\d{2}-\d{2}$/.test(firstDate)) {
+      metadata.decision_date = firstDate
+    } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(firstDate)) {
+      const [day, month, year] = firstDate.split('/')
+      metadata.decision_date = `${year}-${month}-${day}`
+    } else if (/^\d{2}-\d{2}-\d{4}$/.test(firstDate)) {
+      const [day, month, year] = firstDate.split('-')
+      metadata.decision_date = `${year}-${month}-${day}`
+    }
+  }
+
+  // Extraction numéro décision (jurisprudence)
+  if (category === 'jurisprudence') {
+    const decisionMatch = content.match(decisionNumberPattern)
+    if (decisionMatch) {
+      // Extraire seulement le numéro (X/YYYY ou XXXX/YYYY)
+      const numberMatch = decisionMatch[0].match(/(\d+\/\d{4}|\d{4}\/\d+)/)
+      if (numberMatch) {
+        metadata.decision_number = numberMatch[0]
+      }
+    }
+  }
+
+  // Extraction numéro loi (legislation)
+  if (category === 'legislation') {
+    const loiMatch = content.match(loiNumberPattern)
+    if (loiMatch) {
+      const numberMatch = loiMatch[0].match(/(\d{4}-\d+|\d+-\d{4})/)
+      if (numberMatch) {
+        metadata.text_number = numberMatch[0] // Utiliser text_number au lieu de loi_number
+      }
+    }
+  }
+
+  // Extraction JORT (legislation/jort)
+  if (category === 'legislation' || category === 'jort') {
+    const jortMatch = content.match(jortPattern)
+    if (jortMatch) {
+      const fullMatch = jortMatch[0]
+      let jortNumber = ''
+      let jortDate = ''
+
+      // Extraire numéro JORT
+      const numberMatch = fullMatch.match(/n°?\s*(\d+)/)
+      if (numberMatch) {
+        jortNumber = numberMatch[1]
+      }
+
+      // Extraire date JORT
+      const dateMatch = fullMatch.match(/(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/)
+      if (dateMatch) {
+        const dateStr = dateMatch[0]
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          jortDate = dateStr
+        } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+          const [day, month, year] = dateStr.split('/')
+          jortDate = `${year}-${month}-${day}`
+        }
+      }
+
+      // Construire référence JORT complète
+      if (jortNumber && jortDate) {
+        metadata.jort_reference = `JORT n° ${jortNumber} du ${jortDate}`
+      } else if (jortNumber) {
+        metadata.jort_reference = `JORT n° ${jortNumber}`
+      }
+    }
+  }
+
+  return metadata
+}
+
+/**
+ * Fusionne intelligemment les métadonnées extraites par regex et LLM
+ *
+ * Règles de fusion (Sprint 3 - Phase 3.2) :
+ * - RÈGLE 1 : Regex wins pour dates (format strict)
+ * - RÈGLE 2 : Regex wins pour numéros structurés (format X/YYYY)
+ * - RÈGLE 3 : Fusion listes (keywords) - union des deux sources
+ * - RÈGLE 4 : LLM wins pour champs textuels (parties, summary, etc.)
+ *
+ * @param regexExtracted Métadonnées extraites par regex
+ * @param llmExtracted Métadonnées extraites par LLM
+ * @returns Métadonnées fusionnées intelligemment
+ */
+function smartMergeMetadata(
+  regexExtracted: Partial<LLMMetadataResponse>,
+  llmExtracted: LLMMetadataResponse
+): LLMMetadataResponse {
+  const merged = { ...llmExtracted }
+
+  // RÈGLE 1 : Regex wins pour dates (format strict YYYY-MM-DD)
+  if (regexExtracted.decision_date && isValidDate(regexExtracted.decision_date)) {
+    console.log(
+      `[Metadata Fusion] Regex wins for decision_date: ${regexExtracted.decision_date} (vs LLM: ${llmExtracted.decision_date || 'null'})`
+    )
+    merged.decision_date = regexExtracted.decision_date
+  }
+
+  // RÈGLE 2 : Regex wins pour numéros structurés (format X/YYYY ou XXXX-YY)
+  if (regexExtracted.decision_number && /^\d+\/\d{4}$/.test(regexExtracted.decision_number)) {
+    console.log(
+      `[Metadata Fusion] Regex wins for decision_number: ${regexExtracted.decision_number} (vs LLM: ${llmExtracted.decision_number || 'null'})`
+    )
+    merged.decision_number = regexExtracted.decision_number
+  }
+
+  // Regex wins pour numéro de loi (text_number) si format valide YYYY-XX
+  if (regexExtracted.text_number && /^(\d{4}-\d+|\d+-\d{4})$/.test(regexExtracted.text_number)) {
+    console.log(
+      `[Metadata Fusion] Regex wins for text_number (loi): ${regexExtracted.text_number} (vs LLM: ${llmExtracted.text_number || 'null'})`
+    )
+    merged.text_number = regexExtracted.text_number
+  }
+
+  // Regex wins pour référence JORT si présente (format complet "JORT n° X du YYYY-MM-DD")
+  if (regexExtracted.jort_reference) {
+    console.log(
+      `[Metadata Fusion] Regex wins for jort_reference: ${regexExtracted.jort_reference} (vs LLM: ${llmExtracted.jort_reference || 'null'})`
+    )
+    merged.jort_reference = regexExtracted.jort_reference
+  }
+
+  // RÈGLE 3 : Fusion listes (keywords) - union des deux sources
+  if (regexExtracted.keywords && llmExtracted.keywords) {
+    const regexKeywords = Array.isArray(regexExtracted.keywords) ? regexExtracted.keywords : []
+    const llmKeywords = Array.isArray(llmExtracted.keywords) ? llmExtracted.keywords : []
+    merged.keywords = [...new Set([...regexKeywords, ...llmKeywords])]
+    console.log(
+      `[Metadata Fusion] Merged keywords: ${merged.keywords.length} total (regex: ${regexKeywords.length}, llm: ${llmKeywords.length})`
+    )
+  }
+
+  // RÈGLE 4 : LLM wins pour champs textuels (parties, summary, author, etc.)
+  // Déjà géré par le spread { ...llmExtracted } au début
+
+  return merged
+}
+
+/**
+ * Valide qu'une date est au format YYYY-MM-DD et dans une plage raisonnable
+ */
+function isValidDate(dateStr: string | null): boolean {
+  if (!dateStr) return false
+
+  // Vérifier format YYYY-MM-DD
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false
+
+  const parsed = new Date(dateStr)
+  if (isNaN(parsed.getTime())) return false
+
+  const year = parsed.getFullYear()
+  // Plage valide : 1956 (indépendance Tunisie) à année actuelle + 1
+  if (year < 1956 || year > new Date().getFullYear() + 1) return false
+
+  return true
 }
 
 // =============================================================================
@@ -380,6 +623,11 @@ export async function extractStructuredMetadata(
     return getStructuredMetadata(pageId) as Promise<WebPageStructuredMetadata>
   }
 
+  // ÉTAPE 1 : Extraction regex basique (rapide, sans coût)
+  // Toujours exécuter pour avoir des données de fallback
+  const regexExtracted = extractWithRegex(content, page.source_category)
+  console.log('[Metadata Extraction] Regex extracted:', Object.keys(regexExtracted).length, 'fields')
+
   // Décider si extraction LLM est nécessaire (économie tokens)
   // Skip LLM si < 3 champs applicables pour la catégorie
   const useLLM = shouldExtractWithLLM(page.source_category)
@@ -387,19 +635,21 @@ export async function extractStructuredMetadata(
   let parsed: LLMMetadataResponse
 
   if (!useLLM) {
-    // Skip LLM - retourner métadonnées minimales (extraction regex basique si disponible)
-    // Note : L'extraction regex basique pourrait être implémentée ici dans une future itération
-    // Pour l'instant, on retourne juste les métadonnées par défaut
-    parsed = getDefaultMetadataResponse()
-    parsed.extraction_confidence = 0.3 // Confiance faible sans LLM
-    parsed.extraction_method = 'minimal' // Indiquer méthode minimal
+    // Skip LLM - utiliser extraction regex + métadonnées par défaut
+    const defaultMetadata = getDefaultMetadataResponse()
+    parsed = {
+      ...defaultMetadata,
+      ...regexExtracted,
+      extraction_confidence: Object.keys(regexExtracted).length > 0 ? 0.5 : 0.3,
+      extraction_method: 'regex_only',
+    } as LLMMetadataResponse
 
-    await upsertStructuredMetadata(pageId, parsed, 'none', 'minimal')
+    await upsertStructuredMetadata(pageId, parsed, 'none', 'regex')
 
     return getStructuredMetadata(pageId) as Promise<WebPageStructuredMetadata>
   }
 
-  // Préparer le prompt LLM
+  // ÉTAPE 2 : Extraction LLM
   const userPrompt = formatPrompt(METADATA_EXTRACTION_USER_PROMPT, {
     url: page.url,
     title: page.title || 'Sans titre',
@@ -407,14 +657,62 @@ export async function extractStructuredMetadata(
     content: truncateContent(content, 6000),
   })
 
-  // Appeler le LLM avec fallback
   const llmResult = await callLLMWithFallback(
     METADATA_EXTRACTION_SYSTEM_PROMPT,
     userPrompt
   )
 
-  // Parser la réponse
-  parsed = parseMetadataResponse(llmResult.content)
+  const llmParsed = parseMetadataResponse(llmResult.content)
+
+  // ÉTAPE 3 : Fusion intelligente regex + LLM (Sprint 3 - Phase 3.2)
+  parsed = smartMergeMetadata(regexExtracted, llmParsed)
+
+  // ÉTAPE 3.5 : Validation stricte des métadonnées (Sprint 3 - Phase 3.4)
+  // Valider formats dates, numéros, plages années, etc.
+  // Mapper les champs LLMMetadataResponse → format attendu par validators
+  const extractedJortDate = parsed.jort_reference ? extractDateFromJortReference(parsed.jort_reference) : null
+  const extractedJortNumber = parsed.jort_reference ? extractNumberFromJortReference(parsed.jort_reference) : null
+
+  const validationResult = validateAllMetadata({
+    decision_date: parsed.decision_date,
+    jort_date: extractedJortDate,
+    decision_number: parsed.decision_number,
+    loi_number: page.source_category === 'legislation' ? parsed.text_number : null,
+    jort_number: extractedJortNumber,
+  })
+
+  // Logger erreurs de validation
+  if (!validationResult.isValid) {
+    console.warn(`[Metadata Validation] Page ${pageId} a ${validationResult.errors.length} erreurs de validation:`)
+    validationResult.errors.forEach(error => console.warn(`  - ${error}`))
+
+    // Nettoyer les champs invalides au lieu de rejeter complètement
+    // Diminuer la confiance pour signaler la qualité réduite
+    parsed.extraction_confidence = Math.max(0.3, (parsed.extraction_confidence || 0.7) * 0.7)
+
+    // Nettoyer champs avec erreurs (mettre à null pour éviter données corrompues)
+    validationResult.errors.forEach(error => {
+      if (error.includes('decision_date')) {
+        parsed.decision_date = null
+      }
+      if (error.includes('jort_date') || error.includes('jort_number')) {
+        // jort_date et jort_number sont extraits de jort_reference
+        parsed.jort_reference = null
+      }
+      if (error.includes('decision_number')) {
+        parsed.decision_number = null
+      }
+      if (error.includes('loi_number') || error.includes('Numéro loi')) {
+        parsed.text_number = null
+      }
+    })
+  }
+
+  // Logger warnings (dates anciennes, dates futures, etc.)
+  if (validationResult.warnings && validationResult.warnings.length > 0) {
+    console.info(`[Metadata Validation] Page ${pageId} a ${validationResult.warnings.length} warnings:`)
+    validationResult.warnings.forEach(warning => console.info(`  - ${warning}`))
+  }
 
   // Valider les champs juridiques contre les listes de référence
   const tribunalValidation = validateTribunal(parsed.tribunal)

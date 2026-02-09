@@ -142,6 +142,16 @@ function getGroqClient(): OpenAI {
 // TYPES
 // =============================================================================
 
+/**
+ * Priorité de revue humaine pour une classification incertaine
+ */
+export type ReviewPriority = 'low' | 'medium' | 'high' | 'urgent'
+
+/**
+ * Estimation de l'effort requis pour la revue humaine
+ */
+export type ReviewEffort = 'quick' | 'moderate' | 'complex'
+
 export interface ClassificationResult {
   primaryCategory: LegalContentCategory
   subcategory: string | null
@@ -161,6 +171,9 @@ export interface ClassificationResult {
   signalsUsed: ClassificationSignal[]
   rulesMatched: string[]
   structureHints: StructuralHint[] | null
+  // Sprint 3 - Phase 3.3 : Priorisation revue humaine
+  reviewPriority: ReviewPriority | null
+  reviewEstimatedEffort: ReviewEffort | null
 }
 
 export interface ClassificationSignal {
@@ -257,6 +270,7 @@ export async function classifyLegalContent(
     console.log(`[LegalClassifier] Cache hit for page ${pageId}, confidence: ${cachedClassification.confidenceScore}`)
 
     // Reconstruire résultat depuis cache
+    const needsValidation = cachedClassification.confidenceScore < 0.8
     const result: ClassificationResult = {
       primaryCategory: cachedClassification.primaryCategory,
       subcategory: null,
@@ -264,8 +278,8 @@ export async function classifyLegalContent(
       subdomain: null,
       documentNature: cachedClassification.documentType,
       confidenceScore: cachedClassification.confidenceScore,
-      requiresValidation: cachedClassification.confidenceScore < 0.8,
-      validationReason: cachedClassification.confidenceScore < 0.8 ? 'Classification depuis cache' : null,
+      requiresValidation: needsValidation,
+      validationReason: needsValidation ? 'Classification depuis cache' : null,
       alternativeClassifications: [],
       legalKeywords: [],
       llmProvider: 'cache',
@@ -285,6 +299,8 @@ export async function classifyLegalContent(
       ],
       rulesMatched: [],
       structureHints: null,
+      reviewPriority: needsValidation ? 'medium' : null,
+      reviewEstimatedEffort: needsValidation ? 'quick' : null,
     }
 
     // Sauvegarder dans DB (pour avoir le même flow que classification normale)
@@ -312,6 +328,8 @@ export async function classifyLegalContent(
       signalsUsed: [],
       rulesMatched: [],
       structureHints: null,
+      reviewPriority: 'low',
+      reviewEstimatedEffort: 'quick',
     }
 
     await saveClassification(pageId, result)
@@ -596,6 +614,18 @@ async function classifyWithMultiSignals(
   const adaptiveThreshold = getClassificationThreshold(finalCategory, finalDomainValidated)
   const needsValidation = requiresValidationAdaptive(finalConfidence, finalCategory, finalDomainValidated)
 
+  // Calculer priorité et effort de revue (Sprint 3 - Phase 3.3)
+  const alternatives = parsedLLM?.alternative_classifications?.map(alt => ({
+    category: validateCategory(alt.category),
+    domain: validateDomain(alt.domain),
+    confidence: alt.confidence,
+    reason: alt.reason,
+  })) || []
+
+  const reviewInfo = needsValidation
+    ? calculateReviewPriority(finalConfidence, signals, alternatives)
+    : { priority: null, effort: null, reason: null }
+
   const result: ClassificationResult = {
     primaryCategory: finalCategory,
     subcategory: null,
@@ -605,14 +635,9 @@ async function classifyWithMultiSignals(
     confidenceScore: finalConfidence,
     requiresValidation: needsValidation,
     validationReason: needsValidation
-      ? `Confiance ${(finalConfidence * 100).toFixed(0)}% < seuil ${(adaptiveThreshold * 100).toFixed(0)}% (${finalDomainValidated || finalCategory || 'default'})`
+      ? reviewInfo.reason || `Confiance ${(finalConfidence * 100).toFixed(0)}% < seuil ${(adaptiveThreshold * 100).toFixed(0)}% (${finalDomainValidated || finalCategory || 'default'})`
       : null,
-    alternativeClassifications: parsedLLM?.alternative_classifications?.map(alt => ({
-      category: validateCategory(alt.category),
-      domain: validateDomain(alt.domain),
-      confidence: alt.confidence,
-      reason: alt.reason,
-    })) || [],
+    alternativeClassifications: alternatives,
     legalKeywords: [
       ...keywords.slice(0, 10).map(kw => kw.keyword),
       ...(parsedLLM?.legal_keywords || []),
@@ -624,6 +649,8 @@ async function classifyWithMultiSignals(
     signalsUsed: signals,
     rulesMatched,
     structureHints,
+    reviewPriority: reviewInfo.priority,
+    reviewEstimatedEffort: reviewInfo.effort,
   }
 
   return result
@@ -1114,6 +1141,80 @@ function shouldActivateLLM(
   // Par défaut : ne pas activer LLM (confiance suffisante)
   console.log('[LLM Decision] Skip LLM - Confiance suffisante:', structureRulesConfidence.toFixed(2))
   return false
+}
+
+/**
+ * Calcule la priorité et l'effort de revue humaine (Sprint 3 - Phase 3.3)
+ *
+ * Logique de priorisation intelligente :
+ * - LOW : Contenu probablement non juridique (confiance < 0.3, aucun signal)
+ * - MEDIUM : Revue standard (défaut)
+ * - HIGH : Hésitation entre 2 alternatives fortes
+ * - URGENT : Signaux contradictoires multiples (3+), nécessite expertise
+ *
+ * @param confidenceScore Score de confiance de la classification
+ * @param signalsUsed Signaux utilisés pour la classification
+ * @param alternatives Classifications alternatives
+ * @returns Priorité et effort estimé
+ */
+function calculateReviewPriority(
+  confidenceScore: number,
+  signalsUsed: ClassificationSignal[],
+  alternatives: AlternativeClassification[]
+): { priority: ReviewPriority; effort: ReviewEffort; reason: string } {
+  // CAS 1 : Vraiment "autre" (contenu non juridique)
+  // Confiance très faible + aucun signal → probablement hors périmètre
+  if (confidenceScore < 0.3 && signalsUsed.length === 0) {
+    return {
+      priority: 'low',
+      effort: 'quick',
+      reason: 'Contenu probablement non juridique - revue rapide pour confirmation',
+    }
+  }
+
+  // CAS 2 : Signaux contradictoires multiples (3+ catégories)
+  // Nécessite expertise humaine pour arbitrage
+  const uniqueCategories = new Set(signalsUsed.map(s => s.category).filter(Boolean))
+  if (uniqueCategories.size >= 3) {
+    return {
+      priority: 'urgent',
+      effort: 'complex',
+      reason: `${uniqueCategories.size} catégories suggérées - nécessite expertise pour arbitrage`,
+    }
+  }
+
+  // CAS 3 : Hésitation entre 2 alternatives fortes
+  // Score proche entre 2 catégories légitimes
+  if (alternatives.length >= 2) {
+    const first = alternatives[0]
+    const second = alternatives[1]
+
+    if (first.confidence > 0.6 && second.confidence > 0.55) {
+      return {
+        priority: 'high',
+        effort: 'moderate',
+        reason: `Hésitation ${first.category} (${(first.confidence * 100).toFixed(0)}%) vs ${second.category} (${(second.confidence * 100).toFixed(0)}%)`,
+      }
+    }
+  }
+
+  // CAS 4 : Confiance faible mais signaux présents
+  // Peut nécessiter plus d'effort selon nombre de signaux
+  if (confidenceScore < 0.5 && signalsUsed.length > 0) {
+    const effort: ReviewEffort = signalsUsed.length >= 3 ? 'complex' : 'moderate'
+    return {
+      priority: 'medium',
+      effort,
+      reason: `Confiance faible (${(confidenceScore * 100).toFixed(0)}%) avec ${signalsUsed.length} signaux`,
+    }
+  }
+
+  // CAS 5 : Défaut - revue standard
+  return {
+    priority: 'medium',
+    effort: 'moderate',
+    reason: 'Revue standard',
+  }
 }
 
 /**
