@@ -169,7 +169,7 @@ export async function invalidateCacheForSource(sourceName: string): Promise<numb
 
     // Supprimer les clés trouvées
     if (keys.length > 0) {
-      await redis.del(...keys)
+      await redis.del(keys)
       console.log(`[ClassificationCache] Invalidated ${keys.length} cache entries for source: ${sourceName}`)
       return keys.length
     }

@@ -211,7 +211,11 @@ async function saveKBQualityScores(documentId: string, result: KBQualityResult):
 // PARSING
 // =============================================================================
 
-function parseKBQualityResponse(content: string): LLMKBQualityResponse {
+/**
+ * Parse la réponse LLM pour extraire les scores de qualité
+ * @exported Pour tests unitaires
+ */
+export function parseKBQualityResponse(content: string): LLMKBQualityResponse {
   const jsonMatch = content.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
     return {
