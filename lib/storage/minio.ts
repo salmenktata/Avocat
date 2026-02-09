@@ -44,6 +44,9 @@ export function getMinioClient(): MinioClient {
   return minioClient
 }
 
+// Cache des buckets vérifiés (pour éviter vérifications répétées)
+const verifiedBuckets = new Set<string>()
+
 /**
  * Initialiser le bucket par défaut s'il n'existe pas
  * À appeler au démarrage de l'application
@@ -76,9 +79,41 @@ export async function initializeBucket(bucketName: string = defaultBucket): Prom
     } else {
       console.log(`✅ Bucket MinIO existant: ${bucketName}`)
     }
+
+    // Marquer comme vérifié
+    verifiedBuckets.add(bucketName)
   } catch (error) {
     console.error('❌ Erreur initialisation bucket MinIO:', error)
     throw error
+  }
+}
+
+/**
+ * S'assurer qu'un bucket existe avant une opération
+ * Utilise un cache pour éviter vérifications répétées
+ */
+async function ensureBucketExists(bucketName: string): Promise<void> {
+  // Si déjà vérifié, skip
+  if (verifiedBuckets.has(bucketName)) {
+    return
+  }
+
+  const client = getMinioClient()
+
+  try {
+    const exists = await client.bucketExists(bucketName)
+
+    if (!exists) {
+      console.warn(`⚠️  Bucket ${bucketName} manquant, création automatique...`)
+      await client.makeBucket(bucketName, 'eu-west-1')
+      console.log(`✅ Bucket auto-créé: ${bucketName}`)
+    }
+
+    // Marquer comme vérifié
+    verifiedBuckets.add(bucketName)
+  } catch (error) {
+    console.error(`❌ Erreur vérification bucket ${bucketName}:`, error)
+    // Ne pas throw, laisser l'opération suivante échouer avec message clair
   }
 }
 
@@ -97,6 +132,9 @@ export async function uploadFile(
   bucketName: string = defaultBucket
 ): Promise<{ url: string; path: string }> {
   const client = getMinioClient()
+
+  // S'assurer que le bucket existe
+  await ensureBucketExists(bucketName)
 
   try {
     // Encoder les métadonnées pour supporter les caractères non-ASCII (arabe, etc.)

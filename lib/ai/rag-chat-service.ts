@@ -349,8 +349,10 @@ interface SearchResult {
 /**
  * Recherche les documents pertinents pour une question
  * Avec cache Redis pour les recherches répétées.
+ *
+ * @exported Pour tests unitaires
  */
-async function searchRelevantContext(
+export async function searchRelevantContext(
   question: string,
   userId: string,
   options: ChatOptions = {}
@@ -822,8 +824,10 @@ async function enrichSourceWithStructuredMetadata(source: ChatSource): Promise<a
 
 /**
  * Construit le contexte à partir des sources avec métadonnées enrichies
+ *
+ * @exported Pour tests unitaires
  */
-async function buildContextFromSources(sources: ChatSource[], questionLang?: DetectedLanguage): Promise<string> {
+export async function buildContextFromSources(sources: ChatSource[], questionLang?: DetectedLanguage): Promise<string> {
   // Choisir les labels selon la langue
   const lang = questionLang === 'ar' ? 'ar' : 'fr'
   const labels = CONTEXT_LABELS[lang]
@@ -1022,8 +1026,10 @@ async function getConversationHistoryWithSummary(
 /**
  * Supprime les citations dont le numéro dépasse le nombre de sources réelles.
  * Empêche le LLM d'halluciner des [Source-5] quand il n'y a que 3 sources.
+ *
+ * @exported Pour tests unitaires
  */
-function sanitizeCitations(answer: string, sourceCount: number): string {
+export function sanitizeCitations(answer: string, sourceCount: number): string {
   return answer.replace(
     /\[(Source|KB|Juris)-?(\d+)\]/g,
     (fullMatch, _type: string, numStr: string) => {
