@@ -16,12 +16,13 @@
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { aiConfig, SYSTEM_PROMPTS } from './config'
+import { callGemini, GeminiResponse } from './gemini-client'
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-export type LLMProvider = 'groq' | 'deepseek' | 'anthropic' | 'ollama'
+export type LLMProvider = 'gemini' | 'groq' | 'deepseek' | 'anthropic' | 'ollama'
 
 export interface LLMMessage {
   role: 'user' | 'assistant' | 'system'
@@ -51,8 +52,11 @@ export interface LLMResponse {
 // CONFIGURATION
 // =============================================================================
 
-/** Ordre de fallback des providers (Ollama en dernier car local mais plus lent) */
-const FALLBACK_ORDER: LLMProvider[] = ['groq', 'deepseek', 'anthropic', 'ollama']
+/**
+ * Ordre de fallback des providers (Février 2026 - optimisé coût/performance)
+ * Gemini tier gratuit illimité → DeepSeek économique → Groq rapide → Anthropic puissant → Ollama local
+ */
+const FALLBACK_ORDER: LLMProvider[] = ['gemini', 'deepseek', 'groq', 'anthropic', 'ollama']
 
 /** Nombre maximum de retries par provider avant de passer au suivant */
 const MAX_RETRIES_PER_PROVIDER = 2
@@ -212,6 +216,8 @@ async function delay(ms: number): Promise<void> {
 export function getAvailableProviders(): LLMProvider[] {
   return FALLBACK_ORDER.filter((provider) => {
     switch (provider) {
+      case 'gemini':
+        return !!aiConfig.gemini.apiKey
       case 'groq':
         return !!aiConfig.groq.apiKey
       case 'deepseek':
@@ -247,6 +253,22 @@ async function callProvider(
   const userMessages = messages.filter((m) => m.role !== 'system')
 
   switch (provider) {
+    case 'gemini': {
+      // Appel Gemini via gemini-client.ts
+      const geminiResponse: GeminiResponse = await callGemini(
+        [{ role: 'system', content: systemPrompt }, ...userMessages],
+        { temperature, maxTokens, systemInstruction: systemPrompt }
+      )
+
+      return {
+        answer: geminiResponse.answer,
+        tokensUsed: geminiResponse.tokensUsed,
+        modelUsed: geminiResponse.modelUsed,
+        provider: 'gemini',
+        fallbackUsed: false,
+      }
+    }
+
     case 'groq': {
       const client = getGroqClient()
       const response = await client.chat.completions.create({

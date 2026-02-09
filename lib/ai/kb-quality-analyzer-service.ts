@@ -3,18 +3,25 @@
  *
  * Évalue la qualité d'un document de la base de connaissances
  * selon des critères de clarté, structure, complétude et fiabilité.
- * Réutilise le pattern callLLMWithFallback (Ollama→DeepSeek→Groq).
+ *
+ * Stratégie LLM (Février 2026) : DeepSeek → Gemini → Ollama
+ * - DeepSeek prioritaire pour qualité d'analyse
+ * - Gemini fallback économique
+ * - Ollama dernier recours local gratuit
  */
 
-import OpenAI from 'openai'
 import { db } from '@/lib/db/postgres'
-import { aiConfig } from './config'
 import {
   KB_QUALITY_ANALYSIS_SYSTEM_PROMPT,
   KB_QUALITY_ANALYSIS_USER_PROMPT,
   formatPrompt,
   truncateContent,
 } from './prompts/legal-analysis'
+import {
+  callLLMWithFallback,
+  LLMMessage,
+  LLMResponse,
+} from './llm-fallback-service'
 
 // =============================================================================
 // TYPES
@@ -46,52 +53,7 @@ interface LLMKBQualityResponse {
   requires_review: boolean
 }
 
-interface LLMResult {
-  content: string
-  provider: string
-  model: string
-}
-
-// =============================================================================
-// CLIENTS LLM
-// =============================================================================
-
-let ollamaClient: OpenAI | null = null
-let deepseekClient: OpenAI | null = null
-let groqClient: OpenAI | null = null
-
-function getOllamaClient(): OpenAI {
-  if (!ollamaClient) {
-    ollamaClient = new OpenAI({
-      apiKey: 'ollama',
-      baseURL: `${aiConfig.ollama.baseUrl}/v1`,
-      timeout: 120000,
-    })
-  }
-  return ollamaClient
-}
-
-function getDeepSeekClient(): OpenAI {
-  if (!deepseekClient) {
-    if (!aiConfig.deepseek.apiKey) throw new Error('DEEPSEEK_API_KEY non configuré')
-    deepseekClient = new OpenAI({
-      apiKey: aiConfig.deepseek.apiKey,
-      baseURL: aiConfig.deepseek.baseUrl,
-    })
-  }
-  return deepseekClient
-}
-
-function getGroqClient(): OpenAI {
-  if (!groqClient) {
-    if (!aiConfig.groq.apiKey) throw new Error('GROQ_API_KEY non configuré')
-    groqClient = new OpenAI({
-      apiKey: aiConfig.groq.apiKey,
-      baseURL: aiConfig.groq.baseUrl,
-    })
-  }
-  return groqClient
-}
+// Plus besoin de clients LLM locaux - utilise le service global
 
 // =============================================================================
 // FONCTION PRINCIPALE
@@ -143,9 +105,18 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
     content: truncateContent(content, 6000),
   })
 
-  // Appeler le LLM
-  const llmResult = await callLLMWithFallback(KB_QUALITY_ANALYSIS_SYSTEM_PROMPT, userPrompt)
-  const parsed = parseKBQualityResponse(llmResult.content)
+  // Appeler le LLM avec fallback Gemini → DeepSeek → Groq → Ollama
+  const messages: LLMMessage[] = [
+    { role: 'system', content: KB_QUALITY_ANALYSIS_SYSTEM_PROMPT },
+    { role: 'user', content: userPrompt },
+  ]
+
+  const llmResult: LLMResponse = await callLLMWithFallback(messages, {
+    temperature: 0.1, // Précision maximale pour analyse
+    maxTokens: 2000,
+  })
+
+  const parsed = parseKBQualityResponse(llmResult.answer)
 
   const result: KBQualityResult = {
     qualityScore: parsed.overall_score,
@@ -158,7 +129,7 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
     recommendations: parsed.recommendations || [],
     requiresReview: parsed.requires_review || parsed.overall_score < 60,
     llmProvider: llmResult.provider,
-    llmModel: llmResult.model,
+    llmModel: llmResult.modelUsed,
   }
 
   await saveKBQualityScores(documentId, result)
@@ -236,77 +207,9 @@ async function saveKBQualityScores(documentId: string, result: KBQualityResult):
   )
 }
 
-async function callLLMWithFallback(systemPrompt: string, userPrompt: string): Promise<LLMResult> {
-  const errors: string[] = []
-
-  if (aiConfig.ollama.enabled) {
-    try {
-      const client = getOllamaClient()
-      const response = await client.chat.completions.create({
-        model: aiConfig.ollama.chatModelDefault,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-      })
-      return {
-        content: response.choices[0]?.message?.content || '',
-        provider: 'ollama',
-        model: aiConfig.ollama.chatModelDefault,
-      }
-    } catch (error) {
-      errors.push(`Ollama: ${error instanceof Error ? error.message : 'Erreur'}`)
-    }
-  }
-
-  if (aiConfig.deepseek.apiKey) {
-    try {
-      const client = getDeepSeekClient()
-      const response = await client.chat.completions.create({
-        model: aiConfig.deepseek.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-      })
-      return {
-        content: response.choices[0]?.message?.content || '',
-        provider: 'deepseek',
-        model: aiConfig.deepseek.model,
-      }
-    } catch (error) {
-      errors.push(`DeepSeek: ${error instanceof Error ? error.message : 'Erreur'}`)
-    }
-  }
-
-  if (aiConfig.groq.apiKey) {
-    try {
-      const client = getGroqClient()
-      const response = await client.chat.completions.create({
-        model: aiConfig.groq.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-      })
-      return {
-        content: response.choices[0]?.message?.content || '',
-        provider: 'groq',
-        model: aiConfig.groq.model,
-      }
-    } catch (error) {
-      errors.push(`Groq: ${error instanceof Error ? error.message : 'Erreur'}`)
-    }
-  }
-
-  throw new Error(`Aucun LLM disponible. Erreurs: ${errors.join('; ')}`)
-}
+// =============================================================================
+// PARSING
+// =============================================================================
 
 function parseKBQualityResponse(content: string): LLMKBQualityResponse {
   const jsonMatch = content.match(/\{[\s\S]*\}/)

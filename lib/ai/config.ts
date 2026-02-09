@@ -47,6 +47,13 @@ export interface AIConfig {
     baseUrl: string
   }
 
+  // Google Gemini (LLM économique, contexte 1M tokens, excellent multilingue)
+  gemini: {
+    apiKey: string
+    model: string
+    maxTokens: number
+  }
+
   // RAG Configuration
   rag: {
     enabled: boolean
@@ -103,6 +110,12 @@ export const aiConfig: AIConfig = {
     baseUrl: 'https://api.deepseek.com/v1',
   },
 
+  gemini: {
+    apiKey: process.env.GOOGLE_API_KEY || '',
+    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite',
+    maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS || '4000', 10),
+  },
+
   rag: {
     enabled: process.env.RAG_ENABLED === 'true',
     chunkSize: parseInt(process.env.RAG_CHUNK_SIZE || '512', 10),
@@ -139,15 +152,21 @@ export function validateAIConfig(): {
 
   // Vérifier les clés API (seulement si RAG est activé)
   if (aiConfig.rag.enabled) {
-    // Vérifier qu'au moins un LLM est disponible (Groq prioritaire)
+    // Vérifier qu'au moins un LLM est disponible (Gemini prioritaire en Février 2026)
+    const hasGemini = !!aiConfig.gemini.apiKey
     const hasGroq = !!aiConfig.groq.apiKey
+    const hasDeepSeek = !!aiConfig.deepseek.apiKey
     const hasAnthropic = !!aiConfig.anthropic.apiKey
     const hasOpenAIChat = !!aiConfig.openai.apiKey
 
-    if (!hasGroq && !hasAnthropic && !hasOpenAIChat) {
-      errors.push('Aucun LLM disponible - Configurez GROQ_API_KEY, ANTHROPIC_API_KEY ou OPENAI_API_KEY')
+    if (!hasGemini && !hasGroq && !hasDeepSeek && !hasAnthropic && !hasOpenAIChat) {
+      errors.push('Aucun LLM disponible - Configurez GOOGLE_API_KEY, GROQ_API_KEY, DEEPSEEK_API_KEY, ANTHROPIC_API_KEY ou OPENAI_API_KEY')
+    } else if (hasGemini) {
+      warnings.push(`Gemini LLM activé (${aiConfig.gemini.model}) - Tier gratuit illimité + contexte 1M tokens`)
     } else if (hasGroq) {
       warnings.push(`Groq LLM activé (${aiConfig.groq.model}) - Rapide et économique`)
+    } else if (hasDeepSeek) {
+      warnings.push(`DeepSeek LLM activé (${aiConfig.deepseek.model}) - Économique et performant`)
     } else if (hasAnthropic) {
       warnings.push(`Anthropic Claude activé (${aiConfig.anthropic.model})`)
     }
@@ -197,10 +216,10 @@ export function validateAIConfig(): {
 
 /**
  * Vérifie si les fonctionnalités IA sont disponibles
- * Priorité: Ollama (local) > Groq > Anthropic > OpenAI
+ * Priorité Février 2026: Gemini (tier gratuit) > Ollama (local) > DeepSeek > Groq > Anthropic > OpenAI
  */
 export function isAIEnabled(): boolean {
-  const hasLLM = aiConfig.ollama.enabled || !!aiConfig.groq.apiKey || !!aiConfig.anthropic.apiKey || !!aiConfig.openai.apiKey
+  const hasLLM = !!aiConfig.gemini.apiKey || aiConfig.ollama.enabled || !!aiConfig.deepseek.apiKey || !!aiConfig.groq.apiKey || !!aiConfig.anthropic.apiKey || !!aiConfig.openai.apiKey
   const hasEmbeddings = aiConfig.ollama.enabled || !!aiConfig.openai.apiKey
   return aiConfig.rag.enabled && hasLLM && hasEmbeddings
 }
@@ -236,6 +255,7 @@ export function getEmbeddingDimensions(): number {
  */
 export function isChatEnabled(): boolean {
   return aiConfig.rag.enabled && (
+    !!aiConfig.gemini.apiKey ||
     aiConfig.ollama.enabled ||
     !!aiConfig.deepseek.apiKey ||
     !!aiConfig.groq.apiKey ||
@@ -246,13 +266,13 @@ export function isChatEnabled(): boolean {
 
 /**
  * Retourne le provider de chat actif
- * Priorité: Groq (rapide et gratuit) > DeepSeek (économique) > Ollama (local) > Anthropic > OpenAI
- * Note: DeepSeek est maintenant en 2ème position car nécessite un solde crédit
+ * Priorité Février 2026: Gemini (tier gratuit illimité) > DeepSeek (économique) > Groq (rapide) > Ollama (local) > Anthropic > OpenAI
  */
-export function getChatProvider(): 'deepseek' | 'groq' | 'ollama' | 'anthropic' | 'openai' | null {
+export function getChatProvider(): 'gemini' | 'deepseek' | 'groq' | 'ollama' | 'anthropic' | 'openai' | null {
   if (!aiConfig.rag.enabled) return null
-  if (aiConfig.groq.apiKey) return 'groq'
+  if (aiConfig.gemini.apiKey) return 'gemini'
   if (aiConfig.deepseek.apiKey) return 'deepseek'
+  if (aiConfig.groq.apiKey) return 'groq'
   if (aiConfig.ollama.enabled) return 'ollama'
   if (aiConfig.anthropic.apiKey) return 'anthropic'
   if (aiConfig.openai.apiKey) return 'openai'
@@ -260,26 +280,31 @@ export function getChatProvider(): 'deepseek' | 'groq' | 'ollama' | 'anthropic' 
 }
 
 /** Type des providers LLM disponibles pour le fallback */
-export type LLMProviderType = 'groq' | 'deepseek' | 'anthropic'
+export type LLMProviderType = 'gemini' | 'groq' | 'deepseek' | 'anthropic' | 'ollama'
 
-/** Ordre de fallback des providers LLM (du plus économique au plus cher) */
-const LLM_FALLBACK_ORDER: LLMProviderType[] = ['groq', 'deepseek', 'anthropic']
+/** Ordre de fallback des providers LLM (Février 2026 - optimisé coût/performance) */
+const LLM_FALLBACK_ORDER: LLMProviderType[] = ['gemini', 'deepseek', 'groq', 'anthropic', 'ollama']
 
 /**
  * Retourne la liste ordonnée des providers LLM disponibles pour le fallback
  * Seuls les providers avec une clé API configurée sont inclus
  *
- * Ordre: Groq (rapide, économique) → DeepSeek (économique) → Anthropic (puissant) → OpenAI (dernier recours)
+ * Ordre Février 2026:
+ * Gemini (tier gratuit, 1M context) → DeepSeek (économique) → Groq (rapide) → Anthropic (puissant) → Ollama (local gratuit)
  */
 export function getAvailableLLMProviders(): LLMProviderType[] {
   return LLM_FALLBACK_ORDER.filter((provider) => {
     switch (provider) {
+      case 'gemini':
+        return !!aiConfig.gemini.apiKey
       case 'groq':
         return !!aiConfig.groq.apiKey
       case 'deepseek':
         return !!aiConfig.deepseek.apiKey
       case 'anthropic':
         return !!aiConfig.anthropic.apiKey
+      case 'ollama':
+        return aiConfig.ollama.enabled
       default:
         return false
     }
