@@ -43,7 +43,9 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "storage:cleanup": "node scripts/cleanup-storage-manual.js",
+    "storage:analyze": "node scripts/analyze-storage.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",

@@ -42,7 +42,7 @@ interface SessionProviderProps {
 // Clés et durée du cache
 const CACHE_KEY = 'session_cache'
 const CACHE_TIMESTAMP_KEY = 'session_cache_ts'
-const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const CACHE_TTL_MS = 2 * 60 * 1000 // 2 minutes (réduit de 5min pour économiser RAM)
 
 interface CachedSession {
   user: SessionUser | null

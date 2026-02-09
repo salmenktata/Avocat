@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, getLocale } from 'next-intl/server'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { SessionProvider } from '@/components/providers/SessionProvider'
+import { StorageCleanupProvider } from '@/components/providers/StorageCleanupProvider'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -54,9 +55,11 @@ export default async function RootLayout({
       <body className={inter.className}>
         <SessionProvider>
           <ThemeProvider>
-            <NextIntlClientProvider messages={messages}>
-              {children}
-            </NextIntlClientProvider>
+            <StorageCleanupProvider>
+              <NextIntlClientProvider messages={messages}>
+                {children}
+              </NextIntlClientProvider>
+            </StorageCleanupProvider>
           </ThemeProvider>
         </SessionProvider>
         <Toaster richColors position="top-right" />
