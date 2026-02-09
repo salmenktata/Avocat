@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { Badge } from '@/components/ui/badge'
 import useSWR from 'swr'
 import { OPERATION_LABELS, PROVIDER_LABELS } from '@/lib/constants/operation-labels'
 import { formatCurrency } from '@/lib/utils/format'
@@ -22,9 +23,18 @@ const OPERATION_COLORS: Record<string, string> = {
   extraction: '#ec4899'
 }
 
-export function CostBreakdownChart({ days }: { days: number }) {
+interface CostBreakdownProps {
+  days: number
+  userId?: string | null
+}
+
+export function CostBreakdownChart({ days, userId }: CostBreakdownProps) {
+  const apiUrl = userId
+    ? `/api/admin/provider-usage-matrix?days=${days}&userId=${userId}`
+    : `/api/admin/provider-usage-matrix?days=${days}`
+
   const { data, isLoading, error } = useSWR<MatrixResponse>(
-    `/api/admin/provider-usage-matrix?days=${days}`,
+    apiUrl,
     fetcher,
     { refreshInterval: 300000 }
   )
@@ -92,7 +102,14 @@ export function CostBreakdownChart({ days }: { days: number }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Coûts Détaillés par Provider</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Coûts Détaillés par Provider
+          {userId && (
+            <Badge variant="secondary" className="ml-2">
+              Filtré par utilisateur
+            </Badge>
+          )}
+        </CardTitle>
         <p className="text-sm text-muted-foreground">
           Décomposition des coûts par opération (barres empilées)
         </p>

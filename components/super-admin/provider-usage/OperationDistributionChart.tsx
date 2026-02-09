@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
+import { Badge } from '@/components/ui/badge'
 import useSWR from 'swr'
 import { OPERATION_LABELS } from '@/lib/constants/operation-labels'
 import { formatCurrency } from '@/lib/utils/format'
@@ -26,9 +27,18 @@ const OPERATION_COLORS: Record<string, string> = {
   extraction: '#ec4899'
 }
 
-export function OperationDistributionChart({ days }: { days: number }) {
+interface DistributionChartProps {
+  days: number
+  userId?: string | null
+}
+
+export function OperationDistributionChart({ days, userId }: DistributionChartProps) {
+  const apiUrl = userId
+    ? `/api/admin/provider-usage-matrix?days=${days}&userId=${userId}`
+    : `/api/admin/provider-usage-matrix?days=${days}`
+
   const { data, isLoading, error } = useSWR<MatrixResponse>(
-    `/api/admin/provider-usage-matrix?days=${days}`,
+    apiUrl,
     fetcher,
     { refreshInterval: 300000 }
   )
@@ -83,7 +93,14 @@ export function OperationDistributionChart({ days }: { days: number }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Distribution par Opération</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Distribution par Opération
+          {userId && (
+            <Badge variant="secondary" className="ml-2">
+              Filtré par utilisateur
+            </Badge>
+          )}
+        </CardTitle>
         <p className="text-sm text-muted-foreground">
           Répartition des coûts par type d'opération
         </p>

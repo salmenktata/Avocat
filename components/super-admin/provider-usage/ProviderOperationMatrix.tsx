@@ -36,13 +36,18 @@ interface MatrixResponse {
 
 interface MatrixProps {
   days: number
+  userId?: string | null
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
-export function ProviderOperationMatrix({ days }: MatrixProps) {
+export function ProviderOperationMatrix({ days, userId }: MatrixProps) {
+  const apiUrl = userId
+    ? `/api/admin/provider-usage-matrix?days=${days}&userId=${userId}`
+    : `/api/admin/provider-usage-matrix?days=${days}`
+
   const { data, isLoading, error } = useSWR<MatrixResponse>(
-    `/api/admin/provider-usage-matrix?days=${days}`,
+    apiUrl,
     fetcher,
     { refreshInterval: 300000 } // 5min
   )
@@ -89,7 +94,14 @@ export function ProviderOperationMatrix({ days }: MatrixProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Matrice Provider × Opération ({days} derniers jours)</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Matrice Provider × Opération ({days} derniers jours)
+          {userId && (
+            <Badge variant="secondary" className="ml-2">
+              Filtré par utilisateur
+            </Badge>
+          )}
+        </CardTitle>
         <p className="text-sm text-muted-foreground">
           Coût total : {formatCurrency(data.totals.total, 'USD')}
           ({formatCurrency(data.totals.total * 3.2, 'TND')})

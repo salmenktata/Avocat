@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { Badge } from '@/components/ui/badge'
 import useSWR from 'swr'
 import { PROVIDER_LABELS } from '@/lib/constants/operation-labels'
 import { Loader2 } from 'lucide-react'
@@ -31,9 +32,18 @@ const PROVIDER_COLORS = {
   ollama: '#22c55e'
 }
 
-export function ProviderTrendsChart({ days }: { days: number }) {
+interface TrendsChartProps {
+  days: number
+  userId?: string | null
+}
+
+export function ProviderTrendsChart({ days, userId }: TrendsChartProps) {
+  const apiUrl = userId
+    ? `/api/admin/provider-usage-trends?days=${days}&userId=${userId}`
+    : `/api/admin/provider-usage-trends?days=${days}`
+
   const { data, isLoading, error } = useSWR<TrendsResponse>(
-    `/api/admin/provider-usage-trends?days=${days}`,
+    apiUrl,
     fetcher,
     { refreshInterval: 300000 }
   )
@@ -76,7 +86,14 @@ export function ProviderTrendsChart({ days }: { days: number }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Tendance Tokens par Provider</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Tendance Tokens par Provider
+          {userId && (
+            <Badge variant="secondary" className="ml-2">
+              Filtré par utilisateur
+            </Badge>
+          )}
+        </CardTitle>
         <p className="text-sm text-muted-foreground">
           Évolution quotidienne du nombre de tokens
         </p>
