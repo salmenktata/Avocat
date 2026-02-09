@@ -450,7 +450,7 @@ const FRAMEWORK_PROFILES: Record<DetectedFramework, Partial<DynamicSiteConfig>> 
     waitForLoadingToDisappear: true,
     loadingIndicators: ['[x-show][x-transition]', '.loading'],
     postLoadDelayMs: 500,
-    waitUntil: 'networkidle',
+    waitUntil: 'load',  // 'networkidle' bloque sur sites avec WebSocket/polling
   },
   react: {
     waitForLoadingToDisappear: true,
@@ -458,7 +458,7 @@ const FRAMEWORK_PROFILES: Record<DetectedFramework, Partial<DynamicSiteConfig>> 
     postLoadDelayMs: 800,
     scrollToLoad: true,
     scrollCount: 2,
-    waitUntil: 'networkidle',
+    waitUntil: 'load',  // 'networkidle' bloque sur sites avec WebSocket/polling
     dynamicTimeoutMs: 10000,
   },
   vue: {
@@ -466,33 +466,33 @@ const FRAMEWORK_PROFILES: Record<DetectedFramework, Partial<DynamicSiteConfig>> 
     loadingIndicators: ['.v-progress-circular', '.v-skeleton-loader', '.loading'],
     postLoadDelayMs: 600,
     scrollToLoad: true,
-    waitUntil: 'networkidle',
+    waitUntil: 'load',  // 'networkidle' bloque sur sites avec WebSocket/polling
   },
   angular: {
     waitForLoadingToDisappear: true,
     loadingIndicators: ['mat-spinner', 'mat-progress-bar', '.ng-loading'],
     postLoadDelayMs: 800,
     scrollToLoad: true,
-    waitUntil: 'networkidle',
+    waitUntil: 'load',  // 'networkidle' bloque sur sites avec WebSocket/polling
     dynamicTimeoutMs: 12000,
   },
   svelte: {
     waitForLoadingToDisappear: true,
     loadingIndicators: ['.loading', '.spinner'],
     postLoadDelayMs: 400,
-    waitUntil: 'networkidle',
+    waitUntil: 'load',  // 'networkidle' bloque sur sites avec WebSocket/polling
   },
   htmx: {
     waitForLoadingToDisappear: true,
     loadingIndicators: ['.htmx-request', '.htmx-indicator'],
     postLoadDelayMs: 500,
-    waitUntil: 'networkidle',
+    waitUntil: 'load',  // 'networkidle' bloque sur sites avec WebSocket/polling
   },
   turbo: {
     waitForLoadingToDisappear: true,
     loadingIndicators: ['.turbo-progress-bar', '[data-turbo-progress]'],
     postLoadDelayMs: 400,
-    waitUntil: 'networkidle',
+    waitUntil: 'load',  // 'networkidle' bloque sur sites avec WebSocket/polling
   },
   stimulus: {
     postLoadDelayMs: 300,
@@ -502,7 +502,7 @@ const FRAMEWORK_PROFILES: Record<DetectedFramework, Partial<DynamicSiteConfig>> 
     waitForLoadingToDisappear: true,
     loadingIndicators: ['.loading', '.ajax-loading', '#loading'],
     postLoadDelayMs: 500,
-    waitUntil: 'networkidle',
+    waitUntil: 'load',  // 'networkidle' bloque sur sites avec WebSocket/polling
   },
   'spa-generic': {
     waitForLoadingToDisappear: true,
@@ -510,11 +510,11 @@ const FRAMEWORK_PROFILES: Record<DetectedFramework, Partial<DynamicSiteConfig>> 
     postLoadDelayMs: 800,
     scrollToLoad: true,
     scrollCount: 2,
-    waitUntil: 'networkidle',
+    waitUntil: 'load',  // 'networkidle' bloque sur sites avec WebSocket/polling
     dynamicTimeoutMs: 10000,
   },
   webdev: {
-    waitUntil: 'networkidle',
+    waitUntil: 'load',  // 'networkidle' bloque sur sites avec WebSocket/polling
     postLoadDelayMs: 2500,
     waitForLoadingToDisappear: true,
     loadingIndicators: ['<!--loading-->', '[data-loading]', '.loading'],
@@ -547,7 +547,7 @@ const DEFAULT_DYNAMIC_CONFIG: DynamicSiteConfig = {
   scrollToLoad: false,
   scrollCount: 3,
   postLoadDelayMs: 500,
-  waitUntil: 'networkidle',
+  waitUntil: 'load',  // 'networkidle' bloque sur sites avec WebSocket/polling
   dynamicTimeoutMs: 10000,
 }
 
