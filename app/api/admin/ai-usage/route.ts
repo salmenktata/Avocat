@@ -11,8 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/auth/session'
 import { aiConfig } from '@/lib/ai/config'
 import { getGeminiRPMStats } from '@/lib/ai/gemini-client'
 import { getCircuitBreakerState } from '@/lib/ai/embeddings-service'
@@ -96,7 +95,7 @@ const PRICING = {
 export async function GET(request: NextRequest) {
   try {
     // Vérifier authentification admin
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session || session.user.role !== 'super_admin') {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
