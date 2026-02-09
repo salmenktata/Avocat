@@ -15,7 +15,7 @@ function formatTND(usdAmount: number): string {
 async function AICostsStats() {
   const result = await query(`
     SELECT
-      COALESCE(SUM(cost_usd), 0) as total_cost,
+      COALESCE(SUM(estimated_cost_usd), 0) as total_cost,
       COUNT(*) as total_operations,
       COUNT(DISTINCT user_id) as unique_users,
       COALESCE(SUM(input_tokens + output_tokens), 0) as total_tokens
@@ -28,7 +28,7 @@ async function AICostsStats() {
   const periodsResult = await query(`
     SELECT
       DATE_TRUNC('day', created_at) as date,
-      SUM(cost_usd) as cost,
+      SUM(estimated_cost_usd) as cost,
       COUNT(*) as operations
     FROM ai_usage_logs
     WHERE created_at > NOW() - INTERVAL '7 days'
@@ -134,7 +134,7 @@ async function TopAIUsers() {
     SELECT
       u.id, u.email, u.nom, u.prenom,
       COUNT(*) as operations,
-      SUM(a.cost_usd) as total_cost,
+      SUM(a.estimated_cost_usd) as total_cost,
       SUM(a.input_tokens + a.output_tokens) as total_tokens
     FROM ai_usage_logs a
     JOIN users u ON a.user_id = u.id
@@ -207,7 +207,7 @@ async function OperationTypes() {
     SELECT
       operation_type,
       COUNT(*) as count,
-      SUM(cost_usd) as cost,
+      SUM(estimated_cost_usd) as cost,
       SUM(input_tokens + output_tokens) as tokens
     FROM ai_usage_logs
     WHERE created_at > NOW() - INTERVAL '30 days'

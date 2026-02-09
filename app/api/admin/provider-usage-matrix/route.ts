@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     // 2. Parse query params
     const searchParams = request.nextUrl.searchParams
     const days = parseInt(searchParams.get('days') || '7')
+    const userId = searchParams.get('userId')
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
 
@@ -35,16 +36,17 @@ export async function GET(request: NextRequest) {
         operation_type,
         COUNT(*) as request_count,
         SUM(input_tokens + output_tokens) as total_tokens,
-        SUM(cost_usd) as total_cost_usd
+        SUM(estimated_cost_usd) as total_cost_usd
       FROM ai_usage_logs
       WHERE created_at >= $1
         AND provider IS NOT NULL
         AND operation_type IS NOT NULL
+        AND ($2::uuid IS NULL OR user_id = $2)
       GROUP BY provider, operation_type
       ORDER BY total_cost_usd DESC
     `
 
-    const result = await db.query(query, [startDate.toISOString()])
+    const result = await db.query(query, [startDate.toISOString(), userId || null])
 
     // 4. Transform to matrix structure
     const matrix: MatrixData = {}
