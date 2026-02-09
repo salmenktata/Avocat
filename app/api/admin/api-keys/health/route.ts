@@ -43,11 +43,10 @@ async function testGemini(): Promise<ProviderHealth> {
     }
 
     // Test simple avec prompt minimal
-    const response = await callGemini({
-      prompt: 'Réponds juste "OK"',
-      temperature: 0,
-      maxTokens: 10,
-    })
+    const response = await callGemini(
+      [{ role: 'user', content: 'Réponds juste "OK"' }],
+      { temperature: 0, maxTokens: 10 }
+    )
 
     const responseTime = Date.now() - start
 
