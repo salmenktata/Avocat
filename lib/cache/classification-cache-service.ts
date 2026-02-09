@@ -126,7 +126,7 @@ export async function setCachedClassification(
       return
     }
 
-    await redis.set(key, JSON.stringify(classification), { ex: ttl })
+    await redis.set(key, JSON.stringify(classification), { EX: ttl })
   } catch (error) {
     console.error('[ClassificationCache] Failed to set cached classification:', error)
     // Ne pas throw pour éviter de bloquer le pipeline d'indexation
