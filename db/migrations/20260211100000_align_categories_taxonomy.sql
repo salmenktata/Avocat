@@ -33,12 +33,21 @@ WHERE parent_code = 'constitution';
 -- PHASE 2 : Insérer les 6 catégories manquantes (bilingue FR/AR)
 -- ============================================================================
 
+-- Insérer les 10 catégories potentiellement manquantes (ON CONFLICT = idempotent)
 INSERT INTO legal_taxonomy (type, code, label_fr, label_ar, description, is_system, is_active, sort_order)
 VALUES
   ('category', 'constitution', 'Constitution', 'الدستور',
    'Constitution de la République Tunisienne / دستور الجمهورية التونسية', true, true, 5),
+  ('category', 'conventions', 'Conventions internationales', 'الاتفاقيات الدولية',
+   'Conventions et traités internationaux / الاتفاقيات والمعاهدات الدولية', true, true, 6),
+  ('category', 'modeles', 'Modèles', 'النماذج',
+   'Modèles de documents juridiques / نماذج الوثائق القانونية', true, true, 7),
   ('category', 'formulaires', 'Formulaires', 'الاستمارات',
    'Formulaires officiels tunisiens / الاستمارات الرسمية التونسية', true, true, 8),
+  ('category', 'procedures', 'Procédures', 'الإجراءات',
+   'Guides procéduraux / أدلة الإجراءات القضائية', true, true, 9),
+  ('category', 'guides', 'Guides pratiques', 'الأدلة',
+   'Guides pratiques pour avocats / أدلة عملية للمحامين', true, true, 11),
   ('category', 'lexique', 'Lexique juridique', 'المصطلحات',
    'Lexique des termes juridiques / قاموس المصطلحات القانونية', true, true, 12),
   ('category', 'actualites', 'Actualités', 'الأخبار',
@@ -50,7 +59,7 @@ VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- ============================================================================
--- PHASE 3 : Harmoniser les labels FR/AR des 9 catégories existantes
+-- PHASE 3 : Harmoniser les labels FR/AR de toutes les catégories existantes
 -- (TS = source de vérité pour les labels)
 -- ============================================================================
 
@@ -116,6 +125,27 @@ SET label_fr = 'Guides pratiques', label_ar = 'الأدلة',
     description = 'Guides pratiques pour avocats / أدلة عملية للمحامين',
     updated_at = NOW()
 WHERE code = 'guides' AND type = 'category';
+
+-- conventions : "Conventions internationales" / "الاتفاقيات الدولية"
+UPDATE legal_taxonomy
+SET label_fr = 'Conventions internationales', label_ar = 'الاتفاقيات الدولية',
+    description = 'Conventions et traités internationaux / الاتفاقيات والمعاهدات الدولية',
+    updated_at = NOW()
+WHERE code = 'conventions' AND type = 'category';
+
+-- modeles : "Modèles" / "النماذج"
+UPDATE legal_taxonomy
+SET label_fr = 'Modèles', label_ar = 'النماذج',
+    description = 'Modèles de documents juridiques / نماذج الوثائق القانونية',
+    updated_at = NOW()
+WHERE code = 'modeles' AND type = 'category';
+
+-- procedures : "Procédures" / "الإجراءات"
+UPDATE legal_taxonomy
+SET label_fr = 'Procédures', label_ar = 'الإجراءات',
+    description = 'Guides procéduraux / أدلة الإجراءات القضائية',
+    updated_at = NOW()
+WHERE code = 'procedures' AND type = 'category';
 
 -- ============================================================================
 -- PHASE 4 : Ajouter les 3 domaines manquants en TS (societes, donnees_personnelles, energie)
