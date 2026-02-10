@@ -34,7 +34,7 @@ CREATE INDEX IF NOT EXISTS idx_classification_feedback_useful
   ON classification_feedback(is_useful, created_at);
 
 -- Étape 4: Fonction SQL pour récupérer la queue de revue avec priorisation
-CREATE OR REPLACE FUNCTION get_classification_review_queue(
+CREATE OR REPLACE FUNCTION get_classification_review_queue_v2(
   p_priority TEXT[] DEFAULT NULL,
   p_effort TEXT[] DEFAULT NULL,
   p_source_id UUID DEFAULT NULL,
@@ -44,7 +44,7 @@ CREATE OR REPLACE FUNCTION get_classification_review_queue(
   web_page_id UUID,
   url TEXT,
   title TEXT,
-  confidence_score NUMERIC,
+  confidence_score DOUBLE PRECISION,
   review_priority TEXT,
   review_estimated_effort TEXT,
   validation_reason TEXT,
@@ -52,11 +52,11 @@ CREATE OR REPLACE FUNCTION get_classification_review_queue(
   domain TEXT,
   source_name TEXT,
   created_at TIMESTAMP
-) AS \$\$
+) AS $$
 BEGIN
   RETURN QUERY
   SELECT
-    wp.id AS web_page_id,
+    wp.id,
     wp.url,
     wp.title,
     lc.confidence_score,
@@ -65,7 +65,7 @@ BEGIN
     lc.validation_reason,
     lc.primary_category,
     lc.domain,
-    ws.name AS source_name,
+    ws.name,
     lc.created_at
   FROM web_pages wp
   JOIN legal_classifications lc ON lc.web_page_id = wp.id
@@ -85,10 +85,10 @@ BEGIN
     lc.created_at ASC
   LIMIT p_limit OFFSET p_offset;
 END;
-\$\$ LANGUAGE plpgsql STABLE;
+$$ LANGUAGE plpgsql STABLE;
 
 -- Étape 5: Fonction pour obtenir stats queue de revue
-CREATE OR REPLACE FUNCTION get_review_queue_stats()
+CREATE OR REPLACE FUNCTION get_classification_review_stats()
 RETURNS TABLE (
   urgent_count BIGINT,
   high_count BIGINT,
@@ -96,7 +96,7 @@ RETURNS TABLE (
   low_count BIGINT,
   no_priority_count BIGINT,
   total_count BIGINT
-) AS \$\$
+) AS $$
 BEGIN
   RETURN QUERY
   SELECT
@@ -109,7 +109,7 @@ BEGIN
   FROM legal_classifications
   WHERE requires_validation = true;
 END;
-\$\$ LANGUAGE plpgsql STABLE;
+$$ LANGUAGE plpgsql STABLE;
 
 -- Étape 6: Mettre à jour les classifications existantes avec priorité par défaut
 UPDATE legal_classifications

@@ -42,8 +42,8 @@ export async function GET(req: NextRequest) {
         cc.corrected_domain,
         cc.corrected_document_type,
         cc.corrected_by,
-        cc.has_generated_rule,
-        cc.created_at
+        (cc.generated_rule_id IS NOT NULL) AS has_generated_rule,
+        cc.corrected_at AS created_at
       FROM classification_corrections cc
       JOIN web_pages wp ON wp.id = cc.web_page_id
     `
@@ -52,9 +52,9 @@ export async function GET(req: NextRequest) {
     const conditions: string[] = []
 
     if (hasRuleFilter === 'true') {
-      conditions.push('cc.has_generated_rule = true')
+      conditions.push('cc.generated_rule_id IS NOT NULL')
     } else if (hasRuleFilter === 'false') {
-      conditions.push('cc.has_generated_rule = false')
+      conditions.push('cc.generated_rule_id IS NULL')
     }
 
     if (conditions.length > 0) {
@@ -131,10 +131,10 @@ export async function POST(req: NextRequest) {
 
     // Check if a rule was generated
     const correctionResult = await db.query(
-      'SELECT has_generated_rule FROM classification_corrections WHERE id = $1',
+      'SELECT generated_rule_id FROM classification_corrections WHERE id = $1',
       [correctionId]
     )
-    const hasGeneratedRule = correctionResult.rows[0]?.has_generated_rule || false
+    const hasGeneratedRule = correctionResult.rows[0]?.generated_rule_id !== null
 
     // Save feedback if provided
     if (feedback && typeof feedback.isUseful === 'boolean') {

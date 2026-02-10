@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 
     // Call SQL function
     const result = await db.query(
-      `SELECT * FROM get_classification_review_queue($1, $2, $3, $4, $5)`,
+      `SELECT * FROM get_classification_review_queue_v2($1::text[], $2::text[], $3::uuid, $4::int, $5::int)`,
       [
         priorities.length > 0 ? priorities : null,
         efforts.length > 0 ? efforts : null,
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     const items: ReviewQueueItem[] = result.rows
 
     // Get stats
-    const statsResult = await db.query(`SELECT * FROM get_review_queue_stats()`)
+    const statsResult = await db.query(`SELECT * FROM get_classification_review_stats()`)
     const statsRow = statsResult.rows[0]
 
     const stats: ReviewQueueStats = {
