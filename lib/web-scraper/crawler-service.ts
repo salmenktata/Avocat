@@ -51,6 +51,55 @@ interface CrawlState {
 }
 
 /**
+ * Vérifie si une URL est dans le scope de la baseUrl
+ * Ex: baseUrl = "https://9anoun.tn/kb/codes"
+ *     ✅ "https://9anoun.tn/kb/codes" → true
+ *     ✅ "https://9anoun.tn/kb/codes/code-penal" → true
+ *     ❌ "https://9anoun.tn/kb/jurisprudence" → false
+ *     ❌ "https://9anoun.tn/" → false
+ *
+ * Ex: baseUrl = "https://9anoun.tn/" (racine)
+ *     ✅ "https://9anoun.tn/" → true
+ *     ✅ "https://9anoun.tn/kb/codes" → true
+ *     ✅ "https://9anoun.tn/anything" → true
+ */
+function isUrlInScope(url: string, baseUrl: string): boolean {
+  try {
+    const urlObj = new URL(url)
+    const baseUrlObj = new URL(baseUrl)
+
+    // Vérifier que le domaine est identique
+    if (urlObj.hostname !== baseUrlObj.hostname) {
+      return false
+    }
+
+    // Vérifier que le chemin de l'URL commence par le chemin de la baseUrl
+    const urlPath = urlObj.pathname
+    const basePath = baseUrlObj.pathname
+
+    // Normaliser les chemins (enlever trailing slash sauf pour la racine)
+    const normalizedUrlPath = urlPath === '/'
+      ? '/'
+      : (urlPath.endsWith('/') ? urlPath.slice(0, -1) : urlPath)
+
+    const normalizedBasePath = basePath === '/'
+      ? '/'
+      : (basePath.endsWith('/') ? basePath.slice(0, -1) : basePath)
+
+    // Cas spécial : si la baseUrl est la racine du site, tout est dans le scope
+    if (normalizedBasePath === '/') {
+      return true
+    }
+
+    // L'URL doit commencer par le chemin de base
+    return normalizedUrlPath === normalizedBasePath || normalizedUrlPath.startsWith(normalizedBasePath + '/')
+  } catch (error) {
+    console.error(`[Crawler] Erreur lors de la vérification du scope pour ${url}:`, error)
+    return false
+  }
+}
+
+/**
  * Démarre un crawl complet pour une source
  */
 export async function crawlSource(
@@ -235,8 +284,11 @@ export async function crawlSource(
         if (sourceFollowLinks && result.links) {
           for (const link of result.links) {
             const linkHash = hashUrl(link)
-            if (!state.visited.has(linkHash)) {
+            // Vérifier que le lien est dans le scope de la baseUrl
+            if (!state.visited.has(linkHash) && isUrlInScope(link, sourceBaseUrl)) {
               state.queue.push({ url: link, depth: depth + 1 })
+            } else if (!isUrlInScope(link, sourceBaseUrl)) {
+              console.log(`[Crawler] 🚫 Lien hors scope ignoré: ${link}`)
             }
           }
         }
@@ -245,9 +297,12 @@ export async function crawlSource(
         if (sourceFollowLinks && result.fetchResult?.discoveredUrls) {
           for (const link of result.fetchResult.discoveredUrls) {
             const linkHash = hashUrl(link)
-            if (!state.visited.has(linkHash)) {
+            // Vérifier que le lien est dans le scope de la baseUrl
+            if (!state.visited.has(linkHash) && isUrlInScope(link, sourceBaseUrl)) {
               state.queue.push({ url: link, depth: depth + 1 })
               console.log(`[Crawler] 🔗 Lien dynamique → ${link}`)
+            } else if (!isUrlInScope(link, sourceBaseUrl)) {
+              console.log(`[Crawler] 🚫 Lien dynamique hors scope ignoré: ${link}`)
             }
           }
         }
@@ -263,8 +318,11 @@ export async function crawlSource(
             )
             for (const link of formLinks) {
               const linkHash = hashUrl(link)
-              if (!state.visited.has(linkHash)) {
+              // Vérifier que le lien est dans le scope de la baseUrl
+              if (!state.visited.has(linkHash) && isUrlInScope(link, sourceBaseUrl)) {
                 state.queue.push({ url: link, depth: depth + 1 })
+              } else if (!isUrlInScope(link, sourceBaseUrl)) {
+                console.log(`[Crawler] 🚫 Lien formulaire hors scope ignoré: ${link}`)
               }
             }
             console.log(`[Crawler] Formulaire: ${formLinks.length} liens découverts depuis ${url}`)

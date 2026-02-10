@@ -170,7 +170,7 @@ export async function purgeRAGAction(
         authCheck.adminEmail,
         'rag_purge_selective',
         'system',
-        'rag_data',
+        authCheck.adminId, // Utiliser l'ID de l'admin au lieu de 'rag_data'
         'Purge sélective RAG',
         {
           knowledgeBase: statsBefore.knowledgeBase,
