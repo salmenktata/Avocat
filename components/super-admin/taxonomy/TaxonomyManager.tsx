@@ -276,7 +276,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
             <div className={`p-2 rounded-lg ${config.color}`}>
               <Icon className="h-4 w-4" />
             </div>
-            <span className="font-medium text-white">{config.ar} — {config.fr}</span>
+            <span className="font-medium text-white">{config.ar} ({config.fr})</span>
             <Badge variant="secondary" className="ml-2">
               {filteredItems.length}
             </Badge>
@@ -290,9 +290,8 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                   <div className="flex items-center gap-3">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-white">{item.labelFr}</span>
-                        <span className="text-slate-400">/</span>
-                        <span className="text-slate-400" dir="rtl">{item.labelAr}</span>
+                        <span className="font-medium text-white" dir="rtl">{item.labelAr}</span>
+                        <span className="text-slate-400">({item.labelFr})</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-slate-400">
                         <code className="bg-slate-700 px-1 rounded">{item.code}</code>
@@ -341,9 +340,8 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
                       >
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-white">{child.labelFr}</span>
-                            <span className="text-slate-400">/</span>
-                            <span className="text-sm text-slate-400" dir="rtl">{child.labelAr}</span>
+                            <span className="text-sm text-white" dir="rtl">{child.labelAr}</span>
+                            <span className="text-sm text-slate-400">({child.labelFr})</span>
                           </div>
                           <code className="text-xs text-slate-600">{child.code}</code>
                         </div>

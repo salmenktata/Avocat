@@ -49,10 +49,10 @@ const DOMAINS = Object.keys(LEGAL_DOMAIN_TRANSLATIONS) as LegalDomain[]
 const DOCUMENT_NATURES = Object.keys(DOCUMENT_NATURE_TRANSLATIONS) as DocumentNature[]
 
 /**
- * Label bilingue AR / FR pour l'affichage admin
+ * Label arabe dominant avec aide FR entre parenthèses
  */
 function bilingualLabel(ar: string, fr: string): string {
-  return `${ar} — ${fr}`
+  return `${ar} (${fr})`
 }
 
 export function ClassificationEditor({
@@ -133,7 +133,7 @@ export function ClassificationEditor({
                 <SelectValue placeholder="Sélectionner..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">غير محدد — Non spécifié</SelectItem>
+                <SelectItem value="">غير محدد (Non spécifié)</SelectItem>
                 {DOMAINS.map((dom) => (
                   <SelectItem key={dom} value={dom}>
                     {bilingualLabel(LEGAL_DOMAIN_TRANSLATIONS[dom].ar, LEGAL_DOMAIN_TRANSLATIONS[dom].fr)}
@@ -166,7 +166,7 @@ export function ClassificationEditor({
                 <SelectValue placeholder="Sélectionner..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">غير محدد — Non spécifié</SelectItem>
+                <SelectItem value="">غير محدد (Non spécifié)</SelectItem>
                 {DOCUMENT_NATURES.map((nature) => (
                   <SelectItem key={nature} value={nature}>
                     {bilingualLabel(DOCUMENT_NATURE_TRANSLATIONS[nature].ar, DOCUMENT_NATURE_TRANSLATIONS[nature].fr)}

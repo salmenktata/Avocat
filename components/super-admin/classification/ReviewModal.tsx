@@ -43,19 +43,19 @@ interface ReviewModalProps {
 // Catégories depuis le système centralisé (bilingue AR — FR)
 const CATEGORIES = (Object.keys(LEGAL_CATEGORY_TRANSLATIONS) as LegalCategory[]).map(code => ({
   value: code,
-  label: `${LEGAL_CATEGORY_TRANSLATIONS[code].ar} — ${LEGAL_CATEGORY_TRANSLATIONS[code].fr}`,
+  label: `${LEGAL_CATEGORY_TRANSLATIONS[code].ar} (${LEGAL_CATEGORY_TRANSLATIONS[code].fr})`,
 }))
 
 // Domaines depuis le système centralisé (bilingue AR — FR)
 const DOMAINS = (Object.keys(LEGAL_DOMAIN_TRANSLATIONS) as LegalDomain[]).map(code => ({
   value: code,
-  label: `${LEGAL_DOMAIN_TRANSLATIONS[code].ar} — ${LEGAL_DOMAIN_TRANSLATIONS[code].fr}`,
+  label: `${LEGAL_DOMAIN_TRANSLATIONS[code].ar} (${LEGAL_DOMAIN_TRANSLATIONS[code].fr})`,
 }))
 
 // Types de documents depuis le système centralisé (bilingue AR — FR)
 const DOCUMENT_TYPES = (Object.keys(DOCUMENT_NATURE_TRANSLATIONS) as DocumentNature[]).map(code => ({
   value: code,
-  label: `${DOCUMENT_NATURE_TRANSLATIONS[code].ar} — ${DOCUMENT_NATURE_TRANSLATIONS[code].fr}`,
+  label: `${DOCUMENT_NATURE_TRANSLATIONS[code].ar} (${DOCUMENT_NATURE_TRANSLATIONS[code].fr})`,
 }))
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -216,7 +216,7 @@ export function ReviewModal({ pageId, isOpen, onClose, onComplete }: ReviewModal
                       <span className="font-medium">الفئة / Catégorie:</span>
                       <div className="mt-1">
                         {data.classification.primaryCategory && LEGAL_CATEGORY_TRANSLATIONS[data.classification.primaryCategory as LegalCategory]
-                          ? `${LEGAL_CATEGORY_TRANSLATIONS[data.classification.primaryCategory as LegalCategory].ar} — ${LEGAL_CATEGORY_TRANSLATIONS[data.classification.primaryCategory as LegalCategory].fr}`
+                          ? `${LEGAL_CATEGORY_TRANSLATIONS[data.classification.primaryCategory as LegalCategory].ar} (${LEGAL_CATEGORY_TRANSLATIONS[data.classification.primaryCategory as LegalCategory].fr})`
                           : data.classification.primaryCategory}
                       </div>
                     </div>
@@ -224,16 +224,16 @@ export function ReviewModal({ pageId, isOpen, onClose, onComplete }: ReviewModal
                       <span className="font-medium">المجال / Domaine:</span>
                       <div className="mt-1">
                         {data.classification.domain && LEGAL_DOMAIN_TRANSLATIONS[data.classification.domain as LegalDomain]
-                          ? `${LEGAL_DOMAIN_TRANSLATIONS[data.classification.domain as LegalDomain].ar} — ${LEGAL_DOMAIN_TRANSLATIONS[data.classification.domain as LegalDomain].fr}`
-                          : data.classification.domain || 'غير محدد — Non spécifié'}
+                          ? `${LEGAL_DOMAIN_TRANSLATIONS[data.classification.domain as LegalDomain].ar} (${LEGAL_DOMAIN_TRANSLATIONS[data.classification.domain as LegalDomain].fr})`
+                          : data.classification.domain || 'غير محدد (Non spécifié)'}
                       </div>
                     </div>
                     <div>
                       <span className="font-medium">النوع / Type:</span>
                       <div className="mt-1">
                         {data.classification.documentNature && DOCUMENT_NATURE_TRANSLATIONS[data.classification.documentNature as DocumentNature]
-                          ? `${DOCUMENT_NATURE_TRANSLATIONS[data.classification.documentNature as DocumentNature].ar} — ${DOCUMENT_NATURE_TRANSLATIONS[data.classification.documentNature as DocumentNature].fr}`
-                          : data.classification.documentNature || 'غير محدد — Non spécifié'}
+                          ? `${DOCUMENT_NATURE_TRANSLATIONS[data.classification.documentNature as DocumentNature].ar} (${DOCUMENT_NATURE_TRANSLATIONS[data.classification.documentNature as DocumentNature].fr})`
+                          : data.classification.documentNature || 'غير محدد (Non spécifié)'}
                       </div>
                     </div>
                   </div>
