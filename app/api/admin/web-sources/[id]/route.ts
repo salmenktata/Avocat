@@ -23,11 +23,11 @@ import { db } from '@/lib/db/postgres'
 import {
   getWebSource,
   updateWebSource,
-  deleteWebSource,
   listWebPages,
   listCrawlLogs,
 } from '@/lib/web-scraper'
 import { getSourceIndexingStats } from '@/lib/web-scraper/web-indexer-service'
+import { deleteWebSourceComplete, getDeletePreview } from '@/lib/web-scraper/delete-service'
 import type { UpdateWebSourceInput } from '@/lib/web-scraper'
 
 // =============================================================================
@@ -174,11 +174,11 @@ export async function PUT(
 }
 
 // =============================================================================
-// DELETE: Supprimer une source
+// DELETE: Supprimer une source (COMPLÈTE avec KB)
 // =============================================================================
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
@@ -193,14 +193,47 @@ export async function DELETE(
     }
 
     const { id } = await params
+    const { searchParams } = new URL(request.url)
+    const previewOnly = searchParams.get('preview') === 'true'
 
-    const deleted = await deleteWebSource(id)
-    if (!deleted) {
+    // Mode aperçu : retourner ce qui serait supprimé sans supprimer
+    if (previewOnly) {
+      try {
+        const preview = await getDeletePreview(id)
+        return NextResponse.json({
+          preview: true,
+          ...preview,
+        })
+      } catch (error) {
+        if (error instanceof Error && error.message === 'Source non trouvée') {
+          return NextResponse.json({ error: 'Source non trouvée' }, { status: 404 })
+        }
+        throw error
+      }
+    }
+
+    // Mode suppression réelle
+    const result = await deleteWebSourceComplete(id)
+
+    if (!result.success) {
+      return NextResponse.json({
+        error: 'Erreur lors de la suppression',
+        details: result.errors,
+        stats: result.stats,
+      }, { status: 500 })
+    }
+
+    if (!result.sourceDeleted) {
       return NextResponse.json({ error: 'Source non trouvée' }, { status: 404 })
     }
 
+    // Invalider le cache
+    revalidatePath('/super-admin/web-sources')
+
     return NextResponse.json({
-      message: 'Source supprimée',
+      message: 'Source supprimée avec succès',
+      stats: result.stats,
+      errors: result.errors.length > 0 ? result.errors : undefined,
     })
   } catch (error) {
     console.error('Erreur suppression web source:', error)

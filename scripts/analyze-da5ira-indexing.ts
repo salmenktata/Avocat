@@ -45,7 +45,7 @@ async function analyzeDa5iraIndexing() {
         wp.status,
         wp.is_indexed,
         wp.word_count,
-        LENGTH(wp.content) as content_length,
+        LENGTH(wp.extracted_text) as content_length,
         wp.last_crawled_at,
         SUBSTRING(wp.error_message, 1, 100) as error_msg
       FROM web_sources ws

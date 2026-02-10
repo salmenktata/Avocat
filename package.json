@@ -28,6 +28,7 @@
     "test:classification-apis": "npx tsx scripts/test-classification-apis.ts",
     "test:categories": "npx tsx scripts/test-category-translations.ts",
     "test:category-alignment": "npx tsx scripts/test-category-alignment.ts",
+    "test:delete-source": "npx tsx scripts/test-delete-source-complete.ts",
     "audit:rag": "npx tsx scripts/audit-rag-data-quality.ts",
     "audit:rag:json": "npx tsx scripts/audit-rag-data-quality.ts --export=json",
     "audit:rag:csv": "npx tsx scripts/audit-rag-data-quality.ts --export=csv",

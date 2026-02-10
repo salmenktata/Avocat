@@ -71,6 +71,13 @@ export {
   getSourcesToCrawl,
 } from './source-service'
 
+export {
+  // Suppression complète (avec KB)
+  deleteWebSourceComplete,
+  getDeletePreview,
+} from './delete-service'
+export type { DeleteSourceResult } from './delete-service'
+
 // =============================================================================
 // SYSTÈME INTELLIGENT DE TRAITEMENT DU CONTENU
 // =============================================================================
