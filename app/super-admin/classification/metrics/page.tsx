@@ -17,7 +17,11 @@ import { Loader2, BarChart3, Cpu, DollarSign, Target } from 'lucide-react'
 import { formatCurrency, formatNumber } from '@/lib/utils/format'
 import { PROVIDER_LABELS } from '@/lib/constants/operation-labels'
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const fetcher = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.json()
+  })
 
 interface MetricsData {
   usage: {
@@ -80,7 +84,7 @@ export default function ClassificationMetricsPage() {
     )
   }
 
-  if (!data) return null
+  if (!data?.usage || !data?.classifications) return null
 
   const { usage, classifications } = data
   const maxSource = Math.max(...Object.values(classifications.sourceDistribution), 1)
