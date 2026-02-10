@@ -95,6 +95,11 @@ COPY --from=builder /app/node_modules/pdfjs-dist ./node_modules/pdfjs-dist
 COPY --from=builder /app/node_modules/pdf-parse ./node_modules/pdf-parse
 COPY --from=builder /app/node_modules/pdf-to-img ./node_modules/pdf-to-img
 
+# Copier dépendances PDF (pdf-parse + pdf-to-img + pdfjs-dist)
+COPY --from=builder /app/node_modules/pdfjs-dist ./node_modules/pdfjs-dist
+COPY --from=builder /app/node_modules/pdf-parse ./node_modules/pdf-parse
+COPY --from=builder /app/node_modules/pdf-to-img ./node_modules/pdf-to-img
+
 # Copier dépendances parsing documents (mammoth pour DOCX, tesseract.js pour OCR, sharp pour images)
 COPY --from=builder /app/node_modules/mammoth ./node_modules/mammoth
 COPY --from=builder /app/node_modules/tesseract.js ./node_modules/tesseract.js
