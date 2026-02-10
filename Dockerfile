@@ -76,6 +76,9 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright
 RUN groupadd --system --gid 1001 nodejs
 RUN useradd --system --uid 1001 --gid nodejs nextjs
 
+# Créer home directory pour nextjs (requis par LibreOffice pour dconf cache)
+RUN mkdir -p /home/nextjs/.cache && chown -R nextjs:nodejs /home/nextjs
+
 # Copier fichiers nécessaires depuis builder
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
