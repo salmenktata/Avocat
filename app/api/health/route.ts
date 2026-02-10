@@ -41,7 +41,6 @@ export async function GET() {
             api: 'healthy',
           },
           version: process.env.npm_package_version || '1.0.0',
-          build: process.env.DEPLOY_TIER || 'unknown',
         },
         { status: 200 }
       )
