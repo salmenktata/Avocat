@@ -47,6 +47,8 @@
     "init:minio": "npx tsx scripts/init-minio-buckets.ts",
     "check:minio": "npx tsx scripts/check-minio-health.ts",
     "sync:export": "bash scripts/sync-to-prod.sh",
+    "maintenance:setup": "./scripts/setup-maintenance-page.sh",
+    "maintenance:check": "./scripts/check-maintenance-status.sh",
     "clean": "rm -rf .next",
     "clean:all": "rm -rf .next node_modules/.cache",
     "restart": "npm run stop && sleep 2 && npm run clean && sleep 1 && npm run dev",
