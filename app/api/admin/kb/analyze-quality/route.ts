@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
-import { analyzeDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
+import { analyzeKBDocumentQuality } from '@/lib/ai/kb-quality-analyzer-service'
 
 /**
  * POST /api/admin/kb/analyze-quality
@@ -96,34 +96,18 @@ export async function POST(request: NextRequest) {
         }
 
         // Analyser avec LLM
-        const analysis = await analyzeDocumentQuality({
-          content: doc.full_text,
-          title: doc.title,
-          category: doc.category,
-        })
+        const analysis = await analyzeKBDocumentQuality(doc.id)
 
-        // Stocker le score
-        await db.query(`
-          UPDATE knowledge_base
-          SET quality_score = $1,
-              quality_analysis = $2,
-              updated_at = NOW()
-          WHERE id = $3
-        `, [
-          analysis.score,
-          JSON.stringify(analysis),
-          doc.id,
-        ])
-
+        // Le service analyzeKBDocumentQuality stocke déjà le résultat
         results.push({
           documentId: doc.id,
           title: doc.title,
           success: true,
-          qualityScore: analysis.score,
+          qualityScore: analysis.qualityScore,
           processingTimeMs: Date.now() - startTime,
         })
 
-        console.log(`   ✅ Score: ${analysis.score}/100 (${Date.now() - startTime}ms)`)
+        console.log(`   ✅ Score: ${analysis.qualityScore}/100 (${Date.now() - startTime}ms)`)
       } catch (error: any) {
         console.error(`[KB Quality] ❌ Erreur:`, error.message)
 
