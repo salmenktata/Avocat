@@ -28,7 +28,7 @@ const KnowledgeBaseTreeView = dynamic(
 
 const KnowledgeBaseViewToggle = dynamic(
   () => import('@/components/super-admin/knowledge-base/KnowledgeBaseViewToggle').then(m => ({ default: m.KnowledgeBaseViewToggle })),
-  { ssr: false }
+  { loading: () => <div className="h-9 w-40 bg-slate-800 animate-pulse rounded-lg" /> }
 )
 
 interface PageProps {
@@ -302,7 +302,9 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
           <h2 className="text-2xl font-bold text-white">Base de Connaissances</h2>
           <p className="text-slate-400">Gérer les documents juridiques pour l'IA</p>
         </div>
-        <KnowledgeBaseViewToggle />
+        <Suspense fallback={<div className="h-9 w-40 bg-slate-800 animate-pulse rounded-lg" />}>
+          <KnowledgeBaseViewToggle />
+        </Suspense>
       </div>
 
       {/* Stats */}
