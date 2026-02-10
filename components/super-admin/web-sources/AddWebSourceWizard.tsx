@@ -105,7 +105,7 @@ export function AddWebSourceWizard() {
     baseUrl: '',
     description: '',
     category: 'legislation',
-    language: 'fr',
+    language: 'ar',
     gdriveFolderId: '',
     gdriveRecursive: true,
     gdriveFileTypes: ['pdf', 'docx'],

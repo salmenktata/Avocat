@@ -148,6 +148,7 @@ services:
       WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN}
       WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET}
       CRON_SECRET: ${CRON_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
     volumes:
       - ./logs:/app/logs
     ports:
