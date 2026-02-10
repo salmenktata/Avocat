@@ -29,6 +29,19 @@ SET parent_code = 'doc_constitution',
     updated_at = NOW()
 WHERE parent_code = 'constitution';
 
+-- 1c. Renommer le domain `autre` en `autre_domaine` pour libérer le code
+-- (UNIQUE constraint sur `code` empêche d'avoir catégorie + domaine avec même code)
+UPDATE legal_taxonomy
+SET code = 'autre_domaine',
+    updated_at = NOW()
+WHERE code = 'autre' AND type = 'domain';
+
+-- 1d. Mettre à jour les parent_code qui référençaient `autre`
+UPDATE legal_taxonomy
+SET parent_code = 'autre_domaine',
+    updated_at = NOW()
+WHERE parent_code = 'autre';
+
 -- ============================================================================
 -- PHASE 2 : Insérer les 6 catégories manquantes (bilingue FR/AR)
 -- ============================================================================
