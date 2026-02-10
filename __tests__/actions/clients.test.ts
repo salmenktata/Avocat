@@ -385,9 +385,17 @@ describe('Actions Clients', () => {
         })
         // Mock DELETE
         .mockResolvedValueOnce({
-          rows: [{ id: clientId }],
+          rows: [{ id: clientId, nom: 'Test Client', raison_sociale: null }],
           rowCount: 1,
           command: 'DELETE',
+          oid: 0,
+          fields: [],
+        })
+        // Mock INSERT activity log
+        .mockResolvedValueOnce({
+          rows: [],
+          rowCount: 1,
+          command: 'INSERT',
           oid: 0,
           fields: [],
         })
@@ -395,7 +403,7 @@ describe('Actions Clients', () => {
       const result = await deleteClientAction(clientId)
 
       expect(result.success).toBe(true)
-      expect(query).toHaveBeenCalledTimes(2)
+      expect(query).toHaveBeenCalledTimes(3)
       expect(query).toHaveBeenNthCalledWith(
         1,
         'SELECT COUNT(*) FROM dossiers WHERE client_id = $1',
@@ -403,7 +411,7 @@ describe('Actions Clients', () => {
       )
       expect(query).toHaveBeenNthCalledWith(
         2,
-        'DELETE FROM clients WHERE id = $1 AND user_id = $2 RETURNING id',
+        'DELETE FROM clients WHERE id = $1 AND user_id = $2 RETURNING id, nom, raison_sociale',
         [clientId, 'user-123']
       )
       expect(revalidatePath).toHaveBeenCalledWith('/clients')
