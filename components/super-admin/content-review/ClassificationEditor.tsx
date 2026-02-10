@@ -24,6 +24,8 @@ import type {
   LegalDomain,
   DocumentNature,
 } from '@/lib/web-scraper/types'
+import { LEGAL_DOMAIN_TRANSLATIONS, DOCUMENT_NATURE_TRANSLATIONS } from '@/lib/web-scraper/types'
+import { LEGAL_CATEGORY_TRANSLATIONS, type LegalCategory } from '@/lib/categories/legal-categories'
 
 interface ClassificationEditorProps {
   classification: LegalClassification
@@ -37,73 +39,20 @@ interface ClassificationEditorProps {
   onCancel: () => void
 }
 
-const CATEGORIES: LegalContentCategory[] = [
-  'legislation', 'jurisprudence', 'doctrine', 'jort',
-  'modeles', 'procedures', 'formulaires', 'actualites', 'autre',
-]
+// Catégories depuis le système centralisé (toutes les 15)
+const CATEGORIES = Object.keys(LEGAL_CATEGORY_TRANSLATIONS) as LegalCategory[]
 
-const CATEGORY_LABELS: Record<LegalContentCategory, string> = {
-  legislation: 'Législation',
-  jurisprudence: 'Jurisprudence',
-  doctrine: 'Doctrine',
-  jort: 'JORT',
-  modeles: 'Modèles',
-  procedures: 'Procédures',
-  formulaires: 'Formulaires',
-  actualites: 'Actualités',
-  autre: 'Autre',
-}
+// Domaines depuis le système centralisé
+const DOMAINS = Object.keys(LEGAL_DOMAIN_TRANSLATIONS) as LegalDomain[]
 
-const DOMAINS: LegalDomain[] = [
-  'civil', 'commercial', 'penal', 'famille', 'fiscal',
-  'social', 'administratif', 'immobilier', 'bancaire',
-  'propriete_intellectuelle', 'international_public', 'autre',
-]
+// Natures de documents depuis le système centralisé
+const DOCUMENT_NATURES = Object.keys(DOCUMENT_NATURE_TRANSLATIONS) as DocumentNature[]
 
-const DOMAIN_LABELS: Partial<Record<LegalDomain, string>> = {
-  civil: 'Droit civil',
-  commercial: 'Droit commercial',
-  penal: 'Droit pénal',
-  famille: 'Droit de la famille',
-  fiscal: 'Droit fiscal',
-  social: 'Droit social',
-  administratif: 'Droit administratif',
-  immobilier: 'Droit immobilier',
-  bancaire: 'Droit bancaire',
-  propriete_intellectuelle: 'Propriété intellectuelle',
-  international_public: 'Droit international',
-  autre: 'Autre',
-}
-
-const DOCUMENT_NATURES: DocumentNature[] = [
-  'loi', 'decret', 'arrete', 'circulaire', 'ordonnance',
-  'arret', 'jugement', 'ordonnance_jud', 'avis',
-  'article_doctrine', 'these', 'commentaire', 'note',
-  'modele_contrat', 'modele_acte', 'formulaire',
-  'guide_pratique', 'faq', 'actualite', 'autre',
-]
-
-const NATURE_LABELS: Partial<Record<DocumentNature, string>> = {
-  loi: 'Loi',
-  decret: 'Décret',
-  arrete: 'Arrêté',
-  circulaire: 'Circulaire',
-  ordonnance: 'Ordonnance',
-  arret: 'Arrêt',
-  jugement: 'Jugement',
-  ordonnance_jud: 'Ordonnance judiciaire',
-  avis: 'Avis',
-  article_doctrine: 'Article de doctrine',
-  these: 'Thèse',
-  commentaire: 'Commentaire',
-  note: 'Note',
-  modele_contrat: 'Modèle de contrat',
-  modele_acte: 'Modèle d\'acte',
-  formulaire: 'Formulaire',
-  guide_pratique: 'Guide pratique',
-  faq: 'FAQ',
-  actualite: 'Actualité',
-  autre: 'Autre',
+/**
+ * Label bilingue AR / FR pour l'affichage admin
+ */
+function bilingualLabel(ar: string, fr: string): string {
+  return `${ar} — ${fr}`
 }
 
 export function ClassificationEditor({
@@ -154,7 +103,7 @@ export function ClassificationEditor({
               <SelectContent>
                 {CATEGORIES.map((cat) => (
                   <SelectItem key={cat} value={cat}>
-                    {CATEGORY_LABELS[cat]}
+                    {bilingualLabel(LEGAL_CATEGORY_TRANSLATIONS[cat].ar, LEGAL_CATEGORY_TRANSLATIONS[cat].fr)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -184,10 +133,10 @@ export function ClassificationEditor({
                 <SelectValue placeholder="Sélectionner..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Non spécifié</SelectItem>
+                <SelectItem value="">غير محدد — Non spécifié</SelectItem>
                 {DOMAINS.map((dom) => (
                   <SelectItem key={dom} value={dom}>
-                    {DOMAIN_LABELS[dom]}
+                    {bilingualLabel(LEGAL_DOMAIN_TRANSLATIONS[dom].ar, LEGAL_DOMAIN_TRANSLATIONS[dom].fr)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -217,10 +166,10 @@ export function ClassificationEditor({
                 <SelectValue placeholder="Sélectionner..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Non spécifié</SelectItem>
+                <SelectItem value="">غير محدد — Non spécifié</SelectItem>
                 {DOCUMENT_NATURES.map((nature) => (
                   <SelectItem key={nature} value={nature}>
-                    {NATURE_LABELS[nature]}
+                    {bilingualLabel(DOCUMENT_NATURE_TRANSLATIONS[nature].ar, DOCUMENT_NATURE_TRANSLATIONS[nature].fr)}
                   </SelectItem>
                 ))}
               </SelectContent>

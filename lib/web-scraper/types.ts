@@ -604,6 +604,9 @@ export type LegalDomain =
   | 'procedure_civile'         // الإجراءات المدنية - Procédure civile
   | 'procedure_penale'         // الإجراءات الجزائية - Procédure pénale
   | 'arbitrage'                // التحكيم - Arbitrage
+  | 'societes'                 // قانون الشركات - Droit des sociétés
+  | 'donnees_personnelles'     // حماية المعطيات الشخصية - Protection des données personnelles
+  | 'energie'                  // قانون الطاقة - Droit de l'énergie
   | 'autre'                    // أخرى - Autre
 
 /**
@@ -635,6 +638,9 @@ export const LEGAL_DOMAIN_TRANSLATIONS: Record<LegalDomain, { ar: string; fr: st
   procedure_civile: { ar: 'الإجراءات المدنية', fr: 'Procédure civile' },
   procedure_penale: { ar: 'الإجراءات الجزائية', fr: 'Procédure pénale' },
   arbitrage: { ar: 'التحكيم', fr: 'Arbitrage' },
+  societes: { ar: 'قانون الشركات', fr: 'Droit des sociétés' },
+  donnees_personnelles: { ar: 'حماية المعطيات الشخصية', fr: 'Protection des données personnelles' },
+  energie: { ar: 'قانون الطاقة', fr: "Droit de l'énergie" },
   autre: { ar: 'أخرى', fr: 'Autre' },
 }
 

@@ -6,6 +6,7 @@
 
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { getUnifiedLabel } from '@/lib/categories/taxonomy-bridge'
 
 interface CategoryStats {
   legal_domain: string | null
@@ -19,12 +20,12 @@ interface WebSourceCategoryTabsProps {
   onCategoryChange?: (category: string | null) => void
 }
 
-const CATEGORY_LABELS: Record<string, { fr: string; icon: string }> = {
-  legislation: { fr: 'Législation', icon: '📜' },
-  jurisprudence: { fr: 'Jurisprudence', icon: '⚖️' },
-  doctrine: { fr: 'Doctrine', icon: '📚' },
-  autre: { fr: 'Autre', icon: '📄' },
-  null: { fr: 'Non classifié', icon: '❓' },
+const CATEGORY_ICONS: Record<string, string> = {
+  legislation: '📜',
+  jurisprudence: '⚖️',
+  doctrine: '📚',
+  autre: '📄',
+  null: '❓',
 }
 
 export function WebSourceCategoryTabs({
@@ -78,10 +79,8 @@ export function WebSourceCategoryTabs({
         .sort((a, b) => b.count - a.count)
         .map(stat => {
           const category = stat.legal_domain || 'null'
-          const label = CATEGORY_LABELS[category] || {
-            fr: category,
-            icon: '📄',
-          }
+          const icon = CATEGORY_ICONS[category] || '📄'
+          const labelAr = category === 'null' ? 'غير مصنف' : getUnifiedLabel(category, 'ar')
           const isActive = activeCategory === category
 
           return (
@@ -98,7 +97,7 @@ export function WebSourceCategoryTabs({
             >
               <div className="flex items-center gap-2">
                 <span>
-                  {label.icon} {label.fr}
+                  {icon} {labelAr}
                 </span>
                 <span
                   className={cn(

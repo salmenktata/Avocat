@@ -58,12 +58,12 @@ interface TaxonomyManagerProps {
   }
 }
 
-const TYPE_LABELS: Record<string, { fr: string; icon: keyof typeof Icons; color: string }> = {
-  category: { fr: 'Catégories', icon: 'tag', color: 'bg-purple-500/20 text-purple-400' },
-  domain: { fr: 'Domaines juridiques', icon: 'briefcase', color: 'bg-green-500/20 text-green-400' },
-  document_type: { fr: 'Types de documents', icon: 'file', color: 'bg-orange-500/20 text-orange-400' },
-  tribunal: { fr: 'Tribunaux', icon: 'building', color: 'bg-cyan-500/20 text-cyan-400' },
-  chamber: { fr: 'Chambres', icon: 'scale', color: 'bg-blue-500/20 text-blue-400' },
+const TYPE_LABELS: Record<string, { ar: string; fr: string; icon: keyof typeof Icons; color: string }> = {
+  category: { ar: 'الفئات', fr: 'Catégories', icon: 'tag', color: 'bg-purple-500/20 text-purple-400' },
+  domain: { ar: 'المجالات القانونية', fr: 'Domaines juridiques', icon: 'briefcase', color: 'bg-green-500/20 text-green-400' },
+  document_type: { ar: 'أنواع الوثائق', fr: 'Types de documents', icon: 'file', color: 'bg-orange-500/20 text-orange-400' },
+  tribunal: { ar: 'المحاكم', fr: 'Tribunaux', icon: 'building', color: 'bg-cyan-500/20 text-cyan-400' },
+  chamber: { ar: 'الدوائر', fr: 'Chambres', icon: 'scale', color: 'bg-blue-500/20 text-blue-400' },
 }
 
 export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
@@ -276,7 +276,7 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
             <div className={`p-2 rounded-lg ${config.color}`}>
               <Icon className="h-4 w-4" />
             </div>
-            <span className="font-medium text-white">{config.fr}</span>
+            <span className="font-medium text-white">{config.ar} — {config.fr}</span>
             <Badge variant="secondary" className="ml-2">
               {filteredItems.length}
             </Badge>

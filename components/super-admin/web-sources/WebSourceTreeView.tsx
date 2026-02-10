@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { Icons } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import { getUnifiedLabel } from '@/lib/categories/taxonomy-bridge'
 
 interface CodeStats {
   code_name: string
@@ -33,12 +34,12 @@ interface WebSourceTreeViewProps {
   sourceId: string
 }
 
-const CATEGORY_LABELS: Record<string, { fr: string; icon: string; color: string }> = {
-  legislation: { fr: 'Législation', icon: '📜', color: 'text-blue-400' },
-  jurisprudence: { fr: 'Jurisprudence', icon: '⚖️', color: 'text-purple-400' },
-  doctrine: { fr: 'Doctrine', icon: '📚', color: 'text-green-400' },
-  autre: { fr: 'Autre', icon: '📄', color: 'text-slate-400' },
-  null: { fr: 'Non classifié', icon: '❓', color: 'text-orange-400' },
+const CATEGORY_STYLES: Record<string, { icon: string; color: string }> = {
+  legislation: { icon: '📜', color: 'text-blue-400' },
+  jurisprudence: { icon: '⚖️', color: 'text-purple-400' },
+  doctrine: { icon: '📚', color: 'text-green-400' },
+  autre: { icon: '📄', color: 'text-slate-400' },
+  null: { icon: '❓', color: 'text-orange-400' },
 }
 
 export function WebSourceTreeView({ groups, sourceId }: WebSourceTreeViewProps) {
@@ -73,11 +74,8 @@ export function WebSourceTreeView({ groups, sourceId }: WebSourceTreeViewProps) 
         .sort((a, b) => b.total_pages - a.total_pages)
         .map(group => {
           const category = group.legal_domain || 'null'
-          const label = CATEGORY_LABELS[category] || {
-            fr: category,
-            icon: '📄',
-            color: 'text-slate-400',
-          }
+          const style = CATEGORY_STYLES[category] || { icon: '📄', color: 'text-slate-400' }
+          const labelAr = category === 'null' ? 'غير مصنف' : getUnifiedLabel(category, 'ar')
           const isExpanded = expandedCategories.has(category)
 
           return (
@@ -94,8 +92,8 @@ export function WebSourceTreeView({ groups, sourceId }: WebSourceTreeViewProps) 
                       isExpanded && 'rotate-90'
                     )}
                   />
-                  <span className={cn('text-lg', label.color)}>{label.icon}</span>
-                  <span className="font-medium text-white">{label.fr}</span>
+                  <span className={cn('text-lg', style.color)}>{style.icon}</span>
+                  <span className="font-medium text-white">{labelAr}</span>
                   <Badge variant="outline" className="bg-slate-700 border-slate-600 text-slate-300">
                     {group.codes.length} code{group.codes.length > 1 ? 's' : ''}
                   </Badge>

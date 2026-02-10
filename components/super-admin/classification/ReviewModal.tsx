@@ -30,6 +30,8 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
 import { Loader2, ThumbsUp, ThumbsDown, ExternalLink } from 'lucide-react'
+import { LEGAL_CATEGORY_TRANSLATIONS, type LegalCategory } from '@/lib/categories/legal-categories'
+import { LEGAL_DOMAIN_TRANSLATIONS, DOCUMENT_NATURE_TRANSLATIONS, type LegalDomain, type DocumentNature } from '@/lib/web-scraper/types'
 
 interface ReviewModalProps {
   pageId: string
@@ -38,33 +40,23 @@ interface ReviewModalProps {
   onComplete: () => void
 }
 
-const CATEGORIES = [
-  { value: 'jurisprudence', label: 'Jurisprudence' },
-  { value: 'legislation', label: 'Législation' },
-  { value: 'doctrine', label: 'Doctrine' },
-  { value: 'formulaire', label: 'Formulaire' },
-  { value: 'actualite', label: 'Actualité' },
-  { value: 'autre', label: 'Autre' },
-]
+// Catégories depuis le système centralisé (bilingue AR — FR)
+const CATEGORIES = (Object.keys(LEGAL_CATEGORY_TRANSLATIONS) as LegalCategory[]).map(code => ({
+  value: code,
+  label: `${LEGAL_CATEGORY_TRANSLATIONS[code].ar} — ${LEGAL_CATEGORY_TRANSLATIONS[code].fr}`,
+}))
 
-const DOMAINS = [
-  { value: 'civil', label: 'Civil' },
-  { value: 'penal', label: 'Pénal' },
-  { value: 'commercial', label: 'Commercial' },
-  { value: 'administratif', label: 'Administratif' },
-  { value: 'fiscal', label: 'Fiscal' },
-  { value: 'travail', label: 'Travail' },
-  { value: 'immobilier', label: 'Immobilier' },
-  { value: 'famille', label: 'Famille' },
-]
+// Domaines depuis le système centralisé (bilingue AR — FR)
+const DOMAINS = (Object.keys(LEGAL_DOMAIN_TRANSLATIONS) as LegalDomain[]).map(code => ({
+  value: code,
+  label: `${LEGAL_DOMAIN_TRANSLATIONS[code].ar} — ${LEGAL_DOMAIN_TRANSLATIONS[code].fr}`,
+}))
 
-const DOCUMENT_TYPES = [
-  { value: 'decision', label: 'Décision' },
-  { value: 'arret', label: 'Arrêt' },
-  { value: 'loi', label: 'Loi' },
-  { value: 'decret', label: 'Décret' },
-  { value: 'article', label: 'Article' },
-]
+// Types de documents depuis le système centralisé (bilingue AR — FR)
+const DOCUMENT_TYPES = (Object.keys(DOCUMENT_NATURE_TRANSLATIONS) as DocumentNature[]).map(code => ({
+  value: code,
+  label: `${DOCUMENT_NATURE_TRANSLATIONS[code].ar} — ${DOCUMENT_NATURE_TRANSLATIONS[code].fr}`,
+}))
 
 const PRIORITY_COLORS: Record<string, string> = {
   urgent: 'bg-red-100 text-red-800',
@@ -221,16 +213,28 @@ export function ReviewModal({ pageId, isOpen, onClose, onComplete }: ReviewModal
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
-                      <span className="font-medium">Catégorie:</span>
-                      <div className="mt-1">{data.classification.primaryCategory}</div>
+                      <span className="font-medium">الفئة / Catégorie:</span>
+                      <div className="mt-1">
+                        {data.classification.primaryCategory && LEGAL_CATEGORY_TRANSLATIONS[data.classification.primaryCategory as LegalCategory]
+                          ? `${LEGAL_CATEGORY_TRANSLATIONS[data.classification.primaryCategory as LegalCategory].ar} — ${LEGAL_CATEGORY_TRANSLATIONS[data.classification.primaryCategory as LegalCategory].fr}`
+                          : data.classification.primaryCategory}
+                      </div>
                     </div>
                     <div>
-                      <span className="font-medium">Domaine:</span>
-                      <div className="mt-1">{data.classification.domain || 'Non spécifié'}</div>
+                      <span className="font-medium">المجال / Domaine:</span>
+                      <div className="mt-1">
+                        {data.classification.domain && LEGAL_DOMAIN_TRANSLATIONS[data.classification.domain as LegalDomain]
+                          ? `${LEGAL_DOMAIN_TRANSLATIONS[data.classification.domain as LegalDomain].ar} — ${LEGAL_DOMAIN_TRANSLATIONS[data.classification.domain as LegalDomain].fr}`
+                          : data.classification.domain || 'غير محدد — Non spécifié'}
+                      </div>
                     </div>
                     <div>
-                      <span className="font-medium">Type:</span>
-                      <div className="mt-1">{data.classification.documentNature || 'Non spécifié'}</div>
+                      <span className="font-medium">النوع / Type:</span>
+                      <div className="mt-1">
+                        {data.classification.documentNature && DOCUMENT_NATURE_TRANSLATIONS[data.classification.documentNature as DocumentNature]
+                          ? `${DOCUMENT_NATURE_TRANSLATIONS[data.classification.documentNature as DocumentNature].ar} — ${DOCUMENT_NATURE_TRANSLATIONS[data.classification.documentNature as DocumentNature].fr}`
+                          : data.classification.documentNature || 'غير محدد — Non spécifié'}
+                      </div>
                     </div>
                   </div>
 

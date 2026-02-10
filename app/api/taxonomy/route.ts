@@ -23,36 +23,38 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Valider le type
-    const validTypes = ['tribunal', 'chambre', 'domain', 'document_type', 'category']
-    if (!validTypes.includes(type)) {
+    // Valider le type (DB utilise 'chamber' pas 'chambre')
+    const validTypes = ['tribunal', 'chamber', 'domain', 'document_type', 'category']
+    // Accepter 'chambre' comme alias de 'chamber' pour compatibilité
+    const dbType = type === 'chambre' ? 'chamber' : type
+    if (!validTypes.includes(dbType)) {
       return NextResponse.json(
-        { error: `Type invalide. Types valides: ${validTypes.join(', ')}` },
+        { error: `Type invalide. Types valides: tribunal, chambre, domain, document_type, category` },
         { status: 400 }
       )
     }
 
     // Récupérer les options depuis la table legal_taxonomy
+    // Colonnes DB: label_fr, label_ar, description (pas description_fr/description_ar)
+    // Colonne DB: is_active (pas active)
     const query = `
       SELECT
         code,
         label_fr,
         label_ar,
-        description_fr,
-        description_ar
+        description
       FROM legal_taxonomy
-      WHERE type = $1 AND active = true
+      WHERE type = $1 AND is_active = true
       ORDER BY sort_order ASC, label_fr ASC
     `
 
-    const result = await db.query(query, [type])
+    const result = await db.query(query, [dbType])
 
     const items = result.rows.map((row) => ({
       code: row.code,
       labelFr: row.label_fr,
       labelAr: row.label_ar,
-      descriptionFr: row.description_fr,
-      descriptionAr: row.description_ar,
+      description: row.description || null,
     }))
 
     return NextResponse.json({

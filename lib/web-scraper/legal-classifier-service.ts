@@ -36,6 +36,10 @@ import type {
   AlternativeClassification,
   SiteStructure,
 } from './types'
+import { LEGAL_DOMAIN_TRANSLATIONS } from './types'
+import { LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
+import type { LegalCategory } from '@/lib/categories/legal-categories'
+import { LEGACY_DOMAIN_MAPPING } from '@/lib/categories/legal-categories'
 import {
   extractSiteStructure,
   generateStructuralHints,
@@ -1018,35 +1022,37 @@ function parseClassificationResponse(content: string): LLMClassificationResponse
 
 /**
  * Valide et normalise la catégorie
+ * Utilise le système centralisé de catégories (legal-categories.ts = source de vérité)
  */
 function validateCategory(category: string | null): LegalContentCategory {
-  const validCategories: LegalContentCategory[] = [
-    'legislation', 'jurisprudence', 'doctrine', 'jort',
-    'modeles', 'procedures', 'formulaires', 'actualites', 'autre',
-  ]
-
   if (!category) return 'autre'
   const normalized = category.toLowerCase().trim()
-  return validCategories.includes(normalized as LegalContentCategory)
-    ? (normalized as LegalContentCategory)
-    : 'autre'
+
+  // Vérifier dans le système centralisé (15 catégories)
+  if (normalized in LEGAL_CATEGORY_TRANSLATIONS) {
+    return normalized as LegalContentCategory
+  }
+
+  return 'autre'
 }
 
 /**
  * Valide et normalise le domaine
+ * Utilise LEGAL_DOMAIN_TRANSLATIONS (types.ts) + mapping legacy DB→TS
  */
 function validateDomain(domain: string | null): LegalDomain | null {
-  const validDomains: LegalDomain[] = [
-    'civil', 'commercial', 'penal', 'famille', 'fiscal',
-    'social', 'administratif', 'immobilier', 'bancaire',
-    'propriete_intellectuelle', 'international_public', 'autre',
-  ]
-
   if (!domain) return null
   const normalized = domain.toLowerCase().trim()
-  return validDomains.includes(normalized as LegalDomain)
-    ? (normalized as LegalDomain)
-    : 'autre'
+
+  // Résoudre les mappings legacy DB → TS (ex: 'travail' → 'social')
+  const mapped = LEGACY_DOMAIN_MAPPING[normalized] || normalized
+
+  // Vérifier dans le système centralisé (28 domaines)
+  if (mapped in LEGAL_DOMAIN_TRANSLATIONS) {
+    return mapped as LegalDomain
+  }
+
+  return 'autre'
 }
 
 /**

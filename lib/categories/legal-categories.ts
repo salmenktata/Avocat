@@ -275,6 +275,17 @@ export const LEGACY_CATEGORY_MAPPING: Record<string, LegalCategory> = {
 }
 
 /**
+ * Mapping legacy domaines DB → domaines TS
+ * Résout les divergences de nommage entre la taxonomie DB et le code TS
+ */
+export const LEGACY_DOMAIN_MAPPING: Record<string, string> = {
+  // DB utilise `travail`, TS utilise `social` (même concept)
+  'travail': 'social',
+  // DB utilise `droit_travail`, TS utilise `social`
+  'droit_travail': 'social',
+}
+
+/**
  * Normaliser une catégorie (gérer les anciennes valeurs)
  */
 export function normalizeLegalCategory(category: string): LegalCategory {
