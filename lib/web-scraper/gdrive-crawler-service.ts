@@ -217,12 +217,19 @@ async function listDriveFiles(
     let pageToken: string | undefined | null = undefined
 
     do {
-      const response: any = await drive.files.list({
+      // Timeout de 2 minutes pour éviter blocage indéfini
+      const listPromise = drive.files.list({
         q: query,
         fields: 'nextPageToken, files(id, name, mimeType, size, modifiedTime, webViewLink, webContentLink)',
         pageSize: DEFAULT_PAGE_SIZE,
         pageToken: pageToken || undefined,
       })
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Google Drive API timeout (2min)')), 120000)
+      )
+
+      const response: any = await Promise.race([listPromise, timeoutPromise])
 
       const items = response.data.files || []
 
