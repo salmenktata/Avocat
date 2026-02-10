@@ -474,8 +474,8 @@ async function processPage(
   // Les seed URLs gardent requiresJavascript pour la découverte de liens via Livewire
   const effectiveSource = options.isSeedUrl ? source : {
     ...source,
-    requiresJavascript: undefined, // Force le mode auto-adaptatif
-    requires_javascript: undefined,
+    requiresJavascript: false, // Force le fetch statique (articles SSR par Laravel)
+    requires_javascript: false,
   }
   const scrapeStartTime = Date.now()
   const scrapeResult = await scrapeUrl(url, effectiveSource as WebSource)
