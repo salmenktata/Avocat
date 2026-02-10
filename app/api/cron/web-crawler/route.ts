@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 300 // 5 minutes max
+export const maxDuration = 1800 // 30 minutes max (crawl de gros sites)
 
 import { db } from '@/lib/db/postgres'
 import {

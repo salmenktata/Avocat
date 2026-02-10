@@ -27,7 +27,7 @@ const WEB_FILES_BUCKET = 'web-files'
 const MAX_ERRORS_KEPT = 200          // Limiter les erreurs en mémoire
 const PROGRESS_LOG_INTERVAL = 25     // Log progression toutes les N pages
 const MAX_CONSECUTIVE_FAILURES = 20  // Arrêter après N échecs consécutifs
-const CRAWL_CONCURRENCY = parseInt(process.env.CRAWLER_CONCURRENCY || '3', 10)
+const CRAWL_CONCURRENCY = parseInt(process.env.CRAWLER_CONCURRENCY || '5', 10)
 
 interface CrawlOptions {
   maxPages?: number
