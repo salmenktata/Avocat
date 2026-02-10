@@ -38,13 +38,14 @@ const CATEGORY_STYLES: Record<string, { icon: string; color: string }> = {
   legislation: { icon: '📜', color: 'text-blue-400' },
   jurisprudence: { icon: '⚖️', color: 'text-purple-400' },
   doctrine: { icon: '📚', color: 'text-green-400' },
+  codes: { icon: '📖', color: 'text-cyan-400' },
   autre: { icon: '📄', color: 'text-slate-400' },
   null: { icon: '❓', color: 'text-orange-400' },
 }
 
 export function WebSourceTreeView({ groups, sourceId }: WebSourceTreeViewProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set(['legislation']) // Législation expanded par défaut
+    new Set(['legislation', 'codes']) // Législation et codes expanded par défaut
   )
   const [expandedCodes, setExpandedCodes] = useState<Set<string>>(new Set())
 

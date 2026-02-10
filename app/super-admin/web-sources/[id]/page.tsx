@@ -118,21 +118,24 @@ async function getWebSourceData(id: string) {
   )
 
   // Stats groupées par catégorie juridique et code
+  // Dérive legal_domain et code_slug depuis l'URL quand les métadonnées sont NULL
+  // GROUP BY uniquement sur legal_domain + code_slug (pas code_name qui est unique par article)
   const treeStatsResult = await db.query(
     `SELECT
-      legal_domain,
+      COALESCE(legal_domain,
+        CASE
+          WHEN url ~ '/kb/codes/' THEN 'codes'
+          ELSE 'autre'
+        END
+      ) as legal_domain,
       COALESCE(site_structure->>'code_slug',
         CASE
-          -- Extraire le slug depuis l'URL pour les pages /kb/codes/XXX
           WHEN url ~ '/kb/codes/([^/]+)' THEN
             substring(url from '/kb/codes/([^/]+)')
           ELSE 'autre'
         END
       ) as code_slug,
-      COALESCE(site_structure->>'code_name_ar',
-        site_structure->>'code_name_fr',
-        title
-      ) as code_name,
+      MIN(COALESCE(site_structure->>'code_name_ar', site_structure->>'code_name_fr', title)) as code_name,
       COUNT(*) as total_pages,
       COUNT(*) FILTER (WHERE status = 'pending') as pending,
       COUNT(*) FILTER (WHERE status = 'crawled') as crawled,
@@ -142,8 +145,8 @@ async function getWebSourceData(id: string) {
       MAX(last_crawled_at) as last_crawl_at
      FROM web_pages
      WHERE web_source_id = $1
-     GROUP BY legal_domain, code_slug, code_name
-     ORDER BY legal_domain, total_pages DESC`,
+     GROUP BY 1, 2
+     ORDER BY 1, total_pages DESC`,
     [id]
   )
 
