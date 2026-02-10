@@ -2,6 +2,10 @@
 -- Date: 2026-02-10
 -- Description: Ajoute les colonnes de priorisation pour la revue humaine des classifications
 
+-- Étape 0: Ajouter colonne created_at si elle n'existe pas
+ALTER TABLE legal_classifications
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
+
 -- Étape 1: Ajouter les nouvelles colonnes à legal_classifications
 ALTER TABLE legal_classifications
   ADD COLUMN IF NOT EXISTS review_priority TEXT CHECK (review_priority IN ('low', 'medium', 'high', 'urgent')),
