@@ -76,7 +76,7 @@ export function WebSourcesFilters({ category, status, search }: WebSourcesFilter
       </div>
 
       <Select value={category || 'all'} onValueChange={handleCategoryChange}>
-        <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par catégorie">
+        <SelectTrigger className="w-[280px] bg-slate-800 border-slate-700 text-white" aria-label="Filtrer par catégorie">
           <SelectValue placeholder="Catégorie" />
         </SelectTrigger>
         <SelectContent className="bg-slate-800 border-slate-700">

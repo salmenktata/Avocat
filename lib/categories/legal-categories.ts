@@ -191,10 +191,13 @@ export const LEGAL_CATEGORY_DESCRIPTIONS: Record<LegalCategory, { ar: string; fr
 }
 
 /**
- * Récupérer le label traduit d'une catégorie
+ * Récupérer le label bilingue d'une catégorie : "عربي (Français)"
+ * Format unique quel que soit la langue de l'interface
  */
-export function getLegalCategoryLabel(category: LegalCategory, locale: 'fr' | 'ar' = 'fr'): string {
-  return LEGAL_CATEGORY_TRANSLATIONS[category]?.[locale] || category
+export function getLegalCategoryLabel(category: LegalCategory, _locale?: 'fr' | 'ar'): string {
+  const t = LEGAL_CATEGORY_TRANSLATIONS[category]
+  if (!t) return category
+  return `${t.ar} (${t.fr})`
 }
 
 /**
@@ -239,7 +242,7 @@ export function getAllLegalCategories(
   if (includeAll) {
     categories.push({
       value: 'all',
-      label: locale === 'ar' ? 'جميع الفئات' : 'Toutes les catégories',
+      label: 'جميع الفئات (Toutes)',
     })
   }
 

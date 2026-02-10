@@ -292,19 +292,21 @@ export function getSubcategories(categoryId: KnowledgeCategory): SubcategoryInfo
 }
 
 /**
- * Récupérer le label d'une catégorie
+ * Récupérer le label bilingue d'une catégorie : "عربي (Français)"
  */
-export function getCategoryLabel(categoryId: string, lang: 'fr' | 'ar' = 'fr'): string {
+export function getCategoryLabel(categoryId: string, _lang?: 'fr' | 'ar'): string {
   const labels = CATEGORY_LABELS[categoryId];
-  return labels ? labels[lang] : categoryId;
+  if (!labels) return categoryId;
+  return `${labels.ar} (${labels.fr})`;
 }
 
 /**
- * Récupérer le label d'une sous-catégorie
+ * Récupérer le label bilingue d'une sous-catégorie : "عربي (Français)"
  */
-export function getSubcategoryLabel(subcategoryId: string, lang: 'fr' | 'ar' = 'fr'): string {
+export function getSubcategoryLabel(subcategoryId: string, _lang?: 'fr' | 'ar'): string {
   const labels = SUBCATEGORY_LABELS[subcategoryId];
-  return labels ? labels[lang] : subcategoryId;
+  if (!labels) return subcategoryId;
+  return `${labels.ar} (${labels.fr})`;
 }
 
 /**
