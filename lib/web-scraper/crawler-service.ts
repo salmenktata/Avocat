@@ -27,7 +27,7 @@ const WEB_FILES_BUCKET = 'web-files'
 const MAX_ERRORS_KEPT = 200          // Limiter les erreurs en mémoire
 const PROGRESS_LOG_INTERVAL = 25     // Log progression toutes les N pages
 const MAX_CONSECUTIVE_FAILURES = 20  // Arrêter après N échecs consécutifs
-const CRAWL_CONCURRENCY = parseInt(process.env.CRAWLER_CONCURRENCY || '5', 10)
+const CRAWL_CONCURRENCY = parseInt(process.env.CRAWLER_CONCURRENCY || '15', 10)
 
 interface CrawlOptions {
   maxPages?: number
@@ -469,8 +469,16 @@ async function processPage(
   }
 
   // Scraper la page
+  // Optimisation: les pages non-seed (articles) utilisent le mode auto-adaptatif
+  // (fetch statique ~200ms d'abord, Playwright ~8s seulement si nécessaire)
+  // Les seed URLs gardent requiresJavascript pour la découverte de liens via Livewire
+  const effectiveSource = options.isSeedUrl ? source : {
+    ...source,
+    requiresJavascript: undefined, // Force le mode auto-adaptatif
+    requires_javascript: undefined,
+  }
   const scrapeStartTime = Date.now()
-  const scrapeResult = await scrapeUrl(url, source)
+  const scrapeResult = await scrapeUrl(url, effectiveSource as WebSource)
   const scrapeTimeMs = Date.now() - scrapeStartTime
 
   if (!scrapeResult.success || !scrapeResult.content) {
