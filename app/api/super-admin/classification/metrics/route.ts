@@ -59,24 +59,25 @@ export async function GET(request: NextRequest) {
 
         // 4. Distribution par tranches de confiance
         db.query(
-          `SELECT
-            CASE
-              WHEN confidence_score < 0.5 THEN 'low'
-              WHEN confidence_score < 0.7 THEN 'medium'
-              WHEN confidence_score < 0.85 THEN 'high'
-              ELSE 'excellent'
-            END as bracket,
-            COUNT(*) as count
-          FROM legal_classifications
-          WHERE classified_at >= $1
-          GROUP BY bracket
-          ORDER BY
-            CASE bracket
-              WHEN 'low' THEN 1
-              WHEN 'medium' THEN 2
-              WHEN 'high' THEN 3
-              WHEN 'excellent' THEN 4
-            END`,
+          `SELECT bracket, count FROM (
+            SELECT
+              CASE
+                WHEN confidence_score < 0.5 THEN 'low'
+                WHEN confidence_score < 0.7 THEN 'medium'
+                WHEN confidence_score < 0.85 THEN 'high'
+                ELSE 'excellent'
+              END as bracket,
+              COUNT(*) as count
+            FROM legal_classifications
+            WHERE classified_at >= $1
+            GROUP BY 1
+          ) sub
+          ORDER BY CASE bracket
+            WHEN 'low' THEN 1
+            WHEN 'medium' THEN 2
+            WHEN 'high' THEN 3
+            WHEN 'excellent' THEN 4
+          END`,
           [startISO]
         ),
 
