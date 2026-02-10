@@ -370,6 +370,12 @@ export const NINEANOUN_CODE_DOMAINS: Record<string, NineAnounCodeDef> = {
     nameAr: 'مجلة الطيران المدني',
     nameFr: "Code de l'Aviation Civile",
   },
+  'code-aeronautique-civile': {
+    domain: 'aerien',
+    documentType: 'loi',
+    nameAr: 'مجلة الطيران المدني',
+    nameFr: "Code de l'Aéronautique Civile",
+  },
 
   // ===== TELECOM / NUMERIQUE =====
   'code-telecommunications': {
