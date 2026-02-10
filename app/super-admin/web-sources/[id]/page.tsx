@@ -12,27 +12,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { WebSourceActions } from '@/components/super-admin/web-sources/WebSourceActions'
 import { WebSourcePages } from '@/components/super-admin/web-sources/WebSourcePages'
 import { WebSourceLogs } from '@/components/super-admin/web-sources/WebSourceLogs'
+import { CategoryBadge } from '@/components/super-admin/web-sources/CategoryBadge'
 
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: Promise<{ id: string }>
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  legislation: 'Législation',
-  jurisprudence: 'Jurisprudence',
-  doctrine: 'Doctrine',
-  jort: 'JORT',
-  codes: 'Codes juridiques',
-  constitution: 'Constitution',
-  conventions: 'Conventions internationales',
-  modeles: 'Modèles',
-  procedures: 'Procédures',
-  formulaires: 'Formulaires',
-  guides: 'Guides pratiques',
-  lexique: 'Lexique juridique',
-  autre: 'Autre',
 }
 
 async function getWebSourceData(id: string) {
@@ -162,9 +147,7 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
             <div className="flex items-center gap-3">
               <div className={`w-3 h-3 rounded-full ${healthColors[source.health_status]}`} />
               <h1 className="text-2xl font-bold text-white">{source.name}</h1>
-              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                {CATEGORY_LABELS[source.category] || source.category}
-              </Badge>
+              <CategoryBadge category={source.category} />
               {!source.is_active && (
                 <Badge variant="outline" className="border-slate-600 text-slate-400">
                   Inactive

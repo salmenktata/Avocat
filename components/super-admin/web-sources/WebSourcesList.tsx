@@ -2,11 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import { useToast } from '@/lib/hooks/use-toast'
+import { getCategoryLabel, CATEGORY_COLORS } from '@/lib/web-scraper/category-labels'
+import type { WebSourceCategory } from '@/lib/web-scraper/types'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,28 +56,6 @@ interface WebSourcesListProps {
   search: string
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  legislation: 'Législation',
-  jurisprudence: 'Jurisprudence',
-  doctrine: 'Doctrine',
-  jort: 'JORT',
-  modeles: 'Modèles',
-  procedures: 'Procédures',
-  formulaires: 'Formulaires',
-  autre: 'Autre',
-}
-
-const CATEGORY_COLORS: Record<string, string> = {
-  legislation: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  jurisprudence: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  doctrine: 'bg-green-500/20 text-green-400 border-green-500/30',
-  jort: 'bg-red-500/20 text-red-400 border-red-500/30',
-  modeles: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  procedures: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-  formulaires: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  autre: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-}
-
 export function WebSourcesList({
   sources,
   currentPage,
@@ -84,6 +65,7 @@ export function WebSourcesList({
   search,
 }: WebSourcesListProps) {
   const router = useRouter()
+  const locale = useLocale() as 'fr' | 'ar'
   const { toast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -238,7 +220,7 @@ export function WebSourcesList({
                   {source.name}
                 </Link>
                 <Badge className={CATEGORY_COLORS[source.category] || CATEGORY_COLORS.autre}>
-                  {CATEGORY_LABELS[source.category] || source.category}
+                  {getCategoryLabel(source.category as WebSourceCategory, locale)}
                 </Badge>
                 {!source.is_active && (
                   <Badge variant="outline" className="border-slate-600 text-slate-400">

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/select'
 import { Icons } from '@/lib/icons'
 import { useToast } from '@/lib/hooks/use-toast'
+import { getAllCategoryOptions } from '@/lib/web-scraper/category-labels'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 interface FormData {
@@ -55,23 +57,6 @@ interface FormData {
   excludedPatterns: string
 }
 
-const CATEGORIES = [
-  { value: 'legislation', label: 'Législation' },
-  { value: 'jurisprudence', label: 'Jurisprudence' },
-  { value: 'doctrine', label: 'Doctrine' },
-  { value: 'jort', label: 'JORT' },
-  { value: 'codes', label: 'Codes juridiques' },
-  { value: 'constitution', label: 'Constitution' },
-  { value: 'conventions', label: 'Conventions internationales' },
-  { value: 'modeles', label: 'Modèles' },
-  { value: 'procedures', label: 'Procédures' },
-  { value: 'formulaires', label: 'Formulaires' },
-  { value: 'guides', label: 'Guides pratiques' },
-  { value: 'lexique', label: 'Lexique juridique' },
-  { value: 'google_drive', label: 'Google Drive' },
-  { value: 'autre', label: 'Autre' },
-]
-
 const FILE_TYPES = [
   { value: 'pdf', label: 'PDF' },
   { value: 'docx', label: 'Word (DOCX/DOC)' },
@@ -90,10 +75,14 @@ const FREQUENCIES = [
 
 export function AddWebSourceWizard() {
   const router = useRouter()
+  const locale = useLocale() as 'fr' | 'ar'
   const { toast } = useToast()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [gdriveTestLoading, setGdriveTestLoading] = useState(false)
+
+  // Catégories traduites selon la langue de l'utilisateur
+  const categories = useMemo(() => getAllCategoryOptions(locale).filter(c => c.value !== 'all'), [locale])
   const [gdriveTestResult, setGdriveTestResult] = useState<{
     success: boolean
     fileCount?: number
@@ -603,7 +592,7 @@ export function AddWebSourceWizard() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    {CATEGORIES.map((cat) => (
+                    {categories.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value} className="text-white">
                         {cat.label}
                       </SelectItem>

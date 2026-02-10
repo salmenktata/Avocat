@@ -1,20 +1,19 @@
 /**
  * Définition des catégories et sous-catégories de la base de connaissance
  * Structure hiérarchique adaptée au droit tunisien
+ *
+ * NOTE: Ce fichier utilise le système central de catégories (@/lib/categories/legal-categories)
+ * avec une couche de compatibilité pour les anciennes catégories
  */
 
+import type { KnowledgeCategory as _KnowledgeCategory } from '@/lib/categories/legal-categories'
+import { normalizeLegalCategory, LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
+
 export type KnowledgeCategory =
-  | 'legislation'
-  | 'jurisprudence'
-  | 'doctrine'
-  | 'modeles'
-  | 'procedures'
-  | 'jort'
-  | 'formulaires'
+  | _KnowledgeCategory
   // Anciennes catégories (rétrocompatibilité)
   | 'code'
-  | 'modele'
-  | 'autre';
+  | 'modele';
 
 export type LegislationSubcategory =
   | 'coc'
@@ -115,13 +114,24 @@ export interface SubcategoryInfo {
 }
 
 /**
+ * Map des labels pour lookup rapide
+ * Utilise le système central avec rétrocompatibilité pour anciennes catégories
+ */
+export const CATEGORY_LABELS: Record<string, { fr: string; ar: string }> = {
+  ...LEGAL_CATEGORY_TRANSLATIONS,
+  // Anciennes catégories (rétrocompatibilité)
+  code: { fr: 'Code', ar: 'مجلة' },
+  modele: { fr: 'Modèle', ar: 'نموذج' },
+};
+
+/**
  * Structure complète des catégories avec leurs sous-catégories
  */
 export const KNOWLEDGE_CATEGORIES: CategoryInfo[] = [
   {
     id: 'legislation',
-    labelFr: 'Législation',
-    labelAr: 'التشريع',
+    labelFr: CATEGORY_LABELS.legislation.fr,
+    labelAr: CATEGORY_LABELS.legislation.ar,
     icon: 'scale',
     description: 'Textes législatifs et réglementaires tunisiens',
     subcategories: [
@@ -141,8 +151,8 @@ export const KNOWLEDGE_CATEGORIES: CategoryInfo[] = [
   },
   {
     id: 'jurisprudence',
-    labelFr: 'Jurisprudence',
-    labelAr: 'فقه القضاء',
+    labelFr: CATEGORY_LABELS.jurisprudence.fr,
+    labelAr: CATEGORY_LABELS.jurisprudence.ar,
     icon: 'gavel',
     description: 'Décisions de justice tunisiennes',
     subcategories: [
@@ -176,8 +186,8 @@ export const KNOWLEDGE_CATEGORIES: CategoryInfo[] = [
   },
   {
     id: 'doctrine',
-    labelFr: 'Doctrine',
-    labelAr: 'الفقه',
+    labelFr: CATEGORY_LABELS.doctrine.fr,
+    labelAr: CATEGORY_LABELS.doctrine.ar,
     icon: 'book-open',
     description: 'Travaux académiques et commentaires juridiques',
     subcategories: [
@@ -191,8 +201,8 @@ export const KNOWLEDGE_CATEGORIES: CategoryInfo[] = [
   },
   {
     id: 'modeles',
-    labelFr: 'Modèles',
-    labelAr: 'النماذج',
+    labelFr: CATEGORY_LABELS.modeles.fr,
+    labelAr: CATEGORY_LABELS.modeles.ar,
     icon: 'file-text',
     description: 'Modèles de documents juridiques',
     subcategories: [
@@ -206,8 +216,8 @@ export const KNOWLEDGE_CATEGORIES: CategoryInfo[] = [
   },
   {
     id: 'procedures',
-    labelFr: 'Procédures',
-    labelAr: 'الإجراءات',
+    labelFr: CATEGORY_LABELS.procedures.fr,
+    labelAr: CATEGORY_LABELS.procedures.ar,
     icon: 'clipboard-list',
     description: 'Guides procéduraux par matière',
     subcategories: [
@@ -221,8 +231,8 @@ export const KNOWLEDGE_CATEGORIES: CategoryInfo[] = [
   },
   {
     id: 'jort',
-    labelFr: 'JORT',
-    labelAr: 'الرائد الرسمي',
+    labelFr: CATEGORY_LABELS.jort.fr,
+    labelAr: CATEGORY_LABELS.jort.ar,
     icon: 'newspaper',
     description: 'Journal Officiel de la République Tunisienne',
     subcategories: [
@@ -235,8 +245,8 @@ export const KNOWLEDGE_CATEGORIES: CategoryInfo[] = [
   },
   {
     id: 'formulaires',
-    labelFr: 'Formulaires',
-    labelAr: 'الاستمارات',
+    labelFr: CATEGORY_LABELS.formulaires.fr,
+    labelAr: CATEGORY_LABELS.formulaires.ar,
     icon: 'file-input',
     description: 'Formulaires officiels tunisiens',
     subcategories: [
@@ -248,24 +258,6 @@ export const KNOWLEDGE_CATEGORIES: CategoryInfo[] = [
     ],
   },
 ];
-
-/**
- * Map des labels pour lookup rapide
- */
-export const CATEGORY_LABELS: Record<string, { fr: string; ar: string }> = {
-  // Nouvelles catégories
-  legislation: { fr: 'Législation', ar: 'التشريع' },
-  jurisprudence: { fr: 'Jurisprudence', ar: 'فقه القضاء' },
-  doctrine: { fr: 'Doctrine', ar: 'الفقه' },
-  modeles: { fr: 'Modèles', ar: 'النماذج' },
-  procedures: { fr: 'Procédures', ar: 'الإجراءات' },
-  jort: { fr: 'JORT', ar: 'الرائد الرسمي' },
-  formulaires: { fr: 'Formulaires', ar: 'الاستمارات' },
-  // Anciennes catégories (rétrocompatibilité)
-  code: { fr: 'Code', ar: 'مجلة' },
-  modele: { fr: 'Modèle', ar: 'نموذج' },
-  autre: { fr: 'Autre', ar: 'أخرى' },
-};
 
 /**
  * Map des sous-catégories pour lookup rapide

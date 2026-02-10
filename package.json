@@ -26,6 +26,8 @@
     "test:citations": "vitest run __tests__/lib/ai/citation-validator-service.test.ts",
     "test:scalability": "NODE_OPTIONS='--expose-gc' npx tsx scripts/test-indexing-scalability.ts",
     "test:classification-apis": "npx tsx scripts/test-classification-apis.ts",
+    "test:categories": "npx tsx scripts/test-category-translations.ts",
+    "test:category-alignment": "npx tsx scripts/test-category-alignment.ts",
     "audit:rag": "npx tsx scripts/audit-rag-data-quality.ts",
     "audit:rag:json": "npx tsx scripts/audit-rag-data-quality.ts --export=json",
     "audit:rag:csv": "npx tsx scripts/audit-rag-data-quality.ts --export=csv",
@@ -63,7 +65,12 @@
     "test:integration": "vitest run --config vitest.config.integration.ts || echo 'Integration tests not configured'",
     "test:e2e:rag": "playwright test e2e/workflows/rag-*.spec.ts || echo 'E2E RAG tests not configured'",
     "storage:cleanup": "node scripts/cleanup-storage-manual.js",
-    "storage:analyze": "node scripts/analyze-storage.ts"
+    "storage:analyze": "node scripts/analyze-storage.ts",
+    "seed:codes": "DB_PASSWORD=\"prod_secure_password_2026\" npx tsx scripts/seed-9anoun-all-codes.ts",
+    "discover:coc": "DB_PASSWORD=\"prod_secure_password_2026\" npx tsx scripts/discover-9anoun-coc-articles.ts",
+    "discover:codes": "DB_PASSWORD=\"prod_secure_password_2026\" npx tsx scripts/discover-9anoun-all-codes.ts",
+    "trigger:crawl": "DB_PASSWORD=\"prod_secure_password_2026\" npx tsx scripts/trigger-crawl-9anoun.ts",
+    "check:9anoun": "DB_PASSWORD=\"prod_secure_password_2026\" npx tsx scripts/check-9anoun-coc-pages.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",

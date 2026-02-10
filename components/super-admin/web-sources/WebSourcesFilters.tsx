@@ -1,7 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useCallback } from 'react'
+import { useLocale } from 'next-intl'
+import { useState, useCallback, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -11,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Icons } from '@/lib/icons'
+import { getAllCategoryOptions } from '@/lib/web-scraper/category-labels'
 import { useDebouncedCallback } from 'use-debounce'
 
 interface WebSourcesFiltersProps {
@@ -19,28 +21,20 @@ interface WebSourcesFiltersProps {
   search: string
 }
 
-const CATEGORIES = [
-  { value: 'all', label: 'Toutes les catégories' },
-  { value: 'legislation', label: 'Législation' },
-  { value: 'jurisprudence', label: 'Jurisprudence' },
-  { value: 'doctrine', label: 'Doctrine' },
-  { value: 'jort', label: 'JORT' },
-  { value: 'modeles', label: 'Modèles' },
-  { value: 'procedures', label: 'Procédures' },
-  { value: 'formulaires', label: 'Formulaires' },
-  { value: 'autre', label: 'Autre' },
-]
-
-const STATUSES = [
-  { value: 'all', label: 'Tous les statuts' },
-  { value: 'active', label: 'Actives' },
-  { value: 'inactive', label: 'Inactives' },
-  { value: 'failing', label: 'En erreur' },
+const getStatuses = (locale: 'fr' | 'ar') => [
+  { value: 'all', label: locale === 'ar' ? 'جميع الحالات' : 'Tous les statuts' },
+  { value: 'active', label: locale === 'ar' ? 'نشطة' : 'Actives' },
+  { value: 'inactive', label: locale === 'ar' ? 'غير نشطة' : 'Inactives' },
+  { value: 'failing', label: locale === 'ar' ? 'خطأ' : 'En erreur' },
 ]
 
 export function WebSourcesFilters({ category, status, search }: WebSourcesFiltersProps) {
   const router = useRouter()
+  const locale = useLocale() as 'fr' | 'ar'
   const [searchValue, setSearchValue] = useState(search)
+
+  const categories = useMemo(() => getAllCategoryOptions(locale), [locale])
+  const statuses = useMemo(() => getStatuses(locale), [locale])
 
   const updateUrl = useCallback((params: Record<string, string>) => {
     const searchParams = new URLSearchParams()
@@ -75,8 +69,9 @@ export function WebSourcesFilters({ category, status, search }: WebSourcesFilter
         <Input
           value={searchValue}
           onChange={handleSearchChange}
-          placeholder="Rechercher par nom ou URL..."
+          placeholder={locale === 'ar' ? 'البحث بالاسم أو الرابط...' : 'Rechercher par nom ou URL...'}
           className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
+          dir={locale === 'ar' ? 'rtl' : 'ltr'}
         />
       </div>
 
@@ -85,7 +80,7 @@ export function WebSourcesFilters({ category, status, search }: WebSourcesFilter
           <SelectValue placeholder="Catégorie" />
         </SelectTrigger>
         <SelectContent className="bg-slate-800 border-slate-700">
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <SelectItem
               key={cat.value}
               value={cat.value}
@@ -102,7 +97,7 @@ export function WebSourcesFilters({ category, status, search }: WebSourcesFilter
           <SelectValue placeholder="Statut" />
         </SelectTrigger>
         <SelectContent className="bg-slate-800 border-slate-700">
-          {STATUSES.map((st) => (
+          {statuses.map((st) => (
             <SelectItem
               key={st.value}
               value={st.value}

@@ -2,45 +2,17 @@
  * Types pour le système d'ingestion web
  */
 
-/**
- * Catégories de sources web
- * Alignées avec la classification 9anoun.tn
- */
-export type WebSourceCategory =
-  | 'legislation'      // النصوص القانونية - Textes législatifs
-  | 'jurisprudence'    // الفقه القضائي - Jurisprudence
-  | 'doctrine'         // الفقه - Doctrine
-  | 'jort'             // الجريدة الرسمية - Journal Officiel (JORT)
-  | 'codes'            // المجلات القانونية - Codes juridiques
-  | 'constitution'     // الدساتير - Constitutions
-  | 'conventions'      // الاتفاقيات الدولية - Conventions internationales
-  | 'modeles'          // النماذج - Modèles de documents
-  | 'procedures'       // الإجراءات - Procédures
-  | 'formulaires'      // الاستمارات - Formulaires
-  | 'guides'           // الأدلة - Guides pratiques
-  | 'lexique'          // المصطلحات - Lexique juridique
-  | 'google_drive'     // مستندات جوجل درايف - Google Drive
-  | 'autre'            // أخرى - Autres
+import type { WebSourceCategory } from '@/lib/categories/legal-categories'
+import { LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
+
+// Re-export pour rétrocompatibilité
+export type { WebSourceCategory }
 
 /**
  * Mapping des catégories arabe <-> français
+ * @deprecated Utiliser LEGAL_CATEGORY_TRANSLATIONS depuis @/lib/categories/legal-categories
  */
-export const CATEGORY_TRANSLATIONS: Record<WebSourceCategory, { ar: string; fr: string }> = {
-  legislation: { ar: 'النصوص القانونية', fr: 'Textes législatifs' },
-  jurisprudence: { ar: 'الفقه القضائي', fr: 'Jurisprudence' },
-  doctrine: { ar: 'الفقه', fr: 'Doctrine' },
-  jort: { ar: 'الجريدة الرسمية', fr: 'Journal Officiel (JORT)' },
-  codes: { ar: 'المجلات القانونية', fr: 'Codes juridiques' },
-  constitution: { ar: 'الدساتير', fr: 'Constitutions' },
-  conventions: { ar: 'الاتفاقيات الدولية', fr: 'Conventions internationales' },
-  modeles: { ar: 'النماذج', fr: 'Modèles de documents' },
-  procedures: { ar: 'الإجراءات', fr: 'Procédures' },
-  formulaires: { ar: 'الاستمارات', fr: 'Formulaires' },
-  guides: { ar: 'الأدلة', fr: 'Guides pratiques' },
-  lexique: { ar: 'المصطلحات', fr: 'Lexique juridique' },
-  google_drive: { ar: 'مستندات جوجل درايف', fr: 'Google Drive' },
-  autre: { ar: 'أخرى', fr: 'Autres' },
-}
+export const CATEGORY_TRANSLATIONS = LEGAL_CATEGORY_TRANSLATIONS
 
 export type WebSourceLanguage = 'ar' | 'fr' | 'mixed'
 
@@ -668,17 +640,10 @@ export const LEGAL_DOMAIN_TRANSLATIONS: Record<LegalDomain, { ar: string; fr: st
 
 /**
  * Catégories de contenu juridique (étendu)
+ * @deprecated Utiliser LegalContentCategory depuis @/lib/categories/legal-categories
  */
-export type LegalContentCategory =
-  | 'legislation'
-  | 'jurisprudence'
-  | 'doctrine'
-  | 'jort'
-  | 'modeles'
-  | 'procedures'
-  | 'formulaires'
-  | 'actualites'
-  | 'autre'
+import type { LegalContentCategory as _LegalContentCategory } from '@/lib/categories/legal-categories'
+export type LegalContentCategory = _LegalContentCategory
 
 /**
  * Nature des documents juridiques
