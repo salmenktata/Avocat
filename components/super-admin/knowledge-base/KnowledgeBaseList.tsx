@@ -19,13 +19,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
   indexKnowledgeDocumentAction,
   deleteKnowledgeDocumentAction,
   bulkKnowledgeDocumentAction
@@ -363,14 +356,41 @@ export function KnowledgeBaseList({
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
+              {/* Voir */}
               <Button
                 size="sm"
                 variant="ghost"
+                className="text-slate-400 hover:text-white hover:bg-slate-600"
+                title="Voir détail"
+                asChild
+              >
+                <Link href={`/super-admin/knowledge-base/${doc.id}`}>
+                  <Icons.eye className="h-4 w-4" />
+                </Link>
+              </Button>
+
+              {/* Modifier */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-slate-400 hover:text-white hover:bg-slate-600"
+                title="Modifier"
+                asChild
+              >
+                <Link href={`/super-admin/knowledge-base/${doc.id}/edit`}>
+                  <Icons.edit className="h-4 w-4" />
+                </Link>
+              </Button>
+
+              {/* Indexer */}
+              <Button
+                size="sm"
+                variant={doc.is_indexed ? "outline" : "default"}
                 onClick={() => handleIndex(doc.id)}
                 disabled={loading === doc.id}
                 className={doc.is_indexed
-                  ? "text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
-                  : "text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"}
+                  ? "border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"}
                 title={doc.is_indexed ? "Réindexer" : "Indexer"}
               >
                 {loading === doc.id ? (
@@ -380,54 +400,16 @@ export function KnowledgeBaseList({
                 )}
               </Button>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-slate-400 hover:text-white"
-                  >
-                    <Icons.moreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/super-admin/knowledge-base/${doc.id}`}
-                      className="text-slate-200 hover:bg-slate-700 cursor-pointer"
-                    >
-                      <Icons.eye className="h-4 w-4 mr-2" />
-                      Voir détail
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/super-admin/knowledge-base/${doc.id}/edit`}
-                      className="text-slate-200 hover:bg-slate-700 cursor-pointer"
-                    >
-                      <Icons.edit className="h-4 w-4 mr-2" />
-                      Modifier
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleIndex(doc.id)}
-                    className={doc.is_indexed
-                      ? "text-amber-400 hover:bg-slate-700 cursor-pointer"
-                      : "text-blue-400 hover:bg-slate-700 cursor-pointer"}
-                  >
-                    <Icons.zap className="h-4 w-4 mr-2" />
-                    {doc.is_indexed ? 'Réindexer' : 'Indexer'}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-slate-700" />
-                  <DropdownMenuItem
-                    onClick={() => setDeleteId(doc.id)}
-                    className="text-red-400 hover:bg-red-500/10 cursor-pointer"
-                  >
-                    <Icons.trash className="h-4 w-4 mr-2" />
-                    Supprimer
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Supprimer */}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setDeleteId(doc.id)}
+                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                title="Supprimer"
+              >
+                <Icons.trash className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         ))}
