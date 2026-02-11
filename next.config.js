@@ -148,6 +148,12 @@ const nextConfig = {
         destination: '/super-admin/kb-management?tab=validation',
         permanent: true,
       },
+      // Monitoring consolidation (Tâche 2.3)
+      {
+        source: '/super-admin/api-keys-health',
+        destination: '/super-admin/monitoring?tab=api-health',
+        permanent: true,
+      },
     ]
   },
 

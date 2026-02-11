@@ -1,3 +1,8 @@
+/**
+ * API Health Tab - Health check des clés API
+ * Ancien contenu de app/super-admin/api-keys-health/page.tsx
+ */
+
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -27,7 +32,7 @@ interface HealthData {
   providers: ProviderHealth[]
 }
 
-export default function APIKeysHealthPage() {
+export function APIHealthTab() {
   const [data, setData] = useState<HealthData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -98,15 +103,8 @@ export default function APIKeysHealthPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">API Keys Health Monitor</h1>
-          <p className="text-muted-foreground mt-2">
-            Surveillance en temps réel de la validité des clés API
-          </p>
-        </div>
-
+    <div className="space-y-6">
+      <div className="flex justify-end items-center">
         <Button onClick={fetchHealth} disabled={loading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Rafraîchir
