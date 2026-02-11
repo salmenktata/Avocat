@@ -200,6 +200,17 @@ async function processGDriveFile(
   // Créer LinkedFile
   const linkedFile = mapGoogleDriveFileToLinkedFile(file)
 
+  // Vérifier si le fichier est inchangé ET a déjà du texte extrait → skip download
+  const url = file.webViewLink
+  const urlHash = createHash('sha256').update(url).digest('hex')
+  const contentHash = createHash('sha256')
+    .update(file.id + file.modifiedTime + file.size)
+    .digest('hex')
+  const existing = existingPages.get(urlHash)
+  if (existing && existing.content_hash === contentHash && existing.has_extracted_text) {
+    return { isNew: false, hasChanged: false, skipped: true }
+  }
+
   // Télécharger et extraire le texte si downloadFiles est activé
   let extractedText: string | null = null
   if (source.downloadFiles) {
