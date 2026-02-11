@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ConsultationNextActions } from './ConsultationNextActions'
 
 const MarkdownMessage = dynamic(
   () => import('@/components/assistant-ia/MarkdownMessage').then(mod => mod.MarkdownMessage),
@@ -205,6 +206,29 @@ export function ConsultationResult({ result, onNewConsultation }: ConsultationRe
           </CardContent>
         </Card>
       )}
+
+      {/* Actions contextuelles recommandées */}
+      <ConsultationNextActions
+        context={{
+          question: result.question,
+          answer: result.conseil,
+          sources: result.sources.map((s) => ({
+            id: s.id,
+            type: s.type || 'unknown',
+            title: s.title,
+            category: s.category,
+          })),
+          metadata: {
+            hasJurisprudence: result.sources.some((s) => s.type === 'jurisprudence'),
+            hasCode: result.sources.some((s) => s.type === 'code' || s.type === 'legislation'),
+            hasDoctrine: result.sources.some((s) => s.type === 'doctrine'),
+            categories: result.sources
+              .map((s) => s.category)
+              .filter((c): c is string => c !== undefined && c !== null),
+          },
+        }}
+        className="mb-6"
+      />
 
       {/* Actions */}
       <Separator />

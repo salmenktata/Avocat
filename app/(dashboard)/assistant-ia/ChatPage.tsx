@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { useToast } from '@/lib/hooks/use-toast'
 import { FeatureErrorBoundary } from '@/components/providers/FeatureErrorBoundary'
+import { CreateDossierFromChatModal } from '@/components/chat/CreateDossierFromChatModal'
 import {
   ConversationsList,
   ChatMessages,
@@ -39,6 +40,7 @@ export function ChatPage({ userId }: ChatPageProps) {
   const [isSending, setIsSending] = useState(false)
   const [streamingContent, setStreamingContent] = useState<string>('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showCreateDossier, setShowCreateDossier] = useState(false)
 
   // Charger les conversations
   const loadConversations = useCallback(async () => {
@@ -207,12 +209,15 @@ export function ChatPage({ userId }: ChatPageProps) {
 
   // Créer un dossier depuis la conversation
   const handleCreateDossier = () => {
-    // Rediriger vers l'assistant mode rapide avec le contexte
-    if (messages.length > 0) {
-      const lastUserMessage = messages.filter((m) => m.role === 'user').pop()
-      if (lastUserMessage) {
-        router.push(`/dossiers/assistant?narratif=${encodeURIComponent(lastUserMessage.content)}`)
-      }
+    // Ouvrir la modal d'extraction intelligente
+    if (messages.length > 0 && selectedConversationId) {
+      setShowCreateDossier(true)
+    } else {
+      toast({
+        title: t('error'),
+        description: 'Aucune conversation sélectionnée',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -317,6 +322,25 @@ export function ChatPage({ userId }: ChatPageProps) {
           <ChatInput onSend={handleSendMessage} disabled={isSending} />
         </div>
       </div>
+
+      {/* Modal création dossier depuis chat */}
+      {selectedConversationId && (
+        <CreateDossierFromChatModal
+          open={showCreateDossier}
+          onOpenChange={setShowCreateDossier}
+          conversationId={selectedConversationId}
+          messages={messages}
+          conversationTitle={
+            conversations.find((c) => c.id === selectedConversationId)?.title ?? undefined
+          }
+          onDossierCreated={(dossierId) => {
+            toast({
+              title: t('success'),
+              description: 'Dossier créé avec succès',
+            })
+          }}
+        />
+      )}
     </FeatureErrorBoundary>
   )
 }

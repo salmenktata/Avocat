@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useState, useRef, useEffect } from 'react'
+import { ProgressiveFeedback } from './ProgressiveFeedback'
 
 interface NarrativeInputProps {
   value: string
@@ -47,67 +48,75 @@ export default function NarrativeInput({
   const isValid = charCount >= minChars && charCount <= maxChars
 
   return (
-    <div className="rounded-lg border bg-card p-6 shadow-sm">
-      <label className="block text-lg font-semibold text-foreground mb-4">
+    <div className="space-y-4">
+      <label className="block text-lg font-semibold text-foreground">
         {t('input.label')}
       </label>
 
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        disabled={disabled}
-        placeholder={t('input.placeholder')}
-        className="w-full min-h-[200px] resize-none rounded-lg border border bg-background p-4 text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-        dir="auto"
-      />
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Colonne 1 : Saisie du narratif */}
+        <div className="rounded-lg border bg-card p-6 shadow-sm">
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={disabled}
+            placeholder={t('input.placeholder')}
+            className="w-full min-h-[300px] resize-none rounded-lg border border bg-background p-4 text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            dir="auto"
+          />
 
-      <div className="mt-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <span
-            className={`text-sm ${
-              charCount < minChars
-                ? 'text-amber-600'
-                : charCount > maxChars
-                  ? 'text-red-600'
-                  : 'text-muted-foreground'
-            }`}
-          >
-            {charCount.toLocaleString()} / {maxChars.toLocaleString()} {t('input.characters')}
-          </span>
-          {charCount < minChars && (
-            <span className="text-sm text-amber-600">
-              ({t('input.minimum', { min: minChars })})
-            </span>
-          )}
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span
+                className={`text-sm ${
+                  charCount < minChars
+                    ? 'text-amber-600'
+                    : charCount > maxChars
+                      ? 'text-red-600'
+                      : 'text-muted-foreground'
+                }`}
+              >
+                {charCount.toLocaleString()} / {maxChars.toLocaleString()} {t('input.characters')}
+              </span>
+              {charCount < minChars && (
+                <span className="text-sm text-amber-600">
+                  ({t('input.minimum', { min: minChars })})
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                {t('input.shortcut')}
+              </span>
+              <button
+                onClick={onSubmit}
+                disabled={disabled || !isValid}
+                className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                {t('input.analyzeButton')}
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground hidden sm:inline">
-            {t('input.shortcut')}
-          </span>
-          <button
-            onClick={onSubmit}
-            disabled={disabled || !isValid}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-white font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            {t('input.analyzeButton')}
-          </button>
-        </div>
+        {/* Colonne 2 : Feedback progressif */}
+        <ProgressiveFeedback text={value} realtime={true} />
       </div>
     </div>
   )
