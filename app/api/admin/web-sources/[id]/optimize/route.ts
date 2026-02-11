@@ -12,7 +12,7 @@ export const maxDuration = 60 // 60 secondes max
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Vérifier l'authentification
@@ -21,7 +21,7 @@ export async function POST(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    const sourceId = params.id
+    const { id: sourceId } = await params
 
     // 1. Détecter le type de site
     console.log(`[API] Detecting site type for source ${sourceId}`)
