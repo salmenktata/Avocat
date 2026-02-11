@@ -47,6 +47,12 @@ function mapDossierFromDB(row: any): any {
     client: row.clients ? mapClientFromDB(row.clients) : undefined,
     documents: row.documents || [],
     events: row.evenements || [],
+    actions: row.actions || [],
+    echeances: row.echeances || [],
+    // Champs supplémentaires pour compatibilité
+    objet: row.objet,
+    tribunal: row.tribunal,
+    statut: row.statut, // Garder aussi la version originale pour compatibilité
   }
 }
 
@@ -91,7 +97,7 @@ export async function GET(
 
     const userId = session.user.id
 
-    // Récupérer le dossier avec client, documents, événements
+    // Récupérer le dossier avec client, documents, événements, actions, échéances
     const result = await query(
       `SELECT d.*,
         json_build_object(
@@ -132,7 +138,21 @@ export async function GET(
           ), '[]'::json)
           FROM evenements evt
           WHERE evt.dossier_id = d.id
-        ) as evenements
+        ) as evenements,
+        (
+          SELECT COALESCE(json_agg(
+            act.* ORDER BY act.created_at DESC
+          ), '[]'::json)
+          FROM actions act
+          WHERE act.dossier_id = d.id
+        ) as actions,
+        (
+          SELECT COALESCE(json_agg(
+            ech.* ORDER BY ech.date_evenement ASC
+          ), '[]'::json)
+          FROM echeances ech
+          WHERE ech.dossier_id = d.id
+        ) as echeances
       FROM dossiers d
       LEFT JOIN clients c ON d.client_id = c.id
       WHERE d.id = $1 AND d.user_id = $2`,

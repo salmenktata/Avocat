@@ -21,19 +21,25 @@ export interface Dossier {
   clientId: string
   client?: Client
   titre: string
+  numero?: string
   description?: string
+  objet?: string
   type: DossierType
   status: DossierStatus
+  statut?: string // Version originale DB pour compatibilité
   priority?: 'low' | 'medium' | 'high' | 'urgent'
   category?: string
   numeroAffaire?: string
   juridiction?: string
+  tribunal?: string
   dateOuverture?: Date
   dateCloture?: Date
   montant?: number
   devise?: string
   documents?: DossierDocument[]
   events?: DossierEvent[]
+  actions?: any[] // Table actions
+  echeances?: any[] // Table echeances
   notes?: string
   metadata?: Record<string, unknown>
   createdAt: Date
@@ -47,6 +53,7 @@ export interface Client {
   email?: string
   telephone?: string
   type: 'particulier' | 'entreprise'
+  typeClient?: string // Version camelCase pour compatibilité API
   adresse?: string
 }
 

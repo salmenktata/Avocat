@@ -1,74 +1,65 @@
-import { query } from '@/lib/db/postgres'
-import { getSession } from '@/lib/auth/session'
-import { notFound } from 'next/navigation'
+'use client'
+
+import { notFound, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { useDossier } from '@/lib/hooks/useDossiers'
 import DossierDetailContent from '@/components/dossiers/DossierDetailContent'
 import ChatWidget from '@/components/dossiers/ChatWidget'
-import { getTranslations } from 'next-intl/server'
 
-interface DossierDetailPageProps {
-  params: Promise<{ id: string }>
-  searchParams: Promise<{ tab?: string }>
-}
+export default function DossierDetailPage() {
+  const params = useParams()
+  const id = params?.id as string
+  const t = useTranslations('dossiers')
 
-export default async function DossierDetailPage({
-  params,
-  searchParams,
-}: DossierDetailPageProps) {
-  const { id } = await params
-  const { tab } = await searchParams
+  const { data: dossier, isLoading, error } = useDossier(id, {
+    enabled: !!id,
+  })
 
-  const session = await getSession()
-  const t = await getTranslations('dossiers')
+  // Gestion erreur
+  if (error) {
+    if (error.message.includes('404') || error.message.includes('non trouvé')) {
+      notFound()
+    }
 
-  if (!session?.user?.id) return null
+    return (
+      <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+        <p className="text-sm text-destructive">
+          Erreur lors du chargement du dossier: {error.message}
+        </p>
+      </div>
+    )
+  }
 
-  // Récupérer toutes les données EN PARALLÈLE (optimisation performance)
-  const [dossierResult, actionsResult, echeancesResult, documentsResult] = await Promise.all([
-    query(
-      `SELECT d.*,
-        json_build_object(
-          'id', c.id,
-          'type_client', c.type_client,
-          'nom', c.nom,
-          'prenom', c.prenom,
-          'email', c.email,
-          'telephone', c.telephone,
-          'created_at', c.created_at,
-          'user_id', c.user_id
-        ) as clients
-      FROM dossiers d
-      LEFT JOIN clients c ON d.client_id = c.id
-      WHERE d.id = $1 AND d.user_id = $2`,
-      [id, session.user.id]
-    ),
-    query(
-      'SELECT * FROM actions WHERE dossier_id = $1 AND user_id = $2 ORDER BY created_at DESC',
-      [id, session.user.id]
-    ),
-    query(
-      'SELECT * FROM echeances WHERE dossier_id = $1 AND user_id = $2 ORDER BY date_evenement ASC',
-      [id, session.user.id]
-    ),
-    query(
-      'SELECT * FROM documents WHERE dossier_id = $1 AND user_id = $2 ORDER BY created_at DESC',
-      [id, session.user.id]
-    ),
-  ])
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-96 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            <span>Chargement du dossier...</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-  const dossier = dossierResult.rows[0]
-  const actions = actionsResult.rows
-  const echeances = echeancesResult.rows
-  const documents = documentsResult.rows
-
+  // Pas de dossier
   if (!dossier) {
     notFound()
   }
 
   const clientName =
-    dossier.clients?.type_client === 'personne_physique'
-      ? `${dossier.clients.nom} ${dossier.clients.prenom || ''}`.trim()
-      : dossier.clients?.nom || 'Client inconnu'
+    dossier.client?.typeClient === 'personne_physique'
+      ? `${dossier.client.nom} ${dossier.client.prenom || ''}`.trim()
+      : dossier.client?.nom || 'Client inconnu'
 
   return (
     <div className="space-y-6">
@@ -95,14 +86,20 @@ export default async function DossierDetailPage({
             </h1>
             <span
               className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
-                dossier.statut === 'en_cours'
+                dossier.status === 'in_progress'
                   ? 'bg-green-100 text-green-700'
-                  : dossier.statut === 'clos'
+                  : dossier.status === 'closed'
                   ? 'bg-muted text-foreground'
                   : 'bg-blue-100 text-blue-700'
               }`}
             >
-              {dossier.statut}
+              {dossier.status === 'in_progress'
+                ? 'En cours'
+                : dossier.status === 'closed'
+                ? 'Clos'
+                : dossier.status === 'open'
+                ? 'Ouvert'
+                : dossier.statut}
             </span>
           </div>
           <p className="mt-2 text-muted-foreground">{dossier.objet}</p>
@@ -112,16 +109,16 @@ export default async function DossierDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <ChatWidget dossierId={dossier.id} dossierNumero={dossier.numero} />
+          <ChatWidget dossierId={dossier.id} dossierNumero={dossier.numero || dossier.id} />
         </div>
       </div>
 
       <DossierDetailContent
         dossier={dossier}
-        actions={actions || []}
-        echeances={echeances || []}
-        documents={documents || []}
-        initialTab={tab || 'workflow'}
+        actions={dossier.actions || []}
+        echeances={dossier.echeances || []}
+        documents={dossier.documents || []}
+        initialTab="workflow"
       />
     </div>
   )
