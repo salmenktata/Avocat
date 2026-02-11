@@ -17,6 +17,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { aiConfig, SYSTEM_PROMPTS } from './config'
 import { callGemini, GeminiResponse } from './gemini-client'
+import { getOperationConfig, type OperationName } from './operations-config'
 
 // =============================================================================
 // TYPES
@@ -47,6 +48,8 @@ export interface LLMOptions {
   systemPrompt?: string
   /** Contexte d'utilisation pour stratégie optimisée */
   context?: AIContext
+  /** Type d'opération pour configuration spécifique (override context si fourni) */
+  operationName?: OperationName
 }
 
 export interface LLMResponse {
@@ -519,12 +522,22 @@ export async function callLLMWithFallback(
   options: LLMOptions = {},
   usePremiumModel: boolean = false
 ): Promise<LLMResponse> {
+  // Si operationName fourni, utiliser sa configuration
+  let operationConfig
+  if (options.operationName) {
+    operationConfig = getOperationConfig(options.operationName)
+    // Override options avec config de l'opération (si non défini)
+    options.context = options.context || operationConfig.context
+    options.temperature = options.temperature ?? operationConfig.llmConfig?.temperature
+    options.maxTokens = options.maxTokens || operationConfig.llmConfig?.maxTokens
+  }
+
   // Mode Premium : forcer cloud providers pour qualité maximale (skip Ollama)
   if (usePremiumModel) {
     console.log('[LLM-Fallback] Mode Premium activé → utilisation cloud providers')
   }
   // Mode Rapide : essayer Ollama local d'abord (gratuit, rapide)
-  else if (aiConfig.ollama.enabled) {
+  else if (aiConfig.ollama.enabled && !operationConfig?.providers) {
     try {
       console.log(`[LLM-Fallback] Mode Rapide → Ollama (${aiConfig.ollama.chatModelDefault})`)
 
@@ -554,9 +567,17 @@ export async function callLLMWithFallback(
     }
   }
 
-  // Déterminer la stratégie selon le contexte
+  // Déterminer la stratégie selon le contexte (ou config opération)
   const context = options.context || 'default'
-  const strategyProviders = getProviderStrategyByContext()[context]
+
+  // Si opération a des providers spécifiques, les utiliser
+  let strategyProviders: LLMProvider[]
+  if (operationConfig?.providers) {
+    strategyProviders = [operationConfig.providers.primary, ...operationConfig.providers.fallback]
+    console.log(`[LLM-Fallback] Opération: ${options.operationName} → Stratégie: [${strategyProviders.join(' → ')}]`)
+  } else {
+    strategyProviders = getProviderStrategyByContext()[context]
+  }
 
   // Filtrer par providers disponibles (clés API configurées)
   const availableProviders = getAvailableProviders()

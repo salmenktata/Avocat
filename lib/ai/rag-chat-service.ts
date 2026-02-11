@@ -65,6 +65,7 @@ import {
   LLMMessage,
   LLMResponse,
 } from './llm-fallback-service'
+import { type OperationName } from './operations-config'
 import {
   validateArticleCitations,
   formatValidationWarnings,
@@ -175,6 +176,8 @@ export interface ChatOptions {
   contextType?: PromptContextType
   /** Mode Premium: utiliser cloud providers (Groq/DeepSeek/Anthropic) au lieu d'Ollama */
   usePremiumModel?: boolean
+  /** Type d'opération pour configuration spécifique */
+  operationName?: OperationName
 }
 
 export interface ConversationMessage {
@@ -376,8 +379,10 @@ export async function searchRelevantContext(
     includeKnowledgeBase = true, // Activé par défaut
   } = options
 
-  // Générer l'embedding de la question
-  const queryEmbedding = await generateEmbedding(question)
+  // Générer l'embedding de la question avec config opération
+  const queryEmbedding = await generateEmbedding(question, {
+    operationName: options.operationName,
+  })
   const embeddingStr = formatEmbeddingForPostgres(queryEmbedding.embedding)
 
   // Vérifier le cache de recherche
@@ -1258,6 +1263,7 @@ export async function answerQuestion(
           maxTokens: promptConfig.maxTokens,
           systemPrompt: systemPromptWithSummary,
           context: 'rag-chat', // Stratégie optimisée : Gemini → DeepSeek → Ollama
+          operationName: options.operationName, // Configuration par opération
         },
         options.usePremiumModel ?? false // Mode premium si demandé
       )

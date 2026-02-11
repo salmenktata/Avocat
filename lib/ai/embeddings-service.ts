@@ -10,6 +10,7 @@ import OpenAI from 'openai'
 import { aiConfig, getEmbeddingProvider, getEmbeddingFallbackProvider, EMBEDDING_TURBO_CONFIG } from './config'
 import { getCachedEmbedding, setCachedEmbedding } from '@/lib/cache/embedding-cache'
 import { countTokens } from './token-utils'
+import { getOperationConfig, type OperationName } from './operations-config'
 
 // =============================================================================
 // CIRCUIT BREAKER PATTERN
@@ -188,6 +189,8 @@ export interface BatchEmbeddingResult {
 
 export interface EmbeddingOptions {
   forceTurbo?: boolean
+  /** Type d'opération pour utiliser la configuration spécifique */
+  operationName?: OperationName
 }
 
 interface OllamaEmbeddingResponse {
@@ -426,8 +429,17 @@ export async function generateEmbedding(
     }
   }
 
-  const provider = getEmbeddingProvider()
-  const fallbackProvider = getEmbeddingFallbackProvider()
+  // Si operationName fourni, utiliser sa config embeddings
+  let provider: 'ollama' | 'openai' | null = getEmbeddingProvider()
+  let fallbackProvider: 'ollama' | 'openai' | null = getEmbeddingFallbackProvider()
+
+  if (options?.operationName) {
+    const opConfig = getOperationConfig(options.operationName)
+    if (opConfig.embeddings) {
+      provider = opConfig.embeddings.provider
+      fallbackProvider = opConfig.embeddings.fallbackProvider || fallbackProvider
+    }
+  }
 
   // Mode turbo : OpenAI direct (si disponible)
   if (turbo && aiConfig.openai.apiKey) {
@@ -551,8 +563,18 @@ export async function generateEmbeddingsBatch(
   }
 
   const turbo = options?.forceTurbo || EMBEDDING_TURBO_CONFIG.enabled
-  const provider = getEmbeddingProvider()
-  const fallbackProvider = getEmbeddingFallbackProvider()
+
+  // Si operationName fourni, utiliser sa config embeddings
+  let provider: 'ollama' | 'openai' | null = getEmbeddingProvider()
+  let fallbackProvider: 'ollama' | 'openai' | null = getEmbeddingFallbackProvider()
+
+  if (options?.operationName) {
+    const opConfig = getOperationConfig(options.operationName)
+    if (opConfig.embeddings) {
+      provider = opConfig.embeddings.provider
+      fallbackProvider = opConfig.embeddings.fallbackProvider || fallbackProvider
+    }
+  }
 
   // Mode turbo : OpenAI batch natif (très rapide)
   if (turbo && aiConfig.openai.apiKey) {

@@ -29,6 +29,7 @@
     "test:classification-apis": "npx tsx scripts/test-classification-apis.ts",
     "test:categories": "npx tsx scripts/test-category-translations.ts",
     "test:category-alignment": "npx tsx scripts/test-category-alignment.ts",
+    "test:operations-config": "npx tsx scripts/test-operations-config.ts",
     "test:delete-source": "npx tsx scripts/test-delete-source-complete.ts",
     "test:acquisition-pipeline": "npx tsx scripts/test-acquisition-pipeline.ts",
     "test:metadata-enrichment": "npx tsx scripts/test-metadata-enrichment.ts",

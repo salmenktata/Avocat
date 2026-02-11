@@ -158,6 +158,7 @@ export async function POST(
       conversationId: activeConversationId,
       includeJurisprudence,
       usePremiumModel,
+      operationName: 'assistant-ia', // Configuration optimisée pour chat temps réel
     })
 
     // Sauvegarder la réponse assistant
@@ -401,6 +402,7 @@ async function handleStreamingResponse(
     conversationId,
     includeJurisprudence,
     usePremiumModel,
+    operationName: 'assistant-ia', // Configuration optimisée pour chat temps réel
   })
 
   // On a la réponse complète, maintenant on va la streamer
