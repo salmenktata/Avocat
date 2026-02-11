@@ -85,12 +85,31 @@ async function loadPdfToImg(): Promise<typeof import('pdf-to-img')> {
 // CONVERSION .DOC → .DOCX VIA LIBREOFFICE
 // =============================================================================
 
+// Mutex pour sérialiser les conversions LibreOffice (1 à la fois)
+// Plusieurs instances LibreOffice concurrentes crashent le container
+let libreOfficeLock: Promise<void> = Promise.resolve()
+
 /**
  * Convertit un ancien .doc (OLE2) vers .docx (OOXML) via LibreOffice headless
+ * Sérialisé via mutex : une seule conversion à la fois
  * @param buffer Buffer du fichier .doc
  * @returns Buffer du fichier .docx converti
  */
 async function convertDocToDocx(buffer: Buffer): Promise<Buffer> {
+  // Attendre la fin de la conversion précédente
+  let release: () => void
+  const prev = libreOfficeLock
+  libreOfficeLock = new Promise<void>(resolve => { release = resolve })
+  await prev
+
+  try {
+    return await convertDocToDocxInternal(buffer)
+  } finally {
+    release!()
+  }
+}
+
+async function convertDocToDocxInternal(buffer: Buffer): Promise<Buffer> {
   const { promises: fs } = await import('fs')
   const { tmpdir } = await import('os')
   const { join } = await import('path')
