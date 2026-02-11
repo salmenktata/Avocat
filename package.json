@@ -106,7 +106,9 @@
     "check:9anoun": "DB_PASSWORD=\"prod_secure_password_2026\" npx tsx scripts/check-9anoun-coc-pages.ts",
     "optimize:crawlers": "npx tsx scripts/optimize-crawlers.ts",
     "optimize:crawlers:dry-run": "npx tsx scripts/optimize-crawlers.ts --dry-run",
-    "optimize:crawler": "npx tsx scripts/optimize-crawlers.ts --source"
+    "optimize:crawler": "npx tsx scripts/optimize-crawlers.ts --source",
+    "test:dossiers-routes": "tsx scripts/test-dossiers-routes.ts",
+    "test:dossiers-routes:prod": "TEST_ENV=production tsx scripts/test-dossiers-routes.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",

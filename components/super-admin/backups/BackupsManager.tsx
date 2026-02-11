@@ -87,7 +87,13 @@ export default function BackupsManager() {
 
       if (!res.ok || !json.success) {
         if (json.error === 'Script de backup non trouvé') {
-          throw new Error('Script de backup non configuré. Cette fonctionnalité n\'est disponible qu\'en production.')
+          throw new Error(
+            'Backup manuel via interface non disponible.\n\n' +
+            'Pour déclencher un backup manuellement, connectez-vous en SSH :\n' +
+            'ssh root@84.247.165.187\n' +
+            'cd /opt/moncabinet && bash backup.sh\n\n' +
+            'Les backups automatiques sont exécutés quotidiennement à 3h via cron.'
+          )
         }
         throw new Error(json.error || 'Échec du backup')
       }
