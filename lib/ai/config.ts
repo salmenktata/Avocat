@@ -122,7 +122,7 @@ export const aiConfig: AIConfig = {
     chunkOverlap: parseInt(process.env.RAG_CHUNK_OVERLAP || '50', 10),
     maxResults: parseInt(process.env.RAG_MAX_RESULTS || '5', 10),
     similarityThreshold: parseFloat(
-      process.env.RAG_SIMILARITY_THRESHOLD || '0.7'
+      process.env.RAG_SIMILARITY_THRESHOLD || '0.55'  // Réduit de 0.7 à 0.55 pour Ollama CPU-only
     ),
   },
 
