@@ -562,7 +562,4 @@ export async function getPageRankStats(): Promise<{
 
 export {
   computePrecedentScores as default,
-  getTopPrecedentsByDomain,
-  getPageRankStats,
-  getHierarchyLevel,
 }

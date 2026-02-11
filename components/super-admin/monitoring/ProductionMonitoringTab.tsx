@@ -1,15 +1,7 @@
 'use client'
 
 /**
- * Dashboard Production Monitoring - Phase 7.3
- *
- * Métriques temps réel :
- * - Volume : Queries/heure, Active users, Peak concurrency
- * - Qualité : Rating moyen, Hallucination rate, Citation accuracy
- * - Performance : Latency P50/P95, Error rate
- * - Coûts : Cost/query, Monthly budget projection
- *
- * Alertes automatiques si dépassement seuils critiques
+ * Tab Production Monitoring - Métriques temps réel
  */
 
 import { useState, useEffect } from 'react'
@@ -35,7 +27,6 @@ import {
 import {
   Activity,
   Users,
-  Zap,
   AlertTriangle,
   CheckCircle2,
   TrendingUp,
@@ -47,24 +38,17 @@ import {
 } from 'lucide-react'
 
 interface ProductionMetrics {
-  // Volume
   queriesPerHour: number
   activeUsers: number
   peakConcurrency: number
-
-  // Qualité
-  averageRating: number // 1-5
-  hallucinationRate: number // %
-  citationAccuracy: number // %
-
-  // Performance
-  latencyP50: number // ms
-  latencyP95: number // ms
-  errorRate: number // %
-
-  // Coûts
-  costPerQuery: number // TND
-  monthlyBudget: number // TND projection
+  averageRating: number
+  hallucinationRate: number
+  citationAccuracy: number
+  latencyP50: number
+  latencyP95: number
+  errorRate: number
+  costPerQuery: number
+  monthlyBudget: number
 }
 
 interface TimeSeriesData {
@@ -92,7 +76,7 @@ const THRESHOLDS = {
   cost_per_query_tnd: 0.05,
 }
 
-export default function ProductionMonitoringPage() {
+export function ProductionMonitoringTab() {
   const [metrics, setMetrics] = useState<ProductionMetrics | null>(null)
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([])
   const [alerts, setAlerts] = useState<AlertConfig[]>([])
@@ -134,7 +118,6 @@ export default function ProductionMonitoringPage() {
   function generateAlerts(metrics: ProductionMetrics): AlertConfig[] {
     const alerts: AlertConfig[] = []
 
-    // Alert 1: Queries/hour
     alerts.push({
       id: 'queries_per_hour',
       name: 'Queries par Heure',
@@ -149,7 +132,6 @@ export default function ProductionMonitoringPage() {
       severity: 'high',
     })
 
-    // Alert 2: Latency P95
     alerts.push({
       id: 'latency_p95',
       name: 'Latence P95',
@@ -164,7 +146,6 @@ export default function ProductionMonitoringPage() {
       severity: 'medium',
     })
 
-    // Alert 3: Error Rate
     alerts.push({
       id: 'error_rate',
       name: 'Taux d\'Erreur',
@@ -179,7 +160,6 @@ export default function ProductionMonitoringPage() {
       severity: 'high',
     })
 
-    // Alert 4: Hallucination Rate
     alerts.push({
       id: 'hallucination_rate',
       name: 'Taux Hallucination',
@@ -194,7 +174,6 @@ export default function ProductionMonitoringPage() {
       severity: 'high',
     })
 
-    // Alert 5: Cost/Query
     alerts.push({
       id: 'cost_per_query',
       name: 'Coût par Requête',
@@ -217,7 +196,7 @@ export default function ProductionMonitoringPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <Activity className="mx-auto h-12 w-12 animate-pulse text-primary" />
           <p className="mt-4 text-muted-foreground">Chargement métriques production...</p>
@@ -228,24 +207,22 @@ export default function ProductionMonitoringPage() {
 
   if (!metrics) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Impossible de charger les métriques. Vérifiez la connexion à la base de données.
-          </AlertDescription>
-        </Alert>
-      </div>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Impossible de charger les métriques. Vérifiez la connexion à la base de données.
+        </AlertDescription>
+      </Alert>
     )
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
+    <div className="space-y-6">
+      {/* Header with controls */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">🚀 Production Monitoring</h1>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl font-semibold">Production Overview</h2>
+          <p className="text-sm text-muted-foreground">
             Métriques temps réel système RAG Qadhya
           </p>
         </div>

@@ -192,8 +192,8 @@ async function executeChain1(
       {
         temperature: CHAIN_CONFIG.chain1.temperature,
         maxTokens: CHAIN_CONFIG.chain1.maxTokens,
-        usePremiumModel: input.usePremiumModel,
-      }
+      },
+      input.usePremiumModel
     )
 
     const parsed = parseChain1Response(response.answer, input.sources)
@@ -388,8 +388,8 @@ async function executeChain2(
       {
         temperature: CHAIN_CONFIG.chain2.temperature,
         maxTokens: CHAIN_CONFIG.chain2.maxTokens,
-        usePremiumModel: input.usePremiumModel,
-      }
+      },
+      input.usePremiumModel
     )
 
     const parsed = parseChain2Response(response.answer)
@@ -554,8 +554,8 @@ async function executeChain3(
       {
         temperature: CHAIN_CONFIG.chain3.temperature,
         maxTokens: CHAIN_CONFIG.chain3.maxTokens,
-        usePremiumModel: input.usePremiumModel,
-      }
+      },
+      input.usePremiumModel
     )
 
     const parsed = parseChain3Response(response.answer)
@@ -748,8 +748,8 @@ async function executeChain4(
       {
         temperature: CHAIN_CONFIG.chain4.temperature,
         maxTokens: CHAIN_CONFIG.chain4.maxTokens,
-        usePremiumModel: input.usePremiumModel,
-      }
+      },
+      input.usePremiumModel
     )
 
     const parsed = parseChain4Response(response.answer)

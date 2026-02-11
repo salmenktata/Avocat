@@ -20,7 +20,7 @@ import {
   VARIANT_CONFIGS,
   type PromptVariant,
 } from '@/lib/ai/prompt-ab-testing-service'
-import { db } from '@/lib/db/postgres'
+import { db, closePool } from '@/lib/db/postgres'
 
 // =============================================================================
 // TESTS
@@ -111,8 +111,8 @@ async function testComparison() {
   const comparison = await compareVariants(30)
 
   console.log(`  Control: ${comparison.control.totalFeedbacks} feedbacks`)
-  console.log(`  Variant A: ${comparison.variantA.totalFeedbacks} feedbacks`)
-  console.log(`  Variant B: ${comparison.variantB.totalFeedbacks} feedbacks`)
+  console.log(`  Variant A: ${comparison.variantA?.totalFeedbacks ?? 0} feedbacks`)
+  console.log(`  Variant B: ${comparison.variantB?.totalFeedbacks ?? 0} feedbacks`)
 
   if (comparison.statisticalSignificance.variantA) {
     const sig = comparison.statisticalSignificance.variantA
@@ -192,7 +192,7 @@ async function main() {
     console.error('\n💥 ÉCHEC :', error)
     process.exit(1)
   } finally {
-    await db.end()
+    await closePool()
   }
 }
 

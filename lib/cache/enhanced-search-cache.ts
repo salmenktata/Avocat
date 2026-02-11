@@ -487,7 +487,4 @@ export async function getEnhancedCacheStats(): Promise<{
 
 export {
   getEnhancedCachedResults as default,
-  setEnhancedCachedResults,
-  invalidateCacheForDomain,
-  getEnhancedCacheStats,
 }

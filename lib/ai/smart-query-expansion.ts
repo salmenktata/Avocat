@@ -12,7 +12,7 @@
  * @module lib/ai/smart-query-expansion
  */
 
-import { redis } from '@/lib/cache/redis'
+import { getRedisClient } from '@/lib/cache/redis'
 import { callLLMWithFallback } from '@/lib/ai/llm-fallback-service'
 
 // =============================================================================
@@ -371,8 +371,8 @@ Réponds UNIQUEMENT avec 3 reformulations séparées par des retours à la ligne
 
     const response = await callLLMWithFallback(
       [{ role: 'user', content: prompt }],
-      false, // Mode rapide
-      { temperature: 0.4, maxTokens: 300 }
+      { temperature: 0.4, maxTokens: 300 },
+      false // Mode rapide
     )
 
     const reformulations = response.answer
@@ -439,6 +439,9 @@ async function getCachedExpansion(
   query: string
 ): Promise<QueryExpansion | null> {
   try {
+    const redis = await getRedisClient()
+    if (!redis) return null
+
     const cacheKey = `${CACHE_PREFIX}${query.toLowerCase()}`
     const cached = await redis.get(cacheKey)
 
@@ -458,8 +461,11 @@ async function cacheExpansion(
   expansion: QueryExpansion
 ): Promise<void> {
   try {
+    const redis = await getRedisClient()
+    if (!redis) return
+
     const cacheKey = `${CACHE_PREFIX}${query.toLowerCase()}`
-    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(expansion))
+    await redis.setEx(cacheKey, CACHE_TTL, JSON.stringify(expansion))
   } catch (error) {
     console.error('[Query Expansion] Erreur cache set:', error)
   }

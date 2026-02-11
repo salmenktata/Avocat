@@ -310,12 +310,4 @@ export function getAllSources(tree: ExplanationTree): SourceReference[] {
 
 export type {
   ExplanationNode as default,
-  ExplanationTree,
-  SourceReference,
-  NodeMetadata,
-  TreeMetadata,
-  TreeSummary,
-  TreeBuildOptions,
-  TreeVisualizationOptions,
-  TreeInteractionEvents,
 }

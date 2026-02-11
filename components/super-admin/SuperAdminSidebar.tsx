@@ -98,13 +98,11 @@ const getNavGroups = (
       { href: '/super-admin/classification', label: 'Classification', icon: 'barChart' },
     ],
   },
-  // Groupe 5: Monitoring (NOUVEAU - Fusion production-monitoring + provider-usage + ai-costs)
+  // Groupe 5: Monitoring (Dashboard unifié + Quotas)
   {
     group: 'Monitoring',
     items: [
-      { href: '/super-admin/production-monitoring', label: 'Monitoring Production', icon: 'activity' },
-      { href: '/super-admin/provider-usage', label: 'Usage Providers', icon: 'pieChart' },
-      { href: '/super-admin/ai-costs', label: 'Coûts IA', icon: 'dollar' },
+      { href: '/super-admin/monitoring', label: 'Dashboard Monitoring', icon: 'activity' },
       { href: '/super-admin/quotas', label: 'Quotas & Alertes', icon: 'chartBar' },
     ],
   },

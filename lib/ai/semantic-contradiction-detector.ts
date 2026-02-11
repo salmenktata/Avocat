@@ -278,8 +278,8 @@ async function inferNLI(
       {
         temperature: 0.1, // Précision maximale
         maxTokens: 500,
-        usePremiumModel,
-      }
+      },
+      usePremiumModel
     )
 
     const parsed = parseNLIResponse(response.answer)

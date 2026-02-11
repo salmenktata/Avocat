@@ -102,7 +102,7 @@ export async function hybridSearch(
   try {
     // 1. Générer embedding pour recherche dense
     const queryEmbedding = await generateEmbedding(query)
-    const embeddingStr = formatEmbeddingForPostgres(queryEmbedding)
+    const embeddingStr = formatEmbeddingForPostgres(queryEmbedding.embedding)
 
     // 2. Exécuter recherche hybride (BM25 + Dense + RRF) via SQL
     const sqlQuery = `
@@ -148,14 +148,15 @@ export async function hybridSearch(
       const candidatesForRerank = hybridResults.slice(0, Math.min(30, hybridResults.length))
 
       const documentsToRerank: DocumentToRerank[] = candidatesForRerank.map(r => ({
-        id: r.chunkId,
         content: r.content,
+        originalScore: r.rrfScore,
       }))
 
       const reranked = await rerankDocuments(query, documentsToRerank)
 
       // Fusionner scores reranking avec résultats hybrides
-      const rerankMap = new Map(reranked.map(r => [r.id, r.score]))
+      // reranked contient des index qui correspondent aux positions dans candidatesForRerank
+      const rerankMap = new Map(reranked.map(r => [candidatesForRerank[r.index].chunkId, r.score]))
 
       hybridResults = hybridResults.map(r => ({
         ...r,
@@ -221,7 +222,7 @@ async function fallbackDenseSearch(
 }> {
   try {
     const queryEmbedding = await generateEmbedding(query)
-    const embeddingStr = formatEmbeddingForPostgres(queryEmbedding)
+    const embeddingStr = formatEmbeddingForPostgres(queryEmbedding.embedding)
 
     const sqlQuery = `
       SELECT
@@ -325,4 +326,4 @@ export async function bm25SearchOnly(
 // EXPORTS
 // =============================================================================
 
-export { hybridSearch as default, bm25SearchOnly }
+export { hybridSearch as default }

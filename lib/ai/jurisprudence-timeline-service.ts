@@ -533,4 +533,4 @@ export async function getEventDetails(eventId: string): Promise<TimelineEvent | 
 // EXPORTS
 // =============================================================================
 
-export { buildJurisprudenceTimeline as default, getAvailableDomains, getEventDetails }
+export { buildJurisprudenceTimeline as default }
