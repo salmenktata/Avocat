@@ -15,5 +15,3 @@
 
 export { LoadingOverlay, useLoadingOverlay } from './LoadingOverlay'
 export { ToastManager, useToastNotifications, ToastCleanupProvider } from './ToastManager'
-export { GlobalErrorBoundary } from './GlobalErrorBoundary'
-export { FeatureErrorBoundary, useFeatureErrorBoundary } from './FeatureErrorBoundary'
