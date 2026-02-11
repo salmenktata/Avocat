@@ -7,10 +7,9 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // TypeScript: Sprint 3-6 errors fixed (0 tsc errors), but Next.js 15 params
-  // syntax in 33 route handlers still requires ignoreBuildErrors temporarily
+  // TypeScript: Sprint 7 - All errors fixed
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   // Mode standalone requis pour Docker production
   output: 'standalone',
