@@ -17,7 +17,7 @@ export async function POST(
   try {
     // Vérifier l'authentification
     const session = await getSession()
-    if (!session?.userId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
