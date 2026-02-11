@@ -459,4 +459,4 @@ export function findLowConfidenceNodes(tree: ExplanationTree): ExplanationNode[]
 // EXPORTS
 // =============================================================================
 
-export { buildExplanationTree as default, findNodesByType, findControversialNodes, findLowConfidenceNodes }
+export { buildExplanationTree as default }

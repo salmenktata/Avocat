@@ -30,7 +30,7 @@ interface SuperAdminSidebarProps {
   pendingTaxonomySuggestions?: number
 }
 
-// Navigation Super Admin
+// Navigation Super Admin - Refonte Consolidation (Feb 2026)
 const getNavGroups = (
   pendingCount: number,
   unreadNotifications: number,
@@ -38,19 +38,14 @@ const getNavGroups = (
   pendingContradictions: number,
   pendingTaxonomySuggestions: number
 ): NavGroup[] => [
+  // Groupe 1: Vue d'ensemble
   {
     group: 'Vue d\'ensemble',
     items: [
       { href: '/super-admin/dashboard', label: 'Tableau de bord', icon: 'dashboard' },
-      {
-        href: '/super-admin/notifications',
-        label: 'Notifications',
-        icon: 'bell',
-        badge: unreadNotifications || undefined,
-        badgeVariant: 'destructive' as const
-      },
     ],
   },
+  // Groupe 2: Gestion
   {
     group: 'Gestion',
     items: [
@@ -61,9 +56,9 @@ const getNavGroups = (
         badge: pendingCount || undefined,
         badgeVariant: 'destructive' as const
       },
-      { href: '/super-admin/plans', label: 'Plans & Abonnements', icon: 'creditCard' },
     ],
   },
+  // Groupe 3: Contenu (⚠️ NE PAS MODIFIER - Travail crawling/indexation prod)
   {
     group: 'Contenu',
     items: [
@@ -79,13 +74,17 @@ const getNavGroups = (
       },
     ],
   },
+  // Groupe 4: Qualité (6 outils de monitoring qualité)
   {
     group: 'Qualité',
     items: [
+      { href: '/super-admin/kb-quality-review', label: 'KB Quality Review', icon: 'clipboardCheck' },
+      { href: '/super-admin/legal-quality', label: 'Legal Quality', icon: 'shield' },
+      { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'search' },
       {
         href: '/super-admin/content-review',
         label: 'Revue de contenu',
-        icon: 'clipboardCheck',
+        icon: 'fileText',
         badge: pendingReviews || undefined,
         badgeVariant: 'destructive' as const
       },
@@ -97,17 +96,23 @@ const getNavGroups = (
         badgeVariant: 'secondary' as const
       },
       { href: '/super-admin/classification', label: 'Classification', icon: 'barChart' },
-      { href: '/super-admin/classification/metrics', label: 'Métriques Classif.', icon: 'activity' },
-      { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'search' },
     ],
   },
+  // Groupe 5: Monitoring (NOUVEAU - Fusion production-monitoring + provider-usage + ai-costs)
+  {
+    group: 'Monitoring',
+    items: [
+      { href: '/super-admin/production-monitoring', label: 'Monitoring Production', icon: 'activity' },
+      { href: '/super-admin/provider-usage', label: 'Usage Providers', icon: 'pieChart' },
+      { href: '/super-admin/ai-costs', label: 'Coûts IA', icon: 'dollar' },
+      { href: '/super-admin/quotas', label: 'Quotas & Alertes', icon: 'chartBar' },
+    ],
+  },
+  // Groupe 6: Système
   {
     group: 'Système',
     items: [
       { href: '/super-admin/settings', label: 'Configuration', icon: 'settings' },
-      { href: '/super-admin/ai-costs', label: 'Coûts IA', icon: 'dollar' },
-      { href: '/super-admin/provider-usage', label: 'Monitoring Providers', icon: 'activity' },
-      { href: '/super-admin/quotas', label: 'Quotas & Alertes', icon: 'activity' },
       { href: '/super-admin/audit-logs', label: 'Journal d\'audit', icon: 'shield' },
       { href: '/super-admin/backups', label: 'Sauvegardes', icon: 'database' },
     ],

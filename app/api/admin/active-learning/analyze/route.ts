@@ -9,8 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/auth-options'
+import { getSession } from '@/lib/auth/session'
 import { findKnowledgeGaps } from '@/lib/ai/active-learning-service'
 
 // =============================================================================
@@ -20,18 +19,13 @@ import { findKnowledgeGaps } from '@/lib/ai/active-learning-service'
 export async function GET(request: NextRequest) {
   try {
     // Authentification admin
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
     // Vérifier rôle admin/super-admin
-    const { db } = await import('@/lib/db/postgres')
-    const userResult = await db.query(
-      `SELECT role FROM users WHERE id = $1`,
-      [session.user.id]
-    )
-    const userRole = userResult.rows[0]?.role
+    const userRole = session.user.role
     if (userRole !== 'admin' && userRole !== 'super-admin') {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }

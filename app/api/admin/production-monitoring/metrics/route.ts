@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 
 /**
@@ -17,8 +17,8 @@ import { db } from '@/lib/db/postgres'
 export async function GET(req: NextRequest) {
   try {
     // 1. Authentification admin
-    const session = await getServerSession()
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    const session = await getSession()
+    if (!session?.user || (session.user.role !== 'admin' && session.user.role !== 'super-admin')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -152,7 +152,7 @@ async function calculateMetrics(interval: string) {
   return {
     // Volume
     queriesPerHour,
-    activeUsers,
+    activeUsers: active_users,
     peakConcurrency,
 
     // Qualité

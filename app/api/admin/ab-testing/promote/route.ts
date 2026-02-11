@@ -10,24 +10,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/auth-options'
+import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { VARIANT_CONFIGS } from '@/lib/ai/prompt-ab-testing-service'
 
 export async function POST(request: NextRequest) {
   try {
     // Auth super-admin uniquement
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    const userResult = await db.query(
-      `SELECT role FROM users WHERE id = $1`,
-      [session.user.id]
-    )
-    const userRole = userResult.rows[0]?.role
+    const userRole = session.user.role
     if (userRole !== 'super-admin') {
       return NextResponse.json(
         { error: 'Accès refusé (super-admin requis)' },
@@ -37,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     // Parser body
     const body = await request.json()
-    const { variant } = body
+    const { variant }: { variant: 'variant_a' | 'variant_b' } = body
 
     if (variant !== 'variant_a' && variant !== 'variant_b') {
       return NextResponse.json(

@@ -11,6 +11,11 @@
 
 1. [Introduction](#1-introduction)
 2. [Architecture Système](#2-architecture-système)
+   - 2.1 [Stack Technique](#21-stack-technique)
+   - 2.2 [Base de Données PostgreSQL](#22-base-de-données-postgresql)
+   - 2.3 [Organisation Menu Super Admin](#23-organisation-menu-super-admin) ⭐ NOUVEAU
+   - 2.4 [Redis Cache](#24-redis-cache)
+   - 2.5 [MinIO Storage](#25-minio-storage)
 3. [Gestion Base de Connaissances](#3-gestion-base-de-connaissances)
 4. [Monitoring & Métriques](#4-monitoring--métriques)
 5. [Gestion Utilisateurs](#5-gestion-utilisateurs)
@@ -121,7 +126,55 @@ CREATE INDEX idx_ai_usage_logs_provider ON ai_usage_logs(provider, operation, cr
 
 **⚠️ Maintenance** : Exécuter `VACUUM ANALYZE` hebdomadairement sur tables volumineuses.
 
-### 2.3 Redis Cache
+### 2.3 Organisation Menu Super Admin
+
+Le menu Super Admin est organisé en **6 groupes logiques** pour une navigation optimale :
+
+#### Groupe 1 : Vue d'ensemble
+- **Tableau de bord** (`/dashboard`) : Métriques clés et statistiques globales
+
+#### Groupe 2 : Gestion
+- **Utilisateurs** (`/users`) : Gestion comptes, approbations, rôles
+
+#### Groupe 3 : Contenu
+⚠️ **CRITIQUE** : Ne pas modifier sans validation - Système crawling/indexation production
+- **Base de connaissances** (`/knowledge-base`) : Upload, indexation, gestion KB
+- **Sources Web** (`/web-sources`) : Configuration crawlers, monitoring jobs
+- **Fichiers Web** (`/web-files`) : Fichiers crawlés (HTML, DOCX, PDFs)
+- **Taxonomie** (`/taxonomy`) : Catégories, domaines juridiques, suggestions
+
+#### Groupe 4 : Qualité
+6 outils de monitoring qualité données et RAG :
+- **KB Quality Review** (`/kb-quality-review`) : Validation manuelle métadonnées + gamification
+- **Legal Quality** (`/legal-quality`) : 8 KPIs juridiques RAG (hallucinations, citations)
+- **Audit RAG** (`/rag-audit`) : Analyse complète qualité (sources, chunking, embeddings)
+- **Revue de contenu** (`/content-review`) : Modération contenu utilisateurs
+- **Contradictions** (`/contradictions`) : Détection conflits juridiques
+- **Classification** (`/classification`) : Catégorisation automatique documents
+
+#### Groupe 5 : Monitoring
+Surveillance infrastructure et coûts IA :
+- **Monitoring Production** (`/production-monitoring`) : Métriques temps réel (latence, volume, qualité)
+- **Usage Providers** (`/provider-usage`) : Matrice heatmap provider × opération
+- **Coûts IA** (`/ai-costs`) : Analyse coûts LLM 30 jours, top users
+- **Quotas & Alertes** (`/quotas`) : Limites API, seuils alertes
+
+#### Groupe 6 : Système
+Configuration et administration :
+- **Configuration** (`/settings`) : Paramètres globaux, providers IA, API keys
+- **Journal d'audit** (`/audit-logs`) : Logs actions admin, sécurité
+- **Sauvegardes** (`/backups`) : Backup/restore PostgreSQL, MinIO
+
+#### Pages Migrées/Supprimées
+
+**Refonte Février 2026** :
+- ✅ **Migré** : `/rag-audit` depuis `(authenticated)/super-admin/` → `/super-admin/` (lien fixé)
+- ✅ **Migré** : `/kb-quality` depuis `(authenticated)/super-admin/` → `/super-admin/` (ré-analyse batch)
+- ❌ **Supprimé** : `/settings/providers` (interface dépréciée → fusionnée dans `/settings` tab "Architecture IA")
+
+**⚠️ Note** : Les dossiers `(authenticated)/super-admin/` ont été nettoyés pour centraliser toutes les pages dans `/super-admin/`.
+
+### 2.4 Redis Cache
 
 #### Structure Cache
 
@@ -141,7 +194,7 @@ redis-cli INFO stats
 redis-cli FLUSHDB
 ```
 
-### 2.4 MinIO Storage
+### 2.5 MinIO Storage
 
 #### Buckets
 

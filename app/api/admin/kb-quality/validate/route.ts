@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Transaction pour atomicité
-    const client = await db.pool.connect()
+    const client = await db.getClient()
     try {
       await client.query('BEGIN')
 
