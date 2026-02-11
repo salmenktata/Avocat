@@ -49,7 +49,10 @@
     "modeRapide": "Mode Rapide",
     "consultation": "Consultation",
     "structurationIA": "Structuration IA",
-    "conseilIA": "Conseil Juridique"
+    "conseilIA": "Conseil Juridique",
+    "knowledgeBaseExplorer": "Explorateur KB",
+    "jurisprudenceTimeline": "Timeline Jurisprudence",
+    "legalReasoning": "Raisonnement IRAC"
   },
   "breadcrumbs": {
     "home": "Accueil",
@@ -62,6 +65,7 @@
     "finance": "Finance",
     "documents": "Documents",
     "intelligence": "Qadhya IA",
+    "research": "Recherche Juridique",
     "système": "Système"
   },
   "auth": {

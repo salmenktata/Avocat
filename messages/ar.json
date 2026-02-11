@@ -49,7 +49,10 @@
     "modeRapide": "الوضع السريع",
     "consultation": "استشارة",
     "structurationIA": "هيكلة بالذكاء الاصطناعي",
-    "conseilIA": "استشارة قانونية"
+    "conseilIA": "استشارة قانونية",
+    "knowledgeBaseExplorer": "مستكشف قاعدة المعرفة",
+    "jurisprudenceTimeline": "الخط الزمني للاجتهاد القضائي",
+    "legalReasoning": "التفكير القانوني IRAC"
   },
   "breadcrumbs": {
     "home": "الرئيسية",
@@ -62,6 +65,7 @@
     "finance": "المالية",
     "documents": "الوثائق",
     "intelligence": "قضية - ذكاء اصطناعي",
+    "research": "البحث القانوني",
     "système": "النظام"
   },
   "auth": {

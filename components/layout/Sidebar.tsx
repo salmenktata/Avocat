@@ -52,6 +52,15 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
     ],
   },
   {
+    group: 'Research',
+    groupIcon: 'search',
+    items: [
+      { href: '/client/knowledge-base', label: 'knowledgeBaseExplorer', icon: 'bookOpen' },
+      { href: '/client/jurisprudence-timeline', label: 'jurisprudenceTimeline', icon: 'history' },
+      { href: '/client/legal-reasoning', label: 'legalReasoning', icon: 'lightbulb' },
+    ],
+  },
+  {
     group: 'Finance',
     items: [
       { href: '/factures', label: 'factures', icon: 'invoices' },
