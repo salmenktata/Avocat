@@ -63,7 +63,7 @@ interface LegalReasoningResponse {
 
 export default function LegalReasoningPage() {
   const [question, setQuestion] = useState('')
-  const [domain, setDomain] = useState<string>('')
+  const [domain, setDomain] = useState<string>('all')
   const [language, setLanguage] = useState<'fr' | 'ar'>('fr')
   const [includeAlternatives, setIncludeAlternatives] = useState(false)
 
@@ -87,7 +87,7 @@ export default function LegalReasoningPage() {
     try {
       const body: LegalReasoningRequest = {
         question: question.trim(),
-        domain: domain || undefined,
+        domain: domain === 'all' ? undefined : domain,
         maxDepth: 3,
         language,
         includeAlternatives,
@@ -115,7 +115,7 @@ export default function LegalReasoningPage() {
 
   const handleReset = () => {
     setQuestion('')
-    setDomain('')
+    setDomain('all')
     setLanguage('fr')
     setIncludeAlternatives(false)
     setResult(null)
@@ -210,7 +210,7 @@ export default function LegalReasoningPage() {
                     <SelectValue placeholder="Tous les domaines" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Tous les domaines</SelectItem>
+                    <SelectItem value="all">Tous les domaines</SelectItem>
                     <SelectItem value="civil">Civil</SelectItem>
                     <SelectItem value="commercial">Commercial</SelectItem>
                     <SelectItem value="penal">Pénal</SelectItem>
