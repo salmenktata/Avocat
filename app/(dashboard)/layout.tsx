@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { GlobalKeyboardShortcuts } from '@/components/ui/KeyboardShortcuts'
 import { Toaster } from '@/components/ui/toaster'
+import { GlobalErrorBoundary } from '@/components/providers/GlobalErrorBoundary'
+import { ToastManager, LoadingOverlay } from '@/components/feedback'
 
 export default async function DashboardLayout({
   children,
@@ -26,7 +28,7 @@ export default async function DashboardLayout({
   const userRole = userResult.rows[0]?.role || 'user'
 
   return (
-    <>
+    <GlobalErrorBoundary>
       <AppLayout
         user={{
           email: session.user.email!,
@@ -39,6 +41,8 @@ export default async function DashboardLayout({
       </AppLayout>
       <GlobalKeyboardShortcuts />
       <Toaster />
-    </>
+      <ToastManager />
+      <LoadingOverlay />
+    </GlobalErrorBoundary>
   )
 }

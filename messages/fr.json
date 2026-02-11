@@ -26,7 +26,8 @@
     "optional": "Optionnel",
     "required": "Obligatoire",
     "settings": "Paramètres",
-    "profile": "Profil"
+    "profile": "Profil",
+    "operationsInProgress": "opérations en cours"
   },
   "nav": {
     "dashboard": "Tableau de bord",

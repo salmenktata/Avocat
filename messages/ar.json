@@ -26,7 +26,8 @@
     "optional": "اختياري",
     "required": "إلزامي",
     "settings": "الإعدادات",
-    "profile": "الملف الشخصي"
+    "profile": "الملف الشخصي",
+    "operationsInProgress": "عمليات قيد التنفيذ"
   },
   "nav": {
     "dashboard": "لوحة التحكم",
