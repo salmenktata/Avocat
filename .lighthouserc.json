@@ -1,0 +1,67 @@
+{
+  "ci": {
+    "collect": {
+      "url": [
+        "http://localhost:7002/client/knowledge-base",
+        "http://localhost:7002/client/jurisprudence-timeline"
+      ],
+      "numberOfRuns": 3,
+      "settings": {
+        "preset": "desktop",
+        "throttling": {
+          "rttMs": 40,
+          "throughputKbps": 10240,
+          "cpuSlowdownMultiplier": 1
+        },
+        "screenEmulation": {
+          "mobile": false,
+          "width": 1350,
+          "height": 940,
+          "deviceScaleFactor": 1,
+          "disabled": false
+        }
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.9 }],
+        "categories:accessibility": ["error", { "minScore": 0.95 }],
+        "categories:best-practices": ["warn", { "minScore": 0.9 }],
+        "categories:seo": ["warn", { "minScore": 0.85 }],
+
+        "first-contentful-paint": ["warn", { "maxNumericValue": 2000 }],
+        "largest-contentful-paint": ["warn", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["warn", { "maxNumericValue": 300 }],
+        "speed-index": ["warn", { "maxNumericValue": 3000 }],
+
+        "interactive": ["warn", { "maxNumericValue": 3500 }],
+        "max-potential-fid": ["warn", { "maxNumericValue": 130 }],
+
+        "uses-text-compression": "off",
+        "uses-rel-preconnect": "off",
+        "offscreen-images": "warn",
+        "unused-javascript": "warn",
+        "modern-image-formats": "off",
+        "uses-optimized-images": "off",
+        "unminified-javascript": "error",
+        "unminified-css": "error",
+
+        "aria-allowed-attr": "error",
+        "aria-required-attr": "error",
+        "aria-valid-attr": "error",
+        "button-name": "error",
+        "link-name": "error",
+        "image-alt": "error",
+        "label": "error",
+        "color-contrast": "warn",
+
+        "viewport": "error",
+        "document-title": "error"
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}

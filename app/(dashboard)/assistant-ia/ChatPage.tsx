@@ -1,12 +1,17 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+/**
+ * ChatPage - Assistant IA
+ *
+ * Sprint 6 - Migration React Query
+ * Utilise hooks personnalisés pour cache intelligent et optimistic updates
+ */
+
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { useToast } from '@/lib/hooks/use-toast'
 import { FeatureErrorBoundary } from '@/components/providers/FeatureErrorBoundary'
@@ -21,6 +26,12 @@ import {
   type ChatMessage,
   type ChatSource,
 } from '@/components/assistant-ia'
+import {
+  useConversationList,
+  useConversation,
+  useSendMessage,
+  useDeleteConversation,
+} from '@/lib/hooks/useConversations'
 
 interface ChatPageProps {
   userId: string
@@ -31,180 +42,97 @@ export function ChatPage({ userId }: ChatPageProps) {
   const router = useRouter()
   const { toast } = useToast()
 
-  // State
-  const [conversations, setConversations] = useState<Conversation[]>([])
+  // State (réduit grâce à React Query)
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [isLoadingConversations, setIsLoadingConversations] = useState(true)
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
-  const [isSending, setIsSending] = useState(false)
   const [streamingContent, setStreamingContent] = useState<string>('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showCreateDossier, setShowCreateDossier] = useState(false)
 
-  // Charger les conversations
-  const loadConversations = useCallback(async () => {
-    try {
-      setIsLoadingConversations(true)
-      const response = await fetch('/api/chat')
-      if (!response.ok) throw new Error('Erreur chargement conversations')
-      const data = await response.json()
-      setConversations(data.conversations || [])
-    } catch (error) {
-      console.error('Erreur chargement conversations:', error)
-      toast({
-        title: t('error'),
-        description: t('errorLoadingConversations'),
-        variant: 'destructive',
-      })
-    } finally {
-      setIsLoadingConversations(false)
-    }
-  }, [toast, t])
+  // React Query hooks - Cache automatique
+  const {
+    data: conversationsData,
+    isLoading: isLoadingConversations,
+  } = useConversationList({
+    sortBy: 'updatedAt',
+    sortOrder: 'desc',
+    limit: 50,
+  })
 
-  // Charger les messages d'une conversation
-  const loadMessages = useCallback(async (conversationId: string) => {
-    try {
-      setIsLoadingMessages(true)
-      const response = await fetch(`/api/chat?conversationId=${conversationId}`)
-      if (!response.ok) throw new Error('Erreur chargement messages')
-      const data = await response.json()
-      setMessages(
-        (data.messages || []).map((m: any) => ({
-          ...m,
-          createdAt: new Date(m.createdAt),
-        }))
-      )
-    } catch (error) {
-      console.error('Erreur chargement messages:', error)
-      toast({
-        title: t('error'),
-        description: t('errorLoadingMessages'),
-        variant: 'destructive',
-      })
-    } finally {
-      setIsLoadingMessages(false)
-    }
-  }, [toast, t])
+  const {
+    data: selectedConversation,
+    isLoading: isLoadingMessages,
+  } = useConversation(selectedConversationId || '', {
+    enabled: !!selectedConversationId,
+  })
 
-  // Charger au montage
-  useEffect(() => {
-    loadConversations()
-  }, [loadConversations])
-
-  // Charger les messages quand une conversation est sélectionnée
-  useEffect(() => {
-    if (selectedConversationId) {
-      loadMessages(selectedConversationId)
-    } else {
-      setMessages([])
-    }
-  }, [selectedConversationId, loadMessages])
-
-  // Sélectionner une conversation
-  const handleSelectConversation = (id: string) => {
-    setSelectedConversationId(id)
-    setSidebarOpen(false)
-  }
-
-  // Nouvelle conversation
-  const handleNewConversation = () => {
-    setSelectedConversationId(null)
-    setMessages([])
-    setSidebarOpen(false)
-  }
-
-  // Supprimer une conversation
-  const handleDeleteConversation = async (id: string) => {
-    try {
-      const response = await fetch(`/api/chat?conversationId=${id}`, {
-        method: 'DELETE',
-      })
-      if (!response.ok) throw new Error('Erreur suppression')
-
-      // Mettre à jour la liste
-      setConversations((prev) => prev.filter((c) => c.id !== id))
-
-      // Si c'était la conversation active, la désélectionner
-      if (selectedConversationId === id) {
-        setSelectedConversationId(null)
-        setMessages([])
+  // Mutations avec optimistic updates
+  const { mutate: sendMessage, isPending: isSending } = useSendMessage({
+    onSuccess: (data) => {
+      // Si nouvelle conversation, la sélectionner
+      if (!selectedConversationId && data.conversation.id) {
+        setSelectedConversationId(data.conversation.id)
       }
+    },
+    onError: (error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('errorSendingMessage'),
+        variant: 'destructive',
+      })
+    },
+  })
 
+  const { mutate: deleteConversation } = useDeleteConversation({
+    onSuccess: () => {
       toast({
         title: t('success'),
         description: t('conversationDeleted'),
       })
-    } catch (error) {
-      console.error('Erreur suppression:', error)
+    },
+    onError: (error) => {
       toast({
         title: t('error'),
         description: t('errorDeletingConversation'),
         variant: 'destructive',
       })
-    }
+    },
+  })
+
+  // Données dérivées
+  const conversations = conversationsData?.conversations || []
+  const messages = selectedConversation?.messages || []
+
+  // Handlers simplifiés
+  const handleSelectConversation = (id: string) => {
+    setSelectedConversationId(id)
+    setSidebarOpen(false)
   }
 
-  // Envoyer un message
-  const handleSendMessage = async (content: string) => {
-    try {
-      setIsSending(true)
+  const handleNewConversation = () => {
+    setSelectedConversationId(null)
+    setSidebarOpen(false)
+  }
 
-      // Ajouter le message utilisateur localement
-      const userMessage: ChatMessage = {
-        id: `temp-${Date.now()}`,
-        role: 'user',
-        content,
-        createdAt: new Date(),
-      }
-      setMessages((prev) => [...prev, userMessage])
-
-      // Appeler l'API
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: content,
-          conversationId: selectedConversationId,
-          includeJurisprudence: true,
-        }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Erreur envoi message')
-      }
-
-      const data = await response.json()
-
-      // Ajouter la réponse de l'assistant
-      const assistantMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
-        role: 'assistant',
-        content: data.answer,
-        sources: data.sources,
-        createdAt: new Date(),
-      }
-      setMessages((prev) => [...prev, assistantMessage])
-
-      // Si nouvelle conversation, la sélectionner et recharger la liste
-      if (!selectedConversationId && data.conversationId) {
-        setSelectedConversationId(data.conversationId)
-        loadConversations()
-      }
-    } catch (error) {
-      console.error('Erreur envoi message:', error)
-      toast({
-        title: t('error'),
-        description: error instanceof Error ? error.message : t('errorSendingMessage'),
-        variant: 'destructive',
-      })
-      // Retirer le message utilisateur en cas d'erreur
-      setMessages((prev) => prev.slice(0, -1))
-    } finally {
-      setIsSending(false)
-      setStreamingContent('')
+  const handleDeleteConversation = (id: string) => {
+    // Si c'était la conversation active, la désélectionner
+    if (selectedConversationId === id) {
+      setSelectedConversationId(null)
     }
+
+    // Mutation avec invalidation automatique du cache
+    deleteConversation(id)
+  }
+
+  const handleSendMessage = (content: string) => {
+    // Mutation avec optimistic update automatique
+    sendMessage({
+      conversationId: selectedConversationId || undefined,
+      message: content,
+      usePremiumModel: false, // TODO: lire depuis settings utilisateur
+      maxDepth: 2,
+    })
+
+    setStreamingContent('')
   }
 
   // Créer un dossier depuis la conversation
@@ -284,7 +212,7 @@ export function ChatPage({ userId }: ChatPageProps) {
               <AdvancedSearch
                 onSelectConversation={(id) => {
                   setSelectedConversationId(id)
-                  loadMessages(id)
+                  // Messages chargés automatiquement par useConversation(id)
                 }}
               />
 
