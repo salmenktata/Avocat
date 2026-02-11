@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { deleteClientAction } from '@/app/actions/clients'
+import { usePrefetchClient } from '@/lib/hooks/useClients'
 
 interface ClientCardProps {
   client: any
@@ -13,6 +14,7 @@ interface ClientCardProps {
 export default function ClientCard({ client }: ClientCardProps) {
   const router = useRouter()
   const t = useTranslations('cards')
+  const prefetchClient = usePrefetchClient()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
@@ -158,6 +160,7 @@ export default function ClientCard({ client }: ClientCardProps) {
         <div className="mt-4 flex gap-2">
           <Link
             href={`/clients/${client.id}`}
+            onMouseEnter={() => prefetchClient(client.id)}
             className="flex-1 rounded-md border border-blue-600 bg-card px-3 py-2 text-center text-sm font-medium text-blue-600 hover:bg-blue-50"
           >
             {t('viewDetails')}

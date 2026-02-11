@@ -281,6 +281,9 @@ export function useConversation(
     enabled: enabled && !!id,
     staleTime,
     gcTime: cacheTime,
+    // Background refresh pour données à jour
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 }
 
@@ -302,6 +305,9 @@ export function useConversationList(params?: ConversationListParams) {
     queryFn: () => fetchConversationList(params),
     staleTime: 1 * 60 * 1000, // 1 minute
     gcTime: 10 * 60 * 1000, // 10 minutes
+    // Background refresh pour données toujours à jour
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 }
 
@@ -443,6 +449,36 @@ export function useDeleteConversation(options?: {
 
   return useMutation({
     mutationFn: deleteConversation,
+    // Optimistic delete
+    onMutate: async (id) => {
+      // Annuler requêtes en cours
+      await queryClient.cancelQueries({ queryKey: conversationKeys.detail(id) })
+      await queryClient.cancelQueries({ queryKey: conversationKeys.lists() })
+
+      // Sauvegarder données actuelles pour rollback
+      const previousConversation = queryClient.getQueryData<Conversation>(
+        conversationKeys.detail(id)
+      )
+      const previousLists = queryClient.getQueriesData({ queryKey: conversationKeys.lists() })
+
+      // Retirer du cache optimistiquement
+      queryClient.removeQueries({ queryKey: conversationKeys.detail(id) })
+
+      // Retourner context pour rollback
+      return { previousConversation, previousLists }
+    },
+    onError: (err, id, context) => {
+      // Rollback en cas d'erreur
+      if (context?.previousConversation) {
+        queryClient.setQueryData(conversationKeys.detail(id), context.previousConversation)
+      }
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data)
+        })
+      }
+      options?.onError?.(err)
+    },
     onSuccess: (_, id) => {
       // Remove from cache
       queryClient.removeQueries({ queryKey: conversationKeys.detail(id) })
@@ -450,7 +486,10 @@ export function useDeleteConversation(options?: {
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
       options?.onSuccess?.()
     },
-    onError: options?.onError,
+    onSettled: () => {
+      // Re-fetch listes pour garantir cohérence
+      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
+    },
   })
 }
 
@@ -477,14 +516,48 @@ export function useUpdateConversationTitle(options?: {
   return useMutation({
     mutationFn: ({ id, title }: { id: string; title: string }) =>
       updateConversationTitle(id, title),
+    // Optimistic update
+    onMutate: async ({ id, title }) => {
+      // Annuler requêtes en cours pour éviter écrasement
+      await queryClient.cancelQueries({ queryKey: conversationKeys.detail(id) })
+
+      // Sauvegarder données actuelles pour rollback
+      const previousConversation = queryClient.getQueryData<Conversation>(
+        conversationKeys.detail(id)
+      )
+
+      // Mettre à jour cache optimistiquement
+      if (previousConversation) {
+        queryClient.setQueryData(conversationKeys.detail(id), {
+          ...previousConversation,
+          title,
+          updatedAt: new Date(),
+        })
+      }
+
+      // Retourner context pour rollback si erreur
+      return { previousConversation }
+    },
+    onError: (err, { id }, context) => {
+      // Rollback en cas d'erreur
+      if (context?.previousConversation) {
+        queryClient.setQueryData(conversationKeys.detail(id), context.previousConversation)
+      }
+      options?.onError?.(err)
+    },
     onSuccess: (data) => {
-      // Update cache
+      // Update cache avec données serveur
       queryClient.setQueryData(conversationKeys.detail(data.id), data)
       // Invalidate lists
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
       options?.onSuccess?.(data)
     },
-    onError: options?.onError,
+    onSettled: (data) => {
+      // Re-fetch pour garantir cohérence
+      if (data) {
+        queryClient.invalidateQueries({ queryKey: conversationKeys.detail(data.id) })
+      }
+    },
   })
 }
 

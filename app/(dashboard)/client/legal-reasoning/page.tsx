@@ -12,7 +12,8 @@
 
 import { useState } from 'react'
 import { ExplanationTreeViewer } from '@/components/client/legal-reasoning/ExplanationTreeViewer'
-import type { ExplanationTree } from '@/components/client/legal-reasoning/ExplanationTreeViewer'
+import type { ExplanationTree, SourceReference } from '@/components/client/legal-reasoning/ExplanationTreeViewer'
+import { SourceDetailsModal } from '@/components/client/legal-reasoning/SourceDetailsModal'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -69,6 +70,7 @@ export default function LegalReasoningPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<LegalReasoningResponse | null>(null)
+  const [selectedSource, setSelectedSource] = useState<SourceReference | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -118,6 +120,44 @@ export default function LegalReasoningPage() {
     setIncludeAlternatives(false)
     setResult(null)
     setError(null)
+  }
+
+  const handleExport = (format: 'pdf' | 'json' | 'markdown', tree: ExplanationTree) => {
+    const timestamp = new Date().toISOString().split('T')[0]
+    const questionSlug = question.slice(0, 50).replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
+
+    if (format === 'json') {
+      // Export JSON
+      const jsonContent = JSON.stringify(tree, null, 2)
+      const blob = new Blob([jsonContent], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `irac-${questionSlug}-${timestamp}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } else if (format === 'markdown') {
+      // Export Markdown (depuis tree.exportFormats)
+      const markdownContent = tree.exportFormats?.markdown || generateMarkdown(tree)
+      const blob = new Blob([markdownContent], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `analyse-irac-${timestamp}.md`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } else if (format === 'pdf') {
+      // TODO Sprint 10.2: Implémenter export PDF avec jsPDF
+      alert('Export PDF bientôt disponible. Utilisez JSON ou Markdown pour l\'instant.')
+    }
+  }
+
+  const generateMarkdown = (tree: ExplanationTree): string => {
+    return `# Analyse Juridique IRAC\n\n**Question** : ${tree.summary.question}\n\n**Date** : ${new Date().toLocaleDateString('fr-FR')}\n\n## Conclusion\n\n${tree.summary.conclusion}\n\n## Règles Applicables\n\n${tree.summary.mainRules.map((rule, i) => `${i + 1}. ${rule}`).join('\n')}\n\n---\n\nGénéré par Qadhya - Assistant Juridique IA`
   }
 
   return (
@@ -286,12 +326,12 @@ export default function LegalReasoningPage() {
           <ExplanationTreeViewer
             tree={result.tree}
             onSourceClick={(source) => {
-              console.log('Source clicked:', source)
-              // TODO: Ouvrir modal avec détails de la source
+              setSelectedSource(source)
             }}
             onExport={(format) => {
-              console.log('Export:', format)
-              // TODO: Implémenter export
+              if (result.tree) {
+                handleExport(format, result.tree)
+              }
             }}
           />
         </div>
@@ -342,6 +382,13 @@ export default function LegalReasoningPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal détails source */}
+      <SourceDetailsModal
+        source={selectedSource}
+        isOpen={selectedSource !== null}
+        onClose={() => setSelectedSource(null)}
+      />
     </div>
   )
 }

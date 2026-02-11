@@ -10,6 +10,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { buildExplanationTree } from '@/lib/ai/explanation-tree-builder'
+import { multiChainReasoning } from '@/lib/ai/multi-chain-legal-reasoning'
+import type { LegalSource } from '@/lib/ai/multi-chain-legal-reasoning'
 import { search } from '@/lib/ai/unified-rag-service'
 import type { ExplanationTree } from '@/lib/types/explanation-tree'
 
@@ -95,30 +97,34 @@ export async function POST(req: NextRequest): Promise<NextResponse<LegalReasonin
       )
     }
 
-    // 4. Construction arbre décisionnel
-    // TODO Sprint 4: Intégrer multiChainReasoning() avant buildExplanationTree()
-    const tree = buildExplanationTree({
-      question,
-      domain,
-      sources: ragSources.map((source) => ({
-        id: source.kbId,
-        type: source.category as 'code' | 'jurisprudence' | 'doctrine' | 'legislation',
-        title: source.title,
-        content: source.chunkContent || '',
-        relevance: source.similarity,
-        metadata: {
-          category: source.category,
-          decisionDate: source.metadata.decisionDate,
-          tribunalLabel: source.metadata.tribunalLabelFr,
-          legalBasis: source.metadata.legalBasis,
-        },
-      })),
-      maxDepth,
-      language,
-      includeAlternatives,
-    } as any)
+    // 4. Raisonnement multi-chain
+    const legalSources: LegalSource[] = ragSources.map((source) => ({
+      id: source.kbId,
+      content: source.chunkContent || '',
+      category: source.category,
+      metadata: {
+        tribunalCode: source.metadata.tribunalCode ?? undefined,
+        chambreCode: source.metadata.chambreCode ?? undefined,
+        decisionDate: source.metadata.decisionDate ?? undefined,
+        domain: domain,
+      },
+    }))
 
-    // 5. Statistiques
+    const multiChainResponse = await multiChainReasoning({
+      question,
+      sources: legalSources,
+      language,
+      usePremiumModel: false, // Mode Rapide par défaut (Ollama)
+    })
+
+    // 5. Construction arbre décisionnel depuis multi-chain
+    const tree = buildExplanationTree(multiChainResponse, {
+      maxDepth,
+      includeAlternatives,
+      language,
+    })
+
+    // 6. Statistiques
     const processingTimeMs = Date.now() - startTime
 
     return NextResponse.json({

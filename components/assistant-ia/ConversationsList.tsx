@@ -18,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { usePrefetchConversation } from '@/lib/hooks/useConversations'
 
 const VIRTUALIZATION_THRESHOLD = 50
 const ITEM_HEIGHT = 68 // hauteur approximative d'un item
@@ -51,6 +52,7 @@ export function ConversationsList({
   isLoading = false,
 }: ConversationsListProps) {
   const t = useTranslations('assistantIA')
+  const prefetchConversation = usePrefetchConversation()
   const [searchQuery, setSearchQuery] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -167,6 +169,7 @@ export function ConversationsList({
                     onDelete={(id) => setDeleteId(id)}
                     formatDate={formatDate}
                     t={t}
+                    onPrefetch={prefetchConversation}
                   />
                 </div>
               )
@@ -184,6 +187,7 @@ export function ConversationsList({
                 onDelete={(id) => setDeleteId(id)}
                 formatDate={formatDate}
                 t={t}
+                onPrefetch={prefetchConversation}
               />
             ))}
           </div>
@@ -221,6 +225,7 @@ interface ConversationItemProps {
   onDelete: (id: string) => void
   formatDate: (date: Date) => string
   t: ReturnType<typeof useTranslations>
+  onPrefetch?: (id: string) => void
 }
 
 function ConversationItem({
@@ -230,6 +235,7 @@ function ConversationItem({
   onDelete,
   formatDate,
   t,
+  onPrefetch,
 }: ConversationItemProps) {
   return (
     <div
@@ -238,6 +244,7 @@ function ConversationItem({
         isSelected && 'bg-accent'
       )}
       onClick={() => onSelect(conv.id)}
+      onMouseEnter={() => onPrefetch?.(conv.id)}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">

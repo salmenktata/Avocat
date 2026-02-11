@@ -299,6 +299,9 @@ export function useDossier(
     enabled: enabled && !!id,
     staleTime,
     gcTime: cacheTime,
+    // Background refresh pour données à jour (plus conservateur pour détails)
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 }
 
@@ -321,6 +324,9 @@ export function useDossierList(params?: DossierListParams) {
     queryFn: () => fetchDossierList(params),
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    // Background refresh pour données toujours à jour
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 }
 
@@ -418,14 +424,46 @@ export function useUpdateDossier(options?: {
 
   return useMutation({
     mutationFn: updateDossier,
+    // Optimistic update
+    onMutate: async (newData) => {
+      // Annuler requêtes en cours pour éviter écrasement
+      await queryClient.cancelQueries({ queryKey: dossierKeys.detail(newData.id) })
+
+      // Sauvegarder données actuelles pour rollback
+      const previousDossier = queryClient.getQueryData<Dossier>(dossierKeys.detail(newData.id))
+
+      // Mettre à jour cache optimistiquement
+      if (previousDossier) {
+        queryClient.setQueryData(dossierKeys.detail(newData.id), {
+          ...previousDossier,
+          ...newData,
+          updatedAt: new Date(),
+        })
+      }
+
+      // Retourner context pour rollback si erreur
+      return { previousDossier }
+    },
+    onError: (err, newData, context) => {
+      // Rollback en cas d'erreur
+      if (context?.previousDossier) {
+        queryClient.setQueryData(dossierKeys.detail(newData.id), context.previousDossier)
+      }
+      options?.onError?.(err)
+    },
     onSuccess: (dossier) => {
-      // Mettre à jour cache détail
+      // Mettre à jour cache détail avec données serveur
       queryClient.setQueryData(dossierKeys.detail(dossier.id), dossier)
       // Invalider listes
       queryClient.invalidateQueries({ queryKey: dossierKeys.lists() })
       options?.onSuccess?.(dossier)
     },
-    onError: options?.onError,
+    onSettled: (dossier) => {
+      // Re-fetch pour garantir cohérence
+      if (dossier) {
+        queryClient.invalidateQueries({ queryKey: dossierKeys.detail(dossier.id) })
+      }
+    },
   })
 }
 
@@ -440,6 +478,34 @@ export function useDeleteDossier(options?: {
 
   return useMutation({
     mutationFn: deleteDossier,
+    // Optimistic delete
+    onMutate: async (id) => {
+      // Annuler requêtes en cours
+      await queryClient.cancelQueries({ queryKey: dossierKeys.detail(id) })
+      await queryClient.cancelQueries({ queryKey: dossierKeys.lists() })
+
+      // Sauvegarder données actuelles pour rollback
+      const previousDossier = queryClient.getQueryData<Dossier>(dossierKeys.detail(id))
+      const previousLists = queryClient.getQueriesData({ queryKey: dossierKeys.lists() })
+
+      // Retirer du cache optimistiquement
+      queryClient.removeQueries({ queryKey: dossierKeys.detail(id) })
+
+      // Retourner context pour rollback
+      return { previousDossier, previousLists }
+    },
+    onError: (err, id, context) => {
+      // Rollback en cas d'erreur
+      if (context?.previousDossier) {
+        queryClient.setQueryData(dossierKeys.detail(id), context.previousDossier)
+      }
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data)
+        })
+      }
+      options?.onError?.(err)
+    },
     onSuccess: (_, id) => {
       // Retirer du cache
       queryClient.removeQueries({ queryKey: dossierKeys.detail(id) })
@@ -447,7 +513,10 @@ export function useDeleteDossier(options?: {
       queryClient.invalidateQueries({ queryKey: dossierKeys.lists() })
       options?.onSuccess?.()
     },
-    onError: options?.onError,
+    onSettled: () => {
+      // Re-fetch listes pour garantir cohérence
+      queryClient.invalidateQueries({ queryKey: dossierKeys.lists() })
+    },
   })
 }
 

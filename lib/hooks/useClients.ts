@@ -220,6 +220,9 @@ export function useClient(
     enabled: enabled && !!id,
     staleTime,
     gcTime: cacheTime,
+    // Background refresh pour données à jour (plus conservateur pour détails)
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 }
 
@@ -242,6 +245,9 @@ export function useClientList(params?: ClientListParams) {
     queryFn: () => fetchClientList(params),
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    // Background refresh pour données toujours à jour
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 }
 
@@ -338,14 +344,46 @@ export function useUpdateClient(options?: {
 
   return useMutation({
     mutationFn: updateClient,
+    // Optimistic update
+    onMutate: async (newData) => {
+      // Annuler requêtes en cours pour éviter écrasement
+      await queryClient.cancelQueries({ queryKey: clientKeys.detail(newData.id) })
+
+      // Sauvegarder données actuelles pour rollback
+      const previousClient = queryClient.getQueryData<Client>(clientKeys.detail(newData.id))
+
+      // Mettre à jour cache optimistiquement
+      if (previousClient) {
+        queryClient.setQueryData(clientKeys.detail(newData.id), {
+          ...previousClient,
+          ...newData,
+          updatedAt: new Date(),
+        })
+      }
+
+      // Retourner context pour rollback si erreur
+      return { previousClient }
+    },
+    onError: (err, newData, context) => {
+      // Rollback en cas d'erreur
+      if (context?.previousClient) {
+        queryClient.setQueryData(clientKeys.detail(newData.id), context.previousClient)
+      }
+      options?.onError?.(err)
+    },
     onSuccess: (client) => {
-      // Mettre à jour cache détail
+      // Mettre à jour cache détail avec données serveur
       queryClient.setQueryData(clientKeys.detail(client.id), client)
       // Invalider listes
       queryClient.invalidateQueries({ queryKey: clientKeys.lists() })
       options?.onSuccess?.(client)
     },
-    onError: options?.onError,
+    onSettled: (client) => {
+      // Re-fetch pour garantir cohérence
+      if (client) {
+        queryClient.invalidateQueries({ queryKey: clientKeys.detail(client.id) })
+      }
+    },
   })
 }
 
@@ -360,6 +398,34 @@ export function useDeleteClient(options?: {
 
   return useMutation({
     mutationFn: deleteClient,
+    // Optimistic delete
+    onMutate: async (id) => {
+      // Annuler requêtes en cours
+      await queryClient.cancelQueries({ queryKey: clientKeys.detail(id) })
+      await queryClient.cancelQueries({ queryKey: clientKeys.lists() })
+
+      // Sauvegarder données actuelles pour rollback
+      const previousClient = queryClient.getQueryData<Client>(clientKeys.detail(id))
+      const previousLists = queryClient.getQueriesData({ queryKey: clientKeys.lists() })
+
+      // Retirer du cache optimistiquement
+      queryClient.removeQueries({ queryKey: clientKeys.detail(id) })
+
+      // Retourner context pour rollback
+      return { previousClient, previousLists }
+    },
+    onError: (err, id, context) => {
+      // Rollback en cas d'erreur
+      if (context?.previousClient) {
+        queryClient.setQueryData(clientKeys.detail(id), context.previousClient)
+      }
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data)
+        })
+      }
+      options?.onError?.(err)
+    },
     onSuccess: (_, id) => {
       // Retirer du cache
       queryClient.removeQueries({ queryKey: clientKeys.detail(id) })
@@ -367,7 +433,10 @@ export function useDeleteClient(options?: {
       queryClient.invalidateQueries({ queryKey: clientKeys.lists() })
       options?.onSuccess?.()
     },
-    onError: options?.onError,
+    onSettled: () => {
+      // Re-fetch listes pour garantir cohérence
+      queryClient.invalidateQueries({ queryKey: clientKeys.lists() })
+    },
   })
 }
 

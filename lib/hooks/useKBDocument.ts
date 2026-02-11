@@ -185,6 +185,9 @@ export function useKBDocument(
     enabled: enabled && !!id,
     staleTime,
     gcTime: cacheTime,
+    // Background refresh pour données à jour
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 }
 
@@ -236,6 +239,9 @@ export function useKBDocumentList(params?: KBDocumentListParams) {
     queryFn: () => fetchKBDocumentList(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
+    // Background refresh pour données toujours à jour
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 }
 
@@ -357,14 +363,45 @@ export function useUpdateKBDocument(options?: {
 
       return response.json()
     },
+    // Optimistic update
+    onMutate: async ({ id, ...updates }) => {
+      // Annuler requêtes en cours
+      await queryClient.cancelQueries({ queryKey: kbDocumentKeys.detail(id) })
+
+      // Sauvegarder données actuelles pour rollback
+      const previousDocument = queryClient.getQueryData<KBDocument>(kbDocumentKeys.detail(id))
+
+      // Mettre à jour cache optimistiquement
+      if (previousDocument) {
+        queryClient.setQueryData(kbDocumentKeys.detail(id), {
+          ...previousDocument,
+          ...updates,
+          updatedAt: new Date(),
+        })
+      }
+
+      return { previousDocument }
+    },
+    onError: (err, { id }, context) => {
+      // Rollback en cas d'erreur
+      if (context?.previousDocument) {
+        queryClient.setQueryData(kbDocumentKeys.detail(id), context.previousDocument)
+      }
+      options?.onError?.(err)
+    },
     onSuccess: (data) => {
-      // Update cache
+      // Update cache avec données serveur
       queryClient.setQueryData(kbDocumentKeys.detail(data.id), data)
       // Invalidate lists
       queryClient.invalidateQueries({ queryKey: kbDocumentKeys.lists() })
       options?.onSuccess?.(data)
     },
-    onError: options?.onError,
+    onSettled: (data) => {
+      // Re-fetch pour garantir cohérence
+      if (data) {
+        queryClient.invalidateQueries({ queryKey: kbDocumentKeys.detail(data.id) })
+      }
+    },
   })
 }
 

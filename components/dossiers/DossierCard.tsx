@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { getWorkflowEtape, getWorkflowProgress } from '@/lib/workflows/civil'
+import { usePrefetchDossier } from '@/lib/hooks/useDossiers'
 
 interface DossierCardProps {
   dossier: any
@@ -10,6 +11,7 @@ interface DossierCardProps {
 
 export default function DossierCard({ dossier }: DossierCardProps) {
   const t = useTranslations('cards')
+  const prefetchDossier = usePrefetchDossier()
   const etapeActuelle = getWorkflowEtape(dossier.workflow_etape_actuelle || 'ASSIGNATION')
   const progress = getWorkflowProgress(dossier.workflow_etape_actuelle || 'ASSIGNATION')
 
@@ -19,7 +21,10 @@ export default function DossierCard({ dossier }: DossierCardProps) {
       : dossier.clients?.nom || t('unknownClient')
 
   return (
-    <Link href={`/dossiers/${dossier.id}`}>
+    <Link
+      href={`/dossiers/${dossier.id}`}
+      onMouseEnter={() => prefetchDossier(dossier.id)}
+    >
       <div className="rounded-lg border bg-card p-6 shadow-sm hover:shadow-md transition-all hover:border-blue-300">
         <div className="flex items-start justify-between">
           <div className="flex-1">
