@@ -1,0 +1,21 @@
+[Unit]
+Description=Qadhya Backup API Server
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/moncabinet
+ExecStart=/bin/bash /opt/moncabinet/backup-server.sh
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/backup-server.log
+StandardError=append:/var/log/backup-server.log
+
+# Sécurité
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

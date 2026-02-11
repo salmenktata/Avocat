@@ -141,48 +141,60 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}))
     const { type = 'all' } = body // 'all', 'database', 'minio', 'code'
 
-    // Chemin du script backup
-    const scriptPath = process.env.BACKUP_SCRIPT || '/opt/moncabinet/backup.sh'
+    // Utiliser le serveur backup HTTP sur l'hôte
+    const backupServerUrl = process.env.BACKUP_SERVER_URL || 'http://host.docker.internal:9999/backup'
 
-    // Vérifier que le script existe
-    try {
-      await fs.access(scriptPath)
-    } catch {
-      return NextResponse.json(
-        { error: 'Script de backup non trouvé', path: scriptPath },
-        { status: 500 }
-      )
-    }
-
-    // Exécuter le backup en arrière-plan
+    // Déclencher le backup via HTTP
     const startTime = Date.now()
 
     try {
-      const { stdout, stderr } = await execAsync(`bash ${scriptPath}`, {
-        timeout: 300000, // 5 minutes max
-        env: {
-          ...process.env,
-          PATH: process.env.PATH,
+      const response = await fetch(backupServerUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ type }),
+        signal: AbortSignal.timeout(300000), // 5 minutes max
       })
 
+      const result = await response.json()
       const duration = ((Date.now() - startTime) / 1000).toFixed(1)
 
-      return NextResponse.json({
-        success: true,
-        message: 'Backup terminé avec succès',
-        duration: `${duration}s`,
-        output: stdout,
-        errors: stderr || null,
-      })
-    } catch (execError: unknown) {
-      const err = execError as { stdout?: string; stderr?: string; message?: string }
+      if (response.ok && result.success) {
+        return NextResponse.json({
+          success: true,
+          message: 'Backup terminé avec succès',
+          duration: result.duration || `${duration}s`,
+          output: result.output || null,
+        })
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            error: result.error || 'Échec du backup',
+            message: result.message,
+          },
+          { status: response.status }
+        )
+      }
+    } catch (error: unknown) {
+      const err = error as Error
+      // Si le serveur backup n'est pas accessible, donner des instructions
+      if (err.message?.includes('fetch failed') || err.message?.includes('ECONNREFUSED')) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Script de backup non trouvé',
+            message: 'Le serveur de backup n\'est pas accessible. Vérifiez que backup-server.sh est démarré sur l\'hôte.',
+          },
+          { status: 503 }
+        )
+      }
+
       return NextResponse.json(
         {
           success: false,
-          error: 'Échec du backup',
-          output: err.stdout,
-          stderr: err.stderr,
+          error: 'Erreur lors du backup',
           message: err.message,
         },
         { status: 500 }
