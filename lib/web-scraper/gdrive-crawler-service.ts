@@ -21,6 +21,16 @@ import { parseFile } from './file-parser-service'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const DEFAULT_PAGE_SIZE = 1000 // Max Google Drive API
+const GDRIVE_CRAWL_CONCURRENCY = Math.max(1, parseInt(process.env.GDRIVE_CRAWL_CONCURRENCY || '5', 10))
+
+/**
+ * Info pré-chargée d'une page existante (batch SELECT)
+ */
+interface ExistingPageInfo {
+  id: string
+  content_hash: string
+  has_extracted_text: boolean
+}
 
 /**
  * Options de crawl Google Drive
@@ -84,79 +94,53 @@ export async function crawlGoogleDriveFolder(
 
     console.log(`[GDriveCrawler] Discovered ${files.length} files`)
 
-    // Traiter chaque fichier
-    for (const file of files) {
-      try {
-        // Filtrer par taille
-        const fileSize = parseInt(file.size, 10)
-        if (fileSize > MAX_FILE_SIZE) {
-          console.warn(`[GDriveCrawler] File too large: ${file.name} (${fileSize} bytes)`)
-          continue
-        }
+    // Pré-charger les pages existantes (1 SELECT batch au lieu de N)
+    const existingPages = await loadExistingPages(source.id)
+    console.log(`[GDriveCrawler] Pre-loaded ${existingPages.size} existing page hashes`)
 
-        // Créer LinkedFile
-        const linkedFile = mapGoogleDriveFileToLinkedFile(file)
+    // Traiter les fichiers en lots parallèles
+    const concurrency = GDRIVE_CRAWL_CONCURRENCY
+    const totalBatches = Math.ceil(files.length / concurrency)
+    console.log(`[GDriveCrawler] Processing ${files.length} files (concurrency: ${concurrency}, batches: ${totalBatches})`)
 
-        // Télécharger et extraire le texte si downloadFiles est activé
-        let extractedText: string | null = null
-        if (source.downloadFiles) {
-          try {
-            console.log(`[GDriveCrawler] Downloading and parsing: ${file.name}`)
+    for (let i = 0; i < files.length; i += concurrency) {
+      const batch = files.slice(i, i + concurrency)
+      const batchNum = Math.floor(i / concurrency) + 1
 
-            // Télécharger le fichier depuis Google Drive
-            const downloadResult = await downloadFromGoogleDrive(file.id)
-            if (downloadResult.success && downloadResult.buffer) {
-              // Marquer le fichier comme téléchargé
-              linkedFile.downloaded = true
+      const batchResults = await Promise.allSettled(
+        batch.map(file => processGDriveFile(source, file, existingPages))
+      )
 
-              // Parser le fichier pour extraire le texte
-              // Extraire l'extension du nom de fichier
-              const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'pdf'
-
-              const parseResult = await parseFile(
-                downloadResult.buffer,
-                fileExtension
-              )
-
-              if (parseResult.success && parseResult.text) {
-                extractedText = parseResult.text.trim()
-                const wordCount = extractedText.split(/\s+/).length
-                console.log(`[GDriveCrawler] Extracted ${wordCount} words from ${file.name}`)
-              } else {
-                console.warn(`[GDriveCrawler] Failed to parse ${file.name}: ${parseResult.error}`)
-              }
-            } else {
-              console.warn(`[GDriveCrawler] Failed to download ${file.name}: ${downloadResult.error}`)
-            }
-          } catch (downloadError: any) {
-            console.error(`[GDriveCrawler] Error downloading/parsing ${file.name}:`, downloadError.message)
-            // Continue même si le téléchargement/parsing échoue
+      // Agréger les résultats
+      for (let j = 0; j < batchResults.length; j++) {
+        const settled = batchResults[j]
+        if (settled.status === 'fulfilled') {
+          const r = settled.value
+          if (!r.skipped) {
+            result.pagesProcessed++
+            if (r.isNew) result.pagesNew++
+            if (r.hasChanged) result.pagesChanged++
           }
+        } else {
+          const failedFile = batch[j]
+          console.error(`[GDriveCrawler] Error processing file ${failedFile.name}:`, settled.reason)
+          result.pagesFailed++
+          result.errors.push({
+            url: failedFile.webViewLink,
+            error: settled.reason?.message || 'Unknown error',
+            timestamp: new Date().toISOString(),
+          })
         }
+      }
 
-        // Créer ou mettre à jour web_page avec le texte extrait
-        const pageResult = await upsertWebPage(source, file, linkedFile, extractedText)
+      // Rate limiting entre les lots (pas entre chaque fichier)
+      if (source.rateLimitMs > 0 && i + concurrency < files.length) {
+        await sleep(source.rateLimitMs)
+      }
 
-        if (pageResult.isNew) {
-          result.pagesNew++
-        } else if (pageResult.hasChanged) {
-          result.pagesChanged++
-        }
-
-        result.pagesProcessed++
-
-        // Rate limiting
-        if (source.rateLimitMs > 0) {
-          await sleep(source.rateLimitMs)
-        }
-      } catch (error: any) {
-        console.error(`[GDriveCrawler] Error processing file ${file.name}:`, error)
-        result.pagesFailed++
-        result.errors.push({
-          url: file.webViewLink,
-          error: error.message,
-          timestamp: new Date().toISOString(),
-        })
+      // Log de progression tous les 5 lots ou au dernier
+      if (batchNum % 5 === 0 || batchNum === totalBatches) {
+        console.log(`[GDriveCrawler] Progress: batch ${batchNum}/${totalBatches} (${Math.min(i + concurrency, files.length)}/${files.length} files)`)
       }
     }
 
@@ -174,6 +158,79 @@ export async function crawlGoogleDriveFolder(
   }
 
   return result
+}
+
+/**
+ * Pré-charger toutes les pages existantes d'une source (1 query batch)
+ */
+async function loadExistingPages(sourceId: string): Promise<Map<string, ExistingPageInfo>> {
+  const result = await db.query(
+    `SELECT id, url_hash, content_hash,
+            (extracted_text IS NOT NULL AND extracted_text != '') as has_extracted_text
+     FROM web_pages
+     WHERE web_source_id = $1`,
+    [sourceId]
+  )
+  const map = new Map<string, ExistingPageInfo>()
+  for (const row of result.rows) {
+    map.set(row.url_hash, {
+      id: row.id,
+      content_hash: row.content_hash,
+      has_extracted_text: row.has_extracted_text,
+    })
+  }
+  return map
+}
+
+/**
+ * Traiter un fichier Google Drive (download, parse, upsert)
+ */
+async function processGDriveFile(
+  source: WebSource,
+  file: GoogleDriveFile,
+  existingPages: Map<string, ExistingPageInfo>
+): Promise<{ isNew: boolean; hasChanged: boolean; skipped: boolean }> {
+  // Filtrer par taille
+  const fileSize = parseInt(file.size, 10)
+  if (fileSize > MAX_FILE_SIZE) {
+    console.warn(`[GDriveCrawler] File too large: ${file.name} (${fileSize} bytes)`)
+    return { isNew: false, hasChanged: false, skipped: true }
+  }
+
+  // Créer LinkedFile
+  const linkedFile = mapGoogleDriveFileToLinkedFile(file)
+
+  // Télécharger et extraire le texte si downloadFiles est activé
+  let extractedText: string | null = null
+  if (source.downloadFiles) {
+    try {
+      console.log(`[GDriveCrawler] Downloading and parsing: ${file.name}`)
+
+      const downloadResult = await downloadFromGoogleDrive(file.id)
+      if (downloadResult.success && downloadResult.buffer) {
+        linkedFile.downloaded = true
+
+        const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'pdf'
+        const parseResult = await parseFile(downloadResult.buffer, fileExtension)
+
+        if (parseResult.success && parseResult.text) {
+          extractedText = parseResult.text.trim()
+          const wordCount = extractedText.split(/\s+/).length
+          console.log(`[GDriveCrawler] Extracted ${wordCount} words from ${file.name}`)
+        } else {
+          console.warn(`[GDriveCrawler] Failed to parse ${file.name}: ${parseResult.error}`)
+        }
+      } else {
+        console.warn(`[GDriveCrawler] Failed to download ${file.name}: ${downloadResult.error}`)
+      }
+    } catch (downloadError: any) {
+      console.error(`[GDriveCrawler] Error downloading/parsing ${file.name}:`, downloadError.message)
+    }
+  }
+
+  // Créer ou mettre à jour web_page avec le texte extrait
+  const pageResult = await upsertWebPage(source, file, linkedFile, extractedText, existingPages)
+  return { isNew: pageResult.isNew, hasChanged: pageResult.hasChanged, skipped: false }
 }
 
 /**
@@ -285,7 +342,8 @@ async function upsertWebPage(
   source: WebSource,
   file: GoogleDriveFile,
   linkedFile: LinkedFile,
-  extractedText: string | null = null
+  extractedText: string | null = null,
+  existingPages?: Map<string, ExistingPageInfo>
 ): Promise<{ isNew: boolean; hasChanged: boolean; pageId: string }> {
   const url = file.webViewLink
   const urlHash = createHash('sha256').update(url).digest('hex')
@@ -293,22 +351,14 @@ async function upsertWebPage(
     .update(file.id + file.modifiedTime + file.size)
     .digest('hex')
 
-  // Vérifier si la page existe déjà
-  const existingPage = await db.query(
-    `SELECT id, content_hash, status
-     FROM web_pages
-     WHERE url_hash = $1
-       AND web_source_id = $2`,
-    [urlHash, source.id]
-  )
+  // Utiliser le cache pré-chargé si disponible, sinon fallback SELECT
+  const existingInfo = existingPages?.get(urlHash)
 
-  if (existingPage.rows.length > 0) {
-    const page = existingPage.rows[0]
-
+  if (existingInfo) {
     // Vérifier si le contenu a changé
-    if (page.content_hash === contentHash) {
+    if (existingInfo.content_hash === contentHash) {
       // Hash identique MAIS forcer update extracted_text si disponible et manquant
-      if (extractedText && !page.extracted_text) {
+      if (extractedText && !existingInfo.has_extracted_text) {
         console.log(`[GDriveCrawler] Force update extracted_text: ${file.name}`)
         await db.query(
           `UPDATE web_pages
@@ -316,13 +366,15 @@ async function upsertWebPage(
                status = 'crawled',
                last_changed_at = NOW()
            WHERE id = $2`,
-          [extractedText, page.id]
+          [extractedText, existingInfo.id]
         )
-        return { isNew: false, hasChanged: true, pageId: page.id }
+        // Mettre à jour le cache
+        existingInfo.has_extracted_text = true
+        return { isNew: false, hasChanged: true, pageId: existingInfo.id }
       }
 
       // Pas de changement
-      return { isNew: false, hasChanged: false, pageId: page.id }
+      return { isNew: false, hasChanged: false, pageId: existingInfo.id }
     }
 
     // Contenu a changé → mettre à jour
@@ -338,7 +390,7 @@ async function upsertWebPage(
          last_changed_at = NOW(),
          updated_at = NOW()
        WHERE id = $4`,
-      [file.name, contentHash, JSON.stringify([linkedFile]), page.id, extractedText]
+      [file.name, contentHash, JSON.stringify([linkedFile]), existingInfo.id, extractedText]
     )
 
     // Créer une version
@@ -366,11 +418,15 @@ async function upsertWebPage(
          'Fichier modifié dans Google Drive'
        FROM web_pages
        WHERE id = $1`,
-      [page.id]
+      [existingInfo.id]
     )
 
+    // Mettre à jour le cache
+    existingInfo.content_hash = contentHash
+    existingInfo.has_extracted_text = !!extractedText
+
     console.log(`[GDriveCrawler] Updated page: ${file.name}`)
-    return { isNew: false, hasChanged: true, pageId: page.id }
+    return { isNew: false, hasChanged: true, pageId: existingInfo.id }
   }
 
   // Nouvelle page → créer
@@ -402,6 +458,14 @@ async function upsertWebPage(
   )
 
   const pageId = insertResult.rows[0].id
+
+  // Ajouter au cache pour les lots suivants
+  existingPages?.set(urlHash, {
+    id: pageId,
+    content_hash: contentHash,
+    has_extracted_text: !!extractedText,
+  })
+
   console.log(`[GDriveCrawler] Created page: ${file.name}`)
 
   return { isNew: true, hasChanged: false, pageId }
