@@ -223,42 +223,32 @@ async function deleteConversation(id: string): Promise<void> {
   }
 }
 
-/**
- * TODO: Créer endpoint PATCH /api/chat pour update titre conversation
- *
- * L'API /api/chat actuelle ne supporte pas PATCH.
- * Pour l'instant, la fonction et le hook sont désactivés.
- *
- * Endpoint à créer:
- * PATCH /api/chat?conversationId=xxx
- * Body: { title: string }
- * Response: { success: true }
- */
-// async function updateConversationTitle(id: string, title: string): Promise<Conversation> {
-//   const response = await fetch(`/api/chat?conversationId=${id}`, {
-//     method: 'PATCH',
-//     headers: {
-//       'Content-Type': 'application/json',
-//     },
-//     body: JSON.stringify({ title }),
-//   })
-//
-//   if (!response.ok) {
-//     const error = await response.json().catch(() => ({ error: 'Erreur de mise à jour' }))
-//     throw new Error(error.error || `HTTP ${response.status}`)
-//   }
-//
-//   const data = await response.json()
-//
-//   return {
-//     id: data.id,
-//     userId: data.userId,
-//     title: data.title,
-//     messages: [],
-//     createdAt: new Date(data.createdAt),
-//     updatedAt: new Date(data.updatedAt),
-//   }
-// }
+async function updateConversationTitle(id: string, title: string): Promise<Conversation> {
+  const response = await fetch(`/api/chat?conversationId=${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ title }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Erreur de mise à jour' }))
+    throw new Error(error.error || `HTTP ${response.status}`)
+  }
+
+  const data = await response.json()
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    title: data.title,
+    dossierId: data.dossier_id,
+    messages: [],
+    createdAt: new Date(data.created_at),
+    updatedAt: new Date(data.updated_at),
+  }
+}
 
 // =============================================================================
 // HOOKS
@@ -467,28 +457,36 @@ export function useDeleteConversation(options?: {
 /**
  * Hook pour update titre conversation
  *
- * @deprecated Désactivé temporairement - endpoint PATCH manquant dans /api/chat
- * TODO: Créer endpoint PATCH /api/chat?conversationId=xxx puis réactiver
+ * Usage :
+ * ```tsx
+ * const { mutate: updateTitle, isPending } = useUpdateConversationTitle({
+ *   onSuccess: () => toast({ title: 'Titre mis à jour' }),
+ * })
+ *
+ * const handleUpdate = () => {
+ *   updateTitle({ id: 'conv-123', title: 'Nouveau titre' })
+ * }
+ * ```
  */
-// export function useUpdateConversationTitle(options?: {
-//   onSuccess?: (data: Conversation) => void
-//   onError?: (error: Error) => void
-// }) {
-//   const queryClient = useQueryClient()
-//
-//   return useMutation({
-//     mutationFn: ({ id, title }: { id: string; title: string }) =>
-//       updateConversationTitle(id, title),
-//     onSuccess: (data) => {
-//       // Update cache
-//       queryClient.setQueryData(conversationKeys.detail(data.id), data)
-//       // Invalidate lists
-//       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
-//       options?.onSuccess?.(data)
-//     },
-//     onError: options?.onError,
-//   })
-// }
+export function useUpdateConversationTitle(options?: {
+  onSuccess?: (data: Conversation) => void
+  onError?: (error: Error) => void
+}) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) =>
+      updateConversationTitle(id, title),
+    onSuccess: (data) => {
+      // Update cache
+      queryClient.setQueryData(conversationKeys.detail(data.id), data)
+      // Invalidate lists
+      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
+      options?.onSuccess?.(data)
+    },
+    onError: options?.onError,
+  })
+}
 
 /**
  * Hook pour préchargement conversation (hover sidebar)

@@ -280,6 +280,62 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 // =============================================================================
+// PATCH: Mettre à jour conversation (titre)
+// =============================================================================
+
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  try {
+    const session = await getSession()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
+
+    const userId = session.user.id
+    const searchParams = request.nextUrl.searchParams
+    const conversationId = searchParams.get('conversationId')
+
+    if (!conversationId) {
+      return NextResponse.json(
+        { error: 'conversationId requis' },
+        { status: 400 }
+      )
+    }
+
+    const body = await request.json()
+
+    if (!body.title || typeof body.title !== 'string') {
+      return NextResponse.json(
+        { error: 'Titre invalide' },
+        { status: 400 }
+      )
+    }
+
+    const result = await db.query(
+      `UPDATE chat_conversations
+       SET title = $1, updated_at = NOW()
+       WHERE id = $2 AND user_id = $3
+       RETURNING *`,
+      [body.title, conversationId, userId]
+    )
+
+    if (result.rowCount === 0) {
+      return NextResponse.json(
+        { error: 'Conversation non trouvée' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json(result.rows[0])
+  } catch (error) {
+    console.error('Erreur mise à jour conversation:', error)
+    return NextResponse.json(
+      { error: 'Erreur mise à jour conversation' },
+      { status: 500 }
+    )
+  }
+}
+
+// =============================================================================
 // DELETE: Supprimer une conversation
 // =============================================================================
 
