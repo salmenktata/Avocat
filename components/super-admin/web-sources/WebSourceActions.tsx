@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { SplitButton } from '@/components/ui/split-button'
 import { Icons } from '@/lib/icons'
 import { useToast } from '@/lib/hooks/use-toast'
 import {
@@ -210,33 +211,65 @@ export function WebSourceActions({ source }: WebSourceActionsProps) {
   return (
     <>
       <div className="flex items-center gap-2">
-        <Button
+        {/* Split Button Crawler */}
+        <SplitButton
+          label="Crawler"
+          icon={<Icons.refresh className="h-4 w-4" />}
           onClick={() => handleCrawl('incremental')}
           disabled={loading !== null || !source.is_active}
+          loading={loading === 'crawl'}
           className="bg-blue-600 hover:bg-blue-700"
-        >
-          {loading === 'crawl' ? (
-            <Icons.loader className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Icons.refresh className="h-4 w-4 mr-2" />
-          )}
-          Crawler
-        </Button>
+          options={[
+            {
+              label: 'Crawl incrémental',
+              icon: <Icons.refresh className="h-4 w-4" />,
+              onClick: () => handleCrawl('incremental'),
+              disabled: !source.is_active,
+              badge: 'Par défaut',
+            },
+            {
+              label: 'Crawl complet',
+              icon: <Icons.refresh className="h-4 w-4" />,
+              onClick: () => handleCrawl('full_crawl'),
+              disabled: !source.is_active,
+              className: 'text-blue-400',
+            },
+          ]}
+        />
 
-        <Button
+        {/* Split Button Indexer */}
+        <SplitButton
+          label="Indexer"
+          icon={<Icons.box className="h-4 w-4" />}
           onClick={() => handleIndex(false)}
           disabled={loading !== null}
+          loading={loading === 'index'}
           variant="outline"
           className="border-purple-500 text-purple-400 hover:bg-purple-500/20"
-        >
-          {loading === 'index' ? (
-            <Icons.loader className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Icons.box className="h-4 w-4 mr-2" />
-          )}
-          Indexer
-        </Button>
+          options={[
+            {
+              label: 'Indexer nouveau',
+              icon: <Icons.box className="h-4 w-4" />,
+              onClick: () => handleIndex(false),
+              badge: 'Par défaut',
+            },
+            {
+              label: 'Réindexer tout',
+              icon: <Icons.refresh className="h-4 w-4" />,
+              onClick: () => handleIndex(true),
+              className: 'text-purple-400',
+            },
+            {
+              label: 'Indexer les PDF',
+              icon: <Icons.fileText className="h-4 w-4" />,
+              onClick: handleIndexFiles,
+              disabled: loading === 'files',
+              className: 'text-orange-400',
+            },
+          ]}
+        />
 
+        {/* Menu Actions Secondaires */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="border-slate-600 text-slate-300">
@@ -261,29 +294,6 @@ export function WebSourceActions({ source }: WebSourceActionsProps) {
                 <Icons.file className="h-4 w-4 mr-2" />
                 Voir les fichiers
               </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleCrawl('full_crawl')}
-              disabled={!source.is_active}
-              className="text-slate-200 hover:bg-slate-700 cursor-pointer"
-            >
-              <Icons.refresh className="h-4 w-4 mr-2" />
-              Crawl complet
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleIndex(true)}
-              className="text-purple-400 hover:bg-slate-700 cursor-pointer"
-            >
-              <Icons.box className="h-4 w-4 mr-2" />
-              Réindexer tout
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={handleIndexFiles}
-              disabled={loading === 'files'}
-              className="text-orange-400 hover:bg-slate-700 cursor-pointer"
-            >
-              <Icons.fileText className="h-4 w-4 mr-2" />
-              {loading === 'files' ? 'Indexation PDF...' : 'Indexer les PDF'}
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-slate-700" />
             <DropdownMenuItem
