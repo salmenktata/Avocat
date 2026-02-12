@@ -40,14 +40,31 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const session = await getSession()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    // Authentification : Session admin OU CRON_SECRET
+    const authHeader = request.headers.get('authorization')
+    const cronSecret = authHeader?.replace('Bearer ', '')
+
+    // Vérifier CRON_SECRET d'abord (pour cron jobs / scripts)
+    let isAuthenticated = false
+    if (cronSecret && cronSecret === process.env.CRON_SECRET) {
+      console.log('[Crawl API] Authentification via CRON_SECRET')
+      isAuthenticated = true
+    } else {
+      // Sinon vérifier session utilisateur
+      const session = await getSession()
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      }
+
+      const isAdmin = await checkAdminAccess(session.user.id)
+      if (!isAdmin) {
+        return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+      }
+      isAuthenticated = true
     }
 
-    const isAdmin = await checkAdminAccess(session.user.id)
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+    if (!isAuthenticated) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
     const { id } = await params
