@@ -21,6 +21,7 @@ export type OperationName =
   | 'assistant-ia'
   | 'dossiers-assistant'
   | 'dossiers-consultation'
+  | 'kb-quality-analysis'
 
 /**
  * Configuration IA pour une opération spécifique
@@ -167,7 +168,32 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   },
 
   // ---------------------------------------------------------------------------
-  // 4. CONSULTATION (génération formelle IRAC)
+  // 4. ANALYSE QUALITÉ KB (analyse documents à grande échelle)
+  // ---------------------------------------------------------------------------
+  'kb-quality-analysis': {
+    context: 'quality-analysis',
+
+    description: 'Analyse qualité documents KB en batch (volume élevé, vitesse critique)',
+
+    // Providers: Gemini prioritaire (rapide + gratuit)
+    providers: {
+      primary: 'gemini',
+      fallback: ['ollama'],
+    },
+
+    timeouts: {
+      chat: 30000,       // 30s (analyse approfondie)
+      total: 60000,      // 1min total
+    },
+
+    llmConfig: {
+      temperature: 0.1,  // Précision maximale pour évaluation
+      maxTokens: 2000,
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // 5. CONSULTATION (génération formelle IRAC)
   // ---------------------------------------------------------------------------
   'dossiers-consultation': {
     context: 'structuring',  // Structuration formelle

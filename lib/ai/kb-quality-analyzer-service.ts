@@ -105,7 +105,7 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
     content: truncateContent(content, 6000),
   })
 
-  // Appeler le LLM avec fallback Gemini → DeepSeek → Groq → Ollama
+  // Appeler le LLM avec configuration opération kb-quality-analysis (Gemini prioritaire)
   const messages: LLMMessage[] = [
     { role: 'system', content: KB_QUALITY_ANALYSIS_SYSTEM_PROMPT },
     { role: 'user', content: userPrompt },
@@ -114,6 +114,7 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
   const llmResult: LLMResponse = await callLLMWithFallback(messages, {
     temperature: 0.1, // Précision maximale pour analyse
     maxTokens: 2000,
+    operationName: 'kb-quality-analysis', // Utilise Gemini (rapide) en priorité
   })
 
   const parsed = parseKBQualityResponse(llmResult.answer)
