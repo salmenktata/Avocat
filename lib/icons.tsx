@@ -118,6 +118,7 @@ import {
   ArrowUpDown,
   ArrowDownNarrowWide,
   Brain,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -267,6 +268,7 @@ export const Icons = {
   target: Target,
   scale: Scale,
   brain: Brain,
+  wrench: Wrench,
   fileSearch: FileSearch,
   arrowUpDown: ArrowUpDown,
   sortAsc: ArrowDownNarrowWide,
