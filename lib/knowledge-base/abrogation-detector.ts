@@ -12,7 +12,7 @@
  * @module lib/knowledge-base/abrogation-detector
  */
 
-import { callLLM } from '@/lib/ai/llm-fallback-service'
+import { callLLMWithFallback } from '@/lib/ai/llm-fallback-service'
 import { query } from '@/lib/db/postgres'
 
 // =============================================================================
@@ -238,14 +238,15 @@ export async function detectAbrogationLLM(
 **Texte juridique à analyser** :
 ${documentTitle ? `Titre: ${documentTitle}\n\n` : ''}${truncatedText}`
 
-    const response = await callLLM({
-      messages: [{ role: 'user', content: prompt }],
-      operationName: 'kb-quality-analysis',
-      options: {
+    const response = await callLLMWithFallback(
+      [{ role: 'user', content: prompt }],
+      {
+        operationName: 'kb-quality-analysis',
         temperature: 0.1, // Très factuel
         maxTokens: 1000,
       },
-    })
+      false // Mode Rapide (non premium)
+    )
 
     // Parser la réponse JSON
     const jsonMatch = response.answer.match(/\{[\s\S]*\}/)
