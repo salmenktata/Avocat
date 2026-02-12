@@ -127,6 +127,72 @@ const EXTRACTION_CONFIGS: Record<string, ExtractionConfig> = {
     ],
     contentLanguage: 'ar',
   },
+  'jurisitetunisie.com': {
+    noisePatterns: [
+      // Éléments forum/navigation
+      'Répondre\\s+à\\s+ce\\s+sujet',
+      'Pages?\\s*:\\s*\\[\\d+\\]',
+      'Dernier message',
+      'Auteur\\s*:\\s*',
+      'Hors ligne',
+      'Messages?\\s*:\\s*\\d+',
+      'Inscrit depuis\\s*:',
+      'Citer',
+      'Modifier',
+      'Signaler',
+
+      // Footer/copyright
+      'جميع الحقوق محفوظة',
+      'Copyright.*jurisitetunisie',
+      'Powered by.*SMF',
+      'Simple Machines',
+
+      // Publicité/widgets
+      'Publicité',
+      'Sponsorisé',
+      'Partenaires',
+
+      // Navigation forum
+      'Sujet suivant',
+      'Sujet précédent',
+      'Retour au forum',
+      'Index du forum',
+    ],
+    removeSelectors: [
+      // Navigation forum
+      '#upshrink',
+      '.navigate_section',
+      '.pagesection',
+      '.moderatorbar',
+      '.postarea',
+      '.poster',
+      '.keyinfo',
+
+      // Sidebar/widgets
+      '#upshrinkHeaderIC',
+      '.boardindex_table',
+      '.info_frame',
+
+      // Footer/header
+      '#header',
+      '#footer',
+      '#footerarea',
+      '.copyright',
+
+      // Forum metadata
+      '.signature',
+      '.quote',
+      '.quoteheader',
+      '.codeheader',
+
+      // Boutons actions
+      '.post_options',
+      '.moderatorbar_options',
+      '.quickReplyButtons',
+    ],
+    legalContentSelector: '.cms_article_content, .post, #bodyarea',
+    contentLanguage: 'mixed', // FR et AR
+  },
 }
 
 /**
