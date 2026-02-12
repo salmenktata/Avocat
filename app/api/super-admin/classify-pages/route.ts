@@ -194,18 +194,12 @@ async function classifyPagesBackground(
     // Traiter les pages séquentiellement (éviter surcharge LLM)
     for (const page of pages) {
       try {
-        const classification = await classifyLegalContent({
-          url: page.url,
-          title: page.title || '',
-          content: page.extracted_text,
-          webSourceId: page.web_source_id,
-          pageId: page.id,
-        })
+        const classification = await classifyLegalContent(page.id)
 
-        if (classification) {
+        if (classification && classification.classification) {
           stats.succeeded++
           console.log(
-            `[ClassifyAPI] ✅ ${page.url.substring(0, 60)}... → ${classification.primaryCategory}`
+            `[ClassifyAPI] ✅ ${page.url.substring(0, 60)}... → ${classification.classification.primary_category}`
           )
         } else {
           stats.skipped++
