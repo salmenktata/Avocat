@@ -7,9 +7,41 @@ import { db } from '@/lib/db/postgres'
 import type { WebPage, WebSource } from './types'
 import { isSemanticSearchEnabled, aiConfig, KB_ARABIC_ONLY, EMBEDDING_TURBO_CONFIG } from '@/lib/ai/config'
 import { normalizeText, detectTextLanguage } from './content-extractor'
+import type { LegalCategory } from '@/lib/categories/legal-categories'
 
 // Concurrence pour l'indexation de pages (1 = séquentiel, safe pour Ollama)
 const WEB_INDEXING_CONCURRENCY = parseInt(process.env.WEB_INDEXING_CONCURRENCY || '1', 10)
+
+// =============================================================================
+// TYPES POUR CLASSIFICATION
+// =============================================================================
+
+/**
+ * Classification IA d'une page (depuis legal_classifications)
+ */
+interface PageClassification {
+  primary_category: LegalCategory
+  confidence_score: number
+  signals_used: string[] | null
+}
+
+/**
+ * Détermine la catégorie KB basée UNIQUEMENT sur le contenu (classification IA)
+ * ❌ PAS de fallback vers web_source.category
+ * ✅ Classification pure par contenu
+ */
+function determineCategoryForKB(
+  classification: PageClassification | null
+): LegalCategory {
+  // Cas 1 : Classification IA disponible → utiliser primary_category
+  if (classification?.primary_category) {
+    return classification.primary_category
+  }
+
+  // Cas 2 : Pas de classification → "autre" + flag review
+  // (Sera détecté via metadata.needs_review dans le dashboard)
+  return 'autre'
+}
 
 // Import dynamique pour éviter les dépendances circulaires
 async function getChunkingService() {
@@ -45,11 +77,18 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     return { success: false, chunksCreated: 0, error: 'Service RAG désactivé' }
   }
 
-  // Récupérer la page
+  // Récupérer la page + classification IA
   const pageResult = await db.query(
-    `SELECT wp.*, ws.category, ws.name as source_name
+    `SELECT
+       wp.*,
+       ws.category as source_category,
+       ws.name as source_name,
+       lc.primary_category,
+       lc.confidence_score,
+       lc.signals_used
      FROM web_pages wp
      JOIN web_sources ws ON wp.web_source_id = ws.id
+     LEFT JOIN legal_classifications lc ON wp.id = lc.page_id
      WHERE wp.id = $1`,
     [pageId]
   )
@@ -64,13 +103,26 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     return { success: false, chunksCreated: 0, error: 'Contenu insuffisant pour indexation' }
   }
 
+  // Extraire la classification IA (si disponible)
+  const classification: PageClassification | null = row.primary_category
+    ? {
+        primary_category: row.primary_category,
+        confidence_score: row.confidence_score || 0,
+        signals_used: row.signals_used,
+      }
+    : null
+
+  // Déterminer la catégorie KB basée UNIQUEMENT sur le contenu
+  const kbCategory = determineCategoryForKB(classification)
+
   // Normaliser le texte
   const normalizedText = normalizeText(row.extracted_text)
   const detectedLang = row.language_detected || detectTextLanguage(normalizedText) || 'fr'
 
   // Stratégie arabe uniquement : ignorer le contenu non-arabe
   // Exception: Google Drive accepte français et mixte
-  const isGoogleDrive = row.category === 'google_drive'
+  // NOTE : On utilise source_category pour ce check technique (propriété de la source)
+  const isGoogleDrive = row.source_category === 'google_drive'
   if (KB_ARABIC_ONLY && !isGoogleDrive && detectedLang !== 'ar') {
     console.log(`[WebIndexer] Contenu non-arabe ignoré: page ${pageId} (${detectedLang})`)
     return { success: false, chunksCreated: 0, error: `Contenu non-arabe ignoré (${detectedLang})` }
@@ -83,16 +135,16 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
   const { chunkText, getOverlapForCategory } = await getChunkingService()
   const { generateEmbedding, generateEmbeddingsBatch, formatEmbeddingForPostgres } = await getEmbeddingsService()
 
-  // Déterminer l'overlap selon la catégorie
-  const overlap = getOverlapForCategory(row.category)
+  // Déterminer l'overlap selon la catégorie KB (basée sur le contenu)
+  const overlap = getOverlapForCategory(kbCategory)
 
-  // Découper en chunks
+  // Découper en chunks selon la catégorie KB
   const chunks = chunkText(normalizedText, {
     chunkSize: aiConfig.rag.chunkSize,
     overlap,
     preserveParagraphs: true,
     preserveSentences: true,
-    category: row.category,
+    category: kbCategory, // Catégorie basée sur le contenu (classification IA)
   })
 
   if (chunks.length === 0) {
@@ -110,7 +162,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
 
     // Créer ou mettre à jour le document KB
     if (!knowledgeBaseId) {
-      // Créer un nouveau document KB
+      // Créer un nouveau document KB avec classification IA pure
       const kbResult = await client.query(
         `INSERT INTO knowledge_base (
           category, subcategory, language, title, description,
@@ -118,7 +170,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)
         RETURNING id`,
         [
-          row.category,
+          kbCategory, // ← Classification IA pure (pas de fallback source)
           null, // subcategory
           language,
           row.title || row.url,
@@ -132,6 +184,11 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
             author: row.meta_author,
             publishedAt: row.meta_date,
             crawledAt: row.last_crawled_at,
+            // Tracking classification pour audit
+            classification_source: classification ? 'ai' : 'default',
+            classification_confidence: classification?.confidence_score || null,
+            classification_signals: classification?.signals_used || null,
+            needs_review: !classification, // Flag si pas de classification IA
           }),
           row.meta_keywords || [],
           normalizedText,
@@ -178,6 +235,11 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
           JSON.stringify({
             lastCrawledAt: row.last_crawled_at,
             updatedAt: new Date().toISOString(),
+            // Tracking classification (mise à jour si classification changée)
+            classification_source: classification ? 'ai' : 'default',
+            classification_confidence: classification?.confidence_score || null,
+            classification_signals: classification?.signals_used || null,
+            needs_review: !classification,
           }),
         ]
       )
