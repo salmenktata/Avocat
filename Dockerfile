@@ -1,4 +1,5 @@
 # Stage 1: Dependencies (Debian pour compatibilité canvas)
+# Force rebuild 2026-02-12 pour inclusion fichiers abrogation
 FROM node:18-slim AS deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ pkg-config \
