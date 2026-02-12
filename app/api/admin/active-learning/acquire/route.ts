@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    // Vérifier rôle admin/super-admin
+    // Vérifier rôle admin/super_admin
     const userRole = session.user.role
-    if (userRole !== 'admin' && userRole !== 'super-admin') {
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 

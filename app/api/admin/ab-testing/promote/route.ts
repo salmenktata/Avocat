@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
     }
 
     const userRole = session.user.role
-    if (userRole !== 'super-admin') {
+    if (userRole !== 'super_admin') {
       return NextResponse.json(
-        { error: 'Accès refusé (super-admin requis)' },
+        { error: 'Accès refusé (super_admin requis)' },
         { status: 403 }
       )
     }
