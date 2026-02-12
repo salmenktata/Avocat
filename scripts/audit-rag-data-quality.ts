@@ -174,6 +174,8 @@ const THRESHOLDS = {
 // ============================================================================
 
 const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  // Fallback pour environnement local si DATABASE_URL non défini
   host: process.env.POSTGRES_HOST || 'localhost',
   port: parseInt(process.env.POSTGRES_PORT || '5433'),
   database: process.env.POSTGRES_DB || 'moncabinet',
