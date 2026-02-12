@@ -40,6 +40,13 @@ export function WebSourceActions({ source }: WebSourceActionsProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
   const [showDelete, setShowDelete] = useState(false)
+  const [showOrganize, setShowOrganize] = useState(false)
+  const [organizeStats, setOrganizeStats] = useState<{
+    totalPages: number
+    pagesWithMetadata: number
+    pagesWithoutMetadata: number
+    estimatedTime: string
+  } | null>(null)
 
   const handleCrawl = async (jobType: 'incremental' | 'full_crawl') => {
     setLoading('crawl')
@@ -208,6 +215,81 @@ export function WebSourceActions({ source }: WebSourceActionsProps) {
     }
   }
 
+  const handleOpenOrganize = async () => {
+    setLoading('organize-stats')
+    try {
+      const res = await fetch(`/api/admin/web-sources/${source.id}/metadata/bulk`)
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast({
+          title: 'Erreur',
+          description: data.error || 'Erreur lors de la récupération des stats',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const estimatedMinutes = data.estimatedTimeMinutes || 0
+      const estimatedTime =
+        estimatedMinutes < 60
+          ? `${estimatedMinutes} min`
+          : `${Math.floor(estimatedMinutes / 60)}h ${estimatedMinutes % 60}m`
+
+      setOrganizeStats({
+        totalPages: data.totalPages,
+        pagesWithMetadata: data.pagesWithMetadata,
+        pagesWithoutMetadata: data.pagesWithoutMetadata,
+        estimatedTime,
+      })
+      setShowOrganize(true)
+    } catch {
+      toast({
+        title: 'Erreur',
+        description: 'Erreur lors de la récupération des stats',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const handleOrganize = async () => {
+    setLoading('organize')
+    try {
+      // Lancer l'extraction bulk en arrière-plan
+      const res = await fetch(`/api/admin/web-sources/${source.id}/organize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchSize: 10, concurrency: 5 }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        toast({
+          title: 'Erreur',
+          description: data.error || 'Erreur lors de l\'organisation',
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Organisation lancée',
+          description: `Extraction et classification en cours... ${data.message || ''}`,
+        })
+        setShowOrganize(false)
+        router.refresh()
+      }
+    } catch {
+      toast({
+        title: 'Erreur',
+        description: 'Erreur lors de l\'organisation',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(null)
+    }
+  }
+
   return (
     <>
       <div className="flex items-center gap-2">
@@ -268,6 +350,21 @@ export function WebSourceActions({ source }: WebSourceActionsProps) {
             },
           ]}
         />
+
+        {/* Bouton Organiser */}
+        <Button
+          onClick={handleOpenOrganize}
+          disabled={loading !== null}
+          variant="outline"
+          className="border-orange-500 text-orange-400 hover:bg-orange-500/20"
+        >
+          {loading === 'organize-stats' ? (
+            <Icons.loader className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <Icons.sparkles className="h-4 w-4 mr-2" />
+          )}
+          Organiser
+        </Button>
 
         {/* Menu Actions Secondaires */}
         <DropdownMenu>
@@ -345,6 +442,87 @@ export function WebSourceActions({ source }: WebSourceActionsProps) {
             >
               {loading === 'delete' && <Icons.loader className="h-4 w-4 animate-spin mr-2" />}
               Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showOrganize} onOpenChange={setShowOrganize}>
+        <AlertDialogContent className="bg-slate-800 border-slate-700 text-white max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Icons.sparkles className="h-5 w-5 text-orange-400" />
+              Organiser et classifier les pages
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              Extraction automatique des métadonnées structurées et classification juridique intelligente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {organizeStats && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-900/50 rounded-lg p-4">
+                  <p className="text-sm text-slate-400">Pages totales</p>
+                  <p className="text-2xl font-bold text-white">
+                    {organizeStats.totalPages.toLocaleString()}
+                  </p>
+                </div>
+                <div className="bg-slate-900/50 rounded-lg p-4">
+                  <p className="text-sm text-slate-400">À organiser</p>
+                  <p className="text-2xl font-bold text-orange-400">
+                    {organizeStats.pagesWithoutMetadata.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Icons.info className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-2 text-sm">
+                    <p className="text-blue-300 font-medium">
+                      Cette opération va extraire et classifier :
+                    </p>
+                    <ul className="text-slate-300 space-y-1 ml-4 list-disc">
+                      <li>19 champs de métadonnées juridiques (dates, numéros, références)</li>
+                      <li>Classification par domaine (civil, pénal, commercial, etc.)</li>
+                      <li>Classification par type (législation, jurisprudence, doctrine)</li>
+                      <li>Validation stricte contre listes de référence</li>
+                    </ul>
+                    <p className="text-slate-400 text-xs mt-2">
+                      ⏱️ Temps estimé : <span className="text-white font-medium">{organizeStats.estimatedTime}</span>
+                      <br />
+                      💰 Coût estimé : <span className="text-white font-medium">~0.40 USD</span> (Ollama gratuit prioritaire)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <Icons.alertTriangle className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-yellow-300">
+                    L'opération s'exécute en arrière-plan. Vous pouvez fermer cette fenêtre et revenir plus tard.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
+              disabled={loading === 'organize'}
+            >
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleOrganize}
+              className="bg-orange-600 hover:bg-orange-700"
+              disabled={loading === 'organize'}
+            >
+              {loading === 'organize' && <Icons.loader className="h-4 w-4 animate-spin mr-2" />}
+              Lancer l'organisation
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -94,6 +94,16 @@ async function getWebSourceData(id: string) {
     [id]
   )
 
+  // Stats métadonnées structurées
+  const metadataStatsResult = await db.query(
+    `SELECT
+      COUNT(DISTINCT wpsm.web_page_id) as pages_with_metadata
+    FROM web_pages wp
+    LEFT JOIN web_page_structured_metadata wpsm ON wp.id = wpsm.web_page_id
+    WHERE wp.web_source_id = $1`,
+    [id]
+  )
+
   // Dernières pages
   const pagesResult = await db.query(
     `SELECT id, url, title, status, is_indexed, word_count, chunks_count, last_crawled_at
@@ -202,7 +212,10 @@ async function getWebSourceData(id: string) {
 
   return {
     source,
-    stats: statsResult.rows[0],
+    stats: {
+      ...statsResult.rows[0],
+      pages_with_metadata: metadataStatsResult.rows[0]?.pages_with_metadata || 0,
+    },
     categoryStats: categoryStatsResult.rows,
     treeData,
     pages,
@@ -265,7 +278,7 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
       </div>
 
       {/* Stats KPI - Position #2 (priorité) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard
           label="Pages crawlées"
           value={parseInt(stats.total)}
@@ -276,6 +289,13 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
           value={parseInt(stats.indexed)}
           icon={<Icons.checkCircle className="h-4 w-4" />}
           color="green"
+        />
+        <StatCard
+          label="Pages organisées"
+          value={parseInt(stats.pages_with_metadata)}
+          icon={<Icons.sparkles className="h-4 w-4" />}
+          color="orange"
+          subtitle={`${((parseInt(stats.pages_with_metadata) / parseInt(stats.total)) * 100).toFixed(1)}%`}
         />
         <StatCard
           label="Chunks RAG"
@@ -375,16 +395,18 @@ interface StatCardProps {
   label: string
   value: number
   icon: React.ReactNode
-  color?: 'blue' | 'green' | 'purple' | 'red' | 'slate'
+  color?: 'blue' | 'green' | 'purple' | 'red' | 'slate' | 'orange'
+  subtitle?: string
 }
 
-function StatCard({ label, value, icon, color = 'blue' }: StatCardProps) {
+function StatCard({ label, value, icon, color = 'blue', subtitle }: StatCardProps) {
   const colors = {
     blue: 'text-blue-400',
     green: 'text-green-400',
     purple: 'text-purple-400',
     red: 'text-red-400',
     slate: 'text-slate-400',
+    orange: 'text-orange-400',
   }
 
   return (
@@ -393,7 +415,10 @@ function StatCard({ label, value, icon, color = 'blue' }: StatCardProps) {
         {icon}
         <span className="text-sm text-slate-400">{label}</span>
       </div>
-      <p className="text-2xl font-bold text-white mt-1">{value}</p>
+      <div className="flex items-baseline gap-2 mt-1">
+        <p className="text-2xl font-bold text-white">{value}</p>
+        {subtitle && <span className="text-sm text-slate-500">{subtitle}</span>}
+      </div>
     </div>
   )
 }
