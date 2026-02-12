@@ -571,6 +571,13 @@ export async function callLLMWithFallback(
     options.maxTokens = options.maxTokens || operationConfig.llmConfig?.maxTokens
   }
 
+  // CRITIQUE: Extraire le message système de messages et le mettre dans options
+  // Sinon callProvider utilisera SYSTEM_PROMPTS.qadhya par défaut au lieu du prompt spécifique
+  const systemMessage = messages.find(m => m.role === 'system')
+  if (systemMessage && !options.systemPrompt) {
+    options = { ...options, systemPrompt: systemMessage.content }
+  }
+
   // Mode Premium : forcer cloud providers pour qualité maximale (skip Ollama)
   if (usePremiumModel) {
     console.log('[LLM-Fallback] Mode Premium activé → utilisation cloud providers')
