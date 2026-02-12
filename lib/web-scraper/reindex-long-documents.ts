@@ -4,8 +4,7 @@
 
 import { db } from '@/lib/db/postgres'
 import { splitLongDocument, generateSectionMetadata } from './document-splitter'
-import { generateEmbedding } from '@/lib/ai/embeddings-service'
-import { formatEmbeddingForPostgres } from '@/lib/db/embeddings'
+import { generateEmbedding, formatEmbeddingForPostgres } from '@/lib/ai/embeddings-service'
 
 const MAX_DOCUMENT_SIZE = 50000 // 50KB
 
