@@ -122,14 +122,14 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     timeouts: {
-      embedding: 3000,   // 3s max (cache attendu)
-      chat: 5000,        // 5s max (Groq ultra-rapide)
-      total: 10000,      // 10s total
+      embedding: 5000,   // 5s max (marge Ollama embeddings)
+      chat: 30000,       // 30s max (permet fallback Ollama 18s + marge)
+      total: 45000,      // 45s total (cascade complète + marge réseau)
     },
 
     llmConfig: {
       temperature: 0.1,  // Très factuel pour conseil juridique (anti-hallucination)
-      maxTokens: 500,    // Réponses concises
+      maxTokens: 2000,   // Analyses juridiques détaillées (~1500 mots)
       systemPromptType: 'chat',
     },
   },

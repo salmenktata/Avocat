@@ -71,7 +71,9 @@ export async function POST(
     // Vérifier que le chat est activé
     if (!isChatEnabled()) {
       return NextResponse.json(
-        { error: 'Chat IA désactivé (ANTHROPIC_API_KEY manquant)' },
+        {
+          error: 'Chat IA désactivé. Configurez au moins un provider: GROQ_API_KEY, GOOGLE_API_KEY, DEEPSEEK_API_KEY, ou OLLAMA_ENABLED=true'
+        },
         { status: 503 }
       )
     }
