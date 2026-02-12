@@ -433,6 +433,12 @@ export async function searchKnowledgeBase(
   } = {}
 ): Promise<KnowledgeBaseSearchResult[]> {
   if (!isSemanticSearchEnabled()) {
+    console.log('[KB Search] ❌ Recherche sémantique DÉSACTIVÉE - isSemanticSearchEnabled()=false')
+    console.log('[KB Search] Debug config:', {
+      'RAG_ENABLED': process.env.RAG_ENABLED,
+      'OLLAMA_ENABLED': process.env.OLLAMA_ENABLED,
+      'OPENAI_API_KEY': process.env.OPENAI_API_KEY ? 'SET' : 'NOT SET'
+    })
     return []
   }
 
