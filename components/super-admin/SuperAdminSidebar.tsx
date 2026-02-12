@@ -64,6 +64,7 @@ const getNavGroups = (
     items: [
       { href: '/super-admin/knowledge-base', label: 'Base de connaissances', icon: 'bookOpen' },
       { href: '/super-admin/web-sources', label: 'Sources Web', icon: 'globe' },
+      { href: '/super-admin/web-sources/maintenance', label: 'Maintenance', icon: 'wrench' },
       { href: '/super-admin/web-files', label: 'Fichiers Web', icon: 'file' },
       {
         href: '/super-admin/taxonomy',
