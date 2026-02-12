@@ -112,7 +112,7 @@ export function ClassifyBatchButton() {
         )
       case 'completed':
         return (
-          <Badge variant="success" className="gap-1">
+          <Badge variant="secondary" className="gap-1 bg-green-500/20 text-green-400 border-green-500/30">
             <CheckCircle2 className="w-3 h-3" />
             Terminé
           </Badge>
