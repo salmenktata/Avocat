@@ -71,9 +71,9 @@ export interface LLMResponse {
 
 /**
  * Ordre de fallback des providers (Février 2026 - optimisé coût/performance)
- * Gemini tier gratuit illimité → DeepSeek économique → Groq rapide → Anthropic puissant → Ollama local
+ * Gemini tier gratuit illimité → DeepSeek économique → Groq rapide → OpenAI stable → Anthropic puissant → Ollama local
  */
-const FALLBACK_ORDER: LLMProvider[] = ['gemini', 'deepseek', 'groq', 'anthropic', 'ollama']
+const FALLBACK_ORDER: LLMProvider[] = ['gemini', 'deepseek', 'groq', 'openai', 'anthropic', 'ollama']
 
 /**
  * Stratégies de providers par contexte d'utilisation
