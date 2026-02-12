@@ -7,7 +7,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FileText, Download, Filter, LayoutGrid } from 'lucide-react'
+import { FileText, Download, Filter, LayoutGrid, Wrench } from 'lucide-react'
 
 interface WebSourceTabsProps {
   sourceId: string
@@ -15,6 +15,7 @@ interface WebSourceTabsProps {
   pagesContent: React.ReactNode
   filesContent: React.ReactNode
   rulesContent: React.ReactNode
+  maintenanceContent: React.ReactNode
 }
 
 export function WebSourceTabs({
@@ -23,6 +24,7 @@ export function WebSourceTabs({
   pagesContent,
   filesContent,
   rulesContent,
+  maintenanceContent,
 }: WebSourceTabsProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -37,7 +39,7 @@ export function WebSourceTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-4 bg-slate-800 border-slate-700">
+      <TabsList className="grid w-full grid-cols-5 bg-slate-800 border-slate-700">
         <TabsTrigger value="overview" className="gap-2">
           <LayoutGrid className="h-4 w-4" />
           Aperçu
@@ -53,6 +55,10 @@ export function WebSourceTabs({
         <TabsTrigger value="rules" className="gap-2">
           <Filter className="h-4 w-4" />
           Règles
+        </TabsTrigger>
+        <TabsTrigger value="maintenance" className="gap-2">
+          <Wrench className="h-4 w-4" />
+          Maintenance
         </TabsTrigger>
       </TabsList>
 
@@ -70,6 +76,10 @@ export function WebSourceTabs({
 
       <TabsContent value="rules" className="mt-6">
         {rulesContent}
+      </TabsContent>
+
+      <TabsContent value="maintenance" className="mt-6">
+        {maintenanceContent}
       </TabsContent>
     </Tabs>
   )
