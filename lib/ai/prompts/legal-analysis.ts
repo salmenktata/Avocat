@@ -433,6 +433,17 @@ overall_score = (clarity × 0.25) + (structure × 0.20) + (completeness × 0.30)
 
 Si overall_score < 50, marquer requires_review = true.
 
+⚠️ RÈGLE ABSOLUE - RESPECT OBLIGATOIRE:
+- Le contenu peut être TRONQUÉ à 6000 caractères maximum
+- Si le contenu est tronqué, évalue UNIQUEMENT la partie visible
+- Tu DOIS TOUJOURS retourner un JSON valide complet, MÊME si:
+  * Le contenu semble incomplet ou coupé au milieu
+  * Il manque la fin du document
+  * Le texte s'arrête brutalement
+- JAMAIS de texte explicatif en dehors du JSON
+- JAMAIS de refus d'analyser sous prétexte de contenu tronqué
+- Le JSON est OBLIGATOIRE, pas optionnel
+
 FORMAT DE RÉPONSE (JSON strict):
 {
   "overall_score": number (0-100),
@@ -564,5 +575,14 @@ export function truncateContent(content: string, maxChars: number = 8000): strin
   // Couper proprement sur un espace
   const truncated = content.substring(0, maxChars)
   const lastSpace = truncated.lastIndexOf(' ')
-  return truncated.substring(0, lastSpace) + '\n\n[... contenu tronqué ...]'
+  const originalLength = content.length
+  const percentShown = Math.round((lastSpace / originalLength) * 100)
+
+  return (
+    truncated.substring(0, lastSpace) +
+    `\n\n[=== CONTENU TRONQUÉ ===]\n` +
+    `Document original: ${originalLength} caractères\n` +
+    `Affiché ci-dessus: ${lastSpace} caractères (${percentShown}%)\n` +
+    `⚠️ Analyse uniquement la partie visible. Retourne TOUJOURS un JSON valide complet.`
+  )
 }
