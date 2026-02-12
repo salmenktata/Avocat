@@ -92,8 +92,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const result = await crawlGoogleDriveFolder(source, { incrementalMode })
 
     console.log(
-      `[ForceCrawlGDrive] Terminé: ${result.processed} pages, ` +
-        `${result.pagesAdded} new, ${result.pagesUpdated} updated, ` +
+      `[ForceCrawlGDrive] Terminé: ${result.pagesProcessed} pages, ` +
+        `${result.pagesNew} new, ${result.pagesChanged} changed, ` +
         `${result.errors.length} errors`
     )
 
@@ -112,11 +112,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({
       success: true,
-      message: `Crawl terminé: ${result.processed} pages traitées`,
+      message: `Crawl terminé: ${result.pagesProcessed} pages traitées`,
       crawl: {
-        processed: result.processed,
-        new: result.pagesAdded,
-        updated: result.pagesUpdated,
+        processed: result.pagesProcessed,
+        new: result.pagesNew,
+        changed: result.pagesChanged,
+        failed: result.pagesFailed,
+        filesDownloaded: result.filesDownloaded,
         errors: result.errors.length,
       },
       content: {
