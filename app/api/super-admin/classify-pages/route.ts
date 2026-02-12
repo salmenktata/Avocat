@@ -11,7 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth/auth-options'
+import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { classifyLegalContent } from '@/lib/web-scraper/legal-classifier-service'
 
@@ -48,13 +48,13 @@ interface WebPageToClassify {
 export async function POST(req: NextRequest) {
   try {
     // 1. Vérifier authentification Super Admin
-    const session = await auth()
+    const session = await getSession()
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    if (session.user.role !== 'super_admin') {
+    if (session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Accès refusé - Super Admin uniquement' },
         { status: 403 }
@@ -290,9 +290,9 @@ async function classifyPagesBackground(
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
+    const session = await getSession()
 
-    if (!session?.user || session.user.role !== 'super_admin') {
+    if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
