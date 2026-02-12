@@ -136,13 +136,11 @@ export async function reindexLongDocuments(
               // Générer embedding pour le chunk
               const chunkEmbedding = await generateEmbedding(chunkContent)
 
-              if (chunkEmbedding.success && chunkEmbedding.embedding) {
-                chunks.push({
-                  content: chunkContent,
-                  embedding: formatEmbeddingForPostgres(chunkEmbedding.embedding),
-                  index: chunks.length,
-                })
-              }
+              chunks.push({
+                content: chunkContent,
+                embedding: formatEmbeddingForPostgres(chunkEmbedding.embedding),
+                index: chunks.length,
+              })
             }
 
             // Insérer les chunks
