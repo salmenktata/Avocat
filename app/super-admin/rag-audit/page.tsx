@@ -33,10 +33,10 @@ interface AuditSummary {
 
 interface CategoryStats {
   category: string
-  total_chunks: number
-  avg_words: number | null
-  pct_normal: number | null
-  stddev_words: number | null
+  total_chunks: number | string
+  avg_words: number | string | null
+  pct_normal: number | string | null
+  stddev_words: number | string | null
 }
 
 interface EmbeddingValidation {
@@ -338,7 +338,7 @@ export default function RAGAuditPage() {
             <CardContent>
               <div className="space-y-4">
                 {report.chunkingAnalysis.sizeDistribution.map((cat) => {
-                  const pctNormal = cat.pct_normal ?? 0
+                  const pctNormal = Number(cat.pct_normal ?? 0)
                   const isGood = pctNormal >= 90
                   return (
                     <div key={cat.category} className="space-y-2">
@@ -353,7 +353,7 @@ export default function RAGAuditPage() {
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span>{cat.total_chunks} chunks</span>
-                          <span>{Math.round(cat.avg_words ?? 0)} mots moy.</span>
+                          <span>{Math.round(Number(cat.avg_words ?? 0))} mots moy.</span>
                           <Badge variant={isGood ? 'default' : 'secondary'}>
                             {pctNormal.toFixed(1)}% normal
                           </Badge>
