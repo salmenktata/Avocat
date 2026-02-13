@@ -90,7 +90,7 @@ export async function searchKnowledgeBaseRediSearch(
     queryStr += ` => [KNN ${limit * 2} @embedding $vec AS similarity]`
 
     // 3. Exécuter FT.SEARCH
-    const results = await redis.call(
+    const results = await redis.sendCommand([
       'FT.SEARCH',
       REDISEARCH_INDEX_NAME,
       queryStr,
@@ -112,7 +112,7 @@ export async function searchKnowledgeBaseRediSearch(
       'category',
       'language',
       'metadata'
-    ) as any[]
+    ]) as any[]
 
     // 4. Parser résultats
     return parseRediSearchResults(results, threshold)
