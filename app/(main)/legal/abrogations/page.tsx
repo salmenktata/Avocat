@@ -43,8 +43,9 @@ async function getStats(): Promise<AbrogationStats> {
 export default async function AbrogationsPage({
   searchParams,
 }: {
-  searchParams: { domain?: string; page?: string; search?: string }
+  searchParams: Promise<{ domain?: string; page?: string; search?: string }>
 }) {
+  const params = await searchParams
   const stats = await getStats()
 
   return (
@@ -66,9 +67,9 @@ export default async function AbrogationsPage({
       {/* Liste des abrogations */}
       <Suspense fallback={<AbrogationsListSkeleton />}>
         <AbrogationsList
-          initialDomain={searchParams.domain}
-          initialPage={parseInt(searchParams.page || '1')}
-          initialSearch={searchParams.search}
+          initialDomain={params.domain}
+          initialPage={parseInt(params.page || '1')}
+          initialSearch={params.search}
         />
       </Suspense>
     </div>
