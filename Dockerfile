@@ -1,6 +1,6 @@
 # Stage 1: Dependencies (Debian pour compatibilité canvas)
-# Force rebuild 2026-02-12T21:03 - inclure API abrogation + corrections
-FROM node:18-slim AS deps
+# Force rebuild 2026-02-13T00:48 - Node 20 requis (cheerio, pdf-parse, @react-email/render)
+FROM node:20-slim AS deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ pkg-config \
     libpixman-1-dev libcairo2-dev libpango1.0-dev \
@@ -12,7 +12,7 @@ COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Stage 2: Builder (Debian pour Playwright et canvas)
-FROM node:18-slim AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -53,7 +53,7 @@ ENV OPENAI_API_KEY="sk-build-placeholder"
 RUN npx next build
 
 # Stage 3: Runner (Debian slim pour support Playwright)
-FROM node:18-slim AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
 
 # Dépendances runtime pour canvas, Playwright Chromium, OCR (Tesseract) et LibreOffice
