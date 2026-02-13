@@ -22,13 +22,20 @@ interface Props {
 }
 
 async function getAbrogation(id: string): Promise<LegalAbrogation | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  // En production, utiliser localhost car appel interne depuis Server Component
+  const baseUrl =
+    process.env.NODE_ENV === 'production'
+      ? 'http://localhost:3000'
+      : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
   const res = await fetch(`${baseUrl}/api/legal/abrogations/${id}`, {
     next: { revalidate: 3600 }, // Cache 1 heure
+    cache: 'force-cache',
   })
 
   if (!res.ok) {
     if (res.status === 404) return null
+    console.error('[AbrogationDetailPage] Failed to fetch abrogation:', id, res.status)
     throw new Error('Failed to fetch abrogation')
   }
 

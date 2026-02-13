@@ -11,13 +11,30 @@ export const metadata: Metadata = {
 }
 
 async function getStats(): Promise<AbrogationStats> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  // En production, utiliser localhost car appel interne depuis Server Component
+  const baseUrl =
+    process.env.NODE_ENV === 'production'
+      ? 'http://localhost:3000'
+      : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
   const res = await fetch(`${baseUrl}/api/legal/abrogations/stats`, {
     next: { revalidate: 3600 }, // Cache 1 heure
+    cache: 'force-cache',
   })
 
   if (!res.ok) {
-    throw new Error('Failed to fetch stats')
+    console.error('[AbrogationsPage] Failed to fetch stats:', res.status)
+    // Return default stats instead of throwing
+    return {
+      total: 0,
+      byDomain: {} as Record<string, number>,
+      byScope: {} as Record<string, number>,
+      byConfidence: {} as Record<string, number>,
+      verified: 0,
+      pending: 0,
+      disputed: 0,
+      recentAbrogations: [],
+    }
   }
 
   return res.json()
