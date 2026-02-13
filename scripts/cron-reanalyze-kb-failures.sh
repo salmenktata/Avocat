@@ -30,8 +30,23 @@ log "=========================================="
 log "Début réanalyse automatique KB échecs"
 log "=========================================="
 
+# Détecter noms des conteneurs (robuste contre redémarrages)
+NEXTJS_CONTAINER=$(docker ps --filter "name=nextjs" --format "{{.Names}}" | head -1)
+POSTGRES_CONTAINER=$(docker ps --filter "name=postgres" --format "{{.Names}}" | head -1)
+
+if [ -z "$NEXTJS_CONTAINER" ] || [ -z "$POSTGRES_CONTAINER" ]; then
+  log "❌ ERREUR: Conteneurs Docker non trouvés"
+  log "   Next.js: $NEXTJS_CONTAINER"
+  log "   PostgreSQL: $POSTGRES_CONTAINER"
+  exit 1
+fi
+
+log "🐳 Conteneurs détectés:"
+log "   Next.js: $NEXTJS_CONTAINER"
+log "   PostgreSQL: $POSTGRES_CONTAINER"
+
 # Récupérer le CRON_SECRET depuis le conteneur
-if ! CRON_SECRET=$(docker exec qadhya-nextjs env | grep CRON_SECRET | cut -d= -f2); then
+if ! CRON_SECRET=$(docker exec "$NEXTJS_CONTAINER" env | grep CRON_SECRET | cut -d= -f2); then
   log "❌ ERREUR: Impossible de récupérer CRON_SECRET"
   exit 1
 fi
@@ -46,7 +61,7 @@ log "✅ CRON_SECRET récupéré"
 # Vérifier nombre d'échecs à traiter
 log "📊 Vérification nombre d'échecs..."
 
-FAILURES_COUNT=$(docker exec qadhya-postgres psql -U moncabinet -d qadhya -t -c \
+FAILURES_COUNT=$(docker exec $POSTGRES_CONTAINER psql -U moncabinet -d qadhya -t -c \
   "SELECT COUNT(*) FROM knowledge_base WHERE is_active = true AND quality_score = 50;" | tr -d ' ')
 
 log "📋 Échecs détectés: $FAILURES_COUNT"
@@ -116,13 +131,13 @@ log "📈 Améliorés: $TOTAL_IMPROVED"
 log "❌ Échecs: $TOTAL_FAILED"
 
 # Vérifier échecs restants
-FAILURES_REMAINING=$(docker exec qadhya-postgres psql -U moncabinet -d qadhya -t -c \
+FAILURES_REMAINING=$(docker exec $POSTGRES_CONTAINER psql -U moncabinet -d qadhya -t -c \
   "SELECT COUNT(*) FROM knowledge_base WHERE is_active = true AND quality_score = 50;" | tr -d ' ')
 
 log "📊 Échecs restants: $FAILURES_REMAINING"
 
 # Score moyen KB
-AVG_SCORE=$(docker exec qadhya-postgres psql -U moncabinet -d qadhya -t -c \
+AVG_SCORE=$(docker exec $POSTGRES_CONTAINER psql -U moncabinet -d qadhya -t -c \
   "SELECT ROUND(AVG(quality_score), 1) FROM knowledge_base WHERE is_active = true AND quality_score IS NOT NULL;" | tr -d ' ')
 
 log "⭐ Score moyen KB: $AVG_SCORE"
