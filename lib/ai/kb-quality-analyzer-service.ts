@@ -129,14 +129,16 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
 
   const parsed = parseKBQualityResponse(llmResult.answer)
 
+  // Protection triple: String → parseFloat → Math.round pour garantir INTEGER
+  // Fix: "invalid input syntax for type integer: '4.5'" en production
+  const safeRound = (val: any): number => Math.round(parseFloat(String(val || 0)))
+
   const result: KBQualityResult = {
-    // Arrondir tous les scores car PostgreSQL attend des integers
-    // Forcer conversion Number() au cas où OpenAI retourne des strings
-    qualityScore: Math.round(Number(parsed.overall_score) || 0),
-    clarity: Math.round(Number(parsed.clarity_score) || 0),
-    structure: Math.round(Number(parsed.structure_score) || 0),
-    completeness: Math.round(Number(parsed.completeness_score) || 0),
-    reliability: Math.round(Number(parsed.reliability_score) || 0),
+    qualityScore: safeRound(parsed.overall_score),
+    clarity: safeRound(parsed.clarity_score),
+    structure: safeRound(parsed.structure_score),
+    completeness: safeRound(parsed.completeness_score),
+    reliability: safeRound(parsed.reliability_score),
     analysisSummary: parsed.analysis_summary,
     detectedIssues: parsed.detected_issues || [],
     recommendations: parsed.recommendations || [],
