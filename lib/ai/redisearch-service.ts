@@ -74,7 +74,7 @@ export async function searchKnowledgeBaseRediSearch(
   try {
     // 1. Générer embedding query
     const { embedding } = await generateEmbedding(query, {
-      operationName: options.operationName || 'assistant-ia',
+      operationName: (options.operationName || 'assistant-ia') as any,
     })
 
     // Convertir embedding en buffer Float32
