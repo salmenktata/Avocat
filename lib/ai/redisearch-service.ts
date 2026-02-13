@@ -76,14 +76,14 @@ export async function searchKnowledgeBaseRediSearch(
     queryStr += ` => [KNN ${limit * 2} @embedding $vec AS similarity]`
 
     // 3. Exécuter FT.SEARCH
-    const results = await redis.call(
+    const results = (await redis.sendCommand([
       'FT.SEARCH',
       REDISEARCH_INDEX_NAME,
       queryStr,
       'PARAMS',
       '2',
       'vec',
-      embeddingBuffer,
+      embeddingBuffer as any,
       'SORTBY',
       'similarity',
       'LIMIT',
@@ -97,8 +97,8 @@ export async function searchKnowledgeBaseRediSearch(
       'similarity',
       'category',
       'language',
-      'metadata'
-    ) as any[]
+      'metadata',
+    ])) as any[]
 
     // 4. Parser résultats
     return parseRediSearchResults(results, threshold)
@@ -206,7 +206,7 @@ export async function redisearchHealthCheck(): Promise<{
     }
 
     // Vérifier si l'index existe
-    const indexInfo = await redis.call('FT.INFO', REDISEARCH_INDEX_NAME)
+    const indexInfo = await redis.sendCommand(['FT.INFO', REDISEARCH_INDEX_NAME])
 
     return {
       enabled: true,
