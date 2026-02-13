@@ -61,29 +61,27 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Récupérer stats DB
+    // Récupérer stats DB (via knowledge_base pour l'instant)
+    // TODO: Migrer vers table llm_operations quand disponible
     const usageStats = await db.query<{
-      total_calls: number
-      total_tokens: number
-      estimated_cost_usd: number
-      period_start: Date
+      total_analyzed: number
+      openai_count: number
     }>(`
       SELECT
-        COUNT(*) as total_calls,
-        SUM(input_tokens + output_tokens) as total_tokens,
-        SUM(
-          (input_tokens * 0.0025 / 1000) +
-          (output_tokens * 0.01 / 1000)
-        ) as estimated_cost_usd,
-        MIN(created_at) as period_start
-      FROM llm_operations
-      WHERE provider = 'openai'
-        AND operation_name LIKE '%quality-analysis%'
+        COUNT(*) FILTER (WHERE quality_score IS NOT NULL) as total_analyzed,
+        COUNT(*) FILTER (WHERE quality_llm_provider = 'openai') as openai_count
+      FROM knowledge_base
+      WHERE is_active = true
         AND created_at >= DATE_TRUNC('month', CURRENT_DATE)
     `)
 
     const stats = usageStats.rows[0]
-    const costUsd = stats.estimated_cost_usd || 0
+
+    // Estimation coût basée sur nombre de docs OpenAI
+    // Hypothèse: ~700 tokens moyen par doc (500 input + 200 output)
+    const avgTokensPerDoc = 700
+    const costPerDoc = (500 * 0.0025 + 200 * 0.01) / 1000
+    const costUsd = (stats.openai_count || 0) * costPerDoc
     const budgetRemaining = MONTHLY_BUDGET_USD - costUsd
 
     // Déterminer niveau d'alerte
@@ -108,10 +106,10 @@ export async function GET(request: NextRequest) {
         error: testError,
       },
       usage: {
-        calls: stats.total_calls || 0,
-        tokens: stats.total_tokens || 0,
-        costUsd: parseFloat(costUsd.toFixed(2)),
-        periodStart: stats.period_start,
+        totalAnalyzed: stats.total_analyzed || 0,
+        openaiCount: stats.openai_count || 0,
+        estimatedCostUsd: parseFloat(costUsd.toFixed(2)),
+        note: 'Estimation basée sur ~700 tokens/doc',
       },
       budget: {
         totalUsd: MONTHLY_BUDGET_USD,
