@@ -33,6 +33,102 @@ interface CachedSearchEntry {
   createdAt: number
 }
 
+export interface CacheMetrics {
+  hits: number
+  misses: number
+  sets: number
+  hitRate: number
+}
+
+// =============================================================================
+// MÉTRIQUES CACHE
+// =============================================================================
+
+/**
+ * Enregistre une métrique de cache (hit, miss, set)
+ * Stocke les compteurs par jour avec TTL de 7 jours
+ */
+export async function recordCacheMetrics(type: 'hit' | 'miss' | 'set'): Promise<void> {
+  if (!isRedisAvailable()) {
+    return
+  }
+
+  try {
+    const client = await getRedisClient()
+    if (!client) return
+
+    const day = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+    const key = `cache:metrics:${type}:${day}`
+
+    await client.incr(key)
+    await client.expire(key, 86400 * 7) // 7 jours
+  } catch (error) {
+    // Silent fail - ne pas bloquer la recherche pour un problème de métriques
+    console.warn(
+      '[SearchCache] Erreur recording metrics:',
+      error instanceof Error ? error.message : error
+    )
+  }
+}
+
+/**
+ * Récupère les métriques de cache pour une journée
+ */
+export async function getCacheMetricsForDay(day: string): Promise<CacheMetrics> {
+  const defaultMetrics: CacheMetrics = { hits: 0, misses: 0, sets: 0, hitRate: 0 }
+
+  if (!isRedisAvailable()) {
+    return defaultMetrics
+  }
+
+  try {
+    const client = await getRedisClient()
+    if (!client) return defaultMetrics
+
+    const [hits, misses, sets] = await Promise.all([
+      client.get(`cache:metrics:hit:${day}`),
+      client.get(`cache:metrics:miss:${day}`),
+      client.get(`cache:metrics:set:${day}`),
+    ])
+
+    const hitsNum = parseInt(hits || '0')
+    const missesNum = parseInt(misses || '0')
+    const setsNum = parseInt(sets || '0')
+    const total = hitsNum + missesNum
+    const hitRate = total > 0 ? (hitsNum / total) * 100 : 0
+
+    return {
+      hits: hitsNum,
+      misses: missesNum,
+      sets: setsNum,
+      hitRate,
+    }
+  } catch (error) {
+    console.warn(
+      '[SearchCache] Erreur lecture metrics:',
+      error instanceof Error ? error.message : error
+    )
+    return defaultMetrics
+  }
+}
+
+/**
+ * Récupère les métriques de cache pour les N derniers jours
+ */
+export async function getCacheMetricsHistory(days: number = 7): Promise<Record<string, CacheMetrics>> {
+  const history: Record<string, CacheMetrics> = {}
+
+  const today = new Date()
+  for (let i = 0; i < days; i++) {
+    const date = new Date(today)
+    date.setDate(date.getDate() - i)
+    const day = date.toISOString().slice(0, 10)
+    history[day] = await getCacheMetricsForDay(day)
+  }
+
+  return history
+}
+
 // =============================================================================
 // CACHE RECHERCHE
 // =============================================================================
@@ -91,10 +187,13 @@ export async function getCachedSearchResults(
         console.log(
           `[SearchCache] HIT: similarity=${similarity.toFixed(4)} (threshold=${SEARCH_CACHE_THRESHOLD})`
         )
+        await recordCacheMetrics('hit')
         return entry.results
       }
     }
 
+    // Aucun résultat similaire trouvé = miss
+    await recordCacheMetrics('miss')
     return null
   } catch (error) {
     console.warn(
@@ -142,6 +241,9 @@ export async function setCachedSearchResults(
     // Ajouter la clé à l'index du scope
     await client.sAdd(indexKey, key)
     await client.expire(indexKey, CACHE_TTL.search * 2) // Index expire après les entrées
+
+    // Enregistrer métrique
+    await recordCacheMetrics('set')
 
     console.log(
       `[SearchCache] SET: ${hash.substring(0, 8)}... scope=${scopeKey} (TTL: ${CACHE_TTL.search}s)`

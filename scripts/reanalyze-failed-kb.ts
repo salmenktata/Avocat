@@ -97,19 +97,15 @@ async function main() {
       try {
         const result = await analyzeKBDocumentQuality(doc.id)
 
-        if (result.success) {
-          succeeded++
+        // Succès si la fonction ne throw pas
+        succeeded++
 
-          const improvement = result.quality_score - doc.quality_score
-          if (improvement > 0) {
-            improved++
-            console.log(`   ✅ Après: ${result.quality_llm_provider} → score ${result.quality_score} (+${improvement})`)
-          } else {
-            console.log(`   ⚠️  Après: ${result.quality_llm_provider} → score ${result.quality_score} (pas d'amélioration)`)
-          }
+        const improvement = result.qualityScore - doc.quality_score
+        if (improvement > 0) {
+          improved++
+          console.log(`   ✅ Après: ${result.llmProvider} → score ${result.qualityScore} (+${improvement})`)
         } else {
-          failed++
-          console.log(`   ❌ Échec: ${result.error}`)
+          console.log(`   ⚠️  Après: ${result.llmProvider} → score ${result.qualityScore} (pas d'amélioration)`)
         }
 
       } catch (error) {

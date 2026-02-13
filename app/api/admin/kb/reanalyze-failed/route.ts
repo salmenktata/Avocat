@@ -108,23 +108,19 @@ export async function POST(request: NextRequest) {
 
         const analysisResult = await analyzeKBDocumentQuality(doc.id)
 
-        if (analysisResult.success) {
-          succeeded++
+        // Succès si la fonction ne throw pas
+        succeeded++
 
-          const improvement = analysisResult.quality_score - doc.quality_score
-          if (improvement > 0) {
-            improved++
-            console.log(
-              `[Reanalyze Failed] ✅ ${doc.id}: ${doc.quality_llm_provider}(${doc.quality_score}) → ${analysisResult.quality_llm_provider}(${analysisResult.quality_score}) (+${improvement})`
-            )
-          } else {
-            console.log(
-              `[Reanalyze Failed] ⚠️  ${doc.id}: ${analysisResult.quality_llm_provider}(${analysisResult.quality_score}) (pas d'amélioration)`
-            )
-          }
+        const improvement = analysisResult.qualityScore - doc.quality_score
+        if (improvement > 0) {
+          improved++
+          console.log(
+            `[Reanalyze Failed] ✅ ${doc.id}: ${doc.quality_llm_provider}(${doc.quality_score}) → ${analysisResult.llmProvider}(${analysisResult.qualityScore}) (+${improvement})`
+          )
         } else {
-          failed++
-          console.error(`[Reanalyze Failed] ❌ ${doc.id}: ${analysisResult.error}`)
+          console.log(
+            `[Reanalyze Failed] ⚠️  ${doc.id}: ${analysisResult.llmProvider}(${analysisResult.qualityScore}) (pas d'amélioration)`
+          )
         }
 
         // Pause 1s entre chaque analyse (rate limiting)
