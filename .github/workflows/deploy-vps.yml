@@ -202,45 +202,110 @@ jobs:
 
       - name: Health check
         run: |
-          echo "Waiting 30s for container to start (Docker healthcheck: 40s start_period)..."
+          echo "================================================"
+          echo "Waiting 30s for container (Docker start_period: 40s)..."
           sleep 30
 
           for i in 1 2 3; do
-            echo "Health check attempt $i/3..."
+            echo "================================================"
+            echo "Health check attempt $i/3 ($(date '+%H:%M:%S'))"
+
+            # Vérifier PostgreSQL
+            PG_STATUS=$(ssh vps 'docker exec qadhya-postgres pg_isready -U moncabinet 2>&1' || echo "FAIL")
+            echo "PostgreSQL: $PG_STATUS"
+
+            # Vérifier MinIO
+            MINIO_STATUS=$(ssh vps 'curl -sf http://localhost:9000/minio/health/live 2>&1' || echo "FAIL")
+            echo "MinIO: ${MINIO_STATUS:0:50}"
+
+            # Health check API
             RESPONSE=$(ssh vps 'curl -sf http://localhost:3000/api/health' || echo "FAILED")
-            echo "Response: $RESPONSE"
+            echo "API Response: $RESPONSE"
 
             if echo "$RESPONSE" | grep -q '"status":"healthy"'; then
-              echo "Health check passed!"
+              echo "================================================"
+              echo "✓ Health check PASSED!"
+              DEPLOYED_SHA=$(ssh vps "docker inspect qadhya-nextjs --format='{{.Config.Labels.org.opencontainers.image.revision}}' 2>/dev/null" || echo "N/A (Lightning Deploy)")
+              echo "Deployed SHA: $DEPLOYED_SHA"
+              echo "================================================"
               exit 0
             fi
 
-            echo "Health check failed, waiting 15s..."
-            sleep 15
+            if [ $i -lt 3 ]; then
+              echo "Waiting 15s before retry..."
+              sleep 15
+            fi
           done
 
-          echo "Health check failed after 3 attempts"
+          echo "================================================"
+          echo "✗ Health check FAILED after 3 attempts"
+          echo "================================================"
           exit 1
 
       - name: Rollback on failure
         if: failure()
         run: |
-          ssh vps << 'ROLLBACK'
-            echo "Rolling back to previous version..."
+          echo "================================================"
+          echo "⚠ ROLLBACK TRIGGERED - Deployment failed"
+          echo "================================================"
 
+          ssh vps << 'ROLLBACK'
+            # Capturer informations échec
+            FAILED_SHA=$(docker inspect qadhya-nextjs --format='{{.Config.Labels.org.opencontainers.image.revision}}' 2>/dev/null || echo "unknown")
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+            echo "Failed deployment SHA: $FAILED_SHA"
+            echo "Timestamp: $(date)"
+
+            # Sauvegarder logs
+            mkdir -p /opt/moncabinet/failed-deployments
+            docker logs qadhya-nextjs --tail 200 > "/opt/moncabinet/failed-deployments/logs_${TIMESTAMP}.txt" 2>&1
+
+            # Créer rapport incident (avec echo multi-lignes, pas de heredoc)
+            {
+              echo "ROLLBACK INCIDENT REPORT"
+              echo "========================"
+              echo "Time: $(date)"
+              echo "Failed SHA: $FAILED_SHA"
+              echo "Logs: logs_${TIMESTAMP}.txt"
+              echo ""
+              echo "Services Status:"
+              echo "- PostgreSQL: $(docker exec qadhya-postgres pg_isready -U moncabinet 2>&1 || echo 'FAIL')"
+              echo "- MinIO: $(curl -sf http://localhost:9000/minio/health/live 2>&1 || echo 'FAIL')"
+              echo "- Container started: $(docker inspect qadhya-nextjs --format='{{.State.StartedAt}}' 2>/dev/null)"
+              echo ""
+              echo "Next Steps:"
+              echo "1. Review logs: cat /opt/moncabinet/failed-deployments/logs_${TIMESTAMP}.txt"
+              echo "2. Check GitHub Actions logs for build errors"
+              echo "3. Fix issue locally and redeploy"
+            } > "/opt/moncabinet/failed-deployments/incident_${TIMESTAMP}.txt"
+
+            echo "Incident report saved: /opt/moncabinet/failed-deployments/incident_${TIMESTAMP}.txt"
+
+            # Exécuter rollback
             if [ -f /opt/moncabinet/rollback/server.js ]; then
+              echo "Restoring previous version..."
               docker cp /opt/moncabinet/rollback/server.js qadhya-nextjs:/app/server.js
               docker cp /opt/moncabinet/rollback/.next/. qadhya-nextjs:/app/.next/
               docker cp /opt/moncabinet/rollback/public/. qadhya-nextjs:/app/public/
               docker restart qadhya-nextjs
 
               echo "Rollback completed, waiting for health..."
-              sleep 15
-              curl -sf http://localhost:3000/api/health && echo "Rollback healthy!" || echo "WARNING: Rollback health check failed"
+              sleep 20
+
+              if curl -sf http://localhost:3000/api/health | grep -q '"status":"healthy"'; then
+                echo "✓ Rollback successful - application healthy"
+              else
+                echo "⚠ WARNING: Rollback health check failed"
+              fi
             else
-              echo "No rollback backup available"
+              echo "⚠ No rollback backup available"
             fi
           ROLLBACK
+
+          echo "================================================"
+          echo "Rollback procedure completed"
+          echo "================================================"
 
   # ===========================================================================
   # Job 2b: Docker Deploy (Tier 2) - Full rebuild, ~5-8 min with cache
@@ -322,20 +387,44 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            echo "Waiting 30s for container (Docker healthcheck: 40s start_period)..."
+            echo "================================================"
+            echo "Waiting 30s for container (Docker start_period: 40s)..."
             sleep 30
 
             for i in 1 2 3; do
-              echo "Health check attempt $i/3..."
-              if curl -sf http://localhost:3000/api/health | grep -q '"status":"healthy"'; then
-                echo "Health check passed! Deployment successful!"
+              echo "================================================"
+              echo "Health check attempt $i/3 ($(date '+%H:%M:%S'))"
+
+              # Vérifier services
+              PG_STATUS=$(docker exec qadhya-postgres pg_isready -U moncabinet 2>&1 || echo "FAIL")
+              echo "PostgreSQL: $PG_STATUS"
+
+              MINIO_STATUS=$(curl -sf http://localhost:9000/minio/health/live 2>&1 || echo "FAIL")
+              echo "MinIO: ${MINIO_STATUS:0:50}"
+
+              # Health check API
+              RESPONSE=$(curl -sf http://localhost:3000/api/health || echo "FAILED")
+              echo "API Response: $RESPONSE"
+
+              if echo "$RESPONSE" | grep -q '"status":"healthy"'; then
+                echo "================================================"
+                echo "✓ Health check PASSED!"
+                DEPLOYED_SHA=$(docker inspect qadhya-nextjs --format='{{.Config.Labels.org.opencontainers.image.revision}}' 2>/dev/null || echo "unknown")
+                echo "Deployed SHA: $DEPLOYED_SHA"
+                echo "Deployment successful!"
+                echo "================================================"
                 exit 0
               fi
-              echo "Health check failed, waiting 15s..."
-              sleep 15
+
+              if [ $i -lt 3 ]; then
+                echo "Waiting 15s before retry..."
+                sleep 15
+              fi
             done
 
-            echo "Health check failed after 3 attempts"
+            echo "================================================"
+            echo "✗ Health check FAILED after 3 attempts"
+            echo "================================================"
             exit 1
 
   # ===========================================================================
