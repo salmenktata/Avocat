@@ -25,7 +25,18 @@ export async function GET(req: NextRequest) {
       'SELECT * FROM get_cron_monitoring_stats($1)',
       [hours]
     )
-    const stats = statsResult.rows
+    // Convertir les valeurs string en nombres
+    const stats = statsResult.rows.map((row) => ({
+      ...row,
+      total_executions: parseInt(row.total_executions) || 0,
+      completed_count: parseInt(row.completed_count) || 0,
+      failed_count: parseInt(row.failed_count) || 0,
+      running_count: parseInt(row.running_count) || 0,
+      success_rate: parseFloat(row.success_rate) || 0,
+      avg_duration_ms: parseInt(row.avg_duration_ms) || 0,
+      max_duration_ms: parseInt(row.max_duration_ms) || 0,
+      consecutive_failures: parseInt(row.consecutive_failures) || 0,
+    }))
 
     // 3. Récupérer timeline (par jour pour graph)
     const timelineResult = await db.query(
