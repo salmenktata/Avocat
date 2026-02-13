@@ -46,20 +46,21 @@ export async function GET(request: NextRequest) {
     const activeUsers = usersResult.rows[0]?.active_users || 0
 
     // =========================================================================
-    // 3. Latence moyenne (basé sur chat_messages qui ont tokens_used)
+    // 3. Latence moyenne (estimation basée sur tokens_used)
     // =========================================================================
-    const latencyResult = await db.query(`
+    // NOTE: Table chat_messages n'a pas de colonne updated_at
+    // Estimation : ~50ms par token (modèles rapides Groq/Gemini)
+    const latencyEstimateResult = await db.query(`
       SELECT
-        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (updated_at - created_at)) * 1000)::int as p50,
-        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (updated_at - created_at)) * 1000)::int as p95
+        (PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY tokens_used) * 50)::int as p50,
+        (PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY tokens_used) * 50)::int as p95
       FROM chat_messages
       WHERE created_at >= NOW() - INTERVAL '${interval}'
         AND role = 'assistant'
         AND tokens_used IS NOT NULL
-        AND updated_at > created_at
     `)
 
-    const latency = latencyResult.rows[0] || { p50: 0, p95: 0 }
+    const latency = latencyEstimateResult.rows[0] || { p50: 0, p95: 0 }
 
     // =========================================================================
     // 4. Taux d'erreur (messages sans réponse ou avec erreur)
