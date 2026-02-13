@@ -27,6 +27,7 @@ import {
 import { isChatEnabled, getChatProvider } from '@/lib/ai/config'
 import { triggerSummaryGenerationIfNeeded } from '@/lib/ai/conversation-summary-service'
 import { createAIStream } from '@/lib/ai/streaming-service'
+import { detectAbrogations, type AbrogationAlert } from '@/lib/legal/abrogation-detector-service'
 
 // =============================================================================
 // TYPES
@@ -50,6 +51,7 @@ interface ChatApiResponse {
     output: number
     total: number
   }
+  abrogationAlerts?: AbrogationAlert[] // Phase 3.4 - Alertes abrogations détectées dans la question
 }
 
 // =============================================================================
@@ -142,6 +144,22 @@ export async function POST(
     // Sauvegarder la question utilisateur
     await saveMessage(activeConversationId, 'user', question)
 
+    // Phase 3.4 : Détecter les références à des lois abrogées dans la question
+    let abrogationAlerts: AbrogationAlert[] = []
+    try {
+      abrogationAlerts = await detectAbrogations(question, {
+        threshold: 0.5, // Similarité fuzzy search
+        minConfidence: 0.6, // Confiance détection référence
+      })
+
+      if (abrogationAlerts.length > 0) {
+        console.log(`[Chat API] ${abrogationAlerts.length} alerte(s) d'abrogation détectée(s) dans la question`)
+      }
+    } catch (error) {
+      console.error('[Chat API] Erreur détection abrogations:', error)
+      // Ne pas bloquer le chat si la détection échoue
+    }
+
     // Si streaming activé, retourner un ReadableStream
     if (stream) {
       return handleStreamingResponse(
@@ -200,6 +218,7 @@ export async function POST(
       sources: response.sources,
       conversationId: activeConversationId,
       tokensUsed: response.tokensUsed,
+      abrogationAlerts: abrogationAlerts.length > 0 ? abrogationAlerts : undefined,
     })
   } catch (error) {
     console.error('Erreur chat:', error)

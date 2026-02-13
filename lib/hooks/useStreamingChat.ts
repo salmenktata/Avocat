@@ -2,12 +2,35 @@
 
 import { useState, useCallback, useRef } from 'react'
 
+export interface AbrogationAlert {
+  reference: { text: string; type: string; confidence: number }
+  abrogation: {
+    id: string
+    abrogatedReference: string
+    abrogatedReferenceAr?: string
+    abrogatingReference?: string
+    abrogatingReferenceAr?: string
+    abrogationDate: string
+    scope: 'total' | 'partial' | 'implicit'
+    affectedArticles?: string[]
+    jortUrl?: string
+    sourceUrl?: string
+    similarityScore: number
+    verified: boolean
+    confidence: 'high' | 'medium' | 'low'
+  }
+  severity: 'critical' | 'warning' | 'info'
+  message: string
+  replacementSuggestion?: string
+}
+
 export interface StreamingMessage {
   role: 'user' | 'assistant'
   content: string
   sources?: any[]
   tokensUsed?: number
   isStreaming?: boolean
+  abrogationAlerts?: AbrogationAlert[] // Phase 3.4
 }
 
 export interface ChatSource {
@@ -32,6 +55,7 @@ interface StreamChunk {
   model?: string
   tokensUsed?: { input: number; output: number; total: number }
   error?: string
+  abrogationAlerts?: AbrogationAlert[] // Phase 3.4
 }
 
 interface UseStreamingChatOptions {
@@ -98,6 +122,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
             content: data.answer,
             sources: data.sources,
             tokensUsed: data.tokensUsed?.total,
+            abrogationAlerts: data.abrogationAlerts, // Phase 3.4
           }
           setMessages((prev) => [...prev, assistantMessage])
           options.onComplete?.(assistantMessage)
