@@ -80,13 +80,13 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'indexation': {
     context: 'embeddings',  // Utilise stratégie embeddings existante
 
-    description: 'Indexation KB en arrière-plan (volume élevé, coût critique)',
+    description: 'Indexation KB avec OpenAI (haute qualité, ~$2-5/mois)',
 
     embeddings: {
-      provider: 'ollama',
-      fallbackProvider: 'openai',
-      model: 'qwen3-embedding:0.6b',
-      dimensions: 1024,
+      provider: 'openai',
+      fallbackProvider: 'ollama',
+      model: 'text-embedding-3-small',
+      dimensions: 1536,
     },
 
     timeouts: {

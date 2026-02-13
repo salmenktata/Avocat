@@ -282,15 +282,16 @@ zcat /opt/backups/moncabinet/pre-rag-*.sql.gz | \
 
 ---
 
-## 💰 Coûts Estimés
+## 💰 Coûts Estimés (OpenAI Partout - Option B)
 
 | Service | Usage Mensuel | Coût |
 |---------|---------------|------|
-| **OpenAI Embeddings** | ~1M tokens | ~$0.50 |
+| **OpenAI Embeddings (Indexation)** | ~2-3M tokens | ~$1-2 |
+| **OpenAI Embeddings (Recherches)** | ~1M tokens | ~$0.50 |
 | **Groq LLM** | Tier gratuit | $0.00 |
-| **Total** | | **~$0.50/mois** |
+| **Total** | | **~$2-5/mois** |
 
-**ROI** : +50% pertinence RAG pour $0.50/mois
+**ROI** : +50% pertinence RAG, qualité maximale partout, architecture simplifiée
 
 ---
 
