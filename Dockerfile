@@ -167,3 +167,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "server.js"]
 
+# Force Tier 2 rebuild for API monitoring - ven. 13 févr. 2026 16:21:19 CET
