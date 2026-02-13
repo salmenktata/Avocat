@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
 
     // =========================================================================
     // Agrégation temporelle
+    // NOTE: Latence estimée via tokens × 50ms (pas de colonne updated_at)
     // =========================================================================
     const timeSeriesResult = await db.query(`
       SELECT
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
         ROUND(AVG(
           CASE
             WHEN role = 'assistant' AND tokens_used IS NOT NULL
-            THEN EXTRACT(EPOCH FROM (updated_at - created_at)) * 1000
+            THEN tokens_used * 50
             ELSE NULL
           END
         ))::int as latency,
