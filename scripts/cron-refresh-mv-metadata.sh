@@ -6,6 +6,10 @@
 
 set -e
 
+# Charger library cron logging
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/cron-logger.sh"
+
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
@@ -56,6 +60,15 @@ log_warning() {
 # MAIN
 # =============================================================================
 
+# Configurer cron-logger
+CRON_SECRET=$(docker exec qadhya-nextjs env | grep CRON_SECRET | cut -d= -f2 2>/dev/null || echo "")
+export CRON_SECRET
+export CRON_API_BASE="https://qadhya.tn"
+
+# Démarrer tracking
+cron_start "refresh-mv-metadata" "scheduled"
+trap 'cron_fail "Script terminé avec erreur" $?' EXIT
+
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 log_info "REFRESH MATERIALIZED VIEW METADATA (Cron Quotidien)"
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -63,6 +76,9 @@ log_info "━━━━━━━━━━━━━━━━━━━━━━━�
 # Vérifier si container PostgreSQL est up
 if ! docker ps | grep -q qadhya-postgres; then
   log_error "Container qadhya-postgres n'est pas démarré"
+
+  trap - EXIT
+  cron_fail "Container PostgreSQL non démarré" 1
   exit 1
 fi
 
@@ -72,6 +88,9 @@ MV_EXISTS=$(${PSQL_CMD} -t -c "SELECT COUNT(*) FROM pg_matviews WHERE matviewnam
 if [[ "$MV_EXISTS" == "0" ]]; then
   log_error "Materialized View mv_kb_metadata_enriched n'existe pas"
   log_warning "Exécutez: bash /opt/qadhya/scripts/apply-phase1-migrations.sh --prod"
+
+  trap - EXIT
+  cron_fail "MV mv_kb_metadata_enriched n'existe pas" 1
   exit 1
 fi
 
@@ -132,6 +151,24 @@ if ${PSQL_CMD} -c "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_kb_metadata_enriche
   log_success "REFRESH MATERIALIZED VIEW TERMINÉ AVEC SUCCÈS (${DURATION}s)"
   log_success "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+  # Cleanup trap
+  trap - EXIT
+
+  # Enregistrer succès
+  OUTPUT_JSON=$(cat <<EOF
+{
+  "durationSeconds": $DURATION,
+  "beforeCount": $BEFORE_COUNT,
+  "afterCount": $AFTER_COUNT,
+  "delta": $((AFTER_COUNT - BEFORE_COUNT)),
+  "beforeSize": "$BEFORE_SIZE",
+  "afterSize": "$AFTER_SIZE",
+  "stalenessMinutes": $STALENESS
+}
+EOF
+)
+
+  cron_complete "$OUTPUT_JSON"
   exit 0
 else
   log_error "REFRESH MATERIALIZED VIEW ÉCHOUÉ"
@@ -154,5 +191,10 @@ else
     log_warning "  - $LOCKS verrous actifs sur MV (possible contention)"
   fi
 
+  # Cleanup trap
+  trap - EXIT
+
+  # Enregistrer échec
+  cron_fail "REFRESH MATERIALIZED VIEW échoué" 1
   exit 1
 fi

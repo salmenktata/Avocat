@@ -12,6 +12,10 @@ set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Charger library cron logging
+source "$SCRIPT_DIR/lib/cron-logger.sh"
+
 LOG_DIR="/var/log/qadhya"
 LOG_FILE="${LOG_DIR}/reanalyze-kb.log"
 API_URL="http://localhost:7002/api/admin/kb/reanalyze-failed"
@@ -38,6 +42,8 @@ if [ -z "$NEXTJS_CONTAINER" ] || [ -z "$POSTGRES_CONTAINER" ]; then
   log "❌ ERREUR: Conteneurs Docker non trouvés"
   log "   Next.js: $NEXTJS_CONTAINER"
   log "   PostgreSQL: $POSTGRES_CONTAINER"
+
+  cron_fail "Conteneurs Docker non trouvés" 1
   exit 1
 fi
 
@@ -57,6 +63,14 @@ if [ -z "$CRON_SECRET" ]; then
 fi
 
 log "✅ CRON_SECRET récupéré"
+
+# Configurer cron-logger
+export CRON_SECRET
+export CRON_API_BASE="https://qadhya.tn"
+
+# Démarrer tracking
+cron_start "reanalyze-kb-failures" "scheduled"
+trap 'cron_fail "Script terminé avec erreur" $?' EXIT
 
 # Vérifier nombre d'échecs à traiter
 log "📊 Vérification nombre d'échecs..."
@@ -145,6 +159,25 @@ log "⭐ Score moyen KB: $AVG_SCORE"
 log ""
 log "✅ Réanalyse automatique terminée"
 log "=========================================="
+
+# Cleanup trap
+trap - EXIT
+
+# Enregistrer succès avec métriques
+OUTPUT_JSON=$(cat <<EOF
+{
+  "failuresInitial": $FAILURES_COUNT,
+  "batchesRun": $BATCHES_TO_RUN,
+  "totalSuccess": $TOTAL_SUCCESS,
+  "totalFailed": $TOTAL_FAILED,
+  "totalImproved": $TOTAL_IMPROVED,
+  "failuresRemaining": $FAILURES_REMAINING,
+  "avgScore": $AVG_SCORE
+}
+EOF
+)
+
+cron_complete "$OUTPUT_JSON"
 
 # Exit avec code approprié
 if [ "$TOTAL_FAILED" -gt 0 ]; then

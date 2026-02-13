@@ -24,6 +24,7 @@ import {
   type QualityCriteria,
 } from '../lib/knowledge-base/acquisition-pipeline-service'
 import { db } from '../lib/db/postgres'
+import { cronStart, cronComplete, cronFail } from '../lib/cron/cron-logger-ts'
 
 const DRY_RUN = process.argv.includes('--dry-run')
 const USER_ID = 'acquisition-pipeline-cron' // ID système pour le cron
@@ -335,6 +336,9 @@ async function main() {
     log('🌵 MODE DRY RUN ACTIVÉ', 'yellow')
   }
 
+  // Démarrer tracking
+  await cronStart('acquisition-weekly', 'scheduled')
+
   const startTime = Date.now()
 
   try {
@@ -364,9 +368,27 @@ async function main() {
     })
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1)
+
+    // Enregistrer succès avec métriques
+    await cronComplete({
+      sourcesCreated: sourcesResult.created.length,
+      sourcesSkipped: sourcesResult.skipped.length,
+      crawlsLaunched: crawlsResult.launched,
+      docsValidated: validationResult.validated,
+      avgQualityScore: validationResult.avgScore,
+      durationSeconds: parseFloat(duration),
+      errorsCount: sourcesResult.errors.length + crawlsResult.errors.length,
+      dryRun: DRY_RUN,
+    })
+
     log(`\n✅ Cron terminé avec succès (durée: ${duration}s)`, 'green')
     process.exit(0)
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+
+    // Enregistrer échec
+    await cronFail(errorMessage, 1)
+
     log(`\n❌ Erreur fatale : ${error}`, 'red')
     console.error(error)
     process.exit(1)

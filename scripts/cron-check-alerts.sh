@@ -8,6 +8,10 @@
 
 set -e
 
+# Charger library cron logging
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/cron-logger.sh"
+
 # Timestamp
 echo "=============================================="
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Vérification Alertes"
@@ -20,6 +24,16 @@ if [ -z "$CRON_SECRET" ]; then
   echo "❌ CRON_SECRET introuvable dans le container"
   exit 1
 fi
+
+# Configurer variables pour cron-logger
+export CRON_SECRET
+export CRON_API_BASE="https://qadhya.tn"
+
+# Démarrer tracking de l'exécution
+cron_start "check-alerts" "scheduled"
+
+# Trap pour gérer les erreurs inattendues
+trap 'cron_fail "Script terminé avec erreur" $?' EXIT
 
 # Appeler l'API de vérification alertes
 RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
@@ -47,9 +61,43 @@ if [ "$SUCCESS" = "true" ]; then
   fi
 else
   echo "❌ Erreur lors de la vérification des alertes"
+
+  # Cleanup trap avant exit
+  trap - EXIT
+
+  # Enregistrer échec
+  OUTPUT_JSON=$(cat <<EOF
+{
+  "success": false,
+  "alertsDetected": $ALERTS_DETECTED,
+  "alertsSent": $ALERTS_SENT,
+  "httpCode": $HTTP_CODE
+}
+EOF
+)
+  cron_fail "Erreur API alerts/check (HTTP $HTTP_CODE)" 1
+
   exit 1
 fi
 
 echo ""
 echo "✅ Vérification terminée"
 echo ""
+
+# Cleanup trap
+trap - EXIT
+
+# Enregistrer succès avec métriques
+OUTPUT_JSON=$(cat <<EOF
+{
+  "success": true,
+  "alertsDetected": $ALERTS_DETECTED,
+  "alertsSent": $ALERTS_SENT,
+  "httpCode": $HTTP_CODE
+}
+EOF
+)
+
+cron_complete "$OUTPUT_JSON"
+
+exit 0
