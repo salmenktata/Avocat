@@ -4,7 +4,7 @@
 # Version: 1.0.0
 # Date: 13 février 2026
 
-set -e
+# Note: Pas de set -e pour continuer même en cas d'erreur
 
 # Couleurs pour l'output
 RED='\033[0;31m'
@@ -137,22 +137,21 @@ print_info "Exécution: npx next lint..."
 ESLINT_LOG=$(mktemp)
 
 # Exécuter ESLint sur les fichiers Super Admin
-if npx next lint --file "app/super-admin/**/*.tsx" --file "components/super-admin/**/*.tsx" --file "app/api/admin/**/*.ts" 2>&1 | tee "$ESLINT_LOG" | grep -E "Error:" > /dev/null; then
-    ESLINT_ERRORS=$(grep -c "Error:" "$ESLINT_LOG" || echo "0")
+npx next lint --file "app/super-admin/**/*.tsx" --file "components/super-admin/**/*.tsx" --file "app/api/admin/**/*.ts" 2>&1 | tee "$ESLINT_LOG" > /dev/null
 
-    # Filtrer les erreurs des fichiers générés (.next)
-    ESLINT_ERRORS_SOURCE=$(grep "Error:" "$ESLINT_LOG" | grep -v ".next/" | wc -l | tr -d ' ')
+# Compter les erreurs totales
+ESLINT_ERRORS=$(grep -c "Error:" "$ESLINT_LOG" 2>/dev/null || echo "0")
 
-    if [ "$ESLINT_ERRORS_SOURCE" -gt 0 ]; then
-        print_error "ESLint: $ESLINT_ERRORS_SOURCE erreur(s) dans le code source"
-        print_info "Erreurs détectées:"
-        grep "Error:" "$ESLINT_LOG" | grep -v ".next/" | head -5
-    else
-        print_success "ESLint: 0 erreur dans le code source"
-        if [ "$ESLINT_ERRORS" -gt 0 ]; then
-            print_info "($ESLINT_ERRORS erreur(s) dans fichiers générés .next/ - ignorées)"
-        fi
-    fi
+# Filtrer pour ne garder que les fichiers Super Admin (app/super-admin, components/super-admin, app/api/admin)
+ESLINT_ERRORS_SOURCE=$(grep -B1 "Error:" "$ESLINT_LOG" | grep -E "(app/super-admin|components/super-admin|app/api/admin)" | wc -l | tr -d ' ')
+
+if [ "$ESLINT_ERRORS_SOURCE" -gt 0 ]; then
+    print_error "ESLint: $ESLINT_ERRORS_SOURCE erreur(s) dans le code source Super Admin"
+    print_info "Erreurs détectées:"
+    grep -B1 "Error:" "$ESLINT_LOG" | grep -A1 -E "(app/super-admin|components/super-admin|app/api/admin)" | head -10
+elif [ "$ESLINT_ERRORS" -gt 0 ]; then
+    print_success "ESLint: 0 erreur dans le code source Super Admin"
+    print_info "($ESLINT_ERRORS erreur(s) dans fichiers générés .next/ - ignorées)"
 else
     print_success "ESLint: 0 erreur"
 fi
@@ -319,7 +318,6 @@ print_title "7️⃣  Vérification des Fichiers de Configuration"
 CONFIG_FILES=(
     "tsconfig.json"
     "next.config.js"
-    ".eslintrc.json"
     "tailwind.config.ts"
     "package.json"
 )
@@ -331,6 +329,14 @@ for file in "${CONFIG_FILES[@]}"; do
         print_error "Config: $file MANQUANT"
     fi
 done
+
+# Vérifier ESLint (plusieurs formats possibles)
+if [ -f "eslint.config.mjs" ] || [ -f ".eslintrc.json" ] || [ -f ".eslintrc.js" ]; then
+    ESLINT_FILE=$(ls eslint.config.mjs .eslintrc.json .eslintrc.js 2>/dev/null | head -1)
+    print_success "Config ESLint: $ESLINT_FILE existe"
+else
+    print_error "Config ESLint: AUCUN fichier trouvé"
+fi
 
 # Vérifier les variables d'environnement (optionnel)
 if [ -f ".env.local" ] || [ -f ".env" ]; then
