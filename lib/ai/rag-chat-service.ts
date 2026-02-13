@@ -180,6 +180,8 @@ export interface ChatOptions {
   usePremiumModel?: boolean
   /** Type d'opération pour configuration spécifique */
   operationName?: OperationName
+  /** Logger structuré pour traçabilité (auto-créé si non fourni) */
+  logger?: RAGLogger
 }
 
 export interface ConversationMessage {
@@ -1143,11 +1145,21 @@ export async function answerQuestion(
 ): Promise<ChatResponse> {
   const startTotal = Date.now()
 
+  // Initialiser logger structuré (ou utiliser celui fourni)
+  const logger = options.logger || new RAGLogger(undefined, { userId, operation: options.operationName })
+  logger.addContext('question', question.substring(0, 100)) // Truncate pour éviter logs massifs
+  logger.info('search', 'Pipeline RAG démarré', {
+    enableExpansion: ENABLE_QUERY_EXPANSION,
+    operationName: options.operationName,
+  })
+
   if (!isChatEnabled()) {
+    logger.error('search', 'Chat IA désactivé')
     throw new Error('Chat IA désactivé (activer OLLAMA_ENABLED ou configurer GROQ_API_KEY)')
   }
 
   const provider = getChatProvider()
+  logger.addContext('provider', provider)
 
   // Métriques RAG
   let searchTimeMs = 0
@@ -1168,7 +1180,7 @@ export async function answerQuestion(
   } catch (error) {
     // Mode dégradé: retourner une erreur claire au lieu de continuer sans contexte
     // Évite les hallucinations juridiques en mode sans source
-    console.error('[RAG] ERREUR RECHERCHE CONTEXTE - Sources indisponibles:', error instanceof Error ? error.message : error)
+    logger.error('search', 'Erreur recherche contexte - Sources indisponibles', error)
     isDegradedMode = true
     sources = []
     searchTimeMs = Date.now() - startSearch
@@ -1373,14 +1385,14 @@ export async function answerQuestion(
       error: llmError,
     })
 
-    console.error('[RAG] Erreur LLM (tous providers épuisés):', error)
+    logger.error('llm', 'Erreur LLM - Tous providers épuisés', error)
     throw error // Re-throw pour que l'appelant puisse gérer
   }
 
   // Déclencher génération de résumé en async si seuil atteint
   if (options.conversationId && totalMessageCount >= SUMMARY_CONFIG.triggerMessageCount) {
     triggerSummaryGenerationIfNeeded(options.conversationId).catch((err) =>
-      console.error('[RAG] Erreur trigger résumé:', err)
+      logger.error('llm', 'Erreur trigger résumé conversation', err)
     )
   }
 
@@ -1425,11 +1437,14 @@ export async function answerQuestion(
       const validationResult = validateArticleCitations(answer, sources)
 
       if (validationResult.warnings.length > 0) {
-        console.warn('[RAG] Citations non vérifiées:', formatValidationWarnings(validationResult))
+        logger.warn('filter', 'Citations non vérifiées détectées', {
+          count: validationResult.warnings.length,
+          warnings: formatValidationWarnings(validationResult),
+        })
         citationWarnings = validationResult.warnings.map(w => w.citation)
       }
     } catch (error) {
-      console.error('[RAG] Erreur validation citations:', error)
+      logger.error('filter', 'Erreur validation citations', error)
       // Ne pas bloquer la réponse
     }
   }
@@ -1441,13 +1456,32 @@ export async function answerQuestion(
       abrogationWarnings = await detectAbrogatedReferences(answer, sources)
 
       if (abrogationWarnings.length > 0) {
-        console.warn('[RAG] Lois abrogées détectées:', formatAbrogationWarnings(abrogationWarnings))
+        logger.warn('abrogation', 'Lois abrogées détectées dans la réponse', {
+          count: abrogationWarnings.length,
+          warnings: formatAbrogationWarnings(abrogationWarnings),
+        })
       }
     } catch (error) {
-      console.error('[RAG] Erreur détection abrogations:', error)
+      logger.error('abrogation', 'Erreur détection abrogations', error)
       // Ne pas bloquer la réponse
     }
   }
+
+  // Log métriques finales du pipeline complet
+  logger.metrics({
+    totalTimeMs: Date.now() - startTotal,
+    searchTimeMs,
+    sourcesCount: sources.length,
+    tokensInput: tokensUsed.input,
+    tokensOutput: tokensUsed.output,
+    tokensTotal: tokensUsed.total,
+    model: modelUsed,
+    cacheHit,
+    degradedMode: isDegradedMode,
+    citationWarnings: citationWarnings.length,
+    abrogationWarnings: abrogationWarnings.length,
+    requestId: logger.getRequestId(),
+  })
 
   return {
     answer,
