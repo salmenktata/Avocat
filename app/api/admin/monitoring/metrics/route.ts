@@ -54,14 +54,12 @@ export async function GET(request: NextRequest) {
       provider: string
       count: number
       avg_score: number
-      avg_processing_time_ms: number
       success_rate: number
     }>(`
       SELECT
         COALESCE(quality_llm_provider, 'unknown') as provider,
         COUNT(*) as count,
         ROUND(AVG(quality_score)::numeric, 1) as avg_score,
-        ROUND(AVG(quality_processing_time_ms)::numeric, 0) as avg_processing_time_ms,
         ROUND(
           (COUNT(*) FILTER (WHERE quality_score > 50)::numeric / NULLIF(COUNT(*), 0) * 100),
           1
@@ -206,7 +204,6 @@ export async function GET(request: NextRequest) {
         provider: p.provider,
         count: p.count,
         avgScore: parseFloat(String(p.avg_score || 0)),
-        avgProcessingTimeMs: p.avg_processing_time_ms || 0,
         successRate: parseFloat(String(p.success_rate || 0)),
       })),
       timeline: timeline.map(t => ({
