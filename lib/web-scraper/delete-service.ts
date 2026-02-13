@@ -64,9 +64,51 @@ export async function deleteWebSourceComplete(
     errors: [],
   }
 
+  // =========================================================================
+  // PRÉ-VÉRIFICATION : Existence de la source
+  // =========================================================================
+  console.log(`[DELETE] Vérification existence source ${sourceId}...`)
+
+  const sourceCheck = await db.query(
+    'SELECT id, name FROM web_sources WHERE id = $1',
+    [sourceId]
+  )
+
+  if (sourceCheck.rows.length === 0) {
+    console.log(`[DELETE] ❌ Source ${sourceId} non trouvée`)
+    result.errors.push('Source non trouvée')
+    return result
+  }
+
+  const sourceName = sourceCheck.rows[0].name
+  console.log(`[DELETE] ✅ Source trouvée: "${sourceName}"`)
+
+  // =========================================================================
+  // PRÉ-VÉRIFICATION : Jobs en cours
+  // =========================================================================
+  console.log(`[DELETE] Vérification jobs en cours...`)
+
+  const runningJobsCheck = await db.query(
+    `SELECT id, job_type, status FROM web_crawl_jobs
+     WHERE web_source_id = $1 AND status IN ('queued', 'running')`,
+    [sourceId]
+  )
+
+  if (runningJobsCheck.rows.length > 0) {
+    const jobsList = runningJobsCheck.rows.map(j => `${j.job_type} (${j.status})`).join(', ')
+    console.log(`[DELETE] ⚠️  ${runningJobsCheck.rows.length} job(s) en cours: ${jobsList}`)
+    result.errors.push(
+      `Impossible de supprimer: ${runningJobsCheck.rows.length} job(s) en cours. Attendez leur fin ou annulez-les.`
+    )
+    return result
+  }
+
+  console.log(`[DELETE] ✅ Aucun job en cours`)
+
   const client = await db.getClient()
 
   try {
+    console.log(`[DELETE] Début transaction...`)
     await client.query('BEGIN')
 
     // =========================================================================
@@ -163,12 +205,22 @@ export async function deleteWebSourceComplete(
     // ÉTAPE 3 : Supprimer les documents Knowledge Base
     // =========================================================================
 
-    // Supprimer les documents KB (les chunks seront supprimés en cascade)
-    await client.query(
-      `DELETE FROM knowledge_base
-       WHERE metadata->>'sourceId' = $1`,
-      [sourceId]
-    )
+    console.log(`[DELETE] Suppression ${kbDocsCount} documents KB...`)
+
+    try {
+      // Supprimer les documents KB (les chunks seront supprimés en cascade)
+      const kbDeleteResult = await client.query(
+        `DELETE FROM knowledge_base
+         WHERE metadata->>'sourceId' = $1`,
+        [sourceId]
+      )
+      console.log(`[DELETE] ✅ ${kbDeleteResult.rowCount || 0} documents KB supprimés`)
+    } catch (err) {
+      const errorMsg = `Erreur suppression KB: ${err instanceof Error ? err.message : String(err)}`
+      console.error(`[DELETE] ❌ ${errorMsg}`)
+      result.errors.push(errorMsg)
+      throw err // Rollback
+    }
 
     // =========================================================================
     // ÉTAPE 4 : Supprimer les fichiers MinIO
@@ -199,6 +251,8 @@ export async function deleteWebSourceComplete(
     // ÉTAPE 5 : Supprimer la source web
     // =========================================================================
 
+    console.log(`[DELETE] Suppression source "${sourceName}"...`)
+
     // Cette suppression déclenche les cascades automatiques PostgreSQL :
     // - web_pages (et leurs métadonnées, versions, classifications, contradictions)
     // - web_crawl_jobs
@@ -208,24 +262,48 @@ export async function deleteWebSourceComplete(
     // - source_classification_rules
     // - web_source_ban_status
 
-    const deleteSourceResult = await client.query(
-      'DELETE FROM web_sources WHERE id = $1',
-      [sourceId]
-    )
+    try {
+      const deleteSourceResult = await client.query(
+        'DELETE FROM web_sources WHERE id = $1',
+        [sourceId]
+      )
 
-    result.sourceDeleted = (deleteSourceResult.rowCount || 0) > 0
+      const deletedCount = deleteSourceResult.rowCount || 0
+      result.sourceDeleted = deletedCount > 0
+
+      if (deletedCount === 0) {
+        console.error(`[DELETE] ⚠️  Source ${sourceId} n'a pas été supprimée (0 rows affected)`)
+        result.errors.push('La source n\'a pas pu être supprimée (0 rows affected)')
+      } else {
+        console.log(`[DELETE] ✅ Source supprimée avec succès`)
+      }
+    } catch (err) {
+      const errorMsg = `Erreur suppression source: ${err instanceof Error ? err.message : String(err)}`
+      console.error(`[DELETE] ❌ ${errorMsg}`)
+      result.errors.push(errorMsg)
+      throw err // Rollback
+    }
 
     // =========================================================================
     // COMMIT
     // =========================================================================
 
+    console.log(`[DELETE] Commit transaction...`)
     await client.query('COMMIT')
     result.success = true
 
+    console.log(`[DELETE] ✅ Suppression terminée avec succès`)
+    console.log(`[DELETE] Stats: KB=${result.stats.knowledgeBaseDocs}, Pages=${result.stats.webPages}, MinIO=${result.stats.minioFiles}`)
+
     return result
   } catch (error) {
+    console.error(`[DELETE] ❌ Erreur, rollback en cours...`)
     await client.query('ROLLBACK')
-    result.errors.push(`Erreur transaction: ${error instanceof Error ? error.message : String(error)}`)
+
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    console.error(`[DELETE] Erreur: ${errorMessage}`)
+
+    result.errors.push(`Erreur transaction: ${errorMessage}`)
     return result
   } finally {
     client.release()

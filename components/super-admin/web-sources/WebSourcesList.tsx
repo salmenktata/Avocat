@@ -146,24 +146,48 @@ export function WebSourcesList({
         method: 'DELETE',
       })
 
+      const data = await res.json()
+
       if (!res.ok) {
-        const data = await res.json()
+        // Afficher le message d'erreur détaillé
+        const errorMessage = data.message || data.error || 'Erreur lors de la suppression'
+        const details = data.details?.length > 0 ? data.details.join(' | ') : undefined
+
         toast({
-          title: 'Erreur',
-          description: data.error || 'Erreur lors de la suppression',
+          title: 'Erreur de suppression',
+          description: details ? `${errorMessage}\n${details}` : errorMessage,
           variant: 'destructive',
+          duration: 10000, // Afficher plus longtemps pour les erreurs importantes
         })
       } else {
+        // Succès
+        const stats = data.stats
+        const statsMessage = stats
+          ? `${stats.webPages} pages, ${stats.knowledgeBaseDocs} docs KB supprimés`
+          : 'Toutes les données ont été supprimées'
+
         toast({
           title: 'Source supprimée',
-          description: 'La source et ses pages ont été supprimées',
+          description: statsMessage,
         })
+
+        // Afficher les warnings s'il y en a
+        if (data.warnings?.length > 0) {
+          setTimeout(() => {
+            toast({
+              title: 'Avertissements',
+              description: data.warnings.join('\n'),
+              variant: 'default',
+            })
+          }, 1000)
+        }
+
         router.refresh()
       }
-    } catch {
+    } catch (err) {
       toast({
-        title: 'Erreur',
-        description: 'Erreur lors de la suppression',
+        title: 'Erreur réseau',
+        description: err instanceof Error ? err.message : 'Erreur lors de la suppression',
         variant: 'destructive',
       })
     } finally {

@@ -213,19 +213,48 @@ export async function DELETE(
     }
 
     // Mode suppression réelle
+    console.log(`[API DELETE] Suppression source ${id}...`)
     const result = await deleteWebSourceComplete(id)
 
+    // Cas 1: Source non trouvée (avant transaction)
+    if (!result.success && result.errors.some(e => e.includes('Source non trouvée'))) {
+      console.log(`[API DELETE] ❌ Source ${id} non trouvée`)
+      return NextResponse.json({ error: 'Source non trouvée' }, { status: 404 })
+    }
+
+    // Cas 2: Jobs en cours (blocage)
+    if (!result.success && result.errors.some(e => e.includes('job(s) en cours'))) {
+      console.log(`[API DELETE] ⚠️  Jobs en cours, suppression bloquée`)
+      return NextResponse.json({
+        error: 'Impossible de supprimer la source',
+        message: result.errors[0],
+        details: result.errors,
+      }, { status: 409 }) // 409 Conflict
+    }
+
+    // Cas 3: Erreur durant la transaction
     if (!result.success) {
+      console.error(`[API DELETE] ❌ Erreur suppression:`, result.errors)
       return NextResponse.json({
         error: 'Erreur lors de la suppression',
+        message: result.errors[0] || 'Une erreur est survenue',
         details: result.errors,
         stats: result.stats,
       }, { status: 500 })
     }
 
+    // Cas 4: Transaction OK mais source pas supprimée (ne devrait pas arriver)
     if (!result.sourceDeleted) {
-      return NextResponse.json({ error: 'Source non trouvée' }, { status: 404 })
+      console.warn(`[API DELETE] ⚠️  Transaction OK mais source ${id} pas supprimée`)
+      return NextResponse.json({
+        error: 'Source non supprimée',
+        message: 'La transaction a réussi mais la source n\'a pas été supprimée',
+        details: result.errors,
+      }, { status: 500 })
     }
+
+    // Cas 5: Succès !
+    console.log(`[API DELETE] ✅ Source ${id} supprimée avec succès`)
 
     // Invalider le cache
     revalidatePath('/super-admin/web-sources')
@@ -233,12 +262,15 @@ export async function DELETE(
     return NextResponse.json({
       message: 'Source supprimée avec succès',
       stats: result.stats,
-      errors: result.errors.length > 0 ? result.errors : undefined,
+      warnings: result.errors.length > 0 ? result.errors : undefined,
     })
   } catch (error) {
-    console.error('Erreur suppression web source:', error)
+    console.error('[API DELETE] ❌ Exception non gérée:', error)
     return NextResponse.json(
-      { error: 'Erreur suppression source' },
+      {
+        error: 'Erreur serveur lors de la suppression',
+        message: error instanceof Error ? error.message : 'Erreur inconnue',
+      },
       { status: 500 }
     )
   }

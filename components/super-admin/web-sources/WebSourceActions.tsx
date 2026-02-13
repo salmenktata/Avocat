@@ -190,23 +190,37 @@ export function WebSourceActions({ source }: WebSourceActionsProps) {
         method: 'DELETE',
       })
 
+      const data = await res.json()
+
       if (!res.ok) {
-        const data = await res.json()
+        // Afficher le message d'erreur détaillé
+        const errorMessage = data.message || data.error || 'Erreur lors de la suppression'
+        const details = data.details?.length > 0 ? data.details.join(' | ') : undefined
+
         toast({
-          title: 'Erreur',
-          description: data.error || 'Erreur lors de la suppression',
+          title: 'Erreur de suppression',
+          description: details ? `${errorMessage}\n\n${details}` : errorMessage,
           variant: 'destructive',
+          duration: 10000, // Afficher plus longtemps pour lire l'erreur
         })
       } else {
+        // Succès
+        const stats = data.stats
+        const statsMessage = stats
+          ? `${stats.webPages} pages, ${stats.knowledgeBaseDocs} docs KB supprimés`
+          : undefined
+
         toast({
           title: 'Source supprimée',
+          description: statsMessage,
         })
+
         router.push('/super-admin/web-sources')
       }
-    } catch {
+    } catch (err) {
       toast({
-        title: 'Erreur',
-        description: 'Erreur lors de la suppression',
+        title: 'Erreur réseau',
+        description: err instanceof Error ? err.message : 'Erreur lors de la suppression',
         variant: 'destructive',
       })
     } finally {
