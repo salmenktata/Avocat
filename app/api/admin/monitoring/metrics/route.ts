@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) FILTER (WHERE is_active = true AND quality_score IS NOT NULL) as total_analyzed,
         COUNT(*) FILTER (WHERE is_active = true AND quality_score IS NULL) as total_not_analyzed,
         ROUND(AVG(quality_score)::numeric, 1) as avg_quality_score,
-        (SELECT COUNT(*) FROM knowledge_base_chunks WHERE is_active = true) as total_chunks
+        (SELECT COUNT(*) FROM knowledge_base_chunks WHERE knowledge_base_chunks.is_active = true) as total_chunks
       FROM knowledge_base
     `)
 
