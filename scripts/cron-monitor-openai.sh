@@ -13,23 +13,42 @@ echo "=============================================="
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Monitoring OpenAI"
 echo "=============================================="
 
-# Charger les variables d'environnement
-cd /opt/qadhya
-source /opt/qadhya/.env.production.local
+# Récupérer le secret cron
+CRON_SECRET=$(grep CRON_SECRET /opt/qadhya/.env.production.local | cut -d= -f2)
 
-# Exécuter le monitoring
-npx tsx scripts/monitor-openai-usage.ts
+if [ -z "$CRON_SECRET" ]; then
+  echo "❌ CRON_SECRET introuvable dans .env.production.local"
+  exit 1
+fi
 
-EXIT_CODE=$?
+# Appeler l'API de monitoring
+RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
+  -H "X-Cron-Secret: $CRON_SECRET" \
+  https://qadhya.tn/api/admin/monitor-openai)
 
-if [ $EXIT_CODE -ne 0 ]; then
-  echo ""
-  echo "⚠️  ALERTE envoyée - Vérifier le budget OpenAI"
+# Extraire le code HTTP et le body
+HTTP_CODE=$(echo "$RESPONSE" | grep HTTP_CODE | cut -d: -f2)
+BODY=$(echo "$RESPONSE" | sed '/HTTP_CODE/d')
+
+echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"
+echo ""
+
+# Vérifier le niveau d'alerte
+ALERT_LEVEL=$(echo "$BODY" | jq -r '.alert.level' 2>/dev/null || echo "unknown")
+ALERT_MESSAGE=$(echo "$BODY" | jq -r '.alert.message' 2>/dev/null || echo "")
+
+if [ "$ALERT_LEVEL" = "critical" ]; then
+  echo "⚠️  ALERTE CRITIQUE: $ALERT_MESSAGE"
+  echo "   Action: Vérifier solde OpenAI ou basculer sur Ollama"
 
   # TODO: Envoyer notification (email, Slack, etc.)
-  # curl -X POST https://hooks.slack.com/... -d "Budget OpenAI critique"
+  # curl -X POST https://hooks.slack.com/... -d "{\"text\": \"OpenAI Alert: $ALERT_MESSAGE\"}"
+
+  exit 1
+elif [ "$ALERT_LEVEL" = "warning" ]; then
+  echo "⚡ WARNING: $ALERT_MESSAGE"
 fi
 
 echo ""
-echo "Monitoring terminé avec code: $EXIT_CODE"
+echo "✅ Monitoring terminé"
 echo ""
