@@ -153,7 +153,7 @@ export async function filterAbrogatedSources(
  * Génère un message d'avertissement à ajouter à la réponse
  * si des documents modifiés sont utilisés.
  */
-export function formatAbrogationWarnings(sources: FilteredSource[]): string | null {
+export function formatAbrogationFilterWarnings(sources: FilteredSource[]): string | null {
   const modifiedSources = sources.filter(s => s.abrogationWarning)
 
   if (modifiedSources.length === 0) {

@@ -46,8 +46,7 @@ import {
   DetectedLanguage,
 } from './language-utils'
 import { translateQuery, isTranslationAvailable } from './translation-service'
-// TEMPORARILY DISABLED - Conflicting with deploy (formatAbrogationWarnings duplicate)
-// import { filterAbrogatedSources } from './rag-abrogation-filter'
+import { filterAbrogatedSources } from './rag-abrogation-filter'
 import {
   getConversationContext,
   triggerSummaryGenerationIfNeeded,
@@ -611,20 +610,19 @@ export async function searchRelevantContext(
   }
 
   // FILTRAGE ABROGATIONS : Exclure documents abrogés/suspendus
-  // TEMPORARILY DISABLED - Conflicting with deploy (formatAbrogationWarnings duplicate)
-  // const filteredResult = await filterAbrogatedSources(rerankedSources, {
-  //   enableFilter: true,
-  //   warnOnModified: true,
-  //   logExclusions: true,
-  // })
+  const filteredResult = await filterAbrogatedSources(rerankedSources, {
+    enableFilter: true,
+    warnOnModified: true,
+    logExclusions: true,
+  })
 
   // Si trop de sources filtrées, logger pour monitoring
-  // if (filteredResult.filteredCount > 0) {
-  //   console.log(`[RAG Filter] ⚠️  ${filteredResult.filteredCount} source(s) filtrée(s) (abrogées/suspendues)`)
-  // }
+  if (filteredResult.filteredCount > 0) {
+    console.log(`[RAG Filter] ⚠️  ${filteredResult.filteredCount} source(s) filtrée(s) (abrogées/suspendues)`)
+  }
 
-  // Limiter au nombre demandé (sur sources valides)
-  const finalSources = rerankedSources.slice(0, maxContextChunks)
+  // Limiter au nombre demandé (sur sources valides filtrées)
+  const finalSources = filteredResult.validSources.slice(0, maxContextChunks)
 
   // Calculer et logger les métriques
   const scores = allSources.map((s) => s.similarity)
