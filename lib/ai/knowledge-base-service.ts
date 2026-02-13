@@ -13,6 +13,7 @@ import { uploadFile, deleteFile } from '@/lib/storage/minio'
 import { aiConfig, isSemanticSearchEnabled } from './config'
 import { onKnowledgeDocumentChange } from './related-documents-service'
 import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
+import { getChunkConfig } from './adaptive-chunking-config'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse en RSC
 async function getDocumentParser() {
@@ -271,13 +272,21 @@ export async function indexKnowledgeDocument(documentId: string): Promise<{
   const { chunkText } = await getChunkingService()
   const { generateEmbedding, generateEmbeddingsBatch, formatEmbeddingForPostgres } = await getEmbeddingsService()
 
-  // Découper en chunks
+  // ✨ OPTIMISATION Phase 2.3 : Chunking adaptatif par catégorie
+  const category = (doc.category as KnowledgeCategory) || 'autre'
+  const chunkConfig = getChunkConfig(category)
+
+  // Découper en chunks avec configuration adaptative
   const chunks = chunkText(doc.full_text, {
-    chunkSize: aiConfig.rag.chunkSize,
-    overlap: aiConfig.rag.chunkOverlap,
-    preserveParagraphs: true,
-    preserveSentences: true,
+    chunkSize: chunkConfig.size,
+    overlap: chunkConfig.overlap,
+    preserveParagraphs: chunkConfig.preserveParagraphs ?? true,
+    preserveSentences: chunkConfig.preserveSentences ?? true,
   })
+
+  console.log(
+    `[KB Index] Chunking adaptatif: catégorie=${category}, size=${chunkConfig.size}, overlap=${chunkConfig.overlap}, chunks=${chunks.length}`
+  )
 
   if (chunks.length === 0) {
     return { success: false, chunksCreated: 0, error: 'Aucun chunk généré' }
