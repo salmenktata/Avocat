@@ -156,6 +156,25 @@ docker exec qadhya-postgres psql -U moncabinet -d qadhya -c \
 - **Métriques** : Échecs, score moyen, progression batch
 - **Auto-refresh** : 30s
 
+## 🐳 Détection Dynamique des Conteneurs
+
+Le script détecte automatiquement les noms des conteneurs Docker, ce qui le rend robuste contre les redémarrages et les noms avec préfixes hash.
+
+```bash
+# Détection automatique
+NEXTJS_CONTAINER=$(docker ps --filter "name=nextjs" --format "{{.Names}}" | head -1)
+POSTGRES_CONTAINER=$(docker ps --filter "name=postgres" --format "{{.Names}}" | head -1)
+
+# Exemple de sortie
+# Next.js: qadhya-nextjs
+# PostgreSQL: 275ce01791bf_qadhya-postgres
+```
+
+**Avantages** :
+- ✅ Fonctionne même si le nom du conteneur change
+- ✅ Robuste contre les préfixes hash Docker
+- ✅ Logs affichent les conteneurs détectés pour debugging
+
 ## 🛠️ Troubleshooting
 
 ### Le Cron Ne S'exécute Pas
@@ -210,13 +229,16 @@ Le système est déjà optimisé :
 
 ## 📋 Checklist Déploiement
 
-- [ ] Script déployé dans `/opt/qadhya/scripts/`
-- [ ] Permissions exécutables : `chmod +x`
-- [ ] Crontab configuré : `crontab -e`
-- [ ] Test manuel réussi
-- [ ] Logs visibles : `/var/log/qadhya/reanalyze-kb.log`
-- [ ] Dashboard monitoring accessible
-- [ ] Budget OpenAI surveillé
+- [x] Script déployé dans `/opt/moncabinet/scripts/` ✅ (13 février 2026, 21h50)
+- [x] Permissions exécutables : `chmod +x` ✅ (-rwxr-xr-x root)
+- [x] Crontab configuré : `0 4 * * *` ✅ (exécution quotidienne 4h)
+- [x] Test manuel réussi ✅ (0 échec détecté, détection conteneurs OK)
+- [x] Logs visibles : `/var/log/qadhya/reanalyze-kb.log` ✅ (883 bytes)
+- [x] Dashboard monitoring accessible ✅ (https://qadhya.tn/super-admin/monitoring?tab=kb-quality)
+- [x] Budget OpenAI surveillé ✅ (cron quotidien 9h)
+
+**Statut** : ✅ Installation complète et opérationnelle (13 février 2026, 21h52)
+**Prochaine exécution** : Demain 4h00 (automatique)
 
 ## 🎯 Résultats Attendus
 
