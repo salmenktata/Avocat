@@ -127,11 +127,7 @@ const nextConfig = {
   async redirects() {
     return [
       // Review Queue (Tâche 1.1)
-      {
-        source: '/super-admin/classification',
-        destination: '/super-admin/review-queue?tab=classification',
-        permanent: true,
-      },
+      // REMOVED: /super-admin/classification redirect - now a dedicated page with Batch tab
       {
         source: '/super-admin/content-review',
         destination: '/super-admin/review-queue?tab=content',
