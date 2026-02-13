@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
       avg_score: number
     }>(`
       SELECT
-        DATE(quality_analyzed_at) as date,
+        DATE(quality_assessed_at) as date,
         COUNT(*) as analyzed,
         COUNT(*) FILTER (WHERE quality_llm_provider = 'openai') as openai,
         COUNT(*) FILTER (WHERE quality_llm_provider = 'gemini') as gemini,
@@ -124,8 +124,8 @@ export async function GET(request: NextRequest) {
       FROM knowledge_base
       WHERE is_active = true
         AND quality_score IS NOT NULL
-        AND quality_analyzed_at >= CURRENT_DATE - INTERVAL '7 days'
-      GROUP BY DATE(quality_analyzed_at)
+        AND quality_assessed_at >= CURRENT_DATE - INTERVAL '7 days'
+      GROUP BY DATE(quality_assessed_at)
       ORDER BY date ASC
     `)
 
