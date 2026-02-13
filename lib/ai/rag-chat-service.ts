@@ -81,9 +81,9 @@ import {
 // Configuration Query Expansion
 const ENABLE_QUERY_EXPANSION = process.env.ENABLE_QUERY_EXPANSION !== 'false'
 
-// Timeout global pour la recherche bilingue (90 secondes par défaut)
-// Augmenté de 40s à 90s car Ollama CPU-only + indexation parallèle = très lent
-const BILINGUAL_SEARCH_TIMEOUT_MS = parseInt(process.env.BILINGUAL_SEARCH_TIMEOUT_MS || '90000', 10)
+// Timeout global pour la recherche bilingue (60 secondes par défaut)
+// Réduit de 90s à 60s grâce à parallélisation recherche primaire + traduction (Phase 2.1)
+const BILINGUAL_SEARCH_TIMEOUT_MS = parseInt(process.env.BILINGUAL_SEARCH_TIMEOUT_MS || '60000', 10)
 
 // =============================================================================
 // CLIENTS LLM (Ollama prioritaire, puis Groq, puis Anthropic)
@@ -688,75 +688,94 @@ async function searchRelevantContextBilingual(
   const detectedLang = detectLanguage(question)
   console.log(`[RAG Bilingual] Langue détectée: ${detectedLang}`)
 
-  // Recherche dans la langue originale (poids principal) avec timeout
-  let primaryResult: SearchResult
-  try {
-    primaryResult = await withTimeout(
+  // ========================================
+  // PARALLÉLISATION Phase 2.1 : Recherche primaire + Traduction en parallèle
+  // ========================================
+  const targetLang = getOppositeLanguage(detectedLang)
+  const canTranslate = ENABLE_QUERY_EXPANSION && isTranslationAvailable()
+
+  // Lancer recherche primaire ET traduction en PARALLÈLE
+  const [primaryResult, translationResult] = await Promise.allSettled([
+    // Recherche primaire avec timeout global
+    withTimeout(
       searchRelevantContext(question, userId, options),
       BILINGUAL_SEARCH_TIMEOUT_MS,
       'recherche primaire'
+    ),
+
+    // Traduction parallèle (ou reject si désactivé)
+    canTranslate
+      ? withTimeout(
+          translateQuery(question, detectedLang === 'mixed' ? 'fr' : detectedLang, targetLang),
+          5000, // 5s max pour traduction (augmenté de 3s pour éviter timeouts)
+          'traduction'
+        )
+      : Promise.reject(new Error('Translation disabled')),
+  ])
+
+  // Vérifier résultat recherche primaire
+  if (primaryResult.status === 'rejected') {
+    console.error(
+      '[RAG Bilingual] Erreur recherche primaire:',
+      primaryResult.reason instanceof Error ? primaryResult.reason.message : primaryResult.reason
     )
-  } catch (error) {
-    console.error('[RAG Bilingual] Timeout recherche primaire:', error instanceof Error ? error.message : error)
-    return { sources: [], cacheHit: false } // Retourner vide en cas de timeout total
+    return { sources: [], cacheHit: false } // Retourner vide en cas d'échec total
   }
 
-  // Si query expansion désactivé ou traduction non disponible, retourner les résultats primaires
-  if (!ENABLE_QUERY_EXPANSION || !isTranslationAvailable()) {
-    return primaryResult
-  }
-
-  // Vérifier le temps restant pour la recherche secondaire
-  const elapsedMs = Date.now() - startTime
-  const remainingMs = BILINGUAL_SEARCH_TIMEOUT_MS - elapsedMs
-
-  // Si moins de 2s restantes, ne pas lancer la recherche secondaire
-  if (remainingMs < 2000) {
-    console.log(`[RAG Bilingual] Temps restant insuffisant (${remainingMs}ms), skip recherche secondaire`)
-    return primaryResult
-  }
-
-  // Traduire vers la langue opposée
-  const targetLang = getOppositeLanguage(detectedLang)
-  let translation: { success: boolean; translatedText: string }
-
-  try {
-    translation = await withTimeout(
-      translateQuery(question, detectedLang === 'mixed' ? 'fr' : detectedLang, targetLang),
-      Math.min(3000, remainingMs / 2), // Max 3s pour la traduction
-      'traduction'
+  // Si traduction non disponible ou échouée, retourner résultats primaires seuls
+  if (!canTranslate || translationResult.status === 'rejected') {
+    console.log(
+      `[RAG Bilingual] Traduction ${!canTranslate ? 'désactivée' : 'échouée'}, retour résultats primaires seuls`
     )
-  } catch {
-    console.log('[RAG Bilingual] Timeout traduction, retour résultats primaires')
-    return primaryResult
+    return primaryResult.value
   }
 
+  // Vérifier temps restant pour recherche secondaire
+  const elapsed = Date.now() - startTime
+  const remaining = BILINGUAL_SEARCH_TIMEOUT_MS - elapsed
+
+  // Si moins de 15s restantes, ne pas lancer la recherche secondaire
+  if (remaining < 15000) {
+    console.log(
+      `[RAG Bilingual] Temps restant insuffisant (${remaining}ms < 15s), skip recherche secondaire`
+    )
+    return primaryResult.value
+  }
+
+  // Vérifier validité traduction
+  const translation = translationResult.value
   if (!translation.success || translation.translatedText === question) {
-    console.log('[RAG Bilingual] Traduction échouée ou identique, retour résultats primaires')
-    return primaryResult
+    console.log('[RAG Bilingual] Traduction identique ou invalide, retour résultats primaires')
+    return primaryResult.value
   }
 
   console.log(`[RAG Bilingual] Question traduite: "${translation.translatedText.substring(0, 50)}..."`)
 
-  // Recherche dans la langue traduite avec timeout restant
-  const newRemainingMs = BILINGUAL_SEARCH_TIMEOUT_MS - (Date.now() - startTime)
+  // ========================================
+  // Recherche secondaire avec timeout adaptatif
+  // ========================================
   let secondaryResult: SearchResult = { sources: [], cacheHit: false }
 
   try {
     secondaryResult = await withTimeout(
       searchRelevantContext(translation.translatedText, userId, options),
-      Math.max(2000, newRemainingMs), // Au moins 2s
+      Math.max(15000, remaining), // Au moins 15s pour recherche secondaire
       'recherche secondaire'
     )
   } catch (error) {
-    console.warn('[RAG Bilingual] Timeout recherche secondaire, retour résultats primaires seuls:', error instanceof Error ? error.message : error)
-    return primaryResult
+    console.warn(
+      '[RAG Bilingual] Timeout recherche secondaire, retour résultats primaires seuls:',
+      error instanceof Error ? error.message : error
+    )
+    return primaryResult.value
   }
 
-  const primarySources = primaryResult.sources
+  // ========================================
+  // Fusion résultats primaires + secondaires
+  // ========================================
+  const primarySources = primaryResult.value.sources
   const secondarySources = secondaryResult.sources
 
-  // Fusionner et re-rank les résultats
   // Poids: primaire 0.7, secondaire 0.3
   const PRIMARY_WEIGHT = 0.7
   const SECONDARY_WEIGHT = 0.3
@@ -796,12 +815,14 @@ async function searchRelevantContextBilingual(
   const finalSources = mergedSources.slice(0, maxResults)
 
   const totalTimeMs = Date.now() - startTime
-  console.log(`[RAG Bilingual] Fusion: ${primarySources.length} primaires + ${secondarySources.length} secondaires → ${finalSources.length} finaux (${totalTimeMs}ms)`)
+  console.log(
+    `[RAG Bilingual PARALLEL] Fusion: ${primarySources.length} primaires + ${secondarySources.length} secondaires → ${finalSources.length} finaux (${totalTimeMs}ms, -${Math.round((1 - totalTimeMs / BILINGUAL_SEARCH_TIMEOUT_MS) * 100)}% vs timeout)`
+  )
 
   // Cache hit si au moins une des deux recherches était en cache
   return {
     sources: finalSources,
-    cacheHit: primaryResult.cacheHit || secondaryResult.cacheHit,
+    cacheHit: primaryResult.value.cacheHit || secondaryResult.cacheHit,
   }
 }
 
