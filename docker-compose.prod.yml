@@ -58,10 +58,19 @@ services:
       - "max_parallel_maintenance_workers=2"
 
   redis:
-    image: redis:7-alpine
+    image: redis/redis-stack-server:latest
     container_name: qadhya-redis
     restart: unless-stopped
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save ""
+    command: >
+      redis-server
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --protected-mode no
+      --loadmodule /opt/redis-stack/lib/redisearch.so
+      --loadmodule /opt/redis-stack/lib/redistimeseries.so
+      --loadmodule /opt/redis-stack/lib/rejson.so
+      --loadmodule /opt/redis-stack/lib/redisbloom.so
     volumes:
       - redis_data:/data
     ports:
