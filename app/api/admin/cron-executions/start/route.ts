@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db/postgres'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -32,27 +32,22 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Créer record d'exécution
-    const supabase = await createClient()
+    const result = await db.query(
+      `INSERT INTO cron_executions (cron_name, status, triggered_by, metadata, started_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       RETURNING id, cron_name, started_at`,
+      [cronName, 'running', triggerType, JSON.stringify(metadata)]
+    )
 
-    const { data: execution, error } = await supabase
-      .from('cron_executions')
-      .insert({
-        cron_name: cronName,
-        status: 'running',
-        triggered_by: triggerType,
-        metadata,
-        started_at: new Date().toISOString(),
-      })
-      .select('id, cron_name, started_at')
-      .single()
-
-    if (error) {
-      console.error('[Cron Start] Database error:', error)
+    if (!result.rows || result.rows.length === 0) {
+      console.error('[Cron Start] Database error: No rows returned')
       return NextResponse.json(
-        { error: 'Failed to create execution record', details: error.message },
+        { error: 'Failed to create execution record' },
         { status: 500 }
       )
     }
+
+    const execution = result.rows[0]
 
     console.log(`[Cron Start] ${cronName} - execution ${execution.id}`)
 

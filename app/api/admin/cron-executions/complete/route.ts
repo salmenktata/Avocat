@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db/postgres'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -46,40 +46,35 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Mettre à jour le record
-    const supabase = await createClient()
+    const result = await db.query(
+      `UPDATE cron_executions
+       SET status = $1,
+           completed_at = NOW(),
+           duration_ms = $2,
+           output = $3,
+           error_message = $4,
+           exit_code = $5
+       WHERE id = $6
+       RETURNING id, cron_name, status, duration_ms`,
+      [
+        status,
+        durationMs || null,
+        JSON.stringify(output || {}),
+        errorMessage || null,
+        exitCode !== undefined ? exitCode : null,
+        executionId,
+      ]
+    )
 
-    const updateData: any = {
-      status,
-      completed_at: new Date().toISOString(),
-      output: output || {},
-    }
-
-    if (durationMs !== undefined) {
-      updateData.duration_ms = durationMs
-    }
-
-    if (errorMessage) {
-      updateData.error_message = errorMessage
-    }
-
-    if (exitCode !== undefined) {
-      updateData.exit_code = exitCode
-    }
-
-    const { data: execution, error } = await supabase
-      .from('cron_executions')
-      .update(updateData)
-      .eq('id', executionId)
-      .select('id, cron_name, status, duration_ms')
-      .single()
-
-    if (error) {
-      console.error('[Cron Complete] Database error:', error)
+    if (!result.rows || result.rows.length === 0) {
+      console.error('[Cron Complete] Database error: Execution not found')
       return NextResponse.json(
-        { error: 'Failed to update execution record', details: error.message },
-        { status: 500 }
+        { error: 'Execution not found' },
+        { status: 404 }
       )
     }
+
+    const execution = result.rows[0]
 
     console.log(
       `[Cron Complete] ${execution.cron_name} - ${status} (${execution.duration_ms}ms)`

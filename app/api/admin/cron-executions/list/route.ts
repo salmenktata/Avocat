@@ -5,22 +5,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/auth-options'
+import { db } from '@/lib/db/postgres'
 
 export async function GET(req: NextRequest) {
   try {
-    // 1. Vérification auth admin
-    const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    // 2. Parse params
+    // 1. Parse params
     const searchParams = req.nextUrl.searchParams
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)))
@@ -28,31 +17,41 @@ export async function GET(req: NextRequest) {
     const cronName = searchParams.get('cronName') || undefined
     const offset = (page - 1) * limit
 
-    // 3. Build query
-    const supabase = await createClient()
-    let query = supabase
-      .from('cron_executions')
-      .select('*', { count: 'exact' })
-      .order('started_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+    // 2. Build query
+    const conditions = []
+    const params: any[] = []
+    let paramIndex = 1
 
     if (status) {
-      query = query.eq('status', status)
+      conditions.push(`status = $${paramIndex}`)
+      params.push(status)
+      paramIndex++
     }
 
     if (cronName) {
-      query = query.eq('cron_name', cronName)
+      conditions.push(`cron_name = $${paramIndex}`)
+      params.push(cronName)
+      paramIndex++
     }
 
-    const { data: executions, error, count } = await query
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
-    if (error) {
-      console.error('[Cron List] Database error:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch executions', details: error.message },
-        { status: 500 }
-      )
-    }
+    // Get total count
+    const countResult = await db.query(
+      `SELECT COUNT(*) as count FROM cron_executions ${whereClause}`,
+      params
+    )
+    const count = parseInt(countResult.rows[0].count)
+
+    // Get executions
+    const executionsResult = await db.query(
+      `SELECT * FROM cron_executions
+       ${whereClause}
+       ORDER BY started_at DESC
+       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...params, limit, offset]
+    )
+    const executions = executionsResult.rows
 
     return NextResponse.json({
       success: true,

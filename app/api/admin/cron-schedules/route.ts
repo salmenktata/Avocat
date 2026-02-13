@@ -5,45 +5,26 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/auth-options'
+import { db } from '@/lib/db/postgres'
 
 export async function GET(req: NextRequest) {
   try {
-    // 1. Vérification auth admin
-    const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // 1. Récupérer via vue dashboard
+    const result = await db.query(`
+      SELECT * FROM vw_cron_monitoring_dashboard
+      ORDER BY last_execution_at DESC NULLS LAST
+    `)
+    const schedules = result.rows
 
-    // 2. Récupérer via vue dashboard
-    const supabase = await createClient()
-
-    const { data: schedules, error } = await supabase
-      .from('vw_cron_monitoring_dashboard')
-      .select('*')
-      .order('last_execution_at', { ascending: false, nullsFirst: false })
-
-    if (error) {
-      console.error('[Cron Schedules] Database error:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch schedules', details: error.message },
-        { status: 500 }
-      )
-    }
-
-    // 3. Calculer stats globales
-    const totalSchedules = schedules?.length || 0
-    const enabledSchedules = schedules?.filter((s) => s.is_enabled).length || 0
-    const runningNow = schedules?.reduce((sum, s) => sum + (s.running_count || 0), 0) || 0
-    const recentFailures = schedules?.reduce((sum, s) => sum + (s.failures_24h || 0), 0) || 0
+    // 2. Calculer stats globales
+    const totalSchedules = schedules.length
+    const enabledSchedules = schedules.filter((s) => s.is_enabled).length
+    const runningNow = schedules.reduce((sum, s) => sum + (s.running_count || 0), 0)
+    const recentFailures = schedules.reduce((sum, s) => sum + (s.failures_24h || 0), 0)
     const avgSuccessRate =
-      schedules && schedules.length > 0
-        ? schedules.reduce((sum, s) => sum + (s.success_rate_7d || 0), 0) / schedules.length
+      schedules.length > 0
+        ? schedules.reduce((sum, s) => sum + (parseFloat(s.success_rate_7d) || 0), 0) /
+          schedules.length
         : 0
 
     return NextResponse.json({
