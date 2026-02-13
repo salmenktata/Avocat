@@ -38,8 +38,11 @@ const PROD_DB = {
 const ABROGATION_PATTERNS = {
   // Français
   fr: [
-    // Abrogation explicite : "abroge la loi n°..."
-    /(?:abroge|abrogée?s?)\s+(?:la\s+|l[ae]\s+)?(?:loi|décret|arrêté)\s+n°?\s*(\d{4}[-‑]\d+)/gi,
+    // Abrogation explicite : "abroge la loi n°..." ou "ABROGE PAR LE DECRET-LOI N°..."
+    /(?:abroge|abrogée?s?)\s+(?:par\s+)?(?:la\s+|l[ae]\s+|le\s+)?(?:loi|décret|arrêté|décret-loi)\s+n°?\s*(\d{4}[-‑]\d+)/gi,
+
+    // "Sont abrogées... la loi n°..."
+    /(?:sont|est)\s+abrogée?s?[^\.]*?(?:loi|décret|arrêté)\s+n°?\s*(\d{4}[-‑]\d+)/gi,
 
     // Abrogation avec date : "loi n°... du ... est abrogée"
     /(?:loi|décret|arrêté)\s+n°?\s*(\d{4}[-‑]\d+)(?:\s+du\s+[\w\s]+)?\s+(?:est\s+)?abrogée?/gi,
@@ -52,6 +55,9 @@ const ABROGATION_PATTERNS = {
 
     // Articles abrogés : "les articles ... de la loi n°... sont abrogés"
     /(?:les?\s+)?articles?\s+([\d,\s-]+)\s+de\s+(?:la\s+)?(?:loi|décret)\s+n°?\s*(\d{4}[-‑]\d+)\s+(?:sont|est)\s+abrogée?s?/gi,
+
+    // Pattern générique : "la loi n°..." après "abrog"
+    /abrog[ée]*s?\s*[^\n]{0,50}?\b(?:loi|décret)\s+n°?\s*(\d{4}[-‑]\d+)/gi,
   ],
 
   // Arabe
