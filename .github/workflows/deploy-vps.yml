@@ -223,7 +223,7 @@ jobs:
 
             if echo "$RESPONSE" | grep -q '"status":"healthy"'; then
               echo "✅ Health check passed!"
-              DEPLOYED_SHA=$(ssh vps 'docker inspect qadhya-nextjs --format="{{.Config.Labels.org.opencontainers.image.revision}}"' 2>/dev/null || echo "unknown")
+              DEPLOYED_SHA=$(ssh vps 'docker inspect qadhya-nextjs --format='{{.Config.Labels.org.opencontainers.image.revision}}'' 2>/dev/null || echo "unknown")
               echo "📦 Deployed commit: $DEPLOYED_SHA"
               exit 0
             fi
@@ -387,7 +387,7 @@ EOF
 
               if echo "$RESPONSE" | grep -q '"status":"healthy"'; then
                 echo "✅ Health check passed!"
-                DEPLOYED_SHA=$(docker inspect qadhya-nextjs --format="{{.Config.Labels.org.opencontainers.image.revision}}" 2>/dev/null || echo "unknown")
+                DEPLOYED_SHA=$(docker inspect qadhya-nextjs --format='{{.Config.Labels.org.opencontainers.image.revision}}' 2>/dev/null || echo "unknown")
                 echo "📦 Deployed commit: $DEPLOYED_SHA"
                 echo "Deployment successful!"
                 exit 0
