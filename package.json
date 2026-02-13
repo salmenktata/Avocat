@@ -2,7 +2,7 @@
   "name": "qadhya",
   "version": "0.1.0",
   "private": true,
-  "description": "Qadhya - Plateforme SaaS de gestion de cabinet juridique pour avocats tunisiens",
+  "description": "Qadhya - Plateforme SaaS de gestion de cabinet juridique pour avocats tunisiens - RediSearch Phase 2",
   "author": "Qadhya Team",
   "license": "UNLICENSED",
   "scripts": {
