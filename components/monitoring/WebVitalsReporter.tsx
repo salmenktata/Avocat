@@ -3,10 +3,9 @@
  *
  * Collecte et rapporte les Core Web Vitals en temps réel :
  * - LCP (Largest Contentful Paint) : < 2.5s
- * - FID (First Input Delay) : < 100ms
  * - CLS (Cumulative Layout Shift) : < 0.1
  * - TTFB (Time to First Byte) : < 600ms
- * - INP (Interaction to Next Paint) : < 200ms
+ * - INP (Interaction to Next Paint) : < 200ms (remplace FID depuis v4)
  * - FCP (First Contentful Paint) : < 1.8s
  *
  * En développement : Log console
@@ -16,11 +15,10 @@
 'use client'
 
 import { useEffect } from 'react'
-import { onCLS, onFID, onLCP, onTTFB, onINP, onFCP, type Metric } from 'web-vitals'
+import { onCLS, onLCP, onTTFB, onINP, onFCP, type Metric } from 'web-vitals'
 
 const THRESHOLDS = {
   LCP: 2500, // 2.5s
-  FID: 100, // 100ms
   CLS: 0.1,
   TTFB: 600, // 600ms
   INP: 200, // 200ms
@@ -144,7 +142,6 @@ export function WebVitalsReporter() {
 
     try {
       cleanup.push(onLCP(reportMetric))
-      cleanup.push(onFID(reportMetric))
       cleanup.push(onCLS(reportMetric))
       cleanup.push(onTTFB(reportMetric))
       cleanup.push(onINP(reportMetric))
