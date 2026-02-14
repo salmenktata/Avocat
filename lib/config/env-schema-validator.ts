@@ -240,6 +240,21 @@ export class EnvSchemaValidator {
   }
 
   /**
+   * Vérifie si une valeur est un placeholder (non remplacé)
+   */
+  private isPlaceholder(value: string): boolean {
+    const placeholderPatterns = [
+      /^YOUR_.*_HERE$/i,
+      /^CHANGE_ME/i,
+      /^sk-ant-api03-\.\.\.$/,
+      /^gsk_\.\.\.$/,
+      /^sk-proj-\.\.\.$/,
+      /^xkeysib-\.\.\.$/,
+    ]
+    return placeholderPatterns.some((pattern) => pattern.test(value))
+  }
+
+  /**
    * Applique un validateur spécifique
    */
   private applyValidator(
@@ -247,6 +262,24 @@ export class EnvSchemaValidator {
     value: string,
     varDef: EnvVariable
   ): { valid: boolean; message: string } {
+    // Skip validateurs de longueur/format pour placeholders (templates)
+    if (this.isPlaceholder(value)) {
+      // Seul validator "required" s'applique aux placeholders
+      if (validator === 'required') {
+        return { valid: true, message: '' }
+      }
+      // Skip tous les autres validateurs pour placeholders
+      if (
+        validator.startsWith('length:') ||
+        validator.startsWith('starts_with:') ||
+        validator === 'hex' ||
+        validator === 'uri' ||
+        validator === 'email'
+      ) {
+        return { valid: true, message: '' }
+      }
+    }
+
     // Validator: required
     if (validator === 'required') {
       return {
