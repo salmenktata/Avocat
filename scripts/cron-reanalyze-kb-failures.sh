@@ -1,4 +1,4 @@
-#!/bin/bash
+#\!/bin/bash
 #
 # Cron automatique : Réanalyse des documents KB échoués
 #
@@ -18,7 +18,11 @@ source "$SCRIPT_DIR/lib/cron-logger.sh"
 
 LOG_DIR="/var/log/qadhya"
 LOG_FILE="${LOG_DIR}/reanalyze-kb.log"
-API_URL="http://localhost:7002/api/admin/kb/reanalyze-failed"
+
+# Utiliser CRON_API_BASE depuis env (injecté par trigger server) ou défaut
+CRON_API_BASE="${CRON_API_BASE:-https://qadhya.tn}"
+API_URL="${CRON_API_BASE}/api/admin/kb/reanalyze-failed"
+
 BATCH_SIZE=50
 MAX_BATCHES=5  # Maximum 5 batches = 250 docs/jour
 
@@ -51,139 +55,131 @@ log "🐳 Conteneurs détectés:"
 log "   Next.js: $NEXTJS_CONTAINER"
 log "   PostgreSQL: $POSTGRES_CONTAINER"
 
-# Récupérer le CRON_SECRET depuis le conteneur
-if ! CRON_SECRET=$(docker exec "$NEXTJS_CONTAINER" env | grep CRON_SECRET | cut -d= -f2); then
-  log "❌ ERREUR: Impossible de récupérer CRON_SECRET"
-  exit 1
-fi
-
+# Récupérer CRON_SECRET (priorité: env var > docker exec)
 if [ -z "$CRON_SECRET" ]; then
-  log "❌ ERREUR: CRON_SECRET vide"
-  exit 1
+  log "🔑 Récupération CRON_SECRET depuis container..."
+  if \! CRON_SECRET=$(docker exec "$NEXTJS_CONTAINER" env | grep CRON_SECRET | cut -d= -f2); then
+    log "❌ ERREUR: Impossible de récupérer CRON_SECRET"
+    cron_fail "Impossible de récupérer CRON_SECRET" 1
+    exit 1
+  fi
+
+  if [ -z "$CRON_SECRET" ]; then
+    log "❌ ERREUR: CRON_SECRET vide"
+    cron_fail "CRON_SECRET vide" 1
+    exit 1
+  fi
+else
+  log "✅ CRON_SECRET trouvé en environnement"
 fi
 
-log "✅ CRON_SECRET récupéré"
-
-# Configurer cron-logger
 export CRON_SECRET
-export CRON_API_BASE="https://qadhya.tn"
 
-# Démarrer tracking
+# Démarrer tracking cron
 cron_start "reanalyze-kb-failures" "scheduled"
-trap 'cron_fail "Script terminé avec erreur" $?' EXIT
 
-# Vérifier nombre d'échecs à traiter
-log "📊 Vérification nombre d'échecs..."
+# Fonction trap pour cleanup
+cleanup() {
+  local exit_code=$?
+  if [ $exit_code -ne 0 ]; then
+    log "❌ Script terminé avec erreur (exit $exit_code)"
+    cron_fail "Script terminated with error" $exit_code
+  fi
+}
 
-FAILURES_COUNT=$(docker exec $POSTGRES_CONTAINER psql -U moncabinet -d qadhya -t -c \
-  "SELECT COUNT(*) FROM knowledge_base WHERE is_active = true AND quality_score = 50;" | tr -d ' ')
+trap cleanup EXIT
 
-log "📋 Échecs détectés: $FAILURES_COUNT"
+# Compter échecs initiaux
+log "📊 Comptage documents échoués..."
+TOTAL_FAILURES=$(docker exec "$POSTGRES_CONTAINER" psql -U moncabinet -d qadhya -t -c \
+  "SELECT COUNT(*) FROM knowledge_base WHERE quality_score = 50 AND is_active = true;")
+TOTAL_FAILURES=$(echo "$TOTAL_FAILURES" | tr -d ' ')
 
-if [ "$FAILURES_COUNT" -eq 0 ]; then
-  log "✅ Aucun échec à corriger - Terminé"
+log "🔴 Total documents échoués: $TOTAL_FAILURES"
+
+if [ "$TOTAL_FAILURES" -eq 0 ]; then
+  log "✅ Aucun document échoué à réanalyser"
+  trap - EXIT
+  OUTPUT_JSON="{\"totalFailures\": 0, \"batchesProcessed\": 0, \"reanalyzed\": 0, \"fixed\": 0}"
+  cron_complete "$OUTPUT_JSON"
   exit 0
 fi
 
-# Calculer nombre de batches nécessaires
-BATCHES_NEEDED=$(( (FAILURES_COUNT + BATCH_SIZE - 1) / BATCH_SIZE ))
-BATCHES_TO_RUN=$(( BATCHES_NEEDED < MAX_BATCHES ? BATCHES_NEEDED : MAX_BATCHES ))
+# Traitement par batch
+BATCH_COUNT=0
+TOTAL_REANALYZED=0
+TOTAL_FIXED=0
 
-log "🚀 Lancement de $BATCHES_TO_RUN batch(es) de $BATCH_SIZE documents"
+while [ $BATCH_COUNT -lt $MAX_BATCHES ]; do
+  BATCH_COUNT=$((BATCH_COUNT + 1))
+  log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  log "📦 Batch $BATCH_COUNT / $MAX_BATCHES"
+  log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-TOTAL_SUCCESS=0
-TOTAL_FAILED=0
-TOTAL_IMPROVED=0
-
-# Exécuter les batches
-for i in $(seq 1 $BATCHES_TO_RUN); do
-  log ""
-  log "📦 Batch $i/$BATCHES_TO_RUN en cours..."
-
-  # Appeler l'API de réanalyse
+  # Appel API réanalyse
+  log "🚀 Appel API réanalyse (batch_size=$BATCH_SIZE)..."
   RESPONSE=$(curl -s -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "X-Cron-Secret: $CRON_SECRET" \
-    -d "{\"limit\": $BATCH_SIZE, \"dryRun\": false}")
+    -d "{\"batchSize\": $BATCH_SIZE}" \
+    -w "\n%{http_code}")
 
-  # Parser la réponse JSON
-  if echo "$RESPONSE" | jq -e . >/dev/null 2>&1; then
-    SUCCEEDED=$(echo "$RESPONSE" | jq -r '.stats.succeeded // 0')
-    FAILED=$(echo "$RESPONSE" | jq -r '.stats.failed // 0')
-    IMPROVED=$(echo "$RESPONSE" | jq -r '.stats.improved // 0')
-    PROCESSED=$(echo "$RESPONSE" | jq -r '.stats.processed // 0')
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | head -n-1)
 
-    TOTAL_SUCCESS=$((TOTAL_SUCCESS + SUCCEEDED))
-    TOTAL_FAILED=$((TOTAL_FAILED + FAILED))
-    TOTAL_IMPROVED=$((TOTAL_IMPROVED + IMPROVED))
-
-    log "   ✅ Traités: $PROCESSED | Succès: $SUCCEEDED | Améliorés: $IMPROVED | Échecs: $FAILED"
-
-    # Si aucun document traité, arrêter (plus d'échecs disponibles)
-    if [ "$PROCESSED" -eq 0 ]; then
-      log "   ℹ️  Aucun document à traiter - Arrêt anticipé"
-      break
-    fi
-  else
-    log "   ❌ Erreur API: $RESPONSE"
-    TOTAL_FAILED=$((TOTAL_FAILED + BATCH_SIZE))
+  if [ "$HTTP_CODE" \!= "200" ]; then
+    log "❌ ERREUR API (HTTP $HTTP_CODE): $BODY"
+    trap - EXIT
+    cron_fail "API error HTTP $HTTP_CODE" 1
+    exit 1
   fi
 
-  # Pause entre batches (éviter surcharge)
-  if [ $i -lt $BATCHES_TO_RUN ]; then
+  # Parser résultat
+  BATCH_REANALYZED=$(echo "$BODY" | grep -o '"reanalyzed":[0-9]*' | cut -d: -f2)
+  BATCH_FIXED=$(echo "$BODY" | grep -o '"fixed":[0-9]*' | cut -d: -f2)
+
+  log "📈 Résultat batch:"
+  log "   - Réanalysés: $BATCH_REANALYZED"
+  log "   - Fixés: $BATCH_FIXED"
+
+  TOTAL_REANALYZED=$((TOTAL_REANALYZED + BATCH_REANALYZED))
+  TOTAL_FIXED=$((TOTAL_FIXED + BATCH_FIXED))
+
+  # Arrêter si aucun doc réanalysé
+  if [ "$BATCH_REANALYZED" -eq 0 ]; then
+    log "ℹ️  Aucun document restant, arrêt"
+    break
+  fi
+
+  # Pause entre batches (éviter surcharge OpenAI)
+  if [ $BATCH_COUNT -lt $MAX_BATCHES ]; then
+    log "⏸️  Pause 5s avant prochain batch..."
     sleep 5
   fi
 done
 
-# Statistiques finales
-log ""
+# Compter échecs restants
+REMAINING_FAILURES=$(docker exec "$POSTGRES_CONTAINER" psql -U moncabinet -d qadhya -t -c \
+  "SELECT COUNT(*) FROM knowledge_base WHERE quality_score = 50 AND is_active = true;")
+REMAINING_FAILURES=$(echo "$REMAINING_FAILURES" | tr -d ' ')
+
 log "=========================================="
-log "📈 Résultat final"
+log "✅ Réanalyse terminée"
 log "=========================================="
-log "✅ Succès total: $TOTAL_SUCCESS"
-log "📈 Améliorés: $TOTAL_IMPROVED"
-log "❌ Échecs: $TOTAL_FAILED"
-
-# Vérifier échecs restants
-FAILURES_REMAINING=$(docker exec $POSTGRES_CONTAINER psql -U moncabinet -d qadhya -t -c \
-  "SELECT COUNT(*) FROM knowledge_base WHERE is_active = true AND quality_score = 50;" | tr -d ' ')
-
-log "📊 Échecs restants: $FAILURES_REMAINING"
-
-# Score moyen KB
-AVG_SCORE=$(docker exec $POSTGRES_CONTAINER psql -U moncabinet -d qadhya -t -c \
-  "SELECT ROUND(AVG(quality_score), 1) FROM knowledge_base WHERE is_active = true AND quality_score IS NOT NULL;" | tr -d ' ')
-
-log "⭐ Score moyen KB: $AVG_SCORE"
-
-log ""
-log "✅ Réanalyse automatique terminée"
+log "📊 Résumé:"
+log "   - Échecs initiaux: $TOTAL_FAILURES"
+log "   - Batches traités: $BATCH_COUNT"
+log "   - Documents réanalysés: $TOTAL_REANALYZED"
+log "   - Documents fixés: $TOTAL_FIXED"
+log "   - Échecs restants: $REMAINING_FAILURES"
 log "=========================================="
 
-# Cleanup trap
+# Désactiver trap avant succès
 trap - EXIT
 
-# Enregistrer succès avec métriques
-OUTPUT_JSON=$(cat <<EOF
-{
-  "failuresInitial": $FAILURES_COUNT,
-  "batchesRun": $BATCHES_TO_RUN,
-  "totalSuccess": $TOTAL_SUCCESS,
-  "totalFailed": $TOTAL_FAILED,
-  "totalImproved": $TOTAL_IMPROVED,
-  "failuresRemaining": $FAILURES_REMAINING,
-  "avgScore": $AVG_SCORE
-}
-EOF
-)
-
+# Compléter avec succès
+OUTPUT_JSON="{\"totalFailures\": $TOTAL_FAILURES, \"batchesProcessed\": $BATCH_COUNT, \"reanalyzed\": $TOTAL_REANALYZED, \"fixed\": $TOTAL_FIXED, \"remaining\": $REMAINING_FAILURES}"
 cron_complete "$OUTPUT_JSON"
 
-# Exit avec code approprié
-if [ "$TOTAL_FAILED" -gt 0 ]; then
-  log "⚠️  WARNING: Certains documents n'ont pas pu être corrigés"
-  exit 0  # Ne pas bloquer le cron pour autant
-else
-  log "🎉 Tous les batches ont réussi"
-  exit 0
-fi
+log "🎉 Script terminé avec succès"
+exit 0

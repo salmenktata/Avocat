@@ -39,7 +39,7 @@ CRON_SCRIPTS = {
         "description": "Indexation KB Progressive",
     },
     "acquisition-weekly": {
-        "script": f"cd {SCRIPTS_DIR}/.. && npx tsx scripts/cron-acquisition-weekly.ts",
+        "script": f"{SCRIPTS_DIR}/cron-acquisition-weekly.sh",
         "description": "Acquisition Hebdomadaire",
     },
     "cleanup-executions": {
@@ -107,9 +107,6 @@ class CronTriggerHandler(BaseHTTPRequestHandler):
             cron_config = CRON_SCRIPTS[cron_name]
             script = cron_config["script"]
 
-            # Phase 6.2: Récupérer variables d'environnement optionnelles
-            env_vars = data.get("envVars", {})
-
             # Verify script exists (for bash scripts)
             if script.endswith(".sh") and not os.path.exists(script):
                 log_message(f"❌ Script not found: {script}")
@@ -118,14 +115,36 @@ class CronTriggerHandler(BaseHTTPRequestHandler):
 
             # Execute script in background (fire and forget)
             log_message(f"▶️  Triggering cron: {cron_name} ({cron_config['description']})")
-            if env_vars:
-                log_message(f"   📊 Parameters: {json.dumps(env_vars)}")
 
-            # Phase 6.2: Préparer environnement avec variables personnalisées
-            env = os.environ.copy()
-            for key, value in env_vars.items():
-                env[key] = str(value)
-                log_message(f"   🔧 {key}={value}")
+            # Récupérer CRON_SECRET du container Next.js
+            try:
+                result = subprocess.run(
+                    ["docker", "exec", "qadhya-nextjs", "env"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                cron_secret = None
+                for line in result.stdout.split("\n"):
+                    if line.startswith("CRON_SECRET="):
+                        cron_secret = line.split("=", 1)[1]
+                        break
+
+                if not cron_secret:
+                    log_message(f"⚠️  CRON_SECRET not found in container, script may fail API calls")
+            except Exception as e:
+                log_message(f"⚠️  Failed to retrieve CRON_SECRET: {e}")
+                cron_secret = None
+
+            # Préparer environnement pour le script
+            script_env = os.environ.copy()
+            if cron_secret:
+                script_env["CRON_SECRET"] = cron_secret
+                log_message(f"✅ CRON_SECRET injected into script environment")
+
+            # Injecter CRON_API_BASE pour production
+            script_env["CRON_API_BASE"] = "https://qadhya.tn"
+            log_message(f"✅ CRON_API_BASE set to production URL")
 
             # Use subprocess.Popen for true background execution
             log_dir = "/var/log/qadhya"
@@ -133,12 +152,12 @@ class CronTriggerHandler(BaseHTTPRequestHandler):
 
             with open(log_file_path, "a") as log_file:
                 subprocess.Popen(
-                    script,
-                    shell=True,
+                    ["bash", script],
+                    shell=False,
+                    env=script_env,
                     stdout=log_file,
                     stderr=subprocess.STDOUT,
                     start_new_session=True,  # Detach from parent
-                    env=env,  # Phase 6.2: Passer environnement personnalisé
                 )
 
             log_message(f"✅ Cron started: {cron_name}")
