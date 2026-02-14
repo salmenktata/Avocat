@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { StorageCleanupProvider } from '@/components/providers/StorageCleanupProvider'
 import { QueryProvider } from '@/components/providers/QueryProvider'
+import { WebVitalsReporter } from '@/components/monitoring/WebVitalsReporter'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -66,6 +67,7 @@ export default async function RootLayout({
           </ThemeProvider>
         </SessionProvider>
         <Toaster richColors position="top-right" />
+        <WebVitalsReporter />
       </body>
     </html>
   )
