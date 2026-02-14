@@ -45,6 +45,7 @@
     "cloudStorage": "التخزين السحابي",
     "messaging": "المراسلة",
     "knowledgeBase": "قاعدة المعرفة",
+    "qadhyaIA": "قضية للذكاء الاصطناعي",
     "assistantIA": "دردشة قضية",
     "modeRapide": "الوضع السريع",
     "consultation": "استشارة",
@@ -854,6 +855,61 @@
     "resultsFound": "تم العثور على {count} نتيجة",
     "enterSearchTerm": "أدخل حرفين على الأقل للبحث",
     "you": "أنت"
+  },
+  "qadhyaIA": {
+    "title": "قضية للذكاء الاصطناعي",
+    "newConversation": "محادثة جديدة",
+    "placeholders": {
+      "chat": "اطرح سؤالك القانوني...",
+      "structure": "صف وقائع القضية: الأطراف، التواريخ، الأحداث الرئيسية...",
+      "consult": "صف وضعك للحصول على استشارة قانونية..."
+    },
+    "actions": {
+      "chat": {
+        "label": "محادثة",
+        "description": "نقاش حر مع الذكاء الاصطناعي"
+      },
+      "structure": {
+        "label": "هيكلة ملف",
+        "description": "تحليل سرد وإنشاء ملف"
+      },
+      "consult": {
+        "label": "استشارة قانونية",
+        "description": "الحصول على استشارة رسمية"
+      }
+    },
+    "enriched": {
+      "structure": {
+        "title": "ملف منظم",
+        "noTitle": "بدون عنوان",
+        "parties": "الأطراف",
+        "demandeur": "المدعي",
+        "defendeur": "المدعى عليه",
+        "faits": "الوقائع",
+        "procedure": "الإجراءات",
+        "pretentions": "المطالب",
+        "createDossier": "إنشاء الملف",
+        "edit": "تعديل",
+        "parseError": "خطأ في تحليل الملف",
+        "createDossierPlaceholder": "إنشاء ملف من الهيكلة - ميزة قيد التطوير"
+      },
+      "consult": {
+        "title": "استشارة قانونية",
+        "subtitle": "تحليل IRAC",
+        "problematique": "الإشكالية",
+        "regles": "القواعد القانونية",
+        "analyse": "التحليل",
+        "conclusion": "الخلاصة",
+        "actions": "الإجراءات الموصى بها"
+      }
+    },
+    "errors": {
+      "sendFailed": "تعذر إرسال الرسالة",
+      "deleteFailed": "تعذر حذف المحادثة"
+    },
+    "success": {
+      "deleted": "تم حذف المحادثة"
+    }
   },
   "assistant": {
     "title": "هيكلة الملف",

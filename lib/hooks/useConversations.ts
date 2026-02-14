@@ -73,6 +73,7 @@ export interface SendMessageParams {
   message: string
   usePremiumModel?: boolean
   maxDepth?: number
+  actionType?: 'chat' | 'structure' | 'consult' // Nouveau: type d'action pour interface unifiée
 }
 
 // =============================================================================
@@ -178,6 +179,7 @@ async function sendMessage(params: SendMessageParams): Promise<{
       usePremiumModel: params.usePremiumModel || false,
       includeJurisprudence: true, // Toujours inclure les sources juridiques
       stream: false, // Mode non-streaming (pour simplifier)
+      actionType: params.actionType || 'chat', // Nouveau: type d'action
     }),
   })
 

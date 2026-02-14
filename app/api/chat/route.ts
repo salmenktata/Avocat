@@ -40,6 +40,7 @@ interface ChatRequestBody {
   includeJurisprudence?: boolean
   stream?: boolean // Activer le streaming
   usePremiumModel?: boolean // Mode Premium: cloud providers au lieu d'Ollama
+  actionType?: 'chat' | 'structure' | 'consult' // Nouveau: type d'action pour interface unifiée
 }
 
 interface ChatApiResponse {
@@ -88,7 +89,8 @@ export async function POST(
       conversationId,
       includeJurisprudence = true,
       stream = false,
-      usePremiumModel = false
+      usePremiumModel = false,
+      actionType = 'chat' // Par défaut: conversation normale
     } = body
 
     if (!question || question.trim().length < 3) {

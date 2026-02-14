@@ -1,0 +1,260 @@
+'use client'
+
+/**
+ * UnifiedChatPage - Interface unifiée Qadhya IA
+ *
+ * Fusion des 3 pages: Chat, Structuration, Consultation
+ * Actions contextuelles pour choisir le mode d'interaction
+ */
+
+import { useState, useMemo, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
+import { Icons } from '@/lib/icons'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { useToast } from '@/lib/hooks/use-toast'
+import { FeatureErrorBoundary } from '@/components/providers/FeatureErrorBoundary'
+import { ActionButtons, type ActionType } from '@/components/qadhya-ia/ActionButtons'
+import { EnrichedMessage } from '@/components/qadhya-ia/EnrichedMessage'
+import {
+  ConversationsList,
+  type Conversation as ConvType,
+} from '@/components/assistant-ia/ConversationsList'
+import {
+  ChatMessages,
+  type ChatMessage,
+} from '@/components/assistant-ia/ChatMessages'
+import {
+  ChatInput,
+} from '@/components/assistant-ia/ChatInput'
+import {
+  useConversationList,
+  useConversation,
+  useSendMessage,
+  useDeleteConversation,
+} from '@/lib/hooks/useConversations'
+
+interface UnifiedChatPageProps {
+  userId: string
+}
+
+export function UnifiedChatPage({ userId }: UnifiedChatPageProps) {
+  const t = useTranslations('qadhyaIA')
+  const router = useRouter()
+  const { toast } = useToast()
+
+  // State
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+  const [currentAction, setCurrentAction] = useState<ActionType>('chat')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // React Query hooks - Cache automatique
+  const {
+    data: conversationsData,
+    isLoading: isLoadingConversations,
+  } = useConversationList({
+    sortBy: 'updatedAt',
+    sortOrder: 'desc',
+    limit: 50,
+  })
+
+  const {
+    data: selectedConversation,
+    isLoading: isLoadingMessages,
+  } = useConversation(selectedConversationId || '', {
+    enabled: !!selectedConversationId,
+  })
+
+  // Mutations avec optimistic updates
+  const { mutate: sendMessage, isPending: isSending } = useSendMessage({
+    onSuccess: (data) => {
+      // Si nouvelle conversation, la sélectionner
+      if (!selectedConversationId && data.conversation.id) {
+        setSelectedConversationId(data.conversation.id)
+      }
+
+      // Si c'est une structuration avec dossierId, rediriger
+      if (currentAction === 'structure' && (data as any).dossierId) {
+        router.push(`/dossiers/${(data as any).dossierId}`)
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: t('errors.sendFailed'),
+        description: error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const { mutate: deleteConversation } = useDeleteConversation({
+    onSuccess: () => {
+      toast({
+        title: t('success.deleted'),
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: t('errors.deleteFailed'),
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Données dérivées
+  const conversations = useMemo(() =>
+    (conversationsData?.conversations || []).map((c) => ({
+      ...c,
+      title: c.title as string | null,
+    })) as ConvType[],
+    [conversationsData?.conversations]
+  )
+
+  const messages: ChatMessage[] = useMemo(() =>
+    (selectedConversation?.messages || [])
+      .filter((m) => m.role !== 'system')
+      .map((m) => ({
+        id: m.id,
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        createdAt: m.timestamp,
+        sources: m.metadata?.sources?.map((s) => ({
+          documentId: s.id,
+          documentName: s.title,
+          chunkContent: '',
+          similarity: s.similarity,
+        })),
+        abrogationAlerts: m.metadata?.abrogationAlerts,
+        metadata: m.metadata, // Conserver metadata pour actionType
+      } as any)),
+    [selectedConversation?.messages]
+  )
+
+  // Handlers
+  const handleSelectConversation = useCallback((id: string) => {
+    setSelectedConversationId(id)
+    setSidebarOpen(false)
+  }, [])
+
+  const handleNewConversation = useCallback(() => {
+    setSelectedConversationId(null)
+    setSidebarOpen(false)
+  }, [])
+
+  const handleDeleteConversation = useCallback((id: string) => {
+    if (selectedConversationId === id) {
+      setSelectedConversationId(null)
+    }
+    deleteConversation(id)
+  }, [selectedConversationId, deleteConversation])
+
+  const handleSendMessage = useCallback((content: string) => {
+    sendMessage({
+      conversationId: selectedConversationId || undefined,
+      message: content,
+      usePremiumModel: false,
+      // Ajout du actionType dans les metadata (sera géré par l'API)
+      actionType: currentAction,
+    } as any)
+  }, [selectedConversationId, currentAction, sendMessage])
+
+  const handleActionSelect = useCallback((action: ActionType) => {
+    setCurrentAction(action)
+  }, [])
+
+  // Placeholder dynamique selon l'action
+  const getPlaceholder = () => {
+    switch (currentAction) {
+      case 'chat':
+        return t('placeholders.chat')
+      case 'structure':
+        return t('placeholders.structure')
+      case 'consult':
+        return t('placeholders.consult')
+    }
+  }
+
+  // Sidebar pour mobile et desktop
+  const SidebarContent = (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b">
+        <h2 className="font-semibold text-lg">{t('title')}</h2>
+      </div>
+      <div className="flex-1 overflow-hidden">
+        <ConversationsList
+          conversations={conversations}
+          selectedId={selectedConversationId}
+          onSelect={handleSelectConversation}
+          onNewConversation={handleNewConversation}
+          onDelete={handleDeleteConversation}
+          isLoading={isLoadingConversations}
+        />
+      </div>
+    </div>
+  )
+
+  return (
+    <FeatureErrorBoundary
+      featureName="Qadhya IA"
+      fallbackAction={{
+        label: "Retour à l'accueil",
+        onClick: () => router.push('/dashboard'),
+      }}
+    >
+      <div className="h-[calc(100vh-4rem)] flex bg-background">
+        {/* Sidebar - Desktop */}
+        <aside className="hidden lg:flex lg:w-80 border-r flex-col">
+          {SidebarContent}
+        </aside>
+
+        {/* Zone Chat Principale */}
+        <main className="flex-1 flex flex-col">
+          {/* Header Mobile */}
+          <div className="lg:hidden flex items-center justify-between p-4 border-b">
+            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Icons.menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80 p-0">
+                {SidebarContent}
+              </SheetContent>
+            </Sheet>
+            <h1 className="font-semibold">{t('title')}</h1>
+            <div className="w-10" /> {/* Spacer */}
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-auto">
+            <ChatMessages
+              messages={messages}
+              isLoading={isLoadingMessages}
+              // Utiliser EnrichedMessage pour les messages enrichis
+              renderEnriched={(message) => <EnrichedMessage message={message} />}
+            />
+          </div>
+
+          {/* Actions Contextuelles */}
+          <div className="border-t p-4">
+            <ActionButtons
+              selected={currentAction}
+              onSelect={handleActionSelect}
+              disabled={isSending}
+            />
+          </div>
+
+          {/* Input */}
+          <div className="border-t">
+            <ChatInput
+              onSend={handleSendMessage}
+              disabled={isSending}
+              placeholder={getPlaceholder()}
+            />
+          </div>
+        </main>
+      </div>
+    </FeatureErrorBoundary>
+  )
+}

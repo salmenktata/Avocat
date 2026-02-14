@@ -45,6 +45,7 @@
     "cloudStorage": "Stockage Cloud",
     "messaging": "Messagerie",
     "knowledgeBase": "Base de Connaissances",
+    "qadhyaIA": "Qadhya IA",
     "assistantIA": "Qadhya Chat",
     "modeRapide": "Mode Rapide",
     "consultation": "Consultation",
@@ -854,6 +855,61 @@
     "resultsFound": "{count} résultat(s) trouvé(s)",
     "enterSearchTerm": "Entrez au moins 2 caractères pour rechercher",
     "you": "Vous"
+  },
+  "qadhyaIA": {
+    "title": "Qadhya IA",
+    "newConversation": "Nouvelle conversation",
+    "placeholders": {
+      "chat": "Posez votre question juridique...",
+      "structure": "Décrivez les faits du dossier : parties, dates, événements clés...",
+      "consult": "Décrivez votre situation pour obtenir un conseil juridique..."
+    },
+    "actions": {
+      "chat": {
+        "label": "Conversation",
+        "description": "Discussion libre avec l'IA"
+      },
+      "structure": {
+        "label": "Structurer un dossier",
+        "description": "Analyser un narratif et créer un dossier"
+      },
+      "consult": {
+        "label": "Conseil juridique",
+        "description": "Obtenir une consultation formelle"
+      }
+    },
+    "enriched": {
+      "structure": {
+        "title": "Dossier Structuré",
+        "noTitle": "Sans titre",
+        "parties": "Parties",
+        "demandeur": "Demandeur",
+        "defendeur": "Défendeur",
+        "faits": "Faits",
+        "procedure": "Procédure",
+        "pretentions": "Prétentions",
+        "createDossier": "Créer le dossier",
+        "edit": "Modifier",
+        "parseError": "Erreur lors de l'analyse du dossier",
+        "createDossierPlaceholder": "Création de dossier depuis la structuration - Fonctionnalité en cours d'implémentation"
+      },
+      "consult": {
+        "title": "Conseil Juridique",
+        "subtitle": "Analyse IRAC",
+        "problematique": "Problématique",
+        "regles": "Règles applicables",
+        "analyse": "Analyse",
+        "conclusion": "Conclusion",
+        "actions": "Actions recommandées"
+      }
+    },
+    "errors": {
+      "sendFailed": "Impossible d'envoyer le message",
+      "deleteFailed": "Impossible de supprimer la conversation"
+    },
+    "success": {
+      "deleted": "Conversation supprimée"
+    }
   },
   "assistant": {
     "title": "Structuration de Dossier",
