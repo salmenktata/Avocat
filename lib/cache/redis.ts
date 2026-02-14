@@ -149,6 +149,27 @@ export async function redisHealthCheck(): Promise<boolean> {
 // =============================================================================
 
 /**
+ * Client Redis synchrone pour usage dans routes API (SSE, PubSub)
+ * ATTENTION: Peut être null si Redis n'est pas disponible
+ *
+ * Pour usage asynchrone safe, préférer getRedisClient()
+ * Pour usage synchrone (PubSub), vérifier isRedisAvailable() d'abord
+ */
+export const redis = new Proxy({} as RedisClientType, {
+  get(target, prop) {
+    if (!redisClient) {
+      // Retourner une fonction no-op si Redis pas disponible
+      return async () => {
+        console.warn(`[Redis] Tentative d'utilisation de redis.${String(prop)} mais Redis n'est pas connecté`)
+        return null
+      }
+    }
+    const value = (redisClient as any)[prop]
+    return typeof value === 'function' ? value.bind(redisClient) : value
+  }
+})
+
+/**
  * Génère un hash SHA256 pour une clé de cache
  */
 export async function hashKey(text: string): Promise<string> {
