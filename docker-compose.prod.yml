@@ -158,6 +158,7 @@ services:
       WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN}
       WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET}
       CRON_SECRET: ${CRON_SECRET}
+      CRON_TRIGGER_SERVER_URL: http://host.docker.internal:9998/trigger
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       BACKUP_DIR: ${BACKUP_DIR:-/opt/backups/moncabinet}
     volumes:
