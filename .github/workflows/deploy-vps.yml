@@ -35,43 +35,87 @@ env:
 
 jobs:
   # ===========================================================================
-  # Job 0: Check Queue - Éviter queues infinies
+  # Job 0: Merge Queue - Éviter queues infinies + Batch commits proches
   # ===========================================================================
   check-queue:
     runs-on: ubuntu-latest
-    name: Check Queue
+    name: Merge Queue Check
     outputs:
       should_skip: ${{ steps.check.outputs.should_skip }}
       queue_length: ${{ steps.check.outputs.queue_length }}
+      skip_reason: ${{ steps.check.outputs.skip_reason }}
     timeout-minutes: 2
 
     steps:
-      - name: Check pending deployments
+      - name: Intelligent Queue Check
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Compter les runs en queue/in_progress pour ce workflow
+          echo "🔍 Vérification Merge Queue intelligente..."
+
+          # Compter les runs en queue/in_progress
           PENDING=$(gh run list \
             --repo ${{ github.repository }} \
             --workflow="Deploy to VPS Contabo" \
             --status=queued,in_progress \
-            --json databaseId,status \
+            --json databaseId,status,createdAt,headSha,event \
             --jq 'length' || echo "0")
 
           echo "queue_length=$PENDING" >> $GITHUB_OUTPUT
           echo "📊 Déploiements en queue/en cours: $PENDING"
 
-          # Skip si 3+ déploiements déjà en attente (auto-batch)
-          # Logic: Si 3+ runs en queue, seul le dernier est pertinent
+          # Stratégie 1: Skip si 3+ déploiements en queue (auto-batch)
           if [ "$PENDING" -ge 3 ]; then
             echo "should_skip=true" >> $GITHUB_OUTPUT
+            echo "skip_reason=queue_overflow" >> $GITHUB_OUTPUT
             echo "⏭️  SKIP: $PENDING déploiements en queue (auto-batch)"
-            echo "Le dernier déploiement inclura ces changements"
-          else
-            echo "should_skip=false" >> $GITHUB_OUTPUT
-            echo "✅ Proceeding with deployment"
+            echo "💡 Le dernier déploiement inclura automatiquement ces changements"
+            exit 0
           fi
+
+          # Stratégie 2: Détecter commits proches (<5min) et batch automatiquement
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # Récupérer les 5 derniers runs pour détecter les commits proches
+            RECENT_RUNS=$(gh run list \
+              --repo ${{ github.repository }} \
+              --workflow="Deploy to VPS Contabo" \
+              --limit 5 \
+              --json createdAt,headSha,event,status \
+              --jq 'map(select(.event == "push")) | sort_by(.createdAt) | reverse')
+
+            # Vérifier si un commit récent (<5min) est déjà en queue
+            CURRENT_TIME=$(date -u +%s)
+            HAS_RECENT_PUSH=$(echo "$RECENT_RUNS" | jq -r --arg now "$CURRENT_TIME" '
+              map(
+                select(
+                  (.status == "queued" or .status == "in_progress") and
+                  (.createdAt | fromdateiso8601) > ($now | tonumber - 300)
+                )
+              ) | length > 1
+            ')
+
+            if [ "$HAS_RECENT_PUSH" = "true" ]; then
+              echo "should_skip=true" >> $GITHUB_OUTPUT
+              echo "skip_reason=recent_commits" >> $GITHUB_OUTPUT
+              echo "⏭️  SKIP: Commits proches détectés (<5min)"
+              echo "💡 Les changements seront inclus dans le prochain déploiement"
+              exit 0
+            fi
+          fi
+
+          # Stratégie 3: Workflow_dispatch toujours prioritaire (jamais skip)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_skip=false" >> $GITHUB_OUTPUT
+            echo "skip_reason=manual_override" >> $GITHUB_OUTPUT
+            echo "🚀 Déploiement manuel : PRIORITAIRE (pas de skip)"
+            exit 0
+          fi
+
+          # Pas de raison de skip
+          echo "should_skip=false" >> $GITHUB_OUTPUT
+          echo "skip_reason=none" >> $GITHUB_OUTPUT
+          echo "✅ Proceeding with deployment"
 
   # ===========================================================================
   # Job 1: Detect Changes - Choisir Tier 1 (fast) ou Tier 2 (docker)
@@ -515,11 +559,11 @@ jobs:
             exit 1
 
   # ===========================================================================
-  # Job 3: Skip Notification (si auto-batch)
+  # Job 3: Skip Notification (Merge Queue intelligente)
   # ===========================================================================
   notify-skip:
     runs-on: ubuntu-latest
-    name: Auto-Batch Skip
+    name: Merge Queue Skip
     needs: check-queue
     if: needs.check-queue.outputs.should_skip == 'true'
     timeout-minutes: 1
@@ -528,14 +572,45 @@ jobs:
       - name: Report skip reason
         run: |
           QUEUE_LENGTH="${{ needs.check-queue.outputs.queue_length }}"
+          SKIP_REASON="${{ needs.check-queue.outputs.skip_reason }}"
+
           echo "================================================"
-          echo "⏭️  DEPLOYMENT SKIPPED (Auto-Batch)"
+          echo "⏭️  DEPLOYMENT SKIPPED (Merge Queue)"
           echo "================================================"
-          echo "Raison: $QUEUE_LENGTH déploiements déjà en queue/en cours"
-          echo "Le dernier déploiement en queue inclura ces changements"
+
+          case "$SKIP_REASON" in
+            queue_overflow)
+              echo "📊 Raison: Trop de déploiements en queue ($QUEUE_LENGTH)"
+              echo ""
+              echo "💡 Optimisation automatique:"
+              echo "   Le dernier déploiement en queue inclura TOUS les commits"
+              echo "   en attente, y compris celui-ci."
+              echo ""
+              echo "🎯 Action: Aucune (auto-batch optimal)"
+              ;;
+
+            recent_commits)
+              echo "⏱️  Raison: Commits proches détectés (<5min)"
+              echo ""
+              echo "💡 Optimisation automatique:"
+              echo "   Vos changements seront inclus dans le prochain"
+              echo "   déploiement déjà en queue."
+              echo ""
+              echo "🎯 Action: Attendez ~3-10min que le déploiement en cours"
+              echo "   se termine. Il inclura vos changements."
+              ;;
+
+            *)
+              echo "📋 Raison: Auto-batch ($QUEUE_LENGTH déploiements en queue)"
+              ;;
+          esac
+
           echo ""
-          echo "Pour forcer le déploiement malgré la queue:"
-          echo "  gh workflow run 'Deploy to VPS Contabo'"
+          echo "🚨 Pour forcer un déploiement immédiat (bypass queue):"
+          echo "   gh workflow run 'Deploy to VPS Contabo'"
+          echo ""
+          echo "ℹ️  Vérifier la queue:"
+          echo "   gh run list --workflow='Deploy to VPS Contabo' --limit 5"
           echo "================================================"
 
   # ===========================================================================
