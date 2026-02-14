@@ -1,0 +1,13 @@
+#!/bin/sh
+# Husky pre-commit hook
+# Vérifie que docs ENV sont à jour si env-schema.json modifié
+
+if git diff --cached --name-only | grep -q "docs/env-schema.json"; then
+  echo "📝 env-schema.json modifié, régénération docs..."
+  npm run docs:env
+
+  # Auto-stage fichier généré
+  git add docs/ENV_VARIABLES_REFERENCE.md
+
+  echo "✅ Documentation ENV mise à jour"
+fi

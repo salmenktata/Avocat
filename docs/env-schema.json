@@ -1,0 +1,631 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "2.0.0",
+  "lastUpdated": "2026-02-15",
+  "description": "Schéma complet des variables d'environnement Qadhya - Source unique de vérité",
+
+  "metadata": {
+    "environments": {
+      "dev": {
+        "file": ".env.local",
+        "description": "Développement local"
+      },
+      "prod": {
+        "file": "/opt/qadhya/.env.production.local",
+        "description": "VPS production Contabo"
+      }
+    }
+  },
+
+  "categories": [
+    {
+      "name": "application",
+      "description": "Configuration application principale Next.js",
+      "variables": [
+        {
+          "name": "NODE_ENV",
+          "type": "enum",
+          "criticality": "CRITICAL",
+          "required": true,
+          "allowedValues": ["development", "production", "test"],
+          "devValue": "development",
+          "prodValue": "production",
+          "description": "Environnement d'exécution - Détermine providers IA activés",
+          "validators": ["required", "enum"]
+        },
+        {
+          "name": "PORT",
+          "type": "number",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": 7002,
+          "prodValue": 3000,
+          "description": "Port HTTP du serveur Next.js",
+          "validators": ["number", "range:1-65535"]
+        },
+        {
+          "name": "NEXT_PUBLIC_APP_URL",
+          "type": "uri",
+          "criticality": "HIGH",
+          "required": true,
+          "devValue": "http://localhost:7002",
+          "prodValue": "https://qadhya.tn",
+          "description": "URL publique de l'application (utilisée pour OAuth redirects)",
+          "validators": ["required", "uri"]
+        },
+        {
+          "name": "NEXT_PUBLIC_APP_NAME",
+          "type": "string",
+          "criticality": "LOW",
+          "required": false,
+          "devValue": "Qadhya Dev",
+          "prodValue": "Qadhya",
+          "description": "Nom de l'application affiché dans l'UI",
+          "validators": []
+        },
+        {
+          "name": "NEXT_PUBLIC_APP_DOMAIN",
+          "type": "string",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": "localhost",
+          "prodValue": "qadhya.tn",
+          "description": "Domaine principal (sans protocole)",
+          "validators": []
+        }
+      ]
+    },
+
+    {
+      "name": "database",
+      "description": "Configuration PostgreSQL avec pgvector",
+      "variables": [
+        {
+          "name": "DATABASE_URL",
+          "type": "uri",
+          "criticality": "CRITICAL",
+          "required": true,
+          "devValue": "postgresql://moncabinet:dev_password@localhost:5433/moncabinet",
+          "prodValue": "postgresql://moncabinet:STRONG_PASSWORD@postgres:5432/qadhya",
+          "description": "URL de connexion PostgreSQL complète",
+          "validators": ["required", "uri", "starts_with:postgresql://"],
+          "relatedIncidents": []
+        },
+        {
+          "name": "DB_USER",
+          "type": "string",
+          "criticality": "CRITICAL",
+          "required": true,
+          "devValue": "moncabinet",
+          "prodValue": "moncabinet",
+          "description": "Utilisateur PostgreSQL",
+          "validators": ["required"]
+        },
+        {
+          "name": "DB_PASSWORD",
+          "type": "secret",
+          "criticality": "CRITICAL",
+          "required": true,
+          "secret": true,
+          "devValue": "dev_password",
+          "prodValue": "STRONG_PASSWORD_32_CHARS",
+          "description": "Mot de passe PostgreSQL (32 chars minimum)",
+          "validators": ["required", "length:min=32"]
+        },
+        {
+          "name": "DB_NAME",
+          "type": "string",
+          "criticality": "CRITICAL",
+          "required": true,
+          "devValue": "moncabinet",
+          "prodValue": "qadhya",
+          "description": "Nom de la base de données",
+          "validators": ["required"]
+        },
+        {
+          "name": "DATABASE_SSL",
+          "type": "boolean",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": false,
+          "prodValue": false,
+          "description": "Activer SSL pour PostgreSQL (false en Docker local)",
+          "validators": ["boolean"]
+        }
+      ]
+    },
+
+    {
+      "name": "storage",
+      "description": "Configuration MinIO object storage",
+      "variables": [
+        {
+          "name": "MINIO_ENDPOINT",
+          "type": "string",
+          "criticality": "HIGH",
+          "required": true,
+          "devValue": "localhost",
+          "prodValue": "minio",
+          "description": "Hostname MinIO (minio dans Docker, localhost sinon)",
+          "validators": ["required"]
+        },
+        {
+          "name": "MINIO_PORT",
+          "type": "number",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": 9000,
+          "prodValue": 9000,
+          "description": "Port MinIO",
+          "validators": ["number", "range:1-65535"]
+        },
+        {
+          "name": "MINIO_USE_SSL",
+          "type": "boolean",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": false,
+          "prodValue": false,
+          "description": "Utiliser SSL pour MinIO",
+          "validators": ["boolean"]
+        },
+        {
+          "name": "MINIO_ACCESS_KEY",
+          "type": "secret",
+          "criticality": "HIGH",
+          "required": true,
+          "secret": true,
+          "devValue": "minio_dev_user",
+          "prodValue": "STRONG_ACCESS_KEY_16_CHARS",
+          "description": "Access Key MinIO (16 chars minimum)",
+          "validators": ["required", "length:min=16"]
+        },
+        {
+          "name": "MINIO_SECRET_KEY",
+          "type": "secret",
+          "criticality": "HIGH",
+          "required": true,
+          "secret": true,
+          "devValue": "minio_dev_secret_32_chars_min",
+          "prodValue": "STRONG_SECRET_KEY_32_CHARS_MIN",
+          "description": "Secret Key MinIO (32 chars minimum)",
+          "validators": ["required", "length:min=32"]
+        },
+        {
+          "name": "MINIO_BUCKET",
+          "type": "string",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": "documents",
+          "prodValue": "documents",
+          "description": "Bucket par défaut pour documents",
+          "validators": []
+        }
+      ]
+    },
+
+    {
+      "name": "cache",
+      "description": "Configuration Redis cache",
+      "variables": [
+        {
+          "name": "REDIS_URL",
+          "type": "uri",
+          "criticality": "HIGH",
+          "required": true,
+          "devValue": "redis://localhost:6379",
+          "prodValue": "redis://redis:6379",
+          "description": "URL Redis (redis dans Docker, localhost sinon)",
+          "validators": ["required", "uri", "starts_with:redis://"]
+        }
+      ]
+    },
+
+    {
+      "name": "auth",
+      "description": "Configuration NextAuth.js authentication",
+      "variables": [
+        {
+          "name": "NEXTAUTH_URL",
+          "type": "uri",
+          "criticality": "CRITICAL",
+          "required": true,
+          "devValue": "http://localhost:7002",
+          "prodValue": "https://qadhya.tn",
+          "description": "URL de base pour NextAuth callbacks",
+          "validators": ["required", "uri"]
+        },
+        {
+          "name": "NEXTAUTH_SECRET",
+          "type": "secret",
+          "criticality": "CRITICAL",
+          "required": true,
+          "secret": true,
+          "devValue": "dev_secret_generated_with_openssl",
+          "prodValue": "STRONG_SECRET_BASE64_32_CHARS",
+          "description": "Secret JWT NextAuth (généré avec openssl rand -base64 32)",
+          "validators": ["required", "length:min=32"]
+        }
+      ]
+    },
+
+    {
+      "name": "rag",
+      "description": "Configuration RAG et recherche sémantique",
+      "variables": [
+        {
+          "name": "RAG_ENABLED",
+          "type": "boolean",
+          "criticality": "CRITICAL",
+          "required": true,
+          "devValue": true,
+          "prodValue": true,
+          "description": "Active système RAG - REQUIS pour Assistant IA fonctionnel",
+          "validators": ["required", "boolean"],
+          "relatedIncidents": [
+            {
+              "date": "2026-02-12",
+              "issue": "RAG désactivé par erreur",
+              "impact": "Assistant IA non-fonctionnel",
+              "resolution": "Commit 2e3d2dc"
+            }
+          ]
+        },
+        {
+          "name": "OLLAMA_ENABLED",
+          "type": "boolean",
+          "criticality": "CRITICAL",
+          "required": "conditional",
+          "devValue": true,
+          "prodValue": true,
+          "description": "Embeddings locaux gratuits - REQUIS si RAG_ENABLED=true ET pas OPENAI_API_KEY",
+          "validators": ["boolean"],
+          "conditionalRequired": {
+            "condition": "RAG_ENABLED=true AND !OPENAI_API_KEY",
+            "message": "Au moins un provider embeddings requis (Ollama OU OpenAI)"
+          },
+          "relatedIncidents": [
+            {
+              "date": "2026-02-12",
+              "issue": "OLLAMA_ENABLED=false en prod sans OPENAI_API_KEY",
+              "impact": "Recherche KB retourne [] vide, Assistant répond 'لم أجد وثائق ذات صلة'",
+              "resolution": "Fix manuel VPS + commit 2e3d2dc"
+            },
+            {
+              "date": "2026-02-14",
+              "issue": "Divergence .env.production (false) vs template (true)",
+              "impact": "Risque régression",
+              "resolution": "Phase 1 de ce plan"
+            }
+          ]
+        },
+        {
+          "name": "OLLAMA_BASE_URL",
+          "type": "uri",
+          "criticality": "HIGH",
+          "required": "conditional",
+          "devValue": "http://localhost:11434",
+          "prodValue": "http://host.docker.internal:11434",
+          "description": "URL Ollama - ATTENTION contexte Docker (host.docker.internal, pas localhost)",
+          "validators": ["uri", "starts_with:http"],
+          "conditionalRequired": {
+            "condition": "OLLAMA_ENABLED=true",
+            "message": "OLLAMA_BASE_URL requis si Ollama activé"
+          },
+          "warnings": [
+            {
+              "pattern": "http://localhost:",
+              "severity": "WARNING",
+              "message": "localhost problématique dans Docker, utiliser host.docker.internal"
+            }
+          ]
+        },
+        {
+          "name": "OLLAMA_EMBEDDING_MODEL",
+          "type": "string",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": "qwen3-embedding:0.6b",
+          "prodValue": "qwen3-embedding:0.6b",
+          "description": "Modèle Ollama pour embeddings (1024 dimensions)",
+          "validators": []
+        },
+        {
+          "name": "RAG_CHUNK_SIZE",
+          "type": "number",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": 1024,
+          "prodValue": 1024,
+          "description": "Taille chunks en tokens pour indexation",
+          "validators": ["number", "range:256-4096"]
+        },
+        {
+          "name": "RAG_CHUNK_OVERLAP",
+          "type": "number",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": 100,
+          "prodValue": 100,
+          "description": "Overlap entre chunks pour contexte",
+          "validators": ["number", "range:0-512"]
+        },
+        {
+          "name": "RAG_MAX_RESULTS",
+          "type": "number",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": 5,
+          "prodValue": 5,
+          "description": "Nombre max de chunks retournés par recherche",
+          "validators": ["number", "range:1-50"]
+        },
+        {
+          "name": "RAG_SIMILARITY_THRESHOLD",
+          "type": "number",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": 0.7,
+          "prodValue": 0.7,
+          "description": "Seuil similarité cosine minimum (0-1)",
+          "validators": ["number", "range:0-1"]
+        }
+      ]
+    },
+
+    {
+      "name": "ai_providers",
+      "description": "Clés API providers IA (LLM + Embeddings)",
+      "variables": [
+        {
+          "name": "GROQ_API_KEY",
+          "type": "secret",
+          "criticality": "HIGH",
+          "required": false,
+          "secret": true,
+          "devValue": "SET",
+          "prodValue": "SET",
+          "description": "Groq API (LLM primaire production, ~292ms, gratuit tier)",
+          "validators": ["starts_with:gsk_", "length:min=40"],
+          "testConnectivity": true
+        },
+        {
+          "name": "GROQ_MODEL",
+          "type": "string",
+          "criticality": "LOW",
+          "required": false,
+          "devValue": "llama-3.3-70b-versatile",
+          "prodValue": "llama-3.3-70b-versatile",
+          "description": "Modèle Groq par défaut",
+          "validators": []
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "type": "secret",
+          "criticality": "HIGH",
+          "required": "conditional",
+          "secret": true,
+          "devValue": null,
+          "prodValue": "SET",
+          "description": "OpenAI API (embeddings cloud, fallback si Ollama indisponible)",
+          "validators": ["starts_with:sk-proj-", "length:min=40"],
+          "conditionalRequired": {
+            "condition": "RAG_ENABLED=true AND OLLAMA_ENABLED=false",
+            "message": "OpenAI requis si RAG activé sans Ollama"
+          },
+          "testConnectivity": true
+        },
+        {
+          "name": "OPENAI_EMBEDDING_MODEL",
+          "type": "string",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": "text-embedding-3-small",
+          "prodValue": "text-embedding-3-small",
+          "description": "Modèle OpenAI pour embeddings (1536 dimensions)",
+          "validators": []
+        },
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "type": "secret",
+          "criticality": "MEDIUM",
+          "required": false,
+          "secret": true,
+          "devValue": null,
+          "prodValue": null,
+          "description": "Anthropic Claude API (LLM fallback avancé)",
+          "validators": ["starts_with:sk-ant-"],
+          "testConnectivity": true
+        },
+        {
+          "name": "ANTHROPIC_MODEL",
+          "type": "string",
+          "criticality": "LOW",
+          "required": false,
+          "devValue": "claude-sonnet-4-20250514",
+          "prodValue": "claude-sonnet-4-20250514",
+          "description": "Modèle Anthropic par défaut",
+          "validators": []
+        },
+        {
+          "name": "DEEPSEEK_API_KEY",
+          "type": "secret",
+          "criticality": "MEDIUM",
+          "required": false,
+          "secret": true,
+          "devValue": null,
+          "prodValue": "SET",
+          "description": "DeepSeek API (LLM fallback économique ~0.14$/M tokens)",
+          "validators": ["starts_with:sk-"],
+          "testConnectivity": true
+        },
+        {
+          "name": "DEEPSEEK_MODEL",
+          "type": "string",
+          "criticality": "LOW",
+          "required": false,
+          "devValue": "deepseek-chat",
+          "prodValue": "deepseek-chat",
+          "description": "Modèle DeepSeek par défaut",
+          "validators": []
+        }
+      ]
+    },
+
+    {
+      "name": "email",
+      "description": "Configuration services email (Brevo, Resend)",
+      "variables": [
+        {
+          "name": "BREVO_API_KEY",
+          "type": "secret",
+          "criticality": "MEDIUM",
+          "required": false,
+          "secret": true,
+          "devValue": null,
+          "prodValue": "SET",
+          "description": "Brevo API (notifications quotidiennes, 300 emails/jour gratuit)",
+          "validators": ["starts_with:xkeysib-"]
+        },
+        {
+          "name": "BREVO_SENDER_EMAIL",
+          "type": "email",
+          "criticality": "LOW",
+          "required": false,
+          "devValue": "notifications@localhost",
+          "prodValue": "notifications@qadhya.tn",
+          "description": "Email expéditeur Brevo",
+          "validators": ["email"]
+        },
+        {
+          "name": "BREVO_SENDER_NAME",
+          "type": "string",
+          "criticality": "LOW",
+          "required": false,
+          "devValue": "Qadhya Dev",
+          "prodValue": "Qadhya",
+          "description": "Nom expéditeur Brevo",
+          "validators": []
+        },
+        {
+          "name": "RESEND_API_KEY",
+          "type": "secret",
+          "criticality": "MEDIUM",
+          "required": false,
+          "secret": true,
+          "devValue": null,
+          "prodValue": "SET",
+          "description": "Resend API (emails transactionnels)",
+          "validators": ["starts_with:re_"]
+        },
+        {
+          "name": "ADMIN_EMAIL",
+          "type": "email",
+          "criticality": "MEDIUM",
+          "required": false,
+          "devValue": "admin@localhost",
+          "prodValue": "salmen.ktata@gmail.com",
+          "description": "Email admin pour alertes critiques",
+          "validators": ["email"]
+        }
+      ]
+    },
+
+    {
+      "name": "integrations",
+      "description": "Intégrations tierces (Google Drive, WhatsApp)",
+      "variables": [
+        {
+          "name": "GOOGLE_CLIENT_ID",
+          "type": "string",
+          "criticality": "LOW",
+          "required": false,
+          "devValue": null,
+          "prodValue": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+          "description": "Google OAuth Client ID (pour Google Drive)",
+          "validators": ["ends_with:.apps.googleusercontent.com"]
+        },
+        {
+          "name": "GOOGLE_CLIENT_SECRET",
+          "type": "secret",
+          "criticality": "LOW",
+          "required": false,
+          "secret": true,
+          "devValue": null,
+          "prodValue": "YOUR_CLIENT_SECRET",
+          "description": "Google OAuth Client Secret",
+          "validators": ["length:min=20"]
+        },
+        {
+          "name": "ENCRYPTION_KEY",
+          "type": "secret",
+          "criticality": "HIGH",
+          "required": true,
+          "secret": true,
+          "devValue": "dev_encryption_key_64_chars_hex",
+          "prodValue": "STRONG_ENCRYPTION_KEY_64_CHARS_HEX",
+          "description": "Clé chiffrement AES-256 pour tokens Google Drive (généré avec openssl rand -hex 32)",
+          "validators": ["required", "length:exact=64", "hex"]
+        }
+      ]
+    },
+
+    {
+      "name": "monitoring",
+      "description": "Configuration monitoring et crons",
+      "variables": [
+        {
+          "name": "CRON_SECRET",
+          "type": "secret",
+          "criticality": "HIGH",
+          "required": true,
+          "secret": true,
+          "devValue": "dev_cron_secret_32_chars",
+          "prodValue": "STRONG_CRON_SECRET_32_CHARS",
+          "description": "Secret pour authentification crons → API (généré avec openssl rand -hex 32)",
+          "validators": ["required", "length:min=32"]
+        }
+      ]
+    }
+  ],
+
+  "validationRules": [
+    {
+      "id": "rag-embeddings-provider",
+      "severity": "CRITICAL",
+      "condition": "RAG_ENABLED=true AND OLLAMA_ENABLED=false AND !OPENAI_API_KEY",
+      "message": "RAG activé mais aucun provider embeddings disponible",
+      "solutions": [
+        "Activer Ollama (gratuit): OLLAMA_ENABLED=true",
+        "Configurer OpenAI (payant): OPENAI_API_KEY=sk-proj-..."
+      ]
+    },
+    {
+      "id": "database-url-coherence",
+      "severity": "CRITICAL",
+      "condition": "DATABASE_URL does not contain DB_NAME",
+      "message": "DATABASE_URL doit contenir la valeur de DB_NAME",
+      "solutions": [
+        "Vérifier que DATABASE_URL contient postgresql://.../${DB_NAME}"
+      ]
+    },
+    {
+      "id": "ollama-localhost-docker",
+      "severity": "WARNING",
+      "condition": "OLLAMA_BASE_URL contains 'localhost' AND NODE_ENV=production",
+      "message": "OLLAMA_BASE_URL avec localhost ne fonctionne pas dans Docker",
+      "solutions": [
+        "Utiliser http://host.docker.internal:11434 en production"
+      ]
+    },
+    {
+      "id": "nextauth-url-match",
+      "severity": "HIGH",
+      "condition": "NEXTAUTH_URL != NEXT_PUBLIC_APP_URL",
+      "message": "NEXTAUTH_URL doit correspondre à NEXT_PUBLIC_APP_URL",
+      "solutions": [
+        "Synchroniser les deux variables"
+      ]
+    }
+  ]
+}

@@ -118,7 +118,18 @@
     "optimize:crawlers:dry-run": "npx tsx scripts/optimize-crawlers.ts --dry-run",
     "optimize:crawler": "npx tsx scripts/optimize-crawlers.ts --source",
     "test:dossiers-routes": "tsx scripts/test-dossiers-routes.ts",
-    "test:dossiers-routes:prod": "TEST_ENV=production tsx scripts/test-dossiers-routes.ts"
+    "test:dossiers-routes:prod": "TEST_ENV=production tsx scripts/test-dossiers-routes.ts",
+    "audit:env": "tsx scripts/audit-env-divergences.ts",
+    "sync:env": "tsx scripts/sync-env-from-template.ts",
+    "sync:env:dry-run": "tsx scripts/sync-env-from-template.ts --dry-run",
+    "validate:env": "tsx scripts/validate-env-schema.ts",
+    "validate:env:strict": "tsx scripts/validate-env-schema.ts --strict",
+    "validate:env:connectivity": "tsx scripts/validate-env-schema.ts --check-connectivity",
+    "diff-env": "tsx scripts/diff-env.ts",
+    "diff-env:verbose": "tsx scripts/diff-env.ts --verbose",
+    "diff-env:check": "tsx scripts/diff-env.ts --check-connectivity",
+    "sync-env-interactive": "tsx scripts/sync-env-interactive.ts",
+    "docs:env": "tsx scripts/generate-env-docs.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",
@@ -158,6 +169,7 @@
     "csv-parse": "^6.1.0",
     "date-fns": "^4.1.0",
     "docx": "^9.5.1",
+    "framer-motion": "^12.34.0",
     "googleapis": "^171.2.0",
     "gpt-tokenizer": "^3.4.0",
     "hdbscan": "^0.0.1-alpha.1",

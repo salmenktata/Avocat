@@ -118,12 +118,81 @@ jobs:
           echo "✅ Proceeding with deployment"
 
   # ===========================================================================
+  # Job 0.5: Validate Environment Schema - Phase 2
+  # ===========================================================================
+  validate-schema:
+    runs-on: ubuntu-latest
+    name: Validate Environment Schema
+    needs: [check-queue]
+    if: needs.check-queue.outputs.should_skip != 'true'
+    timeout-minutes: 3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies (validation only)
+        run: |
+          echo "📦 Installation dépendances validation..."
+          npm ci --production=false
+
+      - name: Validate .env.production.template against schema
+        run: |
+          echo "🔍 Validation schéma centralisé..."
+          npx tsx scripts/validate-env-schema.ts \
+            --env=.env.production.template \
+            --environment=prod \
+            --output=json \
+            > /tmp/validation-result.json || true
+
+          # Afficher résultat
+          echo "📊 Résultat validation:"
+          cat /tmp/validation-result.json | jq '.'
+
+          # Vérifier succès
+          VALID=$(cat /tmp/validation-result.json | jq -r '.valid')
+          CRITICAL=$(cat /tmp/validation-result.json | jq -r '.stats.criticalIssues')
+
+          if [ "$VALID" != "true" ]; then
+            echo "❌ Template configuration invalide"
+
+            # Afficher erreurs
+            echo ""
+            echo "Erreurs détectées:"
+            cat /tmp/validation-result.json | jq -r '.errors[] | "  - \(.variable): \(.message)"'
+
+            # Bloquer SEULEMENT si erreurs CRITICAL
+            if [ "$CRITICAL" -gt 0 ]; then
+              echo ""
+              echo "🚨 $CRITICAL erreurs CRITICAL détectées - Déploiement bloqué"
+              exit 1
+            else
+              echo ""
+              echo "⚠️  Erreurs non-critiques détectées - Déploiement autorisé avec avertissement"
+            fi
+          else
+            echo "✅ Template validé contre schéma (${VALID})"
+          fi
+
+      - name: Audit divergences template
+        run: |
+          echo "🔍 Audit divergences .env.production vs template..."
+          npx tsx scripts/audit-env-divergences.ts || true
+          echo "⚠️  Audit non-bloquant (secrets peuvent différer)"
+
+  # ===========================================================================
   # Job 1: Detect Changes - Choisir Tier 1 (fast) ou Tier 2 (docker)
   # ===========================================================================
   detect-changes:
     runs-on: ubuntu-latest
     name: Detect Changes
-    needs: check-queue
+    needs: [check-queue, validate-schema]
     if: needs.check-queue.outputs.should_skip != 'true'
     outputs:
       needs_docker: ${{ steps.check.outputs.needs_docker }}
@@ -577,7 +646,123 @@ jobs:
             exit 1
 
   # ===========================================================================
-  # Job 3: Skip Notification (Merge Queue intelligente)
+  # Job 3: Post-Deploy Validation - Phase 5
+  # ===========================================================================
+  validate-post-deploy:
+    runs-on: ubuntu-latest
+    name: Post-Deploy Validation
+    needs: [deploy-lightning, build-and-deploy]
+    if: |
+      always() &&
+      (needs.deploy-lightning.result == 'success' || needs.build-and-deploy.result == 'success')
+    timeout-minutes: 5
+
+    steps:
+      - name: Wait for Container Healthy
+        run: |
+          echo "⏳ Attente container healthy (grace period 40s)..."
+          sleep 40
+
+      - name: Health Check API
+        id: health
+        run: |
+          echo "🔍 Health check API..."
+
+          HEALTH=$(curl -sf https://qadhya.tn/api/health || echo '{"status":"error"}')
+          echo "$HEALTH" | jq '.' || echo "Invalid JSON"
+
+          RAG_STATUS=$(echo "$HEALTH" | jq -r '.rag.status' 2>/dev/null || echo "unknown")
+
+          if [ "$RAG_STATUS" != "ok" ]; then
+            echo "❌ RAG misconfigured after deployment!"
+            echo "::error::RAG status: $RAG_STATUS"
+            echo "health_check_passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          echo "✅ Health check passed (RAG: $RAG_STATUS)"
+          echo "health_check_passed=true" >> $GITHUB_OUTPUT
+
+      - name: Config Hash Validation
+        id: config
+        run: |
+          echo "🔍 Validation config hash..."
+
+          CONFIG=$(curl -sf https://qadhya.tn/api/health/config || echo '{"driftDetected":false}')
+          echo "$CONFIG" | jq '.' || echo "Invalid JSON"
+
+          DRIFT=$(echo "$CONFIG" | jq -r '.driftDetected' 2>/dev/null || echo "false")
+          CRITICAL_DRIFT=$(echo "$CONFIG" | jq -r '.criticalDrift' 2>/dev/null || echo "false")
+
+          if [ "$DRIFT" = "true" ]; then
+            echo "⚠️  Config drift détecté après déploiement"
+            echo "Expected: $(echo "$CONFIG" | jq -r '.expectedHash')"
+            echo "Actual:   $(echo "$CONFIG" | jq -r '.configHash')"
+
+            # Bloquer SEULEMENT si CRITICAL vars driftées
+            if [ "$CRITICAL_DRIFT" = "true" ]; then
+              echo "::error::CRITICAL config drift detected"
+              echo "Drifted vars:"
+              echo "$CONFIG" | jq -r '.driftedVars[]'
+              echo "config_valid=false" >> $GITHUB_OUTPUT
+              exit 1
+            else
+              echo "::warning::Non-critical drift (proceeding)"
+              echo "config_valid=true" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "✅ Config hash validation passed"
+            echo "config_valid=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Reset Expected Config Hash
+        if: steps.config.outputs.config_valid == 'true'
+        run: |
+          echo "🔄 Mise à jour hash de référence..."
+
+          RESPONSE=$(curl -sf -X POST https://qadhya.tn/api/health/config || echo '{}')
+          SUCCESS=$(echo "$RESPONSE" | jq -r '.success' 2>/dev/null || echo "false")
+
+          if [ "$SUCCESS" = "true" ]; then
+            echo "✅ Hash de référence mis à jour"
+          else
+            echo "⚠️  Échec mise à jour hash (non-bloquant)"
+          fi
+
+      - name: Generate Deployment Report
+        if: always()
+        run: |
+          DEPLOYED_TIER="${{ needs.detect-changes.outputs.deploy_tier || 'unknown' }}"
+
+          cat > /tmp/deploy-report.json <<EOF
+          {
+            "deploymentId": "${{ github.run_number }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "tier": "$DEPLOYED_TIER",
+            "commit": "${{ github.sha }}",
+            "commitMessage": "${{ github.event.head_commit.message }}",
+            "validations": {
+              "preDeploySchema": "${{ needs.validate-schema.result }}",
+              "postDeployHealth": "${{ steps.health.outputs.health_check_passed || 'unknown' }}",
+              "configHash": "${{ steps.config.outputs.config_valid || 'unknown' }}"
+            },
+            "outcome": "${{ job.status }}"
+          }
+          EOF
+
+          echo "📊 Deployment Report:"
+          cat /tmp/deploy-report.json | jq '.'
+
+      - name: Upload Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-report-${{ github.run_number }}
+          path: /tmp/deploy-report.json
+          retention-days: 30
+
+  # ===========================================================================
+  # Job 4: Skip Notification (Merge Queue intelligente)
   # ===========================================================================
   notify-skip:
     runs-on: ubuntu-latest
