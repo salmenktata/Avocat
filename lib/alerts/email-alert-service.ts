@@ -116,8 +116,8 @@ async function getMetrics(): Promise<MonitoringMetrics> {
     analyzed_7d: number
   }>(`
     SELECT
-      COUNT(*) FILTER (WHERE quality_analyzed_at >= NOW() - INTERVAL '24 hours') as analyzed_24h,
-      COUNT(*) FILTER (WHERE quality_analyzed_at >= NOW() - INTERVAL '7 days') as analyzed_7d
+      COUNT(*) FILTER (WHERE quality_assessed_at >= NOW() - INTERVAL '24 hours') as analyzed_24h,
+      COUNT(*) FILTER (WHERE quality_assessed_at >= NOW() - INTERVAL '7 days') as analyzed_7d
     FROM knowledge_base
     WHERE is_active = true
       AND quality_score IS NOT NULL
