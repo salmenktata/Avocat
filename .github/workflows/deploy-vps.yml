@@ -136,6 +136,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate RAG Configuration Template
+        run: |
+          echo "🔍 Validation configuration RAG template..."
+          if [ -f ".env.production.template" ]; then
+            if bash scripts/validate-rag-config.sh .env.production.template; then
+              echo "✅ Template RAG configuration valide"
+            else
+              echo "❌ Template RAG configuration invalide"
+              exit 1
+            fi
+          else
+            echo "⚠️ Fichier .env.production.template absent, validation ignorée"
+          fi
+
       - name: Check changed files
         id: check
         run: |

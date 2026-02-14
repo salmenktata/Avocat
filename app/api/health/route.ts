@@ -10,8 +10,9 @@
  */
 
 import { NextResponse } from 'next/server'
-import { healthCheck as dbHealthCheck } from '@/lib/db/postgres'
+import { healthCheck as dbHealthCheck, db } from '@/lib/db/postgres'
 import { healthCheck as storageHealthCheck } from '@/lib/storage/minio'
+import { isSemanticSearchEnabled } from '@/lib/ai/config'
 
 export const dynamic = 'force-dynamic'
 
@@ -86,6 +87,27 @@ export async function GET() {
 
     // Après grace period : normal behavior
     if (dbHealthy && storageHealthy) {
+      // Récupérer statistiques RAG
+      const ragEnabled = process.env.RAG_ENABLED === 'true'
+      const semanticSearchEnabled = isSemanticSearchEnabled()
+      const ollamaEnabled = process.env.OLLAMA_ENABLED === 'true'
+      const openaiConfigured = !!process.env.OPENAI_API_KEY
+
+      // Compter documents KB indexés (query rapide)
+      let kbDocsIndexed = 0
+      let kbChunksAvailable = 0
+      try {
+        const kbStats = await db.query(`
+          SELECT
+            (SELECT COUNT(*) FROM knowledge_base WHERE is_indexed = true) as docs_indexed,
+            (SELECT COUNT(*) FROM knowledge_base_chunks WHERE embedding IS NOT NULL) as chunks_available
+        `)
+        kbDocsIndexed = kbStats.rows[0]?.docs_indexed || 0
+        kbChunksAvailable = kbStats.rows[0]?.chunks_available || 0
+      } catch (error) {
+        console.warn('⚠️ KB stats check failed:', error)
+      }
+
       return NextResponse.json(
         {
           status: 'healthy',
@@ -96,6 +118,17 @@ export async function GET() {
             database: 'healthy',
             storage: 'healthy',
             api: 'healthy',
+          },
+          // NOUVELLE SECTION RAG
+          rag: {
+            enabled: ragEnabled,
+            semanticSearchEnabled: semanticSearchEnabled,
+            ollamaEnabled: ollamaEnabled,
+            openaiConfigured: openaiConfigured,
+            kbDocsIndexed: kbDocsIndexed,
+            kbChunksAvailable: kbChunksAvailable,
+            // Alerte si RAG enabled mais semantic search disabled
+            status: ragEnabled && !semanticSearchEnabled ? 'misconfigured' : 'ok'
           },
           version: process.env.npm_package_version || '1.0.0',
         },

@@ -108,6 +108,18 @@ check_env_var "OLLAMA_ENABLED" false
 echo ""
 
 # ============================================================================
+# VÉRIFICATION CONFIGURATION RAG (CRITIQUE)
+# ============================================================================
+echo "▓▓▓ VÉRIFICATION CONFIGURATION RAG ▓▓▓"
+if bash scripts/validate-rag-config.sh "$ENV_FILE"; then
+    echo -e "${GREEN}✓${NC} Configuration RAG valide"
+else
+    echo -e "${RED}✗${NC} Configuration RAG invalide"
+    ((ERRORS++))
+fi
+echo ""
+
+# ============================================================================
 # VÉRIFICATIONS INTÉGRATIONS
 # ============================================================================
 echo "▓▓▓ VÉRIFICATIONS INTÉGRATIONS ▓▓▓"
