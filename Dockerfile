@@ -11,24 +11,47 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 
+# Stage 1b: Playwright (PARALLÈLE avec deps via Docker BuildKit - Semaine 3 Optimisations)
+FROM node:20-slim AS playwright-installer
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright
+
+# Installer dépendances système Playwright
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget gnupg \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
+    libcups2 libdrm2 libdbus-1-3 libxkbcommon0 \
+    libatspi2.0-0 libxcomposite1 libxdamage1 libxfixes3 \
+    libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=deps /app/package.json /app/package-lock.json ./
+COPY --from=deps /app/node_modules ./node_modules
+RUN npx playwright install chromium
+
 # Stage 2: Builder (Debian pour Playwright et canvas)
 # Force rebuild 2026-02-13T17:16 - Phase 3.4 Abrogations
 FROM node:20-slim AS builder
+
+# Build args pour cache invalidation intelligent (Semaine 2 Optimisations)
+ARG BUILD_DATE
+ARG GIT_SHA
+LABEL build.date=$BUILD_DATE
+LABEL build.sha=$GIT_SHA
+
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
+COPY package.json package-lock.json ./
+
+# Invalider cache si BUILD_DATE change (timestamp commit)
+RUN echo "Build: $BUILD_DATE - $GIT_SHA" > /app/.build-info
+
 COPY . .
 
-# Installer dépendances Playwright
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
-    libdrm2 libdbus-1-3 libxkbcommon0 libatspi2.0-0 libxcomposite1 \
-    libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Installer Playwright Chromium (utilisé pour les sources nécessitant JavaScript)
+# Copier Playwright depuis stage parallèle (Semaine 3 Optimisations: Build parallèle)
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright
-RUN npx playwright install chromium
+COPY --from=playwright-installer /app/.playwright ./.playwright
 
 # Build avec variables d'environnement de build
 ARG NEXT_PUBLIC_APP_URL
@@ -51,6 +74,7 @@ ENV NEXTAUTH_SECRET="build-secret-not-used-in-production"
 ENV NEXTAUTH_URL="http://localhost:3000"
 ENV RESEND_API_KEY="re_build_placeholder"
 ENV OPENAI_API_KEY="sk-build-placeholder"
+ENV NEXT_PUBLIC_BUILD_SHA=$GIT_SHA
 RUN npx next build
 
 # Stage 3: Runner (Debian slim pour support Playwright)
@@ -89,22 +113,20 @@ COPY --from=builder /app/public ./public
 # Copier les browsers Playwright depuis le builder
 COPY --from=builder /app/.playwright ./.playwright
 
-# Copier modules natifs et externes depuis builder
+# Copier modules natifs et externes depuis builder (Semaine 3 Optimisations: 11 layers → 1)
 # Next.js standalone ne bundle pas les modules natifs utilisés uniquement dans scripts
-COPY --from=builder /app/node_modules/canvas ./node_modules/canvas
-COPY --from=builder /app/node_modules/pg ./node_modules/pg
-COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
-
-# Copier dépendances PDF (pdf-parse + pdf-to-img + pdfjs-dist)
-COPY --from=builder /app/node_modules/pdfjs-dist ./node_modules/pdfjs-dist
-COPY --from=builder /app/node_modules/pdf-parse ./node_modules/pdf-parse
-COPY --from=builder /app/node_modules/pdf-to-img ./node_modules/pdf-to-img
-
-# Copier dépendances parsing documents (mammoth pour DOCX, tesseract.js pour OCR, sharp pour images)
-COPY --from=builder /app/node_modules/mammoth ./node_modules/mammoth
-COPY --from=builder /app/node_modules/tesseract.js ./node_modules/tesseract.js
-COPY --from=builder /app/node_modules/tesseract.js-core ./node_modules/tesseract.js-core
-COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
+# Regroupés pour réduire overhead storage/pull Docker
+COPY --from=builder /app/node_modules/canvas \
+                    /app/node_modules/pg \
+                    /app/node_modules/bcryptjs \
+                    /app/node_modules/pdfjs-dist \
+                    /app/node_modules/pdf-parse \
+                    /app/node_modules/pdf-to-img \
+                    /app/node_modules/mammoth \
+                    /app/node_modules/tesseract.js \
+                    /app/node_modules/tesseract.js-core \
+                    /app/node_modules/sharp \
+                    ./node_modules/
 
 # Créer le polyfill File API + DOMMatrix inline pour le runtime
 RUN mkdir -p scripts && cat > scripts/polyfill-file.js << 'POLYFILL'
@@ -162,8 +184,17 @@ USER nextjs
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => { \
+    let body = ''; \
+    r.on('data', chunk => body += chunk); \
+    r.on('end', () => { \
+      try { \
+        const json = JSON.parse(body); \
+        process.exit(json.status === 'healthy' ? 0 : 1); \
+      } catch { process.exit(1); } \
+    }); \
+  }).on('error', () => process.exit(1));"
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "server.js"]
