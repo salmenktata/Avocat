@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
-import { generateEmbedding } from '@/lib/ai/embeddings-service'
+import { generateEmbedding, formatEmbeddingForPostgres } from '@/lib/ai/embeddings-service'
 
 /**
  * POST /api/admin/reindex-kb-openai
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     let query = `
       SELECT
         kbc.id,
-        kbc.content_chunk,
+        kbc.content,
         kbc.chunk_index,
         kb.id as kb_id,
         kb.title
@@ -89,8 +89,8 @@ export async function POST(req: NextRequest) {
     for (const chunk of chunks) {
       try {
         // Générer l'embedding OpenAI
-        const embeddingResult = await generateEmbedding(chunk.content_chunk, {
-          operationName: 'dossiers-assistant', // Utilise OpenAI embeddings
+        const embeddingResult = await generateEmbedding(chunk.content, {
+          operationName: 'assistant-ia', // Utilise OpenAI embeddings
         })
 
         // Vérifier que c'est bien un embedding OpenAI (1536 dimensions)
@@ -100,12 +100,12 @@ export async function POST(req: NextRequest) {
         }
 
         // Mettre à jour le chunk avec l'embedding OpenAI
+        const embeddingStr = formatEmbeddingForPostgres(embedding)
         await db.query(
           `UPDATE knowledge_base_chunks
-           SET embedding_openai = $1,
-               updated_at = NOW()
+           SET embedding_openai = $1::vector(1536)
            WHERE id = $2`,
-          [JSON.stringify(embedding), chunk.id]
+          [embeddingStr, chunk.id]
         )
 
         indexed++
