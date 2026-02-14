@@ -6,24 +6,36 @@ import { z } from 'zod'
  */
 
 const extractedFactSchema = z.object({
-  fait: z.string().min(1).default('Fait non spécifié'),
+  fait: z.string().min(1).optional().default('Fait non spécifié'),
   label: z.string().optional(),
+  valeur: z.unknown().optional(), // Peut être string, number, object
+  type: z.unknown().optional(), // Peut être string ou enum
   categorie: z.enum(['fait_juridique', 'interpretation', 'ressenti']).optional().default('fait_juridique'),
   dateApproximative: z.string().nullable().optional(),
   confidence: z.number().min(0).max(100).optional().default(50),
   source: z.string().nullable().optional(),
   preuve: z.string().nullable().optional(),
   importance: z.enum(['decisif', 'important', 'contexte']).optional().default('contexte'),
-}).passthrough()
+}).passthrough() // Accepte tous les champs supplémentaires
 
 const legalAnalysisSchema = z.object({
-  diagnostic: z.union([z.string(), z.record(z.unknown())]).optional(),
-  qualification: z.string().optional(),
-  risques: z.array(z.string()).optional(),
-  opportunites: z.array(z.string()).optional(),
-  fondement: z.string().optional(),
-  recommandation: z.string().optional(),
-}).passthrough() // Accepte les champs supplémentaires
+  diagnostic: z.unknown().optional(), // Très permissif (string, object, array)
+  qualification: z.unknown().optional(), // Accepte string OU object
+  risques: z.union([z.array(z.string()), z.array(z.unknown())]).optional(), // Array de strings OU objets
+  opportunites: z.union([z.array(z.string()), z.array(z.unknown())]).optional(),
+  fondement: z.unknown().optional(), // Accepte string OU object
+  recommandation: z.unknown().optional(), // Accepte string OU object
+  // Champs supplémentaires des 7 phases
+  syllogisme: z.unknown().optional(),
+  recevabilite: z.unknown().optional(),
+  competence: z.unknown().optional(),
+  strategiePreuve: z.unknown().optional(),
+  strategieGlobale: z.unknown().optional(),
+  argumentation: z.unknown().optional(),
+  analyseFaits: z.unknown().optional(),
+  prochainesEtapes: z.unknown().optional(),
+  recommandationStrategique: z.unknown().optional(),
+}).passthrough() // Accepte TOUS les champs supplémentaires
 
 const extractedChildSchema = z.object({
   prenom: z.string(),
