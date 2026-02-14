@@ -93,27 +93,13 @@ const AIFlowDiagram: React.FC = () => {
                     <Badge variant="outline">🟡 Fallback 3</Badge>
                   </td>
                   <td className="p-3 text-center">
-                    <Badge variant="outline">🟡 Fallback 2</Badge>
+                    <Badge className="bg-blue-500">🟢 Priorité</Badge>
                   </td>
                   <td className="p-3 text-center">
                     <Badge variant="destructive">❌</Badge>
                   </td>
-                  <td className="p-3 text-center">~5-10s</td>
+                  <td className="p-3 text-center">~1-5s</td>
                   <td className="p-3 text-center font-semibold text-green-600">Gratuit*</td>
-                </tr>
-                <tr className="border-b hover:bg-muted/50">
-                  <td className="p-3 font-medium">🧡 Anthropic</td>
-                  <td className="p-3 text-center">
-                    <Badge variant="outline">🟡 Fallback 4</Badge>
-                  </td>
-                  <td className="p-3 text-center">
-                    <Badge variant="outline">🟡 Fallback 3</Badge>
-                  </td>
-                  <td className="p-3 text-center">
-                    <Badge variant="destructive">❌</Badge>
-                  </td>
-                  <td className="p-3 text-center">~10-20s</td>
-                  <td className="p-3 text-center">3$/1M tokens</td>
                 </tr>
               </tbody>
             </table>
@@ -147,44 +133,37 @@ const AIFlowDiagram: React.FC = () => {
    ⚡ Rapide   🧠 Premium
         │       │
         ▼       ▼
-    ┌──────┐ ┌────────┐
-    │Ollama│ │ Gemini │
-    └───┬──┘ └───┬────┘
+    ┌──────┐ ┌──────┐
+    │Ollama│ │ Groq │
+    └───┬──┘ └───┬──┘
         │        │
     Erreur?  429/5xx?
         │        │
         ▼        ▼
-    ┌────────┐ ┌──────────┐
-    │ Gemini │ │ DeepSeek │
-    └───┬────┘ └────┬─────┘
+    ┌────────┐ ┌────────┐
+    │ Gemini │ │ Gemini │
+    └───┬────┘ └───┬────┘
         │           │
     429/5xx?    429/5xx?
         │           │
         ▼           ▼
-    ┌──────────┐ ┌──────┐
-    │ DeepSeek │ │ Groq │
-    └────┬─────┘ └───┬──┘
+    ┌──────────┐ ┌──────────┐
+    │ DeepSeek │ │ DeepSeek │
+    └────┬─────┘ └────┬─────┘
          │           │
      429/5xx?    429/5xx?
          │           │
          ▼           ▼
-      ┌──────┐  ┌───────────┐
-      │ Groq │  │ Anthropic │
-      └───┬──┘  └─────┬─────┘
+      ┌──────┐  ┌────────┐
+      │ Groq │  │ Ollama │
+      └───┬──┘  └────┬───┘
           │           │
-      429/5xx?    Échec?
+      429/5xx?  Échec final
           │           │
           ▼           ▼
-     ┌───────────┐ ┌────────────┐
-     │ Anthropic │ │ ❌ Erreur  │
-     └─────┬─────┘ └────────────┘
-           │
-       Échec?
-           │
-           ▼
-      ┌────────────┐
-      │ ❌ Erreur  │
-      └────────────┘`}
+     ┌────────────┐ ┌────────────┐
+     │ ❌ Erreur  │ │ ❌ Erreur  │
+     └────────────┘ └────────────┘`}
             </pre>
           </div>
         </CardContent>
@@ -211,9 +190,9 @@ const AIFlowDiagram: React.FC = () => {
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2 text-sm">
-                  <p><strong>Stratégie :</strong> Gemini (x2 tentatives) → DeepSeek → Ollama</p>
+                  <p><strong>Stratégie :</strong> Groq (primary, 292ms) → Gemini → DeepSeek → Ollama</p>
                   <p><strong>Volume :</strong> 2-3M tokens/jour (haute fréquence)</p>
-                  <p><strong>Raison :</strong> Gemini gratuit avec quotas généreux, fallback économique DeepSeek</p>
+                  <p><strong>Raison :</strong> Groq ultra-rapide (292ms) en primary pour chat temps réel, fallback Gemini/DeepSeek</p>
                 </div>
               </AccordionContent>
             </AccordionItem>

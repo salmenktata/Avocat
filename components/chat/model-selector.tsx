@@ -2,8 +2,8 @@
  * Composant de sélection de mode LLM (Rapide vs Premium)
  *
  * Permet à l'utilisateur de basculer entre :
- * - Mode Rapide : Qwen3 8B (~15-20s, usage quotidien)
- * - Mode Premium : Llama 3.3 70B (~100-250s, analyse approfondie)
+ * - Mode Rapide : Ollama Qwen3 8B (~15-20s, local gratuit)
+ * - Mode Premium : Groq Llama 3.3 70B + cascade cloud (~1-5s, qualité maximale)
  */
 
 'use client'
@@ -61,11 +61,11 @@ export function ModelSelector({
                   🧠 Mode Premium actif
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Qualité maximale avec LLMs cloud (Groq/DeepSeek/Anthropic)
+                  Qualité maximale avec LLMs cloud (Groq → Gemini → DeepSeek → Ollama)
                 </p>
                 <div className="flex items-center gap-1 text-xs">
                   <span className="text-blue-500">ℹ️</span>
-                  <span>~10-30s par réponse (via API)</span>
+                  <span>~1-5s par réponse (Groq ultra-rapide)</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Recommandé pour : analyses juridiques complexes, consultations

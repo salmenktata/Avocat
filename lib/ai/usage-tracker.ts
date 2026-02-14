@@ -62,6 +62,7 @@ export function calculateCost(
     // text-embedding-3-small: $0.02 / 1M tokens
     return (inputTokens / 1_000_000) * AI_COSTS.embeddingCostPer1MTokens
   } else if (provider === 'anthropic') {
+    // ⚠️ DEPRECATION: Anthropic rarement utilisé en Février 2026 (dernier fallback uniquement)
     // Claude 3.5 Sonnet: $3 / 1M input, $15 / 1M output
     return (
       (inputTokens / 1_000_000) * AI_COSTS.claudeInputCostPer1MTokens +
@@ -123,6 +124,9 @@ export async function logEmbeddingUsage(
 
 /**
  * Log simplifié pour le chat Claude
+ *
+ * @deprecated Février 2026 - Utiliser logUsage() avec provider dynamique.
+ * Cette fonction hardcode 'anthropic' mais Groq/Gemini sont maintenant primaires.
  */
 export async function logChatUsage(
   userId: string,
@@ -144,6 +148,9 @@ export async function logChatUsage(
 
 /**
  * Log simplifié pour la génération de documents
+ *
+ * @deprecated Février 2026 - Utiliser logUsage() avec provider dynamique.
+ * Cette fonction hardcode 'anthropic' mais Groq/Gemini sont maintenant primaires.
  */
 export async function logGenerationUsage(
   userId: string,

@@ -14,8 +14,36 @@ import { Badge } from '@/components/ui/badge'
 import { AlertCircle, TrendingUp, Zap, DollarSign, RefreshCw } from 'lucide-react'
 
 // =============================================================================
-// TYPES
+// TYPES & HELPERS
 // =============================================================================
+
+/**
+ * Ordre d'affichage des providers (Février 2026)
+ * Reflète la configuration réelle: primaires en premier, Anthropic dernier
+ */
+const PROVIDER_DISPLAY_ORDER = ['groq', 'gemini', 'openai', 'deepseek', 'ollama', 'anthropic'] as const
+
+/**
+ * Détermine le rôle du provider selon configuration Février 2026
+ */
+function getProviderRole(provider: string): { badge: string; variant: 'default' | 'secondary' | 'outline' } {
+  switch (provider.toLowerCase()) {
+    case 'groq':
+      return { badge: '🟢 Primary (Chat)', variant: 'default' }
+    case 'gemini':
+      return { badge: '🟢 Primary (Analyse)', variant: 'default' }
+    case 'openai':
+      return { badge: '🟢 Primary (Embeddings)', variant: 'default' }
+    case 'deepseek':
+      return { badge: '🟡 Fallback', variant: 'secondary' }
+    case 'ollama':
+      return { badge: '🟡 Fallback Local', variant: 'secondary' }
+    case 'anthropic':
+      return { badge: '⚠️ Marginal', variant: 'outline' }
+    default:
+      return { badge: 'Actif', variant: 'secondary' }
+  }
+}
 
 interface AIUsageStats {
   providers: {
@@ -115,7 +143,10 @@ export default function AIUsagePage() {
 
   if (!stats) return null
 
-  const providers = Object.entries(stats.providers).filter(([_, data]) => data.enabled)
+  // Filtrer et trier les providers selon l'ordre défini
+  const providers = PROVIDER_DISPLAY_ORDER
+    .map((name) => [name, stats.providers[name as keyof typeof stats.providers]] as const)
+    .filter(([_, data]) => data?.enabled)
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -193,18 +224,24 @@ export default function AIUsagePage() {
 function ProviderCard({ name, data }: { name: string; data: ProviderStats }) {
   const errorRate = data.requestCount > 0 ? (data.errorCount / data.requestCount) * 100 : 0
   const isFree = data.costEstimated === 0
+  const role = getProviderRole(name)
+  const isMarginal = name.toLowerCase() === 'anthropic'
 
   return (
-    <Card>
+    <Card className={isMarginal ? 'opacity-60 border-muted' : ''}>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <CardTitle className="capitalize">{name}</CardTitle>
-          {data.tierInfo?.type === 'free' && (
-            <Badge variant="secondary">Gratuit</Badge>
-          )}
+          <div className="flex gap-1">
+            <Badge variant={role.variant}>{role.badge}</Badge>
+            {data.tierInfo?.type === 'free' && (
+              <Badge variant="secondary">Gratuit</Badge>
+            )}
+          </div>
         </div>
         <CardDescription>
           {data.requestCount.toLocaleString()} requêtes
+          {isMarginal && ' • Dernier recours, rarement utilisé'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

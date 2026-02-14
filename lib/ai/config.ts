@@ -8,7 +8,8 @@
 // =============================================================================
 
 export interface AIConfig {
-  // Anthropic Claude (LLM principal)
+  // Anthropic Claude (fallback marginal, dernier recours uniquement)
+  // Note: Groq/Gemini sont les LLM primaires en Février 2026
   anthropic: {
     apiKey: string
     model: string
@@ -216,7 +217,12 @@ export function validateAIConfig(): {
 
 /**
  * Vérifie si les fonctionnalités IA sont disponibles
- * Priorité Février 2026: Gemini (tier gratuit) > Ollama (local) > DeepSeek > Groq > Anthropic > OpenAI
+ *
+ * Priorité Février 2026 (par opération, voir operations-config.ts):
+ * - Assistant IA: Groq (primary 292ms) → Gemini → DeepSeek → Ollama
+ * - Analyse Dossiers: Gemini (primary) → Groq → DeepSeek
+ * - Indexation KB: Ollama exclusif (gratuit)
+ * - Fallback global: Gemini → DeepSeek → Groq → OpenAI → Anthropic → Ollama
  */
 export function isAIEnabled(): boolean {
   const hasLLM = !!aiConfig.gemini.apiKey || aiConfig.ollama.enabled || !!aiConfig.deepseek.apiKey || !!aiConfig.groq.apiKey || !!aiConfig.anthropic.apiKey || !!aiConfig.openai.apiKey
@@ -287,7 +293,11 @@ export function isChatEnabled(): boolean {
 
 /**
  * Retourne le provider de chat actif
- * Priorité Février 2026: Gemini (tier gratuit illimité) > DeepSeek (économique) > Groq (rapide) > Ollama (local) > Anthropic > OpenAI
+ *
+ * Ordre global par défaut: Gemini → DeepSeek → Groq → Ollama → Anthropic → OpenAI
+ *
+ * NOTE: Pour un ordre optimisé par opération, utiliser operations-config.ts
+ * @see lib/ai/operations-config.ts pour configuration spécifique par opération
  */
 export function getChatProvider(): 'gemini' | 'deepseek' | 'groq' | 'ollama' | 'anthropic' | 'openai' | null {
   if (!aiConfig.rag.enabled) return null
@@ -511,14 +521,18 @@ export function getRAGConfig(): {
 }
 
 // =============================================================================
-// COÛTS ESTIMÉS (pour le tracking)
+// COÛTS ESTIMÉS - RÉFÉRENCE HISTORIQUE
 // =============================================================================
+// NOTE: Ces coûts sont conservés pour référence, mais la plupart des opérations
+// utilisent maintenant Groq/Gemini (gratuits) et Ollama (local gratuit).
+// Coût réel Février 2026: ~$2-5/mois (principalement OpenAI embeddings)
 
 export const AI_COSTS = {
   // OpenAI text-embedding-3-small: $0.02 / 1M tokens
   embeddingCostPer1MTokens: 0.02,
 
-  // Claude 3.5 Sonnet: $3 / 1M input tokens, $15 / 1M output tokens
+  // Claude 3.5 Sonnet (RAREMENT utilisé, dernier fallback uniquement)
+  // $3 / 1M input tokens, $15 / 1M output tokens
   claudeInputCostPer1MTokens: 3.0,
   claudeOutputCostPer1MTokens: 15.0,
 

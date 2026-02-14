@@ -1,16 +1,25 @@
 /**
  * Service de Fallback LLM
  *
- * Gère automatiquement les erreurs 429 (rate limit) en basculant
- * vers le provider LLM suivant selon la hiérarchie:
+ * Gère automatiquement les erreurs et rate limits en basculant
+ * vers le provider LLM suivant. L'ordre de fallback dépend du contexte
+ * d'utilisation (voir operations-config.ts pour configuration par opération).
  *
- * Groq (rapide, économique)
- *   ↓ [429 ou erreur]
- * DeepSeek (économique ~0.14$/M tokens)
- *   ↓ [429 ou erreur]
- * Anthropic Claude (puissant mais coûteux)
- *   ↓ [indisponible]
- * OpenAI (coûteux, dernier recours)
+ * ORDRE PAR OPÉRATION (Février 2026):
+ *
+ * - Assistant IA (chat temps réel):
+ *   Groq (primary, 292ms) → Gemini → DeepSeek → Ollama
+ *
+ * - Analyse Dossiers (qualité prioritaire):
+ *   Gemini (primary, 1M context) → Groq → DeepSeek
+ *
+ * - Indexation KB (volume élevé):
+ *   Ollama exclusif (gratuit, local)
+ *
+ * - Fallback global (par défaut):
+ *   Gemini → DeepSeek → Groq → OpenAI → Anthropic → Ollama
+ *
+ * @see lib/ai/operations-config.ts pour configuration détaillée par opération
  */
 
 import Anthropic from '@anthropic-ai/sdk'
@@ -70,8 +79,16 @@ export interface LLMResponse {
 // =============================================================================
 
 /**
- * Ordre de fallback des providers (Février 2026 - optimisé coût/performance)
- * Gemini tier gratuit illimité → DeepSeek économique → Groq rapide → OpenAI stable → Anthropic puissant → Ollama local
+ * Ordre de fallback GLOBAL par défaut (Février 2026).
+ *
+ * NOTE: Cet ordre est utilisé uniquement quand aucune opération spécifique
+ * n'est fournie via `operationName`. Pour la plupart des cas, utiliser
+ * operations-config.ts qui définit des stratégies optimisées.
+ *
+ * Gemini (gratuit, 1M context) → DeepSeek (économique) → Groq (rapide) →
+ * OpenAI (stable) → Anthropic (dernier recours) → Ollama (local)
+ *
+ * @see lib/ai/operations-config.ts pour stratégies par opération
  */
 const FALLBACK_ORDER: LLMProvider[] = ['gemini', 'deepseek', 'groq', 'openai', 'anthropic', 'ollama']
 
