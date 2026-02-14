@@ -1287,7 +1287,7 @@ IMPORTANT: Retourne UNIQUEMENT le JSON, sans texte avant ou après.`
     {
       operationName: 'dossiers-assistant', // ✅ Utilise config Gemini primaire (skip Ollama)
       temperature: 0.3,
-      maxTokens: 4000,
+      maxTokens: 8000, // Augmenté de 4000 → 8000 pour structures complexes multi-phases
     }
   )
 
