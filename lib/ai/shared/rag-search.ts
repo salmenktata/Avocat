@@ -46,34 +46,16 @@ export async function searchKnowledgeBase(
     // Extraire les 3 premiers mots pour recherche ILIKE
     const searchTerms = query.split(' ').slice(0, 3).join('%')
 
-    // Recherche avec les termes originaux
-    const [docsResult, kbResult] = await Promise.all([
-      db.query(
-        `SELECT id, nom, type, contenu_extrait
-         FROM documents
-         WHERE nom ILIKE $1 OR contenu_extrait ILIKE $1
-         LIMIT $2`,
-        [`%${searchTerms}%`, maxResults]
-      ),
-      db.query(
-        `SELECT id, titre, type, contenu
-         FROM knowledge_base
-         WHERE titre ILIKE $1 OR contenu ILIKE $1
-         LIMIT $2`,
-        [`%${searchTerms}%`, maxResults]
-      ),
-    ])
-
-    // Ajouter documents trouvés
-    for (const doc of docsResult.rows) {
-      sources.push({
-        id: doc.id,
-        titre: doc.nom,
-        type: 'document',
-        extrait: doc.contenu_extrait?.substring(0, 500) || '',
-        pertinence: 0.75,
-      })
-    }
+    // Recherche avec les termes originaux (seulement dans knowledge_base)
+    // Note: Documents utilisateur n'ont pas de colonne contenu_extrait
+    const kbResult = await db.query(
+      `SELECT id, title as titre, category as type, full_text as contenu
+       FROM knowledge_base
+       WHERE (title ILIKE $1 OR full_text ILIKE $1)
+         AND is_active = true
+       LIMIT $2`,
+      [`%${searchTerms}%`, maxResults]
+    )
 
     // Ajouter articles KB trouvés
     for (const article of kbResult.rows) {
@@ -95,36 +77,15 @@ export async function searchKnowledgeBase(
         const translatedTerms = translation.translatedText.split(' ').slice(0, 3).join('%')
         const seenIds = new Set(sources.map((s) => s.id))
 
-        const [translatedDocsResult, translatedKbResult] = await Promise.all([
-          db.query(
-            `SELECT id, nom, type, contenu_extrait
-             FROM documents
-             WHERE nom ILIKE $1 OR contenu_extrait ILIKE $1
-             LIMIT $2`,
-            [`%${translatedTerms}%`, maxResults]
-          ),
-          db.query(
-            `SELECT id, titre, type, contenu
-             FROM knowledge_base
-             WHERE titre ILIKE $1 OR contenu ILIKE $1
-             LIMIT $2`,
-            [`%${translatedTerms}%`, maxResults]
-          ),
-        ])
-
-        // Ajouter documents traduits (si pas déjà présents)
-        for (const doc of translatedDocsResult.rows) {
-          if (!seenIds.has(doc.id)) {
-            sources.push({
-              id: doc.id,
-              titre: doc.nom,
-              type: 'document',
-              extrait: doc.contenu_extrait?.substring(0, 500) || '',
-              pertinence: 0.7, // Légèrement inférieur car traduit
-            })
-            seenIds.add(doc.id)
-          }
-        }
+        // Recherche traduite (seulement dans knowledge_base)
+        const translatedKbResult = await db.query(
+          `SELECT id, title as titre, category as type, full_text as contenu
+           FROM knowledge_base
+           WHERE (title ILIKE $1 OR full_text ILIKE $1)
+             AND is_active = true
+           LIMIT $2`,
+          [`%${translatedTerms}%`, maxResults]
+        )
 
         // Ajouter articles KB traduits (si pas déjà présents)
         for (const article of translatedKbResult.rows) {
