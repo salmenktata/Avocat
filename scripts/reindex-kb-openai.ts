@@ -142,7 +142,7 @@ async function reindexWithOpenAI(options: ReindexOptions) {
   if (options.dryRun) {
     console.log('🔍 Mode DRY RUN - Affichage des 10 premiers chunks:')
     const sampleQuery = `
-      SELECT kbc.id, kb.title, kb.category, LENGTH(kbc.content_chunk) as chunk_length
+      SELECT kbc.id, kb.title, kb.category, LENGTH(kbc.content) as chunk_length
       FROM knowledge_base_chunks kbc
       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
       ${whereClause}
@@ -173,7 +173,7 @@ async function reindexWithOpenAI(options: ReindexOptions) {
   while (processed < total) {
     // Récupérer batch de chunks
     const fetchQuery = `
-      SELECT kbc.id, kbc.content_chunk, kb.title
+      SELECT kbc.id, kbc.content, kb.title
       FROM knowledge_base_chunks kbc
       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
       ${whereClause}
@@ -187,7 +187,7 @@ async function reindexWithOpenAI(options: ReindexOptions) {
     const batchStart = Date.now()
     const embeddings = await Promise.allSettled(
       chunks.rows.map(chunk =>
-        generateEmbedding(chunk.content_chunk, {
+        generateEmbedding(chunk.content, {
           operationName: 'assistant-ia'  // Utilise config OpenAI
         })
       )
