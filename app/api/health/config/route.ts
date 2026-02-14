@@ -105,7 +105,7 @@ async function detectDriftedVars(
           varHashes: varHashMap,
           timestamp: new Date().toISOString(),
         }),
-        { ex: 30 * 24 * 60 * 60 } // 30 jours TTL
+        { EX: 30 * 24 * 60 * 60 } // 30 jours TTL
       )
 
       return { driftedVars: [], criticalDrift: false }
@@ -155,8 +155,8 @@ async function recordDriftEvent(driftedVars: DriftedVar[]): Promise<void> {
       })),
     }
 
-    await redis.lpush(DRIFT_HISTORY_KEY, JSON.stringify(event))
-    await redis.ltrim(DRIFT_HISTORY_KEY, 0, 99) // Garder 100 événements max
+    await redis.lPush(DRIFT_HISTORY_KEY, JSON.stringify(event))
+    await redis.lTrim(DRIFT_HISTORY_KEY, 0, 99) // Garder 100 événements max
     await redis.expire(DRIFT_HISTORY_KEY, DRIFT_HISTORY_TTL)
   } catch (error) {
     console.error('Error recording drift event:', error)
@@ -257,7 +257,7 @@ export async function POST() {
         varHashes: varHashMap,
         timestamp: new Date().toISOString(),
       }),
-      { ex: 30 * 24 * 60 * 60 } // 30 jours TTL
+      { EX: 30 * 24 * 60 * 60 } // 30 jours TTL
     )
 
     return NextResponse.json({

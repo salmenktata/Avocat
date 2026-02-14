@@ -18,12 +18,13 @@ export function ChatInput({ onSend, disabled = false, placeholder }: ChatInputPr
   const [message, setMessage] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-resize textarea
+  // Auto-resize textarea avec max-height responsive
   useEffect(() => {
     const textarea = textareaRef.current
     if (textarea) {
       textarea.style.height = 'auto'
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`
+      const maxHeight = window.innerWidth < 768 ? 150 : 200
+      textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`
     }
   }, [message])
 
@@ -66,8 +67,9 @@ export function ChatInput({ onSend, disabled = false, placeholder }: ChatInputPr
             placeholder={placeholder || t('placeholder')}
             disabled={disabled}
             className={cn(
-              'min-h-[52px] max-h-[200px] resize-none pr-12',
-              'focus-visible:ring-1 focus-visible:ring-primary'
+              'min-h-[52px] max-h-[200px] md:max-h-[200px] resize-none pr-12',
+              'focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+              'transition-all duration-200'
             )}
             rows={1}
           />
@@ -82,7 +84,12 @@ export function ChatInput({ onSend, disabled = false, placeholder }: ChatInputPr
           disabled={!canSend}
           size="icon"
           aria-label={t('enterToSend')}
-          className="h-[52px] w-[52px] shrink-0"
+          className={cn(
+            'h-[52px] w-[52px] shrink-0',
+            'transition-all duration-200 ease-out',
+            'hover:shadow-lg hover:scale-[1.02]',
+            'active:scale-[0.98]'
+          )}
         >
           {disabled ? (
             <Icons.loader className="h-5 w-5 animate-spin" />

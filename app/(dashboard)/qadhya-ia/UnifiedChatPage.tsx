@@ -37,16 +37,22 @@ import {
 
 interface UnifiedChatPageProps {
   userId: string
+  initialAction?: ActionType  // 'chat' | 'structure' | 'consult'
+  hideActionButtons?: boolean // Masquer les boutons si page dédiée
 }
 
-export function UnifiedChatPage({ userId }: UnifiedChatPageProps) {
+export function UnifiedChatPage({
+  userId,
+  initialAction = 'chat',
+  hideActionButtons = false
+}: UnifiedChatPageProps) {
   const t = useTranslations('qadhyaIA')
   const router = useRouter()
   const { toast } = useToast()
 
   // State
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
-  const [currentAction, setCurrentAction] = useState<ActionType>('chat')
+  const [currentAction, setCurrentAction] = useState<ActionType>(initialAction)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // React Query hooks - Cache automatique
@@ -202,9 +208,9 @@ export function UnifiedChatPage({ userId }: UnifiedChatPageProps) {
         onClick: () => router.push('/dashboard'),
       }}
     >
-      <div className="h-[calc(100vh-4rem)] flex bg-background">
-        {/* Sidebar - Desktop */}
-        <aside className="hidden lg:flex lg:w-80 border-r flex-col">
+      <div className="h-[calc(100vh-4rem)] flex bg-gradient-to-br from-background via-background to-muted/20">
+        {/* Sidebar - Desktop avec Glassmorphism */}
+        <aside className="hidden lg:flex lg:w-80 xl:w-96 border-r flex-col backdrop-blur-xl bg-background/95">
           {SidebarContent}
         </aside>
 
@@ -218,7 +224,7 @@ export function UnifiedChatPage({ userId }: UnifiedChatPageProps) {
                   <Icons.menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-0">
+              <SheetContent side="left" className="w-80 p-0 transition-transform duration-300 ease-out">
                 {SidebarContent}
               </SheetContent>
             </Sheet>
@@ -226,8 +232,8 @@ export function UnifiedChatPage({ userId }: UnifiedChatPageProps) {
             <div className="w-10" /> {/* Spacer */}
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-auto">
+          {/* Messages avec Shadow Inner */}
+          <div className="flex-1 overflow-auto shadow-inner">
             <ChatMessages
               messages={messages}
               isLoading={isLoadingMessages}
@@ -236,17 +242,19 @@ export function UnifiedChatPage({ userId }: UnifiedChatPageProps) {
             />
           </div>
 
-          {/* Actions Contextuelles */}
-          <div className="border-t p-4">
-            <ActionButtons
-              selected={currentAction}
-              onSelect={handleActionSelect}
-              disabled={isSending}
-            />
-          </div>
+          {/* Actions Contextuelles - CONDITIONNELLES */}
+          {!hideActionButtons && (
+            <div className="border-t p-4">
+              <ActionButtons
+                selected={currentAction}
+                onSelect={handleActionSelect}
+                disabled={isSending}
+              />
+            </div>
+          )}
 
-          {/* Input */}
-          <div className="border-t">
+          {/* Input avec Shadow Subtile */}
+          <div className="border-t shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
             <ChatInput
               onSend={handleSendMessage}
               disabled={isSending}

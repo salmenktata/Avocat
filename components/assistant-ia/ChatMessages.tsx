@@ -3,6 +3,7 @@
 import { useEffect, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
+import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
@@ -164,29 +165,53 @@ export function ChatMessages({ messages, isLoading, streamingContent, renderEnri
     )
   }
 
-  // Rendu standard pour < 50 messages
+  // Rendu standard pour < 50 messages avec animations
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-      {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} renderEnriched={renderEnriched} />
-      ))}
+      <AnimatePresence mode="popLayout">
+        {messages.map((message) => (
+          <motion.div
+            key={message.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+          >
+            <MessageBubble message={message} renderEnriched={renderEnriched} />
+          </motion.div>
+        ))}
+      </AnimatePresence>
 
       {/* Message en cours de streaming */}
       {streamingContent && (
-        <MessageBubble
-          message={{
-            id: 'streaming',
-            role: 'assistant',
-            content: streamingContent,
-            createdAt: new Date(),
-            isStreaming: true,
-          }}
-          renderEnriched={renderEnriched}
-        />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <MessageBubble
+            message={{
+              id: 'streaming',
+              role: 'assistant',
+              content: streamingContent,
+              createdAt: new Date(),
+              isStreaming: true,
+            }}
+            renderEnriched={renderEnriched}
+          />
+        </motion.div>
       )}
 
-      {/* Indicateur de chargement */}
-      {isLoading && !streamingContent && <LoadingIndicator />}
+      {/* Indicateur de chargement avec animation */}
+      {isLoading && !streamingContent && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+        >
+          <LoadingIndicator />
+        </motion.div>
+      )}
 
       <div ref={messagesEndRef} />
     </div>
@@ -197,7 +222,12 @@ function LoadingIndicator() {
   return (
     <div className="flex items-start gap-3">
       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-        <Icons.zap className="h-4 w-4 text-primary" />
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+        >
+          <Icons.loader className="h-4 w-4 text-primary" />
+        </motion.div>
       </div>
       <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-3/4" />
