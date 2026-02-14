@@ -2,9 +2,10 @@ import { Suspense } from 'react'
 import { MonitoringClient } from './MonitoringClient'
 
 /**
- * Dashboard Monitoring Unifié - Consolidation 6 pages
+ * Dashboard Monitoring Unifié - Consolidation 7 pages
  *
- * 6 onglets :
+ * 7 onglets :
+ * 0. Config Système : Configuration RAG, providers embeddings, stats KB 🆕
  * 1. Overview : Métriques production temps réel
  * 2. KB Quality : Analyse qualité base de connaissances + budget OpenAI
  * 3. Providers : Matrice provider × opération

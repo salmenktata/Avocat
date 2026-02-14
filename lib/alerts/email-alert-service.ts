@@ -1,7 +1,8 @@
 /**
- * Service d'alertes email pour monitoring KB
+ * Service d'alertes email pour monitoring KB & Configuration
  *
  * Envoie des alertes email via Brevo pour :
+ * - Configuration RAG invalide (RAG activé sans provider embeddings) 🆕
  * - Budget OpenAI critique (>80% ou <$2 restant)
  * - Échecs importants (>50 docs avec score=50)
  * - Taux d'erreur batch élevé
@@ -11,6 +12,7 @@
 
 import { db } from '@/lib/db/postgres'
 import { getRedisClient } from '@/lib/cache/redis'
+import { isSemanticSearchEnabled } from '@/lib/ai/config'
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY
 const ALERT_EMAIL = process.env.ALERT_EMAIL || 'admin@qadhya.tn'
@@ -154,8 +156,59 @@ async function getMetrics(): Promise<MonitoringMetrics> {
 /**
  * Détecter les alertes nécessitant notification
  */
+/**
+ * Vérifier la configuration RAG
+ * Retourne une alerte si RAG est activé mais aucun provider embeddings disponible
+ */
+function checkRAGConfiguration(): AlertLevel | null {
+  const ragEnabled = process.env.RAG_ENABLED === 'true'
+
+  // Si RAG désactivé, pas d'alerte
+  if (!ragEnabled) return null
+
+  const ollamaEnabled = process.env.OLLAMA_ENABLED === 'true'
+  const openaiKey = process.env.OPENAI_API_KEY
+  const semanticSearchEnabled = isSemanticSearchEnabled()
+
+  // Configuration valide : au moins un provider embeddings disponible
+  if (semanticSearchEnabled) return null
+
+  // Configuration INVALIDE détectée
+  return {
+    level: 'critical',
+    title: '🚨 Configuration RAG Invalide',
+    message: `RAG activé (RAG_ENABLED=true) mais aucun provider embeddings disponible. Impact : Assistant IA non-fonctionnel, recherche KB retourne toujours "لم أجد وثائق ذات صلة"`,
+    metrics: {},
+    recommendations: [
+      '🔧 Solution 1 (Recommandée - Gratuit) : Activer Ollama',
+      '   → Modifier /opt/moncabinet/.env : OLLAMA_ENABLED=true',
+      '   → Redémarrer conteneur : docker-compose up -d --no-deps nextjs',
+      '',
+      '🔧 Solution 2 (Payant - Cloud) : Configurer OpenAI',
+      '   → Ajouter dans /opt/moncabinet/.env.production.local : OPENAI_API_KEY=sk-proj-...',
+      '   → Redémarrer conteneur',
+      '',
+      '📊 Vérification post-fix :',
+      '   → Health check : curl https://qadhya.tn/api/health | jq .rag',
+      '   → Test KB : bash scripts/test-kb-search-prod.sh',
+      '',
+      `⚙️ État détecté :`,
+      `   - RAG_ENABLED: ${ragEnabled ? 'true' : 'false'}`,
+      `   - OLLAMA_ENABLED: ${ollamaEnabled ? 'true' : 'false'}`,
+      `   - OPENAI_API_KEY: ${openaiKey ? 'configuré' : 'non configuré'}`,
+      `   - isSemanticSearchEnabled(): ${semanticSearchEnabled ? 'true' : 'false'}`,
+    ],
+  }
+}
+
 function detectAlerts(metrics: MonitoringMetrics): AlertLevel[] {
   const alerts: AlertLevel[] = []
+
+  // Alerte 0 : Configuration RAG (CRITIQUE - vérifier en premier)
+  const ragConfigAlert = checkRAGConfiguration()
+  if (ragConfigAlert) {
+    alerts.push(ragConfigAlert)
+  }
 
   // Alerte 1 : Budget OpenAI critique
   if (metrics.budget.percentUsed >= 90) {

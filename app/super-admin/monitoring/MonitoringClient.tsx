@@ -7,13 +7,14 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Activity, PieChart, DollarSign, Gauge, Heart, Database, Clock } from 'lucide-react'
+import { Activity, PieChart, DollarSign, Gauge, Heart, Database, Clock, Settings } from 'lucide-react'
 import { ProductionMonitoringTab } from '@/components/super-admin/monitoring/ProductionMonitoringTab'
 import { ProviderUsageTab } from '@/components/super-admin/monitoring/ProviderUsageTab'
 import { AICostsTab } from '@/components/super-admin/monitoring/AICostsTab'
 import { APIHealthTab } from '@/components/super-admin/monitoring/APIHealthTab'
 import { KBQualityTab } from '@/components/super-admin/monitoring/KBQualityTab'
 import { CronsAndBatchesTab } from '@/components/super-admin/monitoring/CronsAndBatchesTab'
+import SystemConfigTab from '@/components/super-admin/monitoring/SystemConfigTab'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -51,7 +52,11 @@ export function MonitoringClient() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 lg:w-[1200px]">
+        <TabsList className="grid w-full grid-cols-7 lg:w-[1400px]">
+          <TabsTrigger value="system-config" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline">Config</span>
+          </TabsTrigger>
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
@@ -77,6 +82,11 @@ export function MonitoringClient() {
             <span className="hidden sm:inline">Crons & Batches</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Tab 0: System Configuration */}
+        <TabsContent value="system-config" className="space-y-6">
+          <SystemConfigTab />
+        </TabsContent>
 
         {/* Tab 1: Production Overview */}
         <TabsContent value="overview" className="space-y-6">
