@@ -76,6 +76,12 @@ const THRESHOLDS = {
   cost_per_query_tnd: 0.05,
 }
 
+// Helper pour protéger toFixed() contre valeurs non-numériques
+function safeToFixed(value: number | null | undefined, decimals: number = 2): string {
+  if (typeof value !== 'number' || isNaN(value)) return '0.' + '0'.repeat(decimals)
+  return value.toFixed(decimals)
+}
+
 export function ProductionMonitoringTab() {
   const [metrics, setMetrics] = useState<ProductionMetrics | null>(null)
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([])
@@ -122,7 +128,7 @@ export function ProductionMonitoringTab() {
       id: 'queries_per_hour',
       name: 'Queries par Heure',
       threshold: THRESHOLDS.queries_per_hour,
-      currentValue: metrics.queriesPerHour,
+      currentValue: metrics.queriesPerHour || 0,
       status:
         metrics.queriesPerHour > THRESHOLDS.queries_per_hour
           ? 'critical'
@@ -136,7 +142,7 @@ export function ProductionMonitoringTab() {
       id: 'latency_p95',
       name: 'Latence P95',
       threshold: THRESHOLDS.latency_p95_ms,
-      currentValue: metrics.latencyP95,
+      currentValue: metrics.latencyP95 || 0,
       status:
         metrics.latencyP95 > THRESHOLDS.latency_p95_ms
           ? 'critical'
@@ -150,7 +156,7 @@ export function ProductionMonitoringTab() {
       id: 'error_rate',
       name: 'Taux d\'Erreur',
       threshold: THRESHOLDS.error_rate_percent,
-      currentValue: metrics.errorRate,
+      currentValue: metrics.errorRate || 0,
       status:
         metrics.errorRate > THRESHOLDS.error_rate_percent
           ? 'critical'
@@ -164,7 +170,7 @@ export function ProductionMonitoringTab() {
       id: 'hallucination_rate',
       name: 'Taux Hallucination',
       threshold: THRESHOLDS.hallucination_rate_percent,
-      currentValue: metrics.hallucinationRate,
+      currentValue: metrics.hallucinationRate || 0,
       status:
         metrics.hallucinationRate > THRESHOLDS.hallucination_rate_percent
           ? 'critical'
@@ -178,7 +184,7 @@ export function ProductionMonitoringTab() {
       id: 'cost_per_query',
       name: 'Coût par Requête',
       threshold: THRESHOLDS.cost_per_query_tnd,
-      currentValue: metrics.costPerQuery,
+      currentValue: metrics.costPerQuery || 0,
       status:
         metrics.costPerQuery > THRESHOLDS.cost_per_query_tnd
           ? 'critical'
@@ -273,7 +279,7 @@ export function ProductionMonitoringTab() {
             <ul className="mt-2 ml-4 list-disc">
               {criticalAlerts.map(alert => (
                 <li key={alert.id}>
-                  {alert.name} : {alert.currentValue.toFixed(2)}{' '}
+                  {alert.name} : {safeToFixed(alert.currentValue, 2)}{' '}
                   {alert.id.includes('rate') ? '%' : alert.id.includes('cost') ? 'TND' : 'ms'} (seuil :{' '}
                   {alert.threshold})
                 </li>
@@ -340,9 +346,9 @@ export function ProductionMonitoringTab() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(metrics.latencyP95 / 1000).toFixed(2)}s</div>
+            <div className="text-2xl font-bold">{safeToFixed((metrics.latencyP95 || 0) / 1000, 2)}s</div>
             <p className="text-xs text-muted-foreground">
-              P50 : {(metrics.latencyP50 / 1000).toFixed(2)}s
+              P50 : {safeToFixed((metrics.latencyP50 || 0) / 1000, 2)}s
             </p>
           </CardContent>
         </Card>
@@ -354,9 +360,9 @@ export function ProductionMonitoringTab() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.costPerQuery.toFixed(3)} TND</div>
+            <div className="text-2xl font-bold">{safeToFixed(metrics.costPerQuery, 3)} TND</div>
             <p className="text-xs text-muted-foreground">
-              Budget mensuel : {metrics.monthlyBudget.toFixed(2)} TND
+              Budget mensuel : {safeToFixed(metrics.monthlyBudget, 2)} TND
             </p>
           </CardContent>
         </Card>
@@ -403,7 +409,7 @@ export function ProductionMonitoringTab() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <div className="text-4xl font-bold">{metrics.errorRate.toFixed(2)}%</div>
+                  <div className="text-4xl font-bold">{safeToFixed(metrics.errorRate, 2)}%</div>
                   {metrics.errorRate < THRESHOLDS.error_rate_percent ? (
                     <CheckCircle2 className="h-12 w-12 text-green-600" />
                   ) : (
@@ -445,7 +451,7 @@ export function ProductionMonitoringTab() {
                 <CardDescription>Objectif : &gt; 4.2/5</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold">{metrics.averageRating.toFixed(2)}/5</div>
+                <div className="text-4xl font-bold">{safeToFixed(metrics.averageRating, 2)}/5</div>
                 <p className="text-xs text-muted-foreground mt-2">
                   {metrics.averageRating >= 4.2 ? (
                     <span className="text-green-600 flex items-center gap-1">
@@ -468,7 +474,7 @@ export function ProductionMonitoringTab() {
                 <CardDescription>Objectif : &lt; 0.1%</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold">{metrics.hallucinationRate.toFixed(3)}%</div>
+                <div className="text-4xl font-bold">{safeToFixed(metrics.hallucinationRate, 3)}%</div>
                 <p className="text-xs text-muted-foreground mt-2">
                   {metrics.hallucinationRate < THRESHOLDS.hallucination_rate_percent ? (
                     <span className="text-green-600 flex items-center gap-1">
@@ -491,7 +497,7 @@ export function ProductionMonitoringTab() {
                 <CardDescription>Objectif : &gt; 95%</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold">{metrics.citationAccuracy.toFixed(1)}%</div>
+                <div className="text-4xl font-bold">{safeToFixed(metrics.citationAccuracy, 1)}%</div>
                 <p className="text-xs text-muted-foreground mt-2">
                   {metrics.citationAccuracy >= 95 ? (
                     <span className="text-green-600 flex items-center gap-1">
@@ -541,7 +547,7 @@ export function ProductionMonitoringTab() {
                 <CardDescription>Basé sur usage actuel</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold">{metrics.monthlyBudget.toFixed(2)} TND</div>
+                <div className="text-4xl font-bold">{safeToFixed(metrics.monthlyBudget, 2)} TND</div>
                 <p className="text-xs text-muted-foreground mt-2">
                   Objectif : &lt; 200 TND/mois
                   {metrics.monthlyBudget < 200 ? (
@@ -559,7 +565,7 @@ export function ProductionMonitoringTab() {
                 <CardDescription>Moyenne dernières {timeRange}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold">{metrics.costPerQuery.toFixed(4)} TND</div>
+                <div className="text-4xl font-bold">{safeToFixed(metrics.costPerQuery, 4)} TND</div>
                 <p className="text-xs text-muted-foreground mt-2">
                   Objectif : &lt; 0.03 TND
                   {metrics.costPerQuery < 0.03 ? (
@@ -607,7 +613,7 @@ export function ProductionMonitoringTab() {
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <p className="font-bold">
-                          {alert.currentValue.toFixed(2)}
+                          {safeToFixed(alert.currentValue, 2)}
                           {alert.id.includes('rate') ? '%' : alert.id.includes('cost') ? ' TND' : ' ms'}
                         </p>
                         <Badge
