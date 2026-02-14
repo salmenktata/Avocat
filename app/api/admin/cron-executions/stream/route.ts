@@ -34,15 +34,33 @@ export async function GET(req: NextRequest) {
 
   const stream = new ReadableStream({
     async start(controller) {
-      // Fonction pour envoyer un événement SSE
+      let isClosed = false
+
+      // Fonction pour envoyer un événement SSE (avec vérification)
       const sendEvent = (event: CronExecutionEvent) => {
-        const data = `data: ${JSON.stringify(event)}\n\n`
-        controller.enqueue(encoder.encode(data))
+        if (isClosed) return
+        try {
+          const data = `data: ${JSON.stringify(event)}\n\n`
+          controller.enqueue(encoder.encode(data))
+        } catch (error) {
+          console.error('[SSE] Error sending event:', error)
+          isClosed = true
+        }
       }
 
       // Heartbeat pour garder la connexion vivante
       const heartbeatInterval = setInterval(() => {
-        controller.enqueue(encoder.encode(': heartbeat\n\n'))
+        if (isClosed) {
+          clearInterval(heartbeatInterval)
+          return
+        }
+        try {
+          controller.enqueue(encoder.encode(': heartbeat\n\n'))
+        } catch (error) {
+          console.error('[SSE] Heartbeat failed, closing:', error)
+          isClosed = true
+          clearInterval(heartbeatInterval)
+        }
       }, 30000) // Toutes les 30s
 
       // Subscribe à Redis PubSub pour les événements de cron
@@ -60,10 +78,19 @@ export async function GET(req: NextRequest) {
 
       // Cleanup à la fermeture de la connexion
       req.signal.addEventListener('abort', async () => {
+        isClosed = true
         clearInterval(heartbeatInterval)
-        await subscriber.unsubscribe('cron:events')
-        await subscriber.quit()
-        controller.close()
+        try {
+          await subscriber.unsubscribe('cron:events')
+          await subscriber.quit()
+        } catch (error) {
+          console.error('[SSE] Error during cleanup:', error)
+        }
+        try {
+          controller.close()
+        } catch (error) {
+          // Controller déjà fermé, ignorer
+        }
       })
 
       // Envoyer événement initial de connexion
