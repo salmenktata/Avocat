@@ -651,10 +651,10 @@ jobs:
   validate-post-deploy:
     runs-on: ubuntu-latest
     name: Post-Deploy Validation
-    needs: [deploy-lightning, build-and-deploy]
+    needs: [deploy-fast, build-and-deploy]
     if: |
       always() &&
-      (needs.deploy-lightning.result == 'success' || needs.build-and-deploy.result == 'success')
+      (needs.deploy-fast.result == 'success' || needs.build-and-deploy.result == 'success')
     timeout-minutes: 5
 
     steps:
