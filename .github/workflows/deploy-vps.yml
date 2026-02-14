@@ -734,21 +734,30 @@ jobs:
         run: |
           DEPLOYED_TIER="${{ needs.detect-changes.outputs.deploy_tier || 'unknown' }}"
 
-          cat > /tmp/deploy-report.json <<EOF
-          {
-            "deploymentId": "${{ github.run_number }}",
-            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "tier": "$DEPLOYED_TIER",
-            "commit": "${{ github.sha }}",
-            "commitMessage": "${{ github.event.head_commit.message }}",
-            "validations": {
-              "preDeploySchema": "${{ needs.validate-schema.result }}",
-              "postDeployHealth": "${{ steps.health.outputs.health_check_passed || 'unknown' }}",
-              "configHash": "${{ steps.config.outputs.config_valid || 'unknown' }}"
-            },
-            "outcome": "${{ job.status }}"
-          }
-          EOF
+          # Créer rapport avec jq pour échapper correctement le commitMessage
+          jq -n \
+            --arg deploymentId "${{ github.run_number }}" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg tier "$DEPLOYED_TIER" \
+            --arg commit "${{ github.sha }}" \
+            --arg commitMessage "${{ github.event.head_commit.message }}" \
+            --arg preDeploySchema "${{ needs.validate-schema.result }}" \
+            --arg postDeployHealth "${{ steps.health.outputs.health_check_passed || 'unknown' }}" \
+            --arg configHash "${{ steps.config.outputs.config_valid || 'unknown' }}" \
+            --arg outcome "${{ job.status }}" \
+            '{
+              deploymentId: $deploymentId,
+              timestamp: $timestamp,
+              tier: $tier,
+              commit: $commit,
+              commitMessage: $commitMessage,
+              validations: {
+                preDeploySchema: $preDeploySchema,
+                postDeployHealth: $postDeployHealth,
+                configHash: $configHash
+              },
+              outcome: $outcome
+            }' > /tmp/deploy-report.json
 
           echo "📊 Deployment Report:"
           cat /tmp/deploy-report.json | jq '.'
