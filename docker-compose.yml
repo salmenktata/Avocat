@@ -166,7 +166,7 @@ services:
       WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN}
       WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET}
       CRON_SECRET: ${CRON_SECRET}
-      CRON_TRIGGER_SERVER_URL: http://172.18.0.1:9998/trigger
+      CRON_TRIGGER_SERVER_URL: http://host.docker.internal:9998/trigger
     volumes:
       - ./logs:/app/logs
     ports:
