@@ -9,8 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/auth'
 import {
   getOperationConfig,
   updateOperationConfig,
@@ -37,7 +36,7 @@ export async function GET(
 ) {
   try {
     // 1. Auth check
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user || session.user.role !== 'super_admin') {
       return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
     }
@@ -118,7 +117,7 @@ export async function PUT(
 ) {
   try {
     // 1. Auth check
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user || session.user.role !== 'super_admin') {
       return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
     }
@@ -186,7 +185,7 @@ export async function DELETE(
 ) {
   try {
     // 1. Auth check
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user || session.user.role !== 'super_admin') {
       return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
     }

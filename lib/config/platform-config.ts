@@ -197,3 +197,17 @@ export async function getDeepSeekApiKey(): Promise<string | null> {
 export async function getDeepSeekModel(): Promise<string> {
   return (await getConfig('DEEPSEEK_MODEL')) || 'deepseek-chat'
 }
+
+/**
+ * Récupère une clé API décryptée depuis la base de données
+ * Utilise le système de clés cryptées (api_keys table)
+ */
+export async function getDecryptedApiKey(provider: string): Promise<string | null> {
+  try {
+    const { getApiKey } = await import('@/lib/api-keys/api-keys-service')
+    return await getApiKey(provider)
+  } catch (error) {
+    console.error(`[PlatformConfig] Erreur récupération clé ${provider}:`, error)
+    return null
+  }
+}

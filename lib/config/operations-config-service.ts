@@ -38,7 +38,7 @@ import {
   validateNoCircularDeps,
   validateTimeouts,
 } from '@/lib/validations/operations-config-schemas'
-import { callLLM } from '@/lib/ai/llm-fallback-service'
+import { callSpecificProvider } from '@/lib/ai/llm-fallback-service'
 import { getDecryptedApiKey } from '@/lib/config/platform-config'
 
 // =============================================================================
@@ -412,14 +412,15 @@ export async function testProviderConnectivity(
 
     // 2. Test simple selon type
     if (testType === 'chat') {
-      const response = await callLLM(
+      const response = await callSpecificProvider(
+        provider,
         [{ role: 'user', content: 'Test connexion' }],
         {
           temperature: 0.1,
           maxTokens: 50,
           operationName,
         },
-        provider
+        false
       )
 
       const latencyMs = Date.now() - startTime

@@ -49,6 +49,9 @@ export interface OperationProviderConfig {
   isActive: boolean
   useStaticConfig: boolean
 
+  // Source (database, static, ou merged)
+  source?: 'database' | 'static' | 'merged'
+
   // Audit
   createdAt: Date
   updatedAt: Date

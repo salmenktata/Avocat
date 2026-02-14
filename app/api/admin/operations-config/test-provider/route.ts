@@ -14,8 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getSession } from '@/lib/auth'
 import { testProviderConnectivity } from '@/lib/config/operations-config-service'
 import { providerTestSchema } from '@/lib/validations/operations-config-schemas'
 import type { ProviderTestResponse } from '@/lib/types/ai-config.types'
@@ -23,7 +22,7 @@ import type { ProviderTestResponse } from '@/lib/types/ai-config.types'
 export async function POST(request: NextRequest) {
   try {
     // 1. Auth check
-    const session = await getServerSession(authOptions)
+    const session = await getSession()
     if (!session?.user || session.user.role !== 'super_admin') {
       return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 })
     }

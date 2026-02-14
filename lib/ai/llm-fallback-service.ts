@@ -740,3 +740,8 @@ export async function callSpecificProvider(
 
   return callProviderWithRetry(provider, messages, options, usePremiumModel)
 }
+
+/**
+ * Alias pour callLLMWithFallback (rétrocompatibilité)
+ */
+export const callLLM = callLLMWithFallback
