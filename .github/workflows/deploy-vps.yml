@@ -297,8 +297,9 @@ jobs:
               mkdir -p /tmp/deploy-bundle
               tar xzf /tmp/deploy.tar.gz -C /tmp/deploy-bundle
 
-              # Clean old build artifacts to avoid stale chunks (docker cp merges, not replaces)
-              docker exec qadhya-nextjs rm -rf /app/.next/server/chunks /app/.next/server/app /app/.next/static || true
+              # CRITIQUE: Supprimer COMPLÈTEMENT .next/server pour éviter erreurs routes API
+              # (Tier 1 rsync .ts source mais container utilise .js compilé dans .next/server)
+              docker exec qadhya-nextjs rm -rf /app/.next/server /app/.next/server-* /app/.next/static || true
 
               # Copy into running container (server.js, .next/, public/)
               docker cp /tmp/deploy-bundle/server.js qadhya-nextjs:/app/server.js
