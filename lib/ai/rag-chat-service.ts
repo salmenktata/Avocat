@@ -1579,7 +1579,8 @@ export async function saveMessage(
 export async function getUserConversations(
   userId: string,
   dossierId?: string,
-  limit: number = 20
+  limit: number = 20,
+  actionType?: 'chat' | 'structure' | 'consult'
 ): Promise<
   Array<{
     id: string
@@ -1606,16 +1607,27 @@ export async function getUserConversations(
   `
 
   const params: (string | number)[] = [userId]
+  let paramIndex = 2
 
   if (dossierId) {
-    sql += ` AND c.dossier_id = $2`
+    sql += ` AND c.dossier_id = $${paramIndex}`
     params.push(dossierId)
-    sql += ` ORDER BY c.updated_at DESC LIMIT $3`
-    params.push(limit)
-  } else {
-    sql += ` ORDER BY c.updated_at DESC LIMIT $2`
-    params.push(limit)
+    paramIndex++
   }
+
+  if (actionType) {
+    sql += ` AND EXISTS (
+      SELECT 1 FROM chat_messages cm
+      WHERE cm.conversation_id = c.id
+        AND cm.metadata->>'actionType' = $${paramIndex}
+      LIMIT 1
+    )`
+    params.push(actionType)
+    paramIndex++
+  }
+
+  sql += ` ORDER BY c.updated_at DESC LIMIT $${paramIndex}`
+  params.push(limit)
 
   const result = await db.query(sql, params)
 

@@ -60,6 +60,7 @@ export interface ConversationListParams {
   sortOrder?: 'asc' | 'desc'
   category?: string
   language?: 'fr' | 'ar'
+  actionType?: 'chat' | 'structure' | 'consult'
 }
 
 export interface ConversationListResult {
@@ -118,6 +119,7 @@ async function fetchConversation(id: string): Promise<Conversation> {
       sources: msg.sources,
       tokensUsed: msg.tokensUsed,
       timestamp: new Date(msg.createdAt),
+      metadata: msg.metadata,
     })),
     createdAt: new Date(data.conversation.created_at),
     updatedAt: new Date(data.conversation.created_at), // Pas de updated_at dans l'API

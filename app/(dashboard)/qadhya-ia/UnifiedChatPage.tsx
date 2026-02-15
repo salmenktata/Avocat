@@ -70,6 +70,7 @@ export function UnifiedChatPage({
     sortBy: 'updatedAt',
     sortOrder: 'desc',
     limit: 50,
+    actionType: currentAction,
   })
 
   const {

@@ -347,6 +347,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const searchParams = request.nextUrl.searchParams
     const dossierId = searchParams.get('dossierId')
     const conversationId = searchParams.get('conversationId')
+    const actionType = searchParams.get('actionType') as 'chat' | 'structure' | 'consult' | null
 
     // Si conversationId fourni, retourner les messages de cette conversation
     if (conversationId) {
@@ -368,7 +369,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
       // Récupérer les messages
       const messagesResult = await db.query(
-        `SELECT id, role, content, sources, tokens_used, created_at
+        `SELECT id, role, content, sources, tokens_used, metadata, created_at
          FROM chat_messages
          WHERE conversation_id = $1
          ORDER BY created_at ASC`,
@@ -383,6 +384,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           content: m.content,
           sources: m.sources,
           tokensUsed: m.tokens_used,
+          metadata: m.metadata,
           createdAt: m.created_at,
         })),
       })
@@ -392,7 +394,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const conversations = await getUserConversations(
       userId,
       dossierId || undefined,
-      30
+      30,
+      actionType || undefined
     )
 
     return NextResponse.json({ conversations })
