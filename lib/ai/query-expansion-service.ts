@@ -226,6 +226,109 @@ export async function condenseQuery(query: string): Promise<string> {
   }
 }
 
+// =============================================================================
+// SYNONYMES JURIDIQUES ARABES CLASSIQUES ↔ MODERNES
+// =============================================================================
+
+/**
+ * Dictionnaire de synonymes juridiques arabes.
+ * Les codes tunisiens utilisent un vocabulaire arabe classique (فصحى قانونية)
+ * tandis que les utilisateurs posent des questions en arabe moderne/dialectal.
+ *
+ * Format: terme moderne/courant → [synonymes classiques utilisés dans les codes]
+ */
+const LEGAL_SYNONYMS: Record<string, string[]> = {
+  // === DROIT PÉNAL (المجلة الجزائية) ===
+  'الدفاع الشرعي': ['دفع صائلا', 'لا جريمة على من دفع', 'عرض حياته', 'الخطر حتمي', 'صد الاعتداء'],
+  'دفاع شرعي': ['دفع صائلا', 'لا جريمة على من دفع', 'عرض حياته للخطر', 'الخطر الحال'],
+  'القتل العمد': ['تعمد القتل', 'قتل النفس عمدا', 'أزهق روحه', 'إزهاق الروح'],
+  'القتل الخطأ': ['القتل على وجه الخطأ', 'قتل غير عمد', 'تسبب في الموت', 'الإهمال المفضي'],
+  'السرقة': ['اختلس', 'أخذ مال الغير', 'الاستيلاء خلسة', 'نزع ملك الغير'],
+  'الضرب والجرح': ['ضرب أو جرح', 'اعتدى بالعنف', 'ألحق أضرارا بدنية', 'العنف الشديد'],
+  'التحرش': ['تعرض لأنثى', 'اعتداء على العرض', 'هتك عرض', 'الفعل المخل بالحياء'],
+  'الاغتصاب': ['مواقعة أنثى بالقوة', 'إكراه على الفعل', 'هتك عرض بالقوة'],
+  'التزوير': ['افتعال', 'تدليس', 'زور كتبا', 'استعمال مزور', 'تحريف الحقيقة'],
+  'الرشوة': ['ارتشاء', 'أخذ عطية', 'قبل وعدا أو هدية', 'استغلال النفوذ'],
+  'خيانة الأمانة': ['خان أمانة', 'بدد أو اختلس', 'تصرف في مال الغير', 'التصرف في الوديعة'],
+  'النصب': ['احتيال', 'توصل بطرق احتيالية', 'استعمال أساليب من شأنها', 'التغرير'],
+
+  // === DROIT CIVIL (مجلة الالتزامات والعقود) ===
+  'العقد': ['الاتفاق', 'الالتزام', 'التعاقد', 'الرضاء', 'الإيجاب والقبول'],
+  'الفسخ': ['انحلال العقد', 'بطلان', 'إبطال', 'انفساخ', 'فسخ الالتزام'],
+  'التعويض': ['جبر الضرر', 'غرم', 'إصلاح الضرر', 'الغرامة'],
+  'المسؤولية': ['الضمان', 'التعدي', 'الخطأ الموجب', 'الالتزام بالتعويض'],
+  'الملكية': ['حق التصرف', 'الانتفاع', 'حق الملك', 'الاستعمال والاستغلال'],
+  'الحيازة': ['وضع اليد', 'الحوز', 'حاز حيازة هادئة', 'التصرف الفعلي'],
+  'الرهن': ['الضمان العيني', 'رهن عقاري', 'رهن حيازي', 'التأمين العيني'],
+  'الكفالة': ['ضمان شخصي', 'كفل بالدين', 'التزم بأداء دين الغير'],
+  'الوكالة': ['توكيل', 'إنابة', 'النيابة', 'فوض إليه'],
+  'التقادم': ['مرور الزمن', 'سقوط الحق', 'انقضاء المدة'],
+
+  // === DROIT DE LA FAMILLE (مجلة الأحوال الشخصية) ===
+  'الطلاق': ['فسخ عقد الزواج', 'حل عقدة النكاح', 'التفريق', 'الطلاق بالتراضي'],
+  'النفقة': ['الإنفاق', 'واجب النفقة', 'نفقة الزوجة', 'نفقة الأبناء', 'مؤونة'],
+  'الحضانة': ['حق الحضانة', 'كفالة الطفل', 'رعاية المحضون', 'حفظ الطفل'],
+  'الميراث': ['الإرث', 'التركة', 'الفريضة', 'الأنصباء', 'السهام'],
+  'الزواج': ['عقد النكاح', 'عقدة الزواج', 'الإشهاد', 'الصداق', 'المهر'],
+  'الوصية': ['التبرع للغير', 'إيصاء', 'العطية بعد الموت'],
+  'النسب': ['البنوة', 'ثبوت النسب', 'الإقرار بالبنوة', 'إلحاق النسب'],
+
+  // === DROIT DU TRAVAIL (مجلة الشغل) ===
+  'الطرد التعسفي': ['الطرد بدون موجب', 'فسخ العقد بصفة تعسفية', 'الإنهاء غير المشروع'],
+  'عقد الشغل': ['عقد العمل', 'العلاقة الشغلية', 'الأجير والمؤجر', 'عقد إجارة خدمات'],
+  'الأجر': ['المرتب', 'الأجرة', 'المقابل', 'التعويضات والمنح'],
+  'الإضراب': ['التوقف عن العمل', 'الإضراب المشروع', 'إيقاف العمل'],
+
+  // === DROIT COMMERCIAL (المجلة التجارية) ===
+  'الإفلاس': ['التفليس', 'التوقف عن الدفع', 'العجز عن الأداء'],
+  'الشيك': ['الصك', 'ورقة تجارية', 'شيك بدون رصيد'],
+  'الكمبيالة': ['سند سحب', 'ورقة تجارية', 'السفتجة'],
+
+  // === PROCÉDURE (مجلة الإجراءات) ===
+  'الاستئناف': ['الطعن بالاستئناف', 'الطعن في الحكم', 'الطعن أمام محكمة الدرجة الثانية'],
+  'التعقيب': ['الطعن بالتعقيب', 'النقض', 'الطعن أمام محكمة التعقيب'],
+  'التقاضي': ['الترافع', 'المرافعة', 'إقامة الدعوى', 'رفع الدعوى'],
+  'الحبس': ['السجن', 'الإيداع', 'الاحتفاظ', 'الإيقاف التحفظي'],
+  'الكفالة القضائية': ['السراح الشرطي', 'الإفراج المؤقت', 'السراح بكفالة'],
+  'الصلح': ['التصالح', 'المصالحة الجزائية', 'إنهاء النزاع صلحا'],
+}
+
+/**
+ * Enrichit une query avec des synonymes juridiques arabes classiques.
+ * Applicable à TOUTES les queries (pas seulement les courtes).
+ * N'utilise pas de LLM - lookup instantané O(n).
+ */
+export function enrichQueryWithLegalSynonyms(query: string): string {
+  const matchedSynonyms: string[] = []
+
+  for (const [modernTerm, classicSynonyms] of Object.entries(LEGAL_SYNONYMS)) {
+    if (query.includes(modernTerm)) {
+      // Ajouter les synonymes classiques qui ne sont pas déjà dans la query
+      for (const synonym of classicSynonyms) {
+        if (!query.includes(synonym) && !matchedSynonyms.includes(synonym)) {
+          matchedSynonyms.push(synonym)
+        }
+      }
+    }
+  }
+
+  if (matchedSynonyms.length === 0) {
+    return query
+  }
+
+  // Limiter à 5 synonymes les plus pertinents pour ne pas diluer l'embedding
+  const topSynonyms = matchedSynonyms.slice(0, 5)
+  const enriched = `${query} - ${topSynonyms.join(' - ')}`
+
+  // Respecter la limite max
+  if (enriched.length > MAX_EXPANDED_QUERY_LENGTH) {
+    return enriched.substring(0, MAX_EXPANDED_QUERY_LENGTH)
+  }
+
+  console.log(`[Legal Synonyms] +${topSynonyms.length} synonymes: ${topSynonyms.join(', ')}`)
+  return enriched
+}
+
 /**
  * Expansion rapide par mots-clés (fallback si LLM échoue)
  *
@@ -242,20 +345,29 @@ export function expandQueryKeywords(query: string): string {
     'كراء': 'كراء - عقد كراء - bail - contrat de location',
     'شغل': 'شغل - عمل - travail - عقد الشغل - contrat de travail',
     'شركة': 'شركة - شركات - sociétés - المجلة التجارية',
-    'دفاع': 'دفاع شرعي - légitime défense - حالة الخطر الحال',
-    'قتل': 'قتل - جريمة القتل - القتل العمد - القتل الخطأ - homicide',
+    'دفاع': 'دفاع شرعي - légitime défense - حالة الخطر الحال - دفع صائلا',
+    'قتل': 'قتل - جريمة القتل - القتل العمد - القتل الخطأ - homicide - أزهق روحه',
     'رشوة': 'رشوة - corruption - الفصل 83 المجلة الجزائية - ارتشاء - استغلال نفوذ - موظف عمومي',
     'فساد': 'فساد - corruption - فساد مالي - فساد إداري - رشوة - اختلاس - détournement',
     'صفقة': 'صفقة عمومية - marchés publics - تضارب مصالح - conflit d\'intérêts - مناقصة',
-    'اختلاس': 'اختلاس - détournement de fonds publics - خيانة أمانة - abus de confiance',
+    'اختلاس': 'اختلاس - détournement de fonds publics - خيانة أمانة - abus de confiance - بدد أو اختلس',
     'تبييض': 'تبييض أموال - غسيل أموال - blanchiment d\'argent - أموال مشبوهة',
+    'نفقة': 'نفقة - الإنفاق - واجب النفقة - مؤونة - pension alimentaire',
+    'حضانة': 'حضانة - حق الحضانة - كفالة الطفل - رعاية المحضون - garde d\'enfant',
+    'ميراث': 'ميراث - إرث - تركة - فريضة - أنصباء - succession',
+    'طرد': 'طرد - طرد تعسفي - فسخ عقد الشغل - licenciement abusif',
   }
 
-  // Chercher correspondance exacte dans dictionnaire
+  // Chercher TOUTES les correspondances (pas seulement la première)
+  const allExpansions: string[] = []
   for (const [keyword, expansion] of Object.entries(expansions)) {
     if (lowerQuery.includes(keyword)) {
-      return `${query} - ${expansion}`
+      allExpansions.push(expansion)
     }
+  }
+
+  if (allExpansions.length > 0) {
+    return `${query} - ${allExpansions.join(' - ')}`
   }
 
   // Si aucune correspondance, retourner query originale

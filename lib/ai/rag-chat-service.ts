@@ -390,7 +390,7 @@ export async function searchRelevantContext(
   let embeddingQuestion = question // Question utilisée pour l'embedding
   if (ENABLE_QUERY_EXPANSION) {
     if (question.length < 50) {
-      // Requêtes courtes : expansion (ajouter termes juridiques)
+      // Requêtes courtes : expansion LLM (ajouter termes juridiques)
       const { expandQuery } = await import('./query-expansion-service')
       try {
         embeddingQuestion = await expandQuery(question)
@@ -414,6 +414,19 @@ export async function searchRelevantContext(
         embeddingQuestion = question
       }
     }
+  }
+
+  // 2. Enrichissement synonymes juridiques arabes (applicable à toutes les queries)
+  // Lookup instantané O(n) - pas de LLM, pas de latence ajoutée
+  try {
+    const { enrichQueryWithLegalSynonyms } = await import('./query-expansion-service')
+    const enriched = enrichQueryWithLegalSynonyms(embeddingQuestion)
+    if (enriched !== embeddingQuestion) {
+      console.log(`[RAG Search] Synonymes juridiques: ${embeddingQuestion.substring(0, 50)}... → +synonymes`)
+      embeddingQuestion = enriched
+    }
+  } catch (error) {
+    // Non-bloquant : si enrichissement échoue, on continue avec la query existante
   }
 
   // Générer l'embedding de la question transformée (expandée ou condensée)
