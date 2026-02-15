@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
-import { approveDocument } from '@/lib/legal-documents/document-service'
 import { indexLegalDocument } from '@/lib/web-scraper/web-indexer-service'
 
 export const dynamic = 'force-dynamic'
@@ -41,10 +40,10 @@ export async function POST(request: NextRequest) {
     const docsResult = await db.query<{
       id: string
       citation_key: string
-      title: string
-      total_articles: number
+      official_title_fr: string
+      page_count: number
     }>(
-      `SELECT id, citation_key, title, total_articles
+      `SELECT id, citation_key, official_title_fr, page_count
        FROM legal_documents
        WHERE consolidation_status = 'complete'
          AND is_approved = false
@@ -89,7 +88,7 @@ export async function POST(request: NextRequest) {
         dryRun: true,
         summary: {
           documentsToApprove: documents.length,
-          totalArticles: documents.reduce((sum, d) => sum + (d.total_articles || 0), 0),
+          totalPages: documents.reduce((sum, d) => sum + (d.page_count || 0), 0),
           linkedPages: parseInt(pagesResult.rows[0].count),
           oldKbEntriesToClean: parseInt(kbResult.rows[0].kb_count),
           oldChunksToClean: parseInt(kbResult.rows[0].chunk_count),
@@ -97,8 +96,8 @@ export async function POST(request: NextRequest) {
         documents: documents.map(d => ({
           id: d.id,
           citationKey: d.citation_key,
-          title: d.title,
-          totalArticles: d.total_articles,
+          title: d.official_title_fr,
+          pageCount: d.page_count,
         }))
       })
     }
@@ -115,8 +114,15 @@ export async function POST(request: NextRequest) {
       const docStart = Date.now()
 
       try {
-        // Approuver
-        await approveDocument(doc.id, 'system-bulk-approve')
+        // Approuver (null = system auto-approve)
+        await db.query(
+          `UPDATE legal_documents SET
+            is_approved = true,
+            approved_at = NOW(),
+            updated_at = NOW()
+          WHERE id = $1`,
+          [doc.id]
+        )
 
         // Indexer (crée KB entry + chunks + embeddings)
         const indexResult = await indexLegalDocument(doc.id)
@@ -129,7 +135,7 @@ export async function POST(request: NextRequest) {
         results.push({
           id: doc.id,
           citationKey: doc.citation_key,
-          title: doc.title,
+          title: doc.official_title_fr,
           chunksCreated,
           durationMs,
           ...(indexResult.error ? { error: indexResult.error } : {}),
@@ -144,7 +150,7 @@ export async function POST(request: NextRequest) {
         results.push({
           id: doc.id,
           citationKey: doc.citation_key,
-          title: doc.title,
+          title: doc.official_title_fr,
           chunksCreated: 0,
           durationMs,
           error: errorMsg,
