@@ -183,12 +183,12 @@ export async function deleteWebSourceComplete(
 
     // Récupérer les fichiers web_files
     const webFilesResult = await client.query(
-      `SELECT file_path
+      `SELECT minio_path
        FROM web_files
-       WHERE web_source_id = $1 AND file_path IS NOT NULL`,
+       WHERE web_source_id = $1 AND minio_path IS NOT NULL`,
       [sourceId]
     )
-    const minioFilePaths = webFilesResult.rows.map(row => row.file_path)
+    const minioFilePaths = webFilesResult.rows.map(row => row.minio_path)
 
     // Récupérer les fichiers KB
     const kbFilesResult = await client.query(
