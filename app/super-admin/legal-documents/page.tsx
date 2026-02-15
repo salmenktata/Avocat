@@ -159,7 +159,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
     }>(`
       SELECT ld.*,
         (SELECT COUNT(*) FROM web_pages_documents wpd WHERE wpd.legal_document_id = ld.id)::TEXT as linked_pages,
-        (SELECT COUNT(*) FROM web_pages_documents wpd WHERE wpd.legal_document_id = ld.id AND wpd.contribution_type = 'article')::TEXT as articles_count,
+        (SELECT COUNT(*) FROM web_pages_documents wpd WHERE wpd.legal_document_id = ld.id AND wpd.contribution_type IN ('article', 'section'))::TEXT as articles_count,
         (SELECT COUNT(*) FROM knowledge_base_chunks kbc WHERE kbc.knowledge_base_id = ld.knowledge_base_id)::TEXT as chunks_count,
         EXTRACT(DAY FROM NOW() - COALESCE(ld.last_verified_at, ld.created_at))::INTEGER as staleness_days
       FROM legal_documents ld

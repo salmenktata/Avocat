@@ -136,8 +136,11 @@ function buildStructure(pages: LinkedPage[], citationKey: string): DocumentStruc
   // Pour le Code Pénal tunisien, on connaît la structure des livres
   const isCodePenal = citationKey.includes('code-penal')
 
-  const articles: ArticleEntry[] = pages
-    .filter(p => p.articleNumber)
+  // Séparer les pages avec et sans numéro d'article
+  const pagesWithArticle = pages.filter(p => p.articleNumber)
+  const pagesWithoutArticle = pages.filter(p => !p.articleNumber)
+
+  const articles: ArticleEntry[] = pagesWithArticle
     .map(p => ({
       number: p.articleNumber!,
       text: cleanArticleText(p.extractedText || ''),
@@ -153,25 +156,39 @@ function buildStructure(pages: LinkedPage[], citationKey: string): DocumentStruc
     return numA - numB
   })
 
+  // Pour les pages sans numéro d'article (sections génériques),
+  // les convertir en articles numérotés séquentiellement
+  const sections: ArticleEntry[] = pagesWithoutArticle
+    .map((p, idx) => ({
+      number: String(idx + 1),
+      text: cleanArticleText(p.extractedText || ''),
+      sourcePageId: p.webPageId,
+      isModified: false,
+      wordCount: p.wordCount || countWords(p.extractedText || ''),
+    }))
+
+  // Utiliser les articles si disponibles, sinon les sections
+  const allEntries = articles.length > 0 ? articles : sections
+
   let books: BookEntry[]
 
   if (isCodePenal) {
-    books = buildCodePenalBooks(articles)
+    books = buildCodePenalBooks(allEntries)
   } else {
     // Structure générique : 1 seul "livre" contenant tout
     books = [{
       number: 1,
       titleAr: null,
       titleFr: null,
-      chapters: [{ number: null, titleAr: null, articles }],
+      chapters: [{ number: null, titleAr: null, articles: allEntries }],
     }]
   }
 
-  const totalWords = articles.reduce((sum, a) => sum + a.wordCount, 0)
+  const totalWords = allEntries.reduce((sum, a) => sum + a.wordCount, 0)
 
   return {
     books,
-    totalArticles: articles.length,
+    totalArticles: allEntries.length,
     totalWords,
     consolidatedAt: new Date().toISOString(),
   }
