@@ -78,6 +78,7 @@ const getNavGroups = (
   {
     group: 'Contenu & Données',
     items: [
+      { href: '/super-admin/pipeline', label: 'Pipeline KB', icon: 'merge' },
       { href: '/super-admin/knowledge-base', label: 'Base de connaissances', icon: 'bookOpen' },
       { href: '/super-admin/web-sources', label: 'Sources Web', icon: 'globe' },
       { href: '/super-admin/legal-documents', label: 'Documents Juridiques', icon: 'scale' },

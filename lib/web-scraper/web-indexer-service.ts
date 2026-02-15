@@ -280,11 +280,13 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
     // Créer ou mettre à jour le document KB
     if (!knowledgeBaseId) {
       // Créer un nouveau document KB avec classification IA pure
+      // Pipeline supervisé: nouveau doc → pipeline_stage = 'crawled', pas d'indexation auto
       const kbResult = await client.query(
         `INSERT INTO knowledge_base (
           category, subcategory, language, title, description,
-          metadata, tags, full_text, source_file, is_indexed
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)
+          metadata, tags, full_text, source_file, is_indexed,
+          pipeline_stage, pipeline_stage_updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, 'crawled', NOW())
         RETURNING id`,
         [
           kbCategory, // ← Classification IA pure (pas de fallback source)
