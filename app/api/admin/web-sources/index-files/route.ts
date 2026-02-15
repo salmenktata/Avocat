@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { indexFile } from '@/lib/web-scraper/file-indexer-service'
+import { downloadFile } from '@/lib/web-scraper/scraper-service'
+import { uploadWebFile } from '@/lib/web-scraper/storage-adapter'
 import type { LinkedFile } from '@/lib/web-scraper/types'
 
 export const dynamic = 'force-dynamic'
@@ -11,6 +13,7 @@ interface FileResult {
   filename: string
   chunksCreated: number
   durationMs: number
+  redownloaded?: boolean
   error?: string
 }
 
@@ -18,7 +21,7 @@ interface FileResult {
  * POST /api/admin/web-sources/index-files
  *
  * Indexe les fichiers (PDF, DOCX) téléchargés mais non indexés dans la KB.
- * Rattrapage pour les pages crawlées sans auto-indexation.
+ * Re-télécharge automatiquement les fichiers manquants dans MinIO.
  *
  * Query params:
  * - source=<id|name> : Filtrer par web source (ID ou nom partiel). Requis.
@@ -72,8 +75,7 @@ export async function POST(request: NextRequest) {
 
     const source = sourceResult.rows[0]
 
-    // 2. Trouver les pages avec des fichiers téléchargés mais non indexés
-    //    Un fichier est "non indexé" s'il n'existe pas dans web_files avec is_indexed=true
+    // 2. Trouver les pages avec des fichiers non indexés
     const pagesResult = await db.query<{
       page_id: string
       page_url: string
@@ -114,8 +116,10 @@ export async function POST(request: NextRequest) {
           pageId: p.page_id,
           url: p.page_url,
           filename: file?.filename || 'unknown',
+          fileUrl: file?.url || 'unknown',
           downloaded: file?.downloaded || false,
           minioPath: file?.minioPath || null,
+          needsRedownload: !file?.downloaded || !file?.minioPath,
         }
       })
 
@@ -125,30 +129,31 @@ export async function POST(request: NextRequest) {
         source: { id: source.id, name: source.name, category: source.category },
         summary: {
           filesToIndex: pages.length,
-          filesWithMinioPath: files.filter(f => f.minioPath).length,
-          filesDownloaded: files.filter(f => f.downloaded).length,
+          needsRedownload: files.filter(f => f.needsRedownload).length,
+          alreadyDownloaded: files.filter(f => !f.needsRedownload).length,
         },
         files,
       })
     }
 
-    // 4. Indexer chaque fichier
-    console.log(`[IndexFiles] Démarrage : ${pages.length} fichiers à indexer pour "${source.name}"`)
+    // 4. Télécharger + indexer chaque fichier
+    console.log(`[IndexFiles] Démarrage : ${pages.length} fichiers pour "${source.name}"`)
 
     const results: FileResult[] = []
     let totalChunks = 0
     let successCount = 0
     let errorCount = 0
+    let redownloadCount = 0
 
     for (const page of pages) {
       const file = page.linked_files[fileIndex]
-      if (!file || !file.downloaded || !file.minioPath) {
+      if (!file || !file.url) {
         results.push({
           pageId: page.page_id,
-          filename: file?.filename || 'unknown',
+          filename: 'unknown',
           chunksCreated: 0,
           durationMs: 0,
-          error: 'Fichier non téléchargé ou sans minioPath',
+          error: 'Pas de fichier à cet index',
         })
         errorCount++
         continue
@@ -157,6 +162,72 @@ export async function POST(request: NextRequest) {
       const fileStart = Date.now()
 
       try {
+        // Re-télécharger si le fichier n'est pas dans MinIO
+        if (!file.downloaded || !file.minioPath) {
+          console.log(`[IndexFiles] 📥 Téléchargement ${file.filename} depuis ${file.url}`)
+
+          const dlResult = await downloadFile(file.url, { timeout: 60000 })
+          if (!dlResult.success || !dlResult.buffer) {
+            errorCount++
+            results.push({
+              pageId: page.page_id,
+              filename: file.filename,
+              chunksCreated: 0,
+              durationMs: Date.now() - fileStart,
+              error: `Téléchargement échoué: ${dlResult.error || 'unknown'}`,
+            })
+            continue
+          }
+
+          // Upload vers MinIO
+          const uploadResult = await uploadWebFile(
+            dlResult.buffer,
+            file.filename,
+            dlResult.contentType || 'application/pdf',
+            { sourceId: source.id }
+          )
+
+          if (!uploadResult.success || !uploadResult.path) {
+            errorCount++
+            results.push({
+              pageId: page.page_id,
+              filename: file.filename,
+              chunksCreated: 0,
+              durationMs: Date.now() - fileStart,
+              error: `Upload MinIO échoué: ${uploadResult.error || 'unknown'}`,
+            })
+            continue
+          }
+
+          // Mettre à jour linked_files dans la DB
+          file.downloaded = true
+          file.minioPath = uploadResult.path
+          file.size = dlResult.size
+
+          await db.query(
+            `UPDATE web_pages SET
+              linked_files = jsonb_set(
+                jsonb_set(
+                  jsonb_set(linked_files, $2, $3::jsonb),
+                  $4, $5::jsonb
+                ),
+                $6, $7::jsonb
+              ),
+              updated_at = NOW()
+            WHERE id = $1`,
+            [
+              page.page_id,
+              `{${fileIndex},downloaded}`, 'true',
+              `{${fileIndex},minioPath}`, JSON.stringify(uploadResult.path),
+              `{${fileIndex},size}`, JSON.stringify(dlResult.size || 0),
+            ]
+          )
+
+          redownloadCount++
+          console.log(`[IndexFiles] ✅ Téléchargé ${file.filename} (${dlResult.size} bytes) → ${uploadResult.path}`)
+        }
+
+        // Indexer le fichier
         const result = await indexFile(
           file,
           page.page_id,
@@ -175,6 +246,7 @@ export async function POST(request: NextRequest) {
             filename: file.filename,
             chunksCreated: result.chunksCreated,
             durationMs,
+            redownloaded: !page.linked_files[fileIndex].downloaded,
           })
           console.log(`[IndexFiles] ✅ ${file.filename} : ${result.chunksCreated} chunks (${durationMs}ms)`)
         } else {
@@ -205,7 +277,7 @@ export async function POST(request: NextRequest) {
 
     const totalDurationMs = Date.now() - startTime
 
-    console.log(`[IndexFiles] Terminé : ${successCount}/${pages.length} fichiers, ${totalChunks} chunks, ${totalDurationMs}ms`)
+    console.log(`[IndexFiles] Terminé : ${successCount}/${pages.length} fichiers, ${redownloadCount} re-téléchargés, ${totalChunks} chunks, ${totalDurationMs}ms`)
 
     return NextResponse.json({
       success: errorCount === 0,
@@ -213,6 +285,7 @@ export async function POST(request: NextRequest) {
       summary: {
         filesIndexed: successCount,
         filesFailed: errorCount,
+        filesRedownloaded: redownloadCount,
         totalChunksCreated: totalChunks,
         totalDurationMs,
       },
