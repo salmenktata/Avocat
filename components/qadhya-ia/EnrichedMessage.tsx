@@ -38,7 +38,7 @@ export function EnrichedMessage({ message }: EnrichedMessageProps) {
 function ChatMessageView({ message }: { message: ChatMessage }) {
   return (
     <div>
-      <div className="text-sm">
+      <div className="text-base">
         <MarkdownMessage
           content={message.content}
           sources={message.sources}
@@ -115,7 +115,7 @@ function StructuredDossierMessage({ message }: { message: ChatMessage }) {
             <Icons.edit className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">{t('title')}</h3>
+            <h3 className="text-base font-semibold text-foreground">{t('title')}</h3>
             <p className="text-xs text-muted-foreground">{structured.objet || t('noTitle')}</p>
           </div>
         </div>
@@ -155,7 +155,7 @@ function StructuredDossierMessage({ message }: { message: ChatMessage }) {
               <span className="w-1 h-3.5 rounded-full bg-primary/60" />
               {t('faits')}
             </h4>
-            <p className="text-sm text-foreground/80 leading-relaxed ps-3">{structured.faits}</p>
+            <p className="text-base text-foreground/85 leading-relaxed ps-3">{structured.faits}</p>
           </div>
         )}
 
@@ -166,7 +166,7 @@ function StructuredDossierMessage({ message }: { message: ChatMessage }) {
               <span className="w-1 h-3.5 rounded-full bg-primary/60" />
               {t('procedure')}
             </h4>
-            <p className="text-sm text-foreground/80 leading-relaxed ps-3">{structured.procedure}</p>
+            <p className="text-base text-foreground/85 leading-relaxed ps-3">{structured.procedure}</p>
           </div>
         )}
 
@@ -179,7 +179,7 @@ function StructuredDossierMessage({ message }: { message: ChatMessage }) {
             </h4>
             <ul className="space-y-1 ps-3">
               {structured.pretentions.map((p: string, i: number) => (
-                <li key={i} className="text-sm text-foreground/80 flex items-start gap-2">
+                <li key={i} className="text-base text-foreground/85 flex items-start gap-2">
                   <span className="text-primary/40 text-xs mt-1">&#9656;</span>
                   {p}
                 </li>
@@ -252,8 +252,8 @@ function ConsultationMessage({ message }: { message: ChatMessage }) {
           <Icons.scale className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-foreground">{t('title')}</h3>
-          <p className="text-[11px] text-muted-foreground">{t('subtitle')}</p>
+          <h3 className="text-base font-semibold text-foreground">{t('title')}</h3>
+          <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
         </div>
       </div>
 
@@ -265,7 +265,7 @@ function ConsultationMessage({ message }: { message: ChatMessage }) {
               <span className="w-1 h-3.5 rounded-full bg-blue-500" />
               {t('problematique')}
             </h4>
-            <p className="text-sm text-foreground/80 leading-relaxed ps-3">
+            <p className="text-base text-foreground/85 leading-relaxed ps-3">
               {consultation.problematique}
             </p>
           </div>
@@ -277,7 +277,7 @@ function ConsultationMessage({ message }: { message: ChatMessage }) {
               <span className="w-1 h-3.5 rounded-full bg-amber-500" />
               {t('regles')}
             </h4>
-            <p className="text-sm text-foreground/80 leading-relaxed ps-3">{consultation.regles}</p>
+            <p className="text-base text-foreground/85 leading-relaxed ps-3">{consultation.regles}</p>
           </div>
         )}
 
@@ -287,7 +287,7 @@ function ConsultationMessage({ message }: { message: ChatMessage }) {
               <span className="w-1 h-3.5 rounded-full bg-purple-500" />
               {t('analyse')}
             </h4>
-            <p className="text-sm text-foreground/80 leading-relaxed ps-3">{consultation.analyse}</p>
+            <p className="text-base text-foreground/85 leading-relaxed ps-3">{consultation.analyse}</p>
           </div>
         )}
 
@@ -297,13 +297,13 @@ function ConsultationMessage({ message }: { message: ChatMessage }) {
               <Icons.check className="h-3.5 w-3.5" />
               {t('conclusion')}
             </h4>
-            <p className="text-sm font-medium text-foreground/90 leading-relaxed">{consultation.conclusion}</p>
+            <p className="text-base font-medium text-foreground/90 leading-relaxed">{consultation.conclusion}</p>
           </div>
         )}
 
         {/* Conseil simple (si pas de structure IRAC) */}
         {!consultation.problematique && consultation.conseil && (
-          <div className="text-sm">
+          <div className="text-base">
             <MarkdownMessage content={consultation.conseil} sources={message.sources} />
           </div>
         )}
@@ -318,7 +318,7 @@ function ConsultationMessage({ message }: { message: ChatMessage }) {
                   <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0 mt-0.5">
                     <Icons.check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <span className="text-sm text-foreground/80">{action}</span>
+                  <span className="text-base text-foreground/85">{action}</span>
                 </li>
               ))}
             </ul>

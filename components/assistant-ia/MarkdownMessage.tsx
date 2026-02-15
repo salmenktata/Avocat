@@ -207,7 +207,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
 
           td: ({ node, ...props }) => (
             <td
-              className="border-b border-border/30 px-4 py-2.5 text-sm"
+              className="border-b border-border/30 px-4 py-2.5 text-[15px]"
               {...props}
             />
           ),
@@ -272,7 +272,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
               return (
                 <h2
                   className={cn(
-                    'text-[15px] font-bold mt-7 mb-3 px-4 py-2.5 rounded-xl flex items-center gap-2.5 not-prose',
+                    'text-base font-bold mt-7 mb-3 px-4 py-2.5 rounded-xl flex items-center gap-2.5 not-prose',
                     sectionStyle.bgClass, sectionStyle.textClass
                   )}
                   {...props}
@@ -287,7 +287,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
 
             return (
               <h2
-                className="text-[15px] font-bold mt-6 mb-3 text-primary flex items-center gap-2"
+                className="text-base font-bold mt-6 mb-3 text-primary flex items-center gap-2"
                 {...props}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block shrink-0" />
@@ -308,7 +308,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
               return (
                 <h3
                   className={cn(
-                    'text-sm font-bold mt-6 mb-3 px-4 py-2.5 rounded-xl flex items-center gap-2.5 not-prose',
+                    'text-[15px] font-bold mt-6 mb-3 px-4 py-2.5 rounded-xl flex items-center gap-2.5 not-prose',
                     sectionStyle.bgClass, sectionStyle.textClass
                   )}
                   {...props}
@@ -323,7 +323,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
 
             return (
               <h3
-                className="text-sm font-bold mt-5 mb-2.5 ps-3 py-2 border-s-[3px] border-primary/70 bg-primary/5 rounded-e-lg text-foreground"
+                className="text-[15px] font-bold mt-5 mb-2.5 ps-3 py-2 border-s-[3px] border-primary/70 bg-primary/5 rounded-e-lg text-foreground"
                 {...props}
               >
                 {parsedChildren}
@@ -347,7 +347,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
               typeof child === 'string' ? parseTextWithCitations(child, sources) : child
             )
             return (
-              <li className="leading-7" {...props}>
+              <li className="text-base leading-8" {...props}>
                 {parsedChildren}
               </li>
             )
@@ -373,7 +373,7 @@ export function MarkdownMessage({ content, sources = [], className }: MarkdownMe
             })
 
             return (
-              <p className="my-3 leading-7 text-foreground/85" {...props}>
+              <p className="my-3 text-base leading-8 text-foreground/85" {...props}>
                 {parsedChildren}
               </p>
             )

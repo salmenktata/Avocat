@@ -264,29 +264,72 @@ export function ChatMessages({ messages, isLoading, streamingContent, modeConfig
   )
 }
 
+const LOADING_STEPS = [
+  { icon: 'search' as const, text: 'Recherche dans la base juridique...' },
+  { icon: 'bookOpen' as const, text: 'Analyse des sources pertinentes...' },
+  { icon: 'scale' as const, text: 'Rédaction de la réponse juridique...' },
+  { icon: 'loader' as const, text: 'Finalisation en cours...' },
+]
+
 function LoadingIndicator() {
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => setElapsed(e => e + 1), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const stepIndex = elapsed < 3 ? 0 : elapsed < 8 ? 1 : elapsed < 15 ? 2 : 3
+  const currentStep = LOADING_STEPS[stepIndex]
+  const StepIcon = Icons[currentStep.icon]
+
   return (
     <div className="flex items-start gap-3">
       <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0">
         <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+          animate={{ rotate: currentStep.icon === 'loader' ? 360 : 0 }}
+          transition={{ repeat: currentStep.icon === 'loader' ? Infinity : 0, duration: 1, ease: 'linear' }}
         >
-          <Icons.loader className="h-4 w-4 text-primary" />
+          <StepIcon className="h-4 w-4 text-primary" />
         </motion.div>
       </div>
-      <div className="flex-1 pt-1">
+      <div className="flex-1 pt-1 max-w-[85%]">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xs font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             Qadhya IA
           </span>
-          <span className="text-[11px] text-muted-foreground/50">en cours...</span>
+          <span className="text-[11px] text-muted-foreground/50 tabular-nums">{elapsed}s</span>
         </div>
-        <div className="rounded-2xl rounded-tl-md bg-card/80 border border-border/50 p-5 space-y-3">
-          <Skeleton className="h-3 w-[90%] rounded-full" />
-          <Skeleton className="h-3 w-[65%] rounded-full" />
-          <Skeleton className="h-3 w-[78%] rounded-full" />
-          <Skeleton className="h-3 w-[45%] rounded-full" />
+        <div className="rounded-2xl rounded-tl-md bg-card/80 border border-border/50 p-5">
+          {/* Étape courante avec animation */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={stepIndex}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.25 }}
+              className="flex items-center gap-2.5 mb-4"
+            >
+              <StepIcon className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm font-medium text-foreground/80">{currentStep.text}</span>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Indicateur d'étapes (dots) */}
+          <div className="flex items-center gap-1.5">
+            {LOADING_STEPS.map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  'h-1.5 rounded-full transition-all duration-500',
+                  i < stepIndex ? 'w-6 bg-primary/40' :
+                  i === stepIndex ? 'w-8 bg-primary animate-pulse' :
+                  'w-4 bg-muted-foreground/15'
+                )}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -317,7 +360,7 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
           <Icons.user className="h-4 w-4 text-primary-foreground" />
         </div>
         <div className="max-w-[80%] flex flex-col items-end">
-          <div className="rounded-2xl rounded-tr-sm px-4 py-3 text-[15px] bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-sm">
+          <div className="rounded-2xl rounded-tr-sm px-4 py-3 text-base bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-sm">
             <div className="whitespace-pre-wrap break-words leading-relaxed">
               {message.content}
             </div>
@@ -342,7 +385,7 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
       </div>
 
       {/* Contenu */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 max-w-[85%]">
         {/* Header assistant */}
         <div className="flex items-center gap-1.5 mb-2">
           <span className="text-xs font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
@@ -371,7 +414,7 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
               renderEnriched(message)
             ) : (
               <>
-                <div className="text-[15px]">
+                <div className="text-base">
                   <MarkdownMessage
                     content={message.content}
                     sources={message.sources}
