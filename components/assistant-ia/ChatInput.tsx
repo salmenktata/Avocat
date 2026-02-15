@@ -72,7 +72,7 @@ export function ChatInput({ onSend, disabled = false, placeholder, modeConfig }:
             rows={1}
             className={cn(
               'flex-1 resize-none bg-transparent px-4 py-3.5',
-              'text-sm leading-relaxed placeholder:text-muted-foreground/60',
+              'text-[15px] leading-relaxed placeholder:text-muted-foreground/60',
               'focus:outline-none',
               'min-h-[48px] max-h-[120px] md:max-h-[160px]',
               'disabled:opacity-50'

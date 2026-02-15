@@ -317,7 +317,7 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
           <Icons.user className="h-4 w-4 text-primary-foreground" />
         </div>
         <div className="max-w-[80%] flex flex-col items-end">
-          <div className="rounded-2xl rounded-tr-sm px-4 py-3 text-sm bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-sm">
+          <div className="rounded-2xl rounded-tr-sm px-4 py-3 text-[15px] bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-sm">
             <div className="whitespace-pre-wrap break-words leading-relaxed">
               {message.content}
             </div>
@@ -371,7 +371,7 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
               renderEnriched(message)
             ) : (
               <>
-                <div className="text-sm">
+                <div className="text-[15px]">
                   <MarkdownMessage
                     content={message.content}
                     sources={message.sources}

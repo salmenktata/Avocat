@@ -150,7 +150,7 @@ function getIRACSectionStyle(text: string): IRACSectionStyle | null {
 
 export function MarkdownMessage({ content, sources = [], className }: MarkdownMessageProps) {
   return (
-    <div dir="auto" className={cn('prose dark:prose-invert max-w-none prose-sm prose-p:first:mt-0 prose-headings:first:mt-0', className)}>
+    <div dir="auto" className={cn('prose dark:prose-invert max-w-none prose-p:first:mt-0 prose-headings:first:mt-0', className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

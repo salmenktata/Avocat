@@ -104,10 +104,11 @@
     direction: rtl;
   }
 
-  /* Police arabe */
+  /* Police arabe - taille augmentée pour parité visuelle avec Latin */
   .font-arabic {
     font-family: 'Noto Sans Arabic', 'Tahoma', 'Segoe UI', sans-serif;
     line-height: 1.8;
+    font-size: 105%;
   }
 
   [dir="rtl"] .text-left {

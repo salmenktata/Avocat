@@ -647,8 +647,13 @@ export async function searchRelevantContext(
         })
       }
     } catch (error) {
-      // Log mais continuer sans la base de connaissances en cas d'erreur
-      console.error('Erreur recherche knowledge base:', error)
+      // CRITIQUE: Ne PAS avaler silencieusement les erreurs KB
+      // Si la KB search échoue, le chat retournera "pas de documents" → mauvaise UX
+      const errMsg = error instanceof Error ? error.message : String(error)
+      console.error('[RAG Search] ❌ ERREUR CRITIQUE recherche knowledge base:', errMsg)
+      console.error('[RAG Search] Stack:', error instanceof Error ? error.stack : 'N/A')
+      // Propager l'erreur pour déclencher le mode dégradé au lieu de retourner 0 sources
+      throw error
     }
   }
 
@@ -1363,10 +1368,19 @@ export async function answerQuestion(
       error: 'Sources indisponibles - mode dégradé bloqué',
     })
 
-    throw new Error(
-      'Sources juridiques temporairement indisponibles. Veuillez réessayer dans quelques instants. ' +
-      '/ المصادر القانونية غير متوفرة مؤقتًا. يرجى المحاولة مرة أخرى بعد قليل.'
-    )
+    // Retourner un message explicite au lieu de throw (évite 500 error)
+    const degradedLang = detectLanguage(question)
+    const degradedMessage = degradedLang === 'fr'
+      ? 'Les sources juridiques sont temporairement indisponibles. Veuillez réessayer dans quelques instants.'
+      : 'المصادر القانونية غير متوفرة مؤقتًا. يرجى المحاولة مرة أخرى بعد قليل.'
+
+    return {
+      answer: degradedMessage,
+      sources: [],
+      tokensUsed: { input: 0, output: 0, total: 0 },
+      model: 'degraded',
+      conversationId: options.conversationId,
+    }
   }
 
   // Détecter la langue de la question pour adapter les labels du contexte
