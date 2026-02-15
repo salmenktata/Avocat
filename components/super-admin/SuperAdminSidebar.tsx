@@ -91,6 +91,7 @@ const getNavGroups = (
         badge: pendingContradictions || undefined,
         badgeVariant: 'secondary' as const
       },
+      { href: '/super-admin/legal-documents', label: 'Documents Juridiques', icon: 'scale' },
     ],
   },
 

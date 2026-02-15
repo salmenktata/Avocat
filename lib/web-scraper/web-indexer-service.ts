@@ -8,6 +8,7 @@ import type { WebPage, WebSource } from './types'
 import { isSemanticSearchEnabled, aiConfig, KB_ARABIC_ONLY, EMBEDDING_TURBO_CONFIG } from '@/lib/ai/config'
 import { normalizeText, detectTextLanguage } from './content-extractor'
 import type { LegalCategory } from '@/lib/categories/legal-categories'
+import { getDocumentAbsoluteUrl } from '@/lib/legal-documents/document-service'
 
 // Concurrence pour l'indexation de pages (1 = séquentiel, safe pour Ollama)
 const WEB_INDEXING_CONCURRENCY = parseInt(process.env.WEB_INDEXING_CONCURRENCY || '1', 10)
@@ -92,7 +93,40 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
 
   if (docLink.rows.length > 0) {
     const doc = docLink.rows[0]
-    console.log(`[WebIndexer] Page ${pageId} appartient au document consolidé ${doc.citation_key} - skip indexation individuelle`)
+
+    // Vérifier si le contenu de la page a changé (re-consolidation nécessaire)
+    const pageCheck = await db.query(
+      `SELECT wp.content_hash, wp.extracted_text IS NOT NULL as has_text
+       FROM web_pages wp WHERE wp.id = $1`,
+      [pageId]
+    )
+    const currentPage = pageCheck.rows[0]
+
+    if (currentPage?.has_text) {
+      // Marquer le document comme nécessitant re-consolidation
+      // La re-consolidation sera déclenchée de manière asynchrone
+      try {
+        await db.query(
+          `UPDATE legal_documents
+           SET consolidation_status = 'partial', updated_at = NOW()
+           WHERE id = $1 AND consolidation_status = 'complete'`,
+          [doc.legal_document_id]
+        )
+
+        // Re-consolider et ré-indexer de manière asynchrone
+        const { consolidateDocument } = await import('@/lib/legal-documents/content-consolidation-service')
+        console.log(`[WebIndexer] Page ${pageId} modifiée → re-consolidation ${doc.citation_key}`)
+
+        const consolidationResult = await consolidateDocument(doc.legal_document_id)
+        if (consolidationResult.success) {
+          await indexLegalDocument(doc.legal_document_id)
+          console.log(`[WebIndexer] Re-consolidation ${doc.citation_key} terminée: ${consolidationResult.totalArticles} articles`)
+        }
+      } catch (reconsolidateError) {
+        console.error(`[WebIndexer] Erreur re-consolidation ${doc.citation_key}:`, reconsolidateError)
+      }
+    }
+
     return {
       success: true,
       chunksCreated: 0,
@@ -612,7 +646,7 @@ export async function indexLegalDocument(documentId: string): Promise<IndexingRe
     return { success: false, chunksCreated: 0, error: 'Service RAG désactivé' }
   }
 
-  // Charger le document consolidé
+  // Charger le document consolidé ET approuvé
   const docResult = await db.query(
     `SELECT * FROM legal_documents WHERE id = $1 AND consolidation_status = 'complete'`,
     [documentId]
@@ -620,6 +654,11 @@ export async function indexLegalDocument(documentId: string): Promise<IndexingRe
 
   if (docResult.rows.length === 0) {
     return { success: false, chunksCreated: 0, error: 'Document non trouvé ou pas encore consolidé' }
+  }
+
+  // Vérifier approbation manuelle
+  if (!docResult.rows[0].is_approved) {
+    return { success: false, chunksCreated: 0, error: 'Document non approuvé - approbation manuelle requise avant indexation' }
   }
 
   const doc = docResult.rows[0]
@@ -679,10 +718,11 @@ export async function indexLegalDocument(documentId: string): Promise<IndexingRe
             isCanonical: true,
             consolidatedAt: doc.structure?.consolidatedAt,
             pageCount: doc.page_count,
+            sourceUrl: getDocumentAbsoluteUrl(doc.citation_key),
           }),
           doc.tags || [],
           doc.consolidated_text,
-          `legal-doc://${doc.citation_key}`,
+          getDocumentAbsoluteUrl(doc.citation_key),
         ]
       )
       knowledgeBaseId = kbResult.rows[0].id
@@ -730,6 +770,7 @@ export async function indexLegalDocument(documentId: string): Promise<IndexingRe
             codeName: chunkMeta.codeName || null,
             citationKey: doc.citation_key,
             sourceType: 'legal_document',
+            sourceUrl: getDocumentAbsoluteUrl(doc.citation_key, chunkMeta.articleNumber || undefined),
           }),
         ]
       )

@@ -46,9 +46,11 @@ CREATE TABLE IF NOT EXISTS legal_documents (
   -- Fraîcheur
   last_verified_at TIMESTAMPTZ,
   last_content_change_at TIMESTAMPTZ,
-  staleness_days INTEGER GENERATED ALWAYS AS (
-    EXTRACT(DAY FROM NOW() - COALESCE(last_verified_at, created_at))
-  ) STORED,
+
+  -- Approbation manuelle (requis avant indexation RAG + affichage public)
+  is_approved BOOLEAN DEFAULT false,
+  approved_at TIMESTAMPTZ,
+  approved_by UUID REFERENCES users(id),
 
   -- Lien KB
   knowledge_base_id UUID REFERENCES knowledge_base(id),
@@ -98,6 +100,7 @@ CREATE INDEX IF NOT EXISTS idx_legal_docs_categories ON legal_documents USING GI
 CREATE INDEX IF NOT EXISTS idx_legal_docs_active ON legal_documents(is_active) WHERE is_active;
 CREATE INDEX IF NOT EXISTS idx_legal_docs_canonical ON legal_documents(is_canonical) WHERE is_canonical;
 CREATE INDEX IF NOT EXISTS idx_legal_docs_abrogated ON legal_documents(is_abrogated);
+CREATE INDEX IF NOT EXISTS idx_legal_docs_approved ON legal_documents(is_approved) WHERE is_approved;
 CREATE INDEX IF NOT EXISTS idx_wpd_document ON web_pages_documents(legal_document_id);
 CREATE INDEX IF NOT EXISTS idx_wpd_article ON web_pages_documents(article_number);
 CREATE INDEX IF NOT EXISTS idx_amendments_original ON legal_document_amendments(original_document_id);
@@ -172,5 +175,21 @@ BEGIN
     WHERE table_name = 'web_sources' AND column_name = 'authority_score'
   ) THEN
     ALTER TABLE web_sources ADD COLUMN authority_score FLOAT DEFAULT 0.5;
+  END IF;
+END $$;
+
+-- =============================================================================
+-- COLONNES approbation manuelle (ajout idempotent pour bases existantes)
+-- =============================================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'legal_documents' AND column_name = 'is_approved'
+  ) THEN
+    ALTER TABLE legal_documents ADD COLUMN is_approved BOOLEAN DEFAULT false;
+    ALTER TABLE legal_documents ADD COLUMN approved_at TIMESTAMPTZ;
+    ALTER TABLE legal_documents ADD COLUMN approved_by UUID REFERENCES users(id);
+    CREATE INDEX IF NOT EXISTS idx_legal_docs_approved ON legal_documents(is_approved) WHERE is_approved;
   END IF;
 END $$;

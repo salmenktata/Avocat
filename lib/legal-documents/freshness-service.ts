@@ -72,8 +72,9 @@ export async function checkFreshness(): Promise<FreshnessReport> {
   const result = await db.query<any>(
     `SELECT id, citation_key, document_type,
             official_title_ar, official_title_fr,
-            staleness_days, last_verified_at,
-            canonical_source_id
+            last_verified_at, created_at,
+            canonical_source_id,
+            EXTRACT(DAY FROM NOW() - COALESCE(last_verified_at, created_at))::INTEGER as staleness_days
      FROM legal_documents
      WHERE is_active = true AND is_abrogated = false
      ORDER BY staleness_days DESC NULLS FIRST`

@@ -1176,6 +1176,10 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
         enrichedHeader += `⚖️ ${lang === 'ar' ? 'الفصل' : 'Article'} ${meta.articleNumber}\n`
       }
 
+      if (meta.sourceUrl) {
+        enrichedHeader += `🔗 ${lang === 'ar' ? 'الرابط' : 'Lien'}: ${meta.sourceUrl}\n`
+      }
+
       if (meta.lastVerifiedAt) {
         enrichedHeader += `📅 ${lang === 'ar' ? 'آخر تحقق' : 'Dernière vérification'}: ${new Date(meta.lastVerifiedAt).toLocaleDateString(lang === 'ar' ? 'ar-TN' : 'fr-TN')}\n`
       }

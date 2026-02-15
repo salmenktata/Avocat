@@ -57,9 +57,11 @@ export interface LegalDocument {
   jortReference: string | null
   lastVerifiedAt: string | null
   lastContentChangeAt: string | null
-  stalenessDays: number | null
   knowledgeBaseId: string | null
   isCanonical: boolean
+  isApproved: boolean
+  approvedAt: string | null
+  approvedBy: string | null
   createdAt: string
   updatedAt: string
 }
@@ -387,6 +389,65 @@ export async function listDocuments(options?: {
 }
 
 // =============================================================================
+// APPROBATION MANUELLE
+// =============================================================================
+
+/**
+ * Approuver un document pour publication et indexation RAG
+ */
+export async function approveDocument(
+  documentId: string,
+  approvedByUserId: string
+): Promise<void> {
+  await db.query(
+    `UPDATE legal_documents SET
+      is_approved = true,
+      approved_at = NOW(),
+      approved_by = $2,
+      updated_at = NOW()
+    WHERE id = $1`,
+    [documentId, approvedByUserId]
+  )
+  log.info(`Document ${documentId} approuvé par ${approvedByUserId}`)
+}
+
+/**
+ * Révoquer l'approbation d'un document
+ */
+export async function revokeApproval(documentId: string): Promise<void> {
+  await db.query(
+    `UPDATE legal_documents SET
+      is_approved = false,
+      approved_at = NULL,
+      approved_by = NULL,
+      updated_at = NOW()
+    WHERE id = $1`,
+    [documentId]
+  )
+  log.info(`Approbation révoquée pour document ${documentId}`)
+}
+
+// =============================================================================
+// URL HELPERS (pages publiques)
+// =============================================================================
+
+/**
+ * URL relative vers la page publique d'un document consolidé
+ */
+export function getDocumentPublicUrl(citationKey: string, articleNumber?: string): string {
+  const base = `/legal/documents/${citationKey}`
+  return articleNumber ? `${base}#article-${articleNumber}` : base
+}
+
+/**
+ * URL absolue vers la page publique d'un document consolidé
+ */
+export function getDocumentAbsoluteUrl(citationKey: string, articleNumber?: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://qadhya.tn'
+  return `${baseUrl}${getDocumentPublicUrl(citationKey, articleNumber)}`
+}
+
+// =============================================================================
 // MAPPERS
 // =============================================================================
 
@@ -416,9 +477,11 @@ function mapRowToDocument(row: any): LegalDocument {
     jortReference: row.jort_reference,
     lastVerifiedAt: row.last_verified_at,
     lastContentChangeAt: row.last_content_change_at,
-    stalenessDays: row.staleness_days,
     knowledgeBaseId: row.knowledge_base_id,
     isCanonical: row.is_canonical,
+    isApproved: row.is_approved ?? false,
+    approvedAt: row.approved_at,
+    approvedBy: row.approved_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

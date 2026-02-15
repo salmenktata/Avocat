@@ -159,7 +159,7 @@ export function getCodeMetadata(slug: string) {
     documentType: 'code' as const,
     officialTitleAr: codeDef.nameAr,
     officialTitleFr: codeDef.nameFr,
-    primaryCategory: 'codes' as const,
+    primaryCategory: 'code' as const,
     legalDomains: [codeDef.domain],
   }
 }
