@@ -297,9 +297,16 @@ export async function indexFile(
       }
     }
 
-    // Générer les embeddings
-    const embeddingsResult = await generateEmbeddingsBatch(chunks.map(c => c.content))
+    // Générer les embeddings (respecte operations-config: Ollama en dev, OpenAI en prod)
+    const embeddingsResult = await generateEmbeddingsBatch(
+      chunks.map(c => c.content),
+      { operationName: 'indexation' }
+    )
     const embeddings = embeddingsResult.embeddings
+
+    // Déterminer la colonne d'embedding selon le provider utilisé
+    const isOpenAI = embeddingsResult.provider === 'openai'
+    const embeddingColumn = isOpenAI ? 'embedding_openai' : 'embedding'
 
     // Transaction pour créer le document KB et les chunks
     const client = await db.getClient()
@@ -337,8 +344,8 @@ export async function indexFile(
 
         await client.query(
           `INSERT INTO knowledge_base_chunks (
-            knowledge_base_id, chunk_index, content, embedding, metadata
-          ) VALUES ($1, $2, $3, $4, $5)`,
+            knowledge_base_id, chunk_index, content, ${embeddingColumn}, metadata
+          ) VALUES ($1, $2, $3, $4::vector, $5)`,
           [
             knowledgeBaseId,
             i,
