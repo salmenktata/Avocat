@@ -85,11 +85,13 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
       last_verified_at: string | null
       created_at: string
       linked_pages: string
+      articles_count: string
       chunks_count: string
       staleness_days: number | null
     }>(`
       SELECT ld.*,
         (SELECT COUNT(*) FROM web_pages_documents wpd WHERE wpd.legal_document_id = ld.id)::TEXT as linked_pages,
+        (SELECT COUNT(*) FROM web_pages_documents wpd WHERE wpd.legal_document_id = ld.id AND wpd.contribution_type = 'article')::TEXT as articles_count,
         (SELECT COUNT(*) FROM knowledge_base_chunks kbc WHERE kbc.knowledge_base_id = ld.knowledge_base_id)::TEXT as chunks_count,
         EXTRACT(DAY FROM NOW() - COALESCE(ld.last_verified_at, ld.created_at))::INTEGER as staleness_days
       FROM legal_documents ld
@@ -156,6 +158,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
               <TableHead className="text-slate-400">Type</TableHead>
               <TableHead className="text-slate-400">Titre (AR)</TableHead>
               <TableHead className="text-slate-400">Consolidation</TableHead>
+              <TableHead className="text-slate-400 text-center">Articles</TableHead>
               <TableHead className="text-slate-400 text-center">Pages</TableHead>
               <TableHead className="text-slate-400 text-center">Chunks KB</TableHead>
               <TableHead className="text-slate-400">Approbation</TableHead>
@@ -166,7 +169,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
           <TableBody>
             {docs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-slate-400">
+                <TableCell colSpan={10} className="text-center py-8 text-slate-400">
                   <Icons.scale className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   Aucun document juridique
                 </TableCell>
@@ -208,6 +211,9 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
                       <Badge variant="outline" className={CONSOLIDATION_COLORS[doc.consolidation_status] || CONSOLIDATION_COLORS.pending}>
                         {CONSOLIDATION_LABELS[doc.consolidation_status] || doc.consolidation_status}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-center text-sm text-white font-medium">
+                      {parseInt(doc.articles_count)}
                     </TableCell>
                     <TableCell className="text-center text-sm text-slate-300">
                       {parseInt(doc.linked_pages)}

@@ -299,24 +299,33 @@ export default async function LegalDocumentDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Section 5 - Texte consolidé (preview) */}
+      {/* Section 5 - Texte consolidé */}
       {doc.consolidated_text && (
         <div className="rounded-lg border border-slate-700 p-6 bg-slate-900/50">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-white">
-              Texte consolidé (preview)
+              Texte consolidé
             </h2>
-            <span className="text-sm text-slate-400">
-              {doc.consolidated_text.length.toLocaleString()} caractères
-            </span>
+            <div className="flex items-center gap-3">
+              {structure?.totalArticles > 0 && (
+                <span className="text-sm text-slate-400">
+                  {structure.totalArticles} articles
+                </span>
+              )}
+              <span className="text-sm text-slate-400">
+                {structure?.totalWords?.toLocaleString() || '?'} mots
+              </span>
+              <span className="text-sm text-slate-500">
+                {doc.consolidated_text.length.toLocaleString()} car.
+              </span>
+            </div>
           </div>
-          <pre
-            className="text-sm text-slate-300 whitespace-pre-wrap max-h-96 overflow-y-auto bg-slate-950 rounded-lg p-4 border border-slate-800"
+          <div
+            className="text-sm text-slate-300 whitespace-pre-wrap max-h-[80vh] overflow-y-auto bg-slate-950 rounded-lg p-6 border border-slate-800 leading-relaxed"
             dir="rtl"
           >
-            {doc.consolidated_text.slice(0, 2000)}
-            {doc.consolidated_text.length > 2000 && '\n\n... (tronqué)'}
-          </pre>
+            {doc.consolidated_text}
+          </div>
         </div>
       )}
     </div>
