@@ -1,6 +1,6 @@
 /**
  * Page Super Admin - Documents Juridiques
- * Liste des documents juridiques avec stats et pagination
+ * Liste des documents juridiques avec stats, filtres et pagination
  */
 
 import Link from 'next/link'
@@ -23,6 +23,9 @@ export const dynamic = 'force-dynamic'
 interface PageProps {
   searchParams: Promise<{
     page?: string
+    category?: string
+    type?: string
+    status?: string
   }>
 }
 
@@ -51,13 +54,68 @@ const CONSOLIDATION_LABELS: Record<string, string> = {
   complete: 'Complet',
 }
 
+function buildFilterParams(
+  current: { category?: string; type?: string; status?: string },
+  override: Record<string, string | undefined>
+): string {
+  const merged = { ...current, ...override, page: '1' }
+  const params = new URLSearchParams()
+  for (const [key, val] of Object.entries(merged)) {
+    if (val) params.set(key, val)
+  }
+  const str = params.toString()
+  return str ? `?${str}` : '?'
+}
+
+function buildPaginationParams(
+  filters: { category?: string; type?: string; status?: string },
+  page: number
+): string {
+  const params = new URLSearchParams()
+  if (filters.category) params.set('category', filters.category)
+  if (filters.type) params.set('type', filters.type)
+  if (filters.status) params.set('status', filters.status)
+  params.set('page', String(page))
+  return `?${params.toString()}`
+}
+
 export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   const params = await searchParams
   const page = parseInt(params.page || '1')
   const pageSize = 20
   const offset = (page - 1) * pageSize
 
-  const [statsResult, docsResult] = await Promise.all([
+  const categoryFilter = params.category || null
+  const typeFilter = params.type || null
+  const statusFilter = params.status || null
+
+  // Build dynamic WHERE conditions
+  const conditions: string[] = []
+  const queryParams: (string | number)[] = []
+  let paramIndex = 1
+
+  if (categoryFilter) {
+    conditions.push(`ld.primary_category = $${paramIndex}`)
+    queryParams.push(categoryFilter)
+    paramIndex++
+  }
+  if (typeFilter) {
+    conditions.push(`ld.document_type = $${paramIndex}`)
+    queryParams.push(typeFilter)
+    paramIndex++
+  }
+  if (statusFilter === 'approved') {
+    conditions.push(`ld.is_approved = true`)
+  } else if (statusFilter === 'complete') {
+    conditions.push(`ld.consolidation_status = 'complete'`)
+  } else if (statusFilter === 'pending') {
+    conditions.push(`ld.is_approved = false AND ld.consolidation_status != 'complete'`)
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+  const [statsResult, docsResult, countResult, categoriesResult, typesResult] = await Promise.all([
+    // Stats globales (non filtrées)
     db.query<{
       total_docs: string
       consolidated: string
@@ -72,10 +130,12 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
         (SELECT COUNT(*) FROM web_pages_documents)::TEXT as total_pages,
         (SELECT COUNT(*) FROM legal_document_amendments)::TEXT as total_amendments
     `),
+    // Documents filtrés
     db.query<{
       id: string
       citation_key: string
       document_type: string
+      primary_category: string | null
       official_title_ar: string | null
       official_title_fr: string | null
       consolidation_status: string
@@ -95,15 +155,41 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
         (SELECT COUNT(*) FROM knowledge_base_chunks kbc WHERE kbc.knowledge_base_id = ld.knowledge_base_id)::TEXT as chunks_count,
         EXTRACT(DAY FROM NOW() - COALESCE(ld.last_verified_at, ld.created_at))::INTEGER as staleness_days
       FROM legal_documents ld
+      ${whereClause}
       ORDER BY ld.citation_key ASC
-      LIMIT $1 OFFSET $2
-    `, [pageSize, offset]),
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `, [...queryParams, pageSize, offset]),
+    // Count filtré
+    db.query<{ count: string }>(`
+      SELECT COUNT(*)::TEXT as count FROM legal_documents ld ${whereClause}
+    `, queryParams),
+    // Catégories distinctes pour le filtre
+    db.query<{ primary_category: string }>(`
+      SELECT DISTINCT primary_category FROM legal_documents
+      WHERE primary_category IS NOT NULL
+      ORDER BY primary_category
+    `),
+    // Types distincts pour le filtre
+    db.query<{ document_type: string }>(`
+      SELECT DISTINCT document_type FROM legal_documents
+      WHERE document_type IS NOT NULL
+      ORDER BY document_type
+    `),
   ])
 
   const stats = statsResult.rows[0]
   const docs = docsResult.rows
-  const totalDocs = parseInt(stats.total_docs)
-  const totalPages = Math.ceil(totalDocs / pageSize)
+  const filteredCount = parseInt(countResult.rows[0].count)
+  const totalPages = Math.ceil(filteredCount / pageSize)
+  const categories = categoriesResult.rows.map(r => r.primary_category)
+  const types = typesResult.rows.map(r => r.document_type)
+
+  const hasFilters = categoryFilter || typeFilter || statusFilter
+  const currentFilters = {
+    category: categoryFilter || undefined,
+    type: typeFilter || undefined,
+    status: statusFilter || undefined,
+  }
 
   return (
     <div className="space-y-6">
@@ -149,6 +235,54 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
         />
       </div>
 
+      {/* Filtres */}
+      <div className="flex flex-wrap items-center gap-3 p-4 bg-slate-900/50 border border-slate-700 rounded-lg">
+        <Icons.filter className="h-4 w-4 text-slate-400" />
+
+        {/* Filtre catégorie */}
+        <FilterSelect
+          label="Catégorie"
+          value={categoryFilter}
+          options={categories.map(c => ({ value: c, label: c }))}
+          buildHref={(val) => buildFilterParams(currentFilters, { category: val })}
+        />
+
+        {/* Filtre type */}
+        <FilterSelect
+          label="Type"
+          value={typeFilter}
+          options={types.map(t => ({ value: t, label: t }))}
+          buildHref={(val) => buildFilterParams(currentFilters, { type: val })}
+        />
+
+        {/* Filtre statut */}
+        <FilterSelect
+          label="Statut"
+          value={statusFilter}
+          options={[
+            { value: 'approved', label: 'Approuvés' },
+            { value: 'complete', label: 'Consolidés' },
+            { value: 'pending', label: 'En attente' },
+          ]}
+          buildHref={(val) => buildFilterParams(currentFilters, { status: val })}
+        />
+
+        {hasFilters && (
+          <Link
+            href="?"
+            className="ml-2 text-xs text-slate-400 hover:text-white transition-colors"
+          >
+            Réinitialiser
+          </Link>
+        )}
+
+        {hasFilters && (
+          <span className="ml-auto text-sm text-slate-400">
+            {filteredCount} résultat{filteredCount !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
       {/* Table */}
       <div className="rounded-lg border border-slate-700 overflow-hidden">
         <Table>
@@ -171,7 +305,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
               <TableRow>
                 <TableCell colSpan={10} className="text-center py-8 text-slate-400">
                   <Icons.scale className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  Aucun document juridique
+                  {hasFilters ? 'Aucun document ne correspond aux filtres' : 'Aucun document juridique'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -256,11 +390,11 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-slate-400">
-            Page {page} sur {totalPages} ({totalDocs} documents)
+            Page {page} sur {totalPages} ({filteredCount} documents)
           </div>
           <div className="flex gap-2">
             <Link
-              href={`?page=${page - 1}`}
+              href={buildPaginationParams(currentFilters, page - 1)}
               className={page <= 1 ? 'pointer-events-none opacity-50' : ''}
             >
               <Button variant="outline" size="sm" disabled={page <= 1}>
@@ -268,7 +402,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
               </Button>
             </Link>
             <Link
-              href={`?page=${page + 1}`}
+              href={buildPaginationParams(currentFilters, page + 1)}
               className={page >= totalPages ? 'pointer-events-none opacity-50' : ''}
             >
               <Button variant="outline" size="sm" disabled={page >= totalPages}>
@@ -278,6 +412,49 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function FilterSelect({
+  label,
+  value,
+  options,
+  buildHref,
+}: {
+  label: string
+  value: string | null
+  options: { value: string; label: string }[]
+  buildHref: (val: string | undefined) => string
+}) {
+  return (
+    <div className="relative inline-flex items-center gap-1.5">
+      <span className="text-xs text-slate-500">{label}:</span>
+      <div className="flex flex-wrap gap-1">
+        <Link
+          href={buildHref(undefined)}
+          className={`px-2 py-0.5 rounded text-xs transition-colors ${
+            !value
+              ? 'bg-slate-600 text-white'
+              : 'text-slate-400 hover:text-white hover:bg-slate-700'
+          }`}
+        >
+          Tous
+        </Link>
+        {options.map((opt) => (
+          <Link
+            key={opt.value}
+            href={buildHref(opt.value)}
+            className={`px-2 py-0.5 rounded text-xs transition-colors ${
+              value === opt.value
+                ? 'bg-slate-600 text-white'
+                : 'text-slate-400 hover:text-white hover:bg-slate-700'
+            }`}
+          >
+            {opt.label}
+          </Link>
+        ))}
+      </div>
     </div>
   )
 }
