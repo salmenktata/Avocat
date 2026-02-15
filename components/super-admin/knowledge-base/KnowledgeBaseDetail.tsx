@@ -279,7 +279,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                 </TabsList>
                 <TabsContent value="preview" className="mt-4">
                   <div
-                    className="text-slate-300 prose prose-invert prose-sm max-w-none line-clamp-10"
+                    className="text-slate-300 prose prose-invert max-w-none line-clamp-10"
                     dir={document.language === 'ar' ? 'rtl' : 'ltr'}
                   >
                     {document.fullText
@@ -289,7 +289,7 @@ export function KnowledgeBaseDetail({ document, versions, relations = [] }: Know
                 </TabsContent>
                 <TabsContent value="full" className="mt-4">
                   <div
-                    className="text-slate-300 whitespace-pre-wrap text-sm max-h-[500px] overflow-auto bg-slate-900 p-4 rounded-lg"
+                    className="text-slate-300 whitespace-pre-wrap text-[15px] max-h-[500px] overflow-auto bg-slate-900 p-4 rounded-lg"
                     dir={document.language === 'ar' ? 'rtl' : 'ltr'}
                   >
                     {document.fullText || 'Aucun contenu'}

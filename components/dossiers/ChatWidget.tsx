@@ -299,7 +299,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             : 'bg-muted'
         )}
       >
-        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        <p className="text-[15px] whitespace-pre-wrap">{message.content}</p>
       </div>
 
       {/* Sources */}

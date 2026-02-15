@@ -95,7 +95,7 @@ export function ConsultationResult({ result, onNewConsultation }: ConsultationRe
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="prose prose-sm dark:prose-invert max-w-none">
+          <div className="prose dark:prose-invert max-w-none">
             <MarkdownMessage
               content={result.conseil}
               sources={result.sources.map((s) => ({
