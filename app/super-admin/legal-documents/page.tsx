@@ -5,18 +5,10 @@
 
 import Link from 'next/link'
 import { db } from '@/lib/db/postgres'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { getStalenessThreshold } from '@/lib/legal-documents/freshness-service'
+import { LegalDocumentsTable } from '@/components/super-admin/legal-documents/LegalDocumentsTable'
 
 export const dynamic = 'force-dynamic'
 
@@ -191,6 +183,38 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
     status: statusFilter || undefined,
   }
 
+  // Pre-compute freshness data server-side for the client component
+  const serializedDocs = docs.map((doc) => {
+    const threshold = getStalenessThreshold(doc.document_type || 'autre')
+    const stalenessDays = doc.staleness_days ?? 0
+    const freshnessColor = stalenessDays > threshold
+      ? 'text-red-400'
+      : stalenessDays > threshold * 0.75
+        ? 'text-yellow-400'
+        : 'text-green-400'
+
+    return {
+      id: doc.id,
+      citation_key: doc.citation_key,
+      document_type: doc.document_type,
+      primary_category: doc.primary_category,
+      official_title_ar: doc.official_title_ar,
+      official_title_fr: doc.official_title_fr,
+      consolidation_status: doc.consolidation_status,
+      is_abrogated: doc.is_abrogated,
+      is_approved: doc.is_approved,
+      page_count: doc.page_count,
+      last_verified_at: doc.last_verified_at,
+      created_at: doc.created_at,
+      linked_pages: doc.linked_pages,
+      articles_count: doc.articles_count,
+      chunks_count: doc.chunks_count,
+      staleness_days: doc.staleness_days,
+      staleness_threshold: threshold,
+      freshness_color: freshnessColor,
+    }
+  })
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -283,108 +307,14 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
         )}
       </div>
 
-      {/* Table */}
-      <div className="rounded-lg border border-slate-700 overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-slate-700 hover:bg-transparent">
-              <TableHead className="text-slate-400">Citation Key</TableHead>
-              <TableHead className="text-slate-400">Type</TableHead>
-              <TableHead className="text-slate-400">Titre (AR)</TableHead>
-              <TableHead className="text-slate-400">Consolidation</TableHead>
-              <TableHead className="text-slate-400 text-center">Articles</TableHead>
-              <TableHead className="text-slate-400 text-center">Pages</TableHead>
-              <TableHead className="text-slate-400 text-center">Chunks KB</TableHead>
-              <TableHead className="text-slate-400">Approbation</TableHead>
-              <TableHead className="text-slate-400">Fraîcheur</TableHead>
-              <TableHead className="text-slate-400 text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {docs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-slate-400">
-                  <Icons.scale className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  {hasFilters ? 'Aucun document ne correspond aux filtres' : 'Aucun document juridique'}
-                </TableCell>
-              </TableRow>
-            ) : (
-              docs.map((doc) => {
-                const threshold = getStalenessThreshold(doc.document_type || 'autre')
-                const stalenessDays = doc.staleness_days ?? 0
-                const freshnessColor = stalenessDays > threshold
-                  ? 'text-red-400'
-                  : stalenessDays > threshold * 0.75
-                    ? 'text-yellow-400'
-                    : 'text-green-400'
-
-                return (
-                  <TableRow
-                    key={doc.id}
-                    className="border-slate-700 hover:bg-slate-800/50"
-                  >
-                    <TableCell className="font-mono text-sm text-white">
-                      {doc.citation_key}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={TYPE_COLORS[doc.document_type] || TYPE_COLORS.autre}>
-                        {doc.document_type || 'autre'}
-                      </Badge>
-                      {doc.is_abrogated && (
-                        <Badge variant="outline" className="ml-1 bg-red-500/20 text-red-400 border-red-500/30">
-                          Abrogé
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-xs">
-                      <span className="text-sm text-slate-300 truncate block" dir="rtl">
-                        {doc.official_title_ar || '-'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={CONSOLIDATION_COLORS[doc.consolidation_status] || CONSOLIDATION_COLORS.pending}>
-                        {CONSOLIDATION_LABELS[doc.consolidation_status] || doc.consolidation_status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center text-sm text-white font-medium">
-                      {parseInt(doc.articles_count)}
-                    </TableCell>
-                    <TableCell className="text-center text-sm text-slate-300">
-                      {parseInt(doc.linked_pages)}
-                    </TableCell>
-                    <TableCell className="text-center text-sm text-slate-300">
-                      {parseInt(doc.chunks_count)}
-                    </TableCell>
-                    <TableCell>
-                      {doc.is_approved ? (
-                        <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">
-                          Approuvé
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-slate-500/20 text-slate-400 border-slate-500/30">
-                          En attente
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span className={`text-sm ${freshnessColor}`}>
-                        {stalenessDays}j / {threshold}j
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Link href={`/super-admin/legal-documents/${doc.id}`}>
-                        <Button variant="ghost" size="sm">
-                          <Icons.eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      {/* Table avec sélection bulk */}
+      <LegalDocumentsTable
+        docs={serializedDocs}
+        hasFilters={!!hasFilters}
+        typeColors={TYPE_COLORS}
+        consolidationColors={CONSOLIDATION_COLORS}
+        consolidationLabels={CONSOLIDATION_LABELS}
+      />
 
       {/* Pagination */}
       {totalPages > 1 && (
