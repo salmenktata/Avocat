@@ -2,6 +2,7 @@
 
 import { SuperAdminSidebar } from './SuperAdminSidebar'
 import { SuperAdminTopbar } from './SuperAdminTopbar'
+import { useSidebarCollapse } from '@/hooks/use-sidebar-collapse'
 import { cn } from '@/lib/utils'
 
 interface SuperAdminLayoutProps {
@@ -23,17 +24,21 @@ export function SuperAdminLayout({
   unreadNotifications = 0,
   pendingTaxonomySuggestions = 0
 }: SuperAdminLayoutProps) {
+  const { isCollapsed, toggle } = useSidebarCollapse()
+
   return (
     <div className="flex h-screen bg-slate-950">
-      {/* Sidebar - toujours étendu */}
+      {/* Sidebar */}
       <SuperAdminSidebar
         pendingCount={pendingCount}
         unreadNotifications={unreadNotifications}
         pendingTaxonomySuggestions={pendingTaxonomySuggestions}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={toggle}
       />
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden transition-all duration-300">
         {/* Topbar */}
         <SuperAdminTopbar
           user={user}

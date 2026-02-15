@@ -20,7 +20,8 @@ export const dynamic = 'force-dynamic'
 
 async function checkAdminAccess(userId: string): Promise<boolean> {
   const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
-  return result.rows[0]?.role === 'admin'
+  const role = result.rows[0]?.role
+  return role === 'admin' || role === 'super_admin'
 }
 
 /**
