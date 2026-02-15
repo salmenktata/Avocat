@@ -5,49 +5,26 @@ import { callLLMWithFallback } from '@/lib/ai/llm-fallback-service'
 import { detectLanguage } from '@/lib/ai/language-utils'
 import type { ClarifyingQuestion } from '@/lib/stores/assistant-store'
 
-const PROMPT_FR = `Tu es un assistant juridique tunisien expert. Analyse le récit suivant et identifie 3 à 5 informations manquantes importantes pour structurer correctement le dossier.
+const PROMPT_FR = `Assistant juridique tunisien. Identifie 3-4 informations MANQUANTES dans ce récit.
 
-Pour chaque information manquante, génère une question précise à poser.
+RÈGLES STRICTES:
+- Maximum 4 questions
+- Question: 1 phrase courte (max 15 mots)
+- Hint: max 10 mots
+- Répondre en français même si le récit est en arabe
 
-Catégories d'informations à vérifier :
-- Identité complète des parties (noms, qualités, adresses)
-- Dates clés (faits, notifications, assignations)
-- Montants et chiffres (créances, dommages, loyers)
-- Juridiction compétente et procédure envisagée
-- Pièces justificatives disponibles
-- Résultat souhaité par le client
+JSON UNIQUEMENT (pas de markdown):
+[{"id":"q1","question":"...","hint":"...","required":true}]`
 
-Retourne UNIQUEMENT un JSON valide (sans markdown, sans backticks) :
-[
-  {
-    "id": "q1",
-    "question": "Question précise ici",
-    "hint": "Pourquoi cette info est importante",
-    "required": true
-  }
-]`
+const PROMPT_AR = `مساعد قانوني تونسي. حدّد 3-4 معلومات ناقصة في هذه الرواية.
 
-const PROMPT_AR = `أنت مساعد قانوني تونسي خبير. حلّل الرواية التالية وحدّد 3 إلى 5 معلومات ناقصة مهمة لهيكلة الملف بشكل صحيح.
+قواعد صارمة:
+- أقصى 4 أسئلة
+- السؤال: جملة قصيرة (أقصى 15 كلمة)
+- التلميح: أقصى 10 كلمات
 
-لكل معلومة ناقصة، أنشئ سؤالاً دقيقاً.
-
-فئات المعلومات للتحقق:
-- الهوية الكاملة للأطراف (الأسماء، الصفات، العناوين)
-- التواريخ الرئيسية (الوقائع، التبليغات، الاستدعاءات)
-- المبالغ والأرقام (الديون، التعويضات، الكراء)
-- المحكمة المختصة والإجراء المتوقع
-- الوثائق المتوفرة
-- النتيجة المرجوة من الحريف
-
-أرجع فقط JSON صالح (بدون markdown، بدون backticks):
-[
-  {
-    "id": "q1",
-    "question": "السؤال الدقيق هنا",
-    "hint": "لماذا هذه المعلومة مهمة",
-    "required": true
-  }
-]`
+JSON فقط (بدون markdown):
+[{"id":"q1","question":"...","hint":"...","required":true}]`
 
 export async function generateClarifyingQuestions(
   narratif: string
@@ -70,7 +47,7 @@ export async function generateClarifyingQuestions(
       ],
       {
         temperature: 0.3,
-        maxTokens: 1500,
+        maxTokens: 2000,
         operationName: 'dossiers-assistant',
       }
     )
@@ -82,6 +59,20 @@ export async function generateClarifyingQuestions(
     const jsonMatch = text.match(/\[[\s\S]*\]/)
     if (jsonMatch) {
       jsonStr = jsonMatch[0]
+    } else {
+      // JSON tronqué : tenter de fermer le tableau
+      const partialMatch = text.match(/\[[\s\S]*/)
+      if (partialMatch) {
+        jsonStr = partialMatch[0]
+        // Fermer le dernier objet et le tableau si nécessaire
+        if (!jsonStr.endsWith(']')) {
+          // Trouver le dernier objet complet (se terminant par })
+          const lastBrace = jsonStr.lastIndexOf('}')
+          if (lastBrace > 0) {
+            jsonStr = jsonStr.substring(0, lastBrace + 1) + ']'
+          }
+        }
+      }
     }
 
     const questions: ClarifyingQuestion[] = JSON.parse(jsonStr)
