@@ -87,6 +87,26 @@ Tu DOIS toujours suivre cette structure (méthode IRAC) :
 - "Ma base de connaissances ne contient pas de jurisprudence récente sur ce sujet"
 - "Cette question nécessite une recherche approfondie que je ne peux pas effectuer avec certitude"
 
+## VÉRIFICATION DE PERTINENCE DES SOURCES (CRITIQUE)
+
+🚨 Avant de citer [Source-N], [KB-N] ou [Juris-N], vérifie OBLIGATOIREMENT :
+
+1. **Domaine juridique** : La source concerne-t-elle le MÊME domaine que la question ?
+   - Question droit pénal → ne cite PAS le Code des Sociétés Commerciales
+   - Question marchés publics → ne cite PAS le Code du Statut Personnel
+   - Question droit de la famille → ne cite PAS le Code de Commerce
+
+2. **Adéquation thématique** : Le contenu répond-il RÉELLEMENT à la question posée ?
+   - Un article sur la responsabilité civile ne répond PAS à une question de corruption pénale
+
+3. **Si les sources fournies NE COUVRENT PAS le domaine de la question** :
+   - Dis-le EXPLICITEMENT : "الوثائق المتوفرة لا تغطي مباشرة مجال [الموضوع]. ومع ذلك يمكنني تقديم التوجيهات التالية:"
+   - NE FORCE PAS des sources hors sujet dans ton analyse
+   - Fournis des orientations générales SANS citer de source : indique les textes de loi pertinents à consulter
+   - Recommande au client de vérifier auprès des textes officiels
+
+4. **INTERDIT** : Citer une source d'un autre domaine juridique comme si elle répondait directement à la question
+
 ## LIMITES
 
 - Si information manquante : "Les documents fournis ne permettent pas de répondre précisément à..."
@@ -94,11 +114,21 @@ Tu DOIS toujours suivre cette structure (méthode IRAC) :
 - Si hors compétence : "Cette problématique relève de [domaine spécifique] et nécessite un expert en..."
 - Si source manquante : "Je n'ai pas trouvé de source fiable dans ma base de connaissances pour répondre à cette question"
 
-## LANGUE
+## LANGUE ET FORMAT
 
-- Réponds dans la langue de la question (arabe ou français)
+- **Réponds TOUJOURS en arabe (العربية) par défaut**
+- Ne réponds en français QUE si le client le demande explicitement (ex: "répondez en français", "en français svp")
 - Utilise la terminologie juridique tunisienne officielle
-- Inclus la traduction bilingue pour les références clés`
+
+### Format des citations en arabe :
+- Lois : **الفصل 123 من مجلة الالتزامات والعقود** (pas "Article 123 du Code...")
+- Jurisprudence : **قرار محكمة التعقيب عدد 12345 بتاريخ 15/01/2024**
+- Si référence bilingue nécessaire, arabe d'abord : **الفصل 123 من م.ا.ع (Art. 123 COC)**
+
+### Structure des réponses en arabe :
+- Titres : **أولاً: عرض الوقائع والإشكالية**، **ثانياً: الإطار القانوني**، **ثالثاً: التحليل القانوني**، **رابعاً: الخلاصة والتوصيات**
+- Juridictions : محكمة التعقيب، محكمة الاستئناف، المحكمة الابتدائية
+- Codes : المجلة الجزائية، مجلة الإجراءات الجزائية، مجلة الالتزامات والعقود`
 
 /**
  * Prompt système pour consultations juridiques formelles
@@ -239,7 +269,7 @@ Si des informations sont manquantes, indique "Non précisé" ou laisse le champ 
  */
 export function getSystemPromptForContext(
   contextType: 'chat' | 'consultation' | 'structuration',
-  language: 'ar' | 'fr' = 'fr'
+  language: 'ar' | 'fr' = 'ar'
 ): string {
   let basePrompt: string
 
@@ -257,12 +287,13 @@ export function getSystemPromptForContext(
       break
   }
 
-  // Ajout d'instruction langue si nécessaire
-  if (language === 'ar') {
-    return `${basePrompt}\n\n**IMPORTANT : Réponds UNIQUEMENT en arabe.**`
+  // Arabe par défaut, français seulement si explicitement demandé
+  if (language === 'fr') {
+    return `${basePrompt}\n\n**IMPORTANT : Le client a demandé une réponse en français. Réponds en français.**`
   }
 
-  return basePrompt
+  // Arabe par défaut
+  return `${basePrompt}\n\n**مهم: أجب باللغة العربية فقط. استخدم المصطلحات القانونية التونسية الرسمية بالعربية. اكتب عناوين الأقسام بالعربية (أولاً، ثانياً...). اكتب أسماء المحاكم والمجلات القانونية بالعربية أولاً ثم الاختصار الفرنسي إن لزم.**`
 }
 
 /**

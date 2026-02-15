@@ -66,7 +66,7 @@ function parseTextWithCitations(text: string, sources: ChatSource[]): React.Reac
 
 export function MarkdownMessage({ content, sources = [], className }: MarkdownMessageProps) {
   return (
-    <div className={cn('prose prose-sm dark:prose-invert max-w-none', className)}>
+    <div dir="auto" className={cn('prose prose-sm dark:prose-invert max-w-none', className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

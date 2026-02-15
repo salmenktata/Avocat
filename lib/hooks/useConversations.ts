@@ -32,6 +32,8 @@ export interface Message {
     confiance?: number
     usedPremiumModel?: boolean
     abrogationAlerts?: AbrogationAlert[] // Phase 3.4
+    qualityIndicator?: 'high' | 'medium' | 'low'
+    averageSimilarity?: number
   }
 }
 
@@ -149,17 +151,18 @@ async function fetchConversationList(
   const data = await response.json()
 
   // L'API /api/chat retourne { conversations: [...] }
-  // Note: L'API actuelle ne supporte pas pagination (total, hasMore)
-  // Elle retourne toujours les 30 dernières conversations
+  // getUserConversations() retourne camelCase: id, title, dossierId, dossierNumero, messageCount, lastMessageAt, createdAt
   return {
     conversations: (data.conversations || []).map((conv: any) => ({
       id: conv.id,
       title: conv.title,
-      dossierId: conv.dossier_id,
-      dossierNumero: conv.dossier_numero,
+      dossierId: conv.dossierId || conv.dossier_id,
+      dossierNumero: conv.dossierNumero || conv.dossier_numero,
+      messageCount: conv.messageCount || conv.message_count,
+      lastMessageAt: conv.lastMessageAt ? new Date(conv.lastMessageAt) : undefined,
       messages: [], // Pas de messages dans la liste
-      createdAt: new Date(conv.created_at),
-      updatedAt: new Date(conv.updated_at || conv.created_at),
+      createdAt: new Date(conv.createdAt || conv.created_at),
+      updatedAt: new Date(conv.lastMessageAt || conv.createdAt || conv.updated_at || conv.created_at),
     })),
     total: data.conversations?.length || 0,
     hasMore: false, // L'API actuelle ne supporte pas la pagination
@@ -214,6 +217,8 @@ async function sendMessage(params: SendMessageParams): Promise<{
         processingTimeMs: data.tokensUsed?.total || 0,
         usedPremiumModel: params.usePremiumModel,
         abrogationAlerts: data.abrogationAlerts, // Phase 3.4
+        qualityIndicator: data.qualityIndicator,
+        averageSimilarity: data.averageSimilarity,
       },
     },
   }
@@ -420,11 +425,11 @@ export function useSendMessage(options?: {
       return { previousConversation }
     },
     onSuccess: (data, variables) => {
-      // Update conversation cache
-      queryClient.setQueryData(
-        conversationKeys.detail(data.conversation.id),
-        data.conversation
-      )
+      // Invalidate detail query to force refetch with actual messages
+      // Ne PAS setQueryData avec messages vides - cela empêche le refetch
+      queryClient.invalidateQueries({
+        queryKey: conversationKeys.detail(data.conversation.id),
+      })
 
       // Invalidate lists to show new/updated conversation
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })

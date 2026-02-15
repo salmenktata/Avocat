@@ -54,6 +54,8 @@ interface ChatApiResponse {
     total: number
   }
   abrogationAlerts?: AbrogationAlert[] // Phase 3.4 - Alertes abrogations détectées dans la question
+  qualityIndicator?: 'high' | 'medium' | 'low'
+  averageSimilarity?: number
 }
 
 // =============================================================================
@@ -105,6 +107,8 @@ async function handleConsultAction(
     tokensUsed: response.tokensUsed,
     model: response.model,
     metadata: { actionType: 'consult' },
+    qualityIndicator: response.qualityIndicator,
+    averageSimilarity: response.averageSimilarity,
   }
 }
 
@@ -133,6 +137,8 @@ async function handleChatAction(
     tokensUsed: response.tokensUsed,
     model: response.model,
     metadata: { actionType: 'chat' },
+    qualityIndicator: response.qualityIndicator,
+    averageSimilarity: response.averageSimilarity,
   }
 }
 
@@ -263,6 +269,8 @@ export async function POST(
       tokensUsed: { input: number; output: number; total: number }
       model: string
       metadata?: Record<string, any>
+      qualityIndicator?: 'high' | 'medium' | 'low'
+      averageSimilarity?: number
     }
 
     switch (actionType) {
@@ -323,6 +331,8 @@ export async function POST(
       conversationId: activeConversationId,
       tokensUsed: response.tokensUsed,
       abrogationAlerts: abrogationAlerts.length > 0 ? abrogationAlerts : undefined,
+      qualityIndicator: response.qualityIndicator,
+      averageSimilarity: response.averageSimilarity,
     })
   } catch (error) {
     console.error('Erreur chat:', error)

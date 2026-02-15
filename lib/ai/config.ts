@@ -472,7 +472,7 @@ export const RAG_THRESHOLDS = {
   documents: parseFloat(process.env.RAG_THRESHOLD_DOCUMENTS || '0.7'),
   jurisprudence: parseFloat(process.env.RAG_THRESHOLD_JURISPRUDENCE || '0.6'),
   knowledgeBase: parseFloat(process.env.RAG_THRESHOLD_KB || '0.65'),
-  minimum: parseFloat(process.env.RAG_THRESHOLD_MIN || '0.5'),
+  minimum: parseFloat(process.env.RAG_THRESHOLD_MIN || '0.55'),
 }
 
 // =============================================================================

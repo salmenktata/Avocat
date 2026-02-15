@@ -34,7 +34,7 @@ import {
   type PromptContextType,
   type SupportedLanguage,
 } from './legal-reasoning-prompts'
-import { searchKnowledgeBase } from './knowledge-base-service'
+import { searchKnowledgeBase, searchKnowledgeBaseHybrid } from './knowledge-base-service'
 import {
   getCachedSearchResults,
   setCachedSearchResults,
@@ -165,6 +165,8 @@ export interface ChatResponse {
   conversationId?: string
   citationWarnings?: string[] // Phase 2.2 - Citations non vérifiées
   abrogationWarnings?: import('./abrogation-detector-service').AbrogationWarning[] // Phase 2.3 - Lois abrogées
+  qualityIndicator?: 'high' | 'medium' | 'low'
+  averageSimilarity?: number
 }
 
 export interface ChatOptions {
@@ -536,17 +538,35 @@ export async function searchRelevantContext(
         metadata: Record<string, unknown>
       }> = []
 
+      // Mapping catégories classifieur → catégories réelles DB
+      // Le classifieur peut retourner 'codes' mais la DB utilise 'legislation'
+      const CATEGORY_DB_MAPPING: Record<string, string[]> = {
+        codes: ['legislation', 'codes'],
+        legislation: ['legislation'],
+        jurisprudence: ['jurisprudence'],
+        doctrine: ['doctrine'],
+        modeles: ['modeles'],
+        autre: ['autre'],
+      }
+
       // Recherche filtrée par catégorie si classification confiante
       if (isClassificationConfident(classification) && classification.categories.length > 0) {
+        // Expand les catégories avec le mapping DB
+        const expandedCategories = new Set<string>()
+        for (const cat of classification.categories) {
+          const mapped = CATEGORY_DB_MAPPING[cat] || [cat]
+          mapped.forEach(c => expandedCategories.add(c))
+        }
+
         console.log(
-          `[RAG Search] Filtrage KB par catégories: ${classification.categories.join(', ')} (confiance: ${(classification.confidence * 100).toFixed(1)}%)`
+          `[RAG Search] Filtrage KB par catégories: ${[...expandedCategories].join(', ')} (classifieur: ${classification.categories.join(', ')}, confiance: ${(classification.confidence * 100).toFixed(1)}%)`
         )
 
-        // Recherche dans chaque catégorie pertinente
-        for (const category of classification.categories) {
-          const categoryResults = await searchKnowledgeBase(question, {
+        // Recherche HYBRIDE (vectoriel + BM25) dans chaque catégorie
+        for (const category of expandedCategories) {
+          const categoryResults = await searchKnowledgeBaseHybrid(question, {
             category: category as any,
-            limit: Math.ceil(maxContextChunks / classification.categories.length),
+            limit: Math.ceil(maxContextChunks / expandedCategories.size),
             threshold: RAG_THRESHOLDS.knowledgeBase,
             operationName: options.operationName,
           })
@@ -556,12 +576,24 @@ export async function searchRelevantContext(
         // Re-trier par similarité globale et limiter
         kbResults.sort((a, b) => b.similarity - a.similarity)
         kbResults = kbResults.slice(0, maxContextChunks)
+
+        // Fallback: recherche globale HYBRIDE si la recherche filtrée retourne 0 résultats
+        if (kbResults.length === 0) {
+          console.log(
+            `[RAG Search] ⚠️ 0 résultats filtrés → fallback recherche globale hybride (seuil abaissé)`
+          )
+          kbResults = await searchKnowledgeBaseHybrid(question, {
+            limit: maxContextChunks,
+            threshold: Math.max(RAG_THRESHOLDS.knowledgeBase - 0.15, 0.25), // Seuil abaissé pour fallback
+            operationName: options.operationName,
+          })
+        }
       } else {
-        // Recherche globale (fallback si classification non confiante)
+        // Recherche globale hybride (fallback si classification non confiante)
         console.log(
-          `[RAG Search] Recherche KB globale (classification confiance: ${(classification.confidence * 100).toFixed(1)}%)`
+          `[RAG Search] Recherche KB globale hybride (classification confiance: ${(classification.confidence * 100).toFixed(1)}%)`
         )
-        kbResults = await searchKnowledgeBase(question, {
+        kbResults = await searchKnowledgeBaseHybrid(question, {
           limit: maxContextChunks,
           threshold: RAG_THRESHOLDS.knowledgeBase,
           operationName: options.operationName,
@@ -832,6 +864,42 @@ async function searchRelevantContextBilingual(
 
 // Limite de tokens pour le contexte RAG (4000 par défaut pour les LLM modernes 8k+)
 const RAG_MAX_CONTEXT_TOKENS = parseInt(process.env.RAG_MAX_CONTEXT_TOKENS || '4000', 10)
+
+// Templates bilingues pour le message utilisateur
+const USER_MESSAGE_TEMPLATES = {
+  ar: { prefix: 'وثائق مرجعية:', questionLabel: 'السؤال:' },
+  fr: { prefix: 'Documents du dossier:', questionLabel: 'Question:' },
+}
+
+/**
+ * Calcule les métriques de qualité des sources pour avertir le LLM
+ */
+function computeSourceQualityMetrics(sources: ChatSource[]): {
+  averageSimilarity: number
+  qualityLevel: 'high' | 'medium' | 'low'
+  warningMessage: string | null
+} {
+  if (sources.length === 0) {
+    return { averageSimilarity: 0, qualityLevel: 'low', warningMessage: null }
+  }
+  const avg = sources.reduce((a, s) => a + s.similarity, 0) / sources.length
+
+  if (avg >= 0.70) {
+    return { averageSimilarity: avg, qualityLevel: 'high', warningMessage: null }
+  }
+  if (avg >= 0.55) {
+    return {
+      averageSimilarity: avg,
+      qualityLevel: 'medium',
+      warningMessage: `⚠️ AVERTISSEMENT: Les documents ci-dessous ont une pertinence MOYENNE (similarité ~${Math.round(avg * 100)}%). Vérifie leur pertinence thématique avant de les citer. Si aucun ne correspond au domaine de la question, dis-le explicitement.`,
+    }
+  }
+  return {
+    averageSimilarity: avg,
+    qualityLevel: 'low',
+    warningMessage: `🚨 ATTENTION: Les documents ci-dessous ont une FAIBLE pertinence (similarité ~${Math.round(avg * 100)}%). Ils proviennent probablement d'un domaine juridique DIFFÉRENT. NE LES CITE PAS comme s'ils répondaient à la question. Indique clairement que la base de connaissances ne contient pas de documents directement pertinents sur ce sujet, puis fournis des orientations générales.`,
+  }
+}
 
 // Labels bilingues pour le contexte RAG
 const CONTEXT_LABELS = {
@@ -1211,9 +1279,9 @@ export async function answerQuestion(
   // retourner un message clair au lieu d'appeler le LLM (évite les hallucinations)
   if (!isDegradedMode && sources.length === 0) {
     const noSourcesLang = detectLanguage(question)
-    const noSourcesMessage = noSourcesLang === 'ar'
-      ? 'لم أجد وثائق ذات صلة بسؤالك في قاعدة البيانات. يرجى إعادة صياغة السؤال أو التأكد من رفع المستندات المتعلقة بالموضوع.'
-      : 'Je n\'ai trouvé aucun document pertinent pour votre question. Veuillez reformuler ou vérifier que les documents nécessaires ont été téléversés.'
+    const noSourcesMessage = noSourcesLang === 'fr'
+      ? 'Je n\'ai trouvé aucun document pertinent pour votre question. Veuillez reformuler ou vérifier que les documents nécessaires ont été téléversés.'
+      : 'لم أجد وثائق ذات صلة بسؤالك في قاعدة البيانات. يرجى إعادة صياغة السؤال أو التأكد من رفع المستندات المتعلقة بالموضوع.'
 
     return {
       answer: noSourcesMessage,
@@ -1251,6 +1319,17 @@ export async function answerQuestion(
   const questionLang = detectLanguage(question)
   const context = await buildContextFromSources(sources, questionLang)
 
+  // Calculer métriques qualité et injecter avertissement si nécessaire
+  const qualityMetrics = computeSourceQualityMetrics(sources)
+  let contextWithWarning = context
+  if (qualityMetrics.warningMessage) {
+    contextWithWarning = `${qualityMetrics.warningMessage}\n\n---\n\n${context}`
+    logger.warn('search', 'Low quality sources', {
+      averageSimilarity: qualityMetrics.averageSimilarity,
+      qualityLevel: qualityMetrics.qualityLevel,
+    })
+  }
+
   // 3. Récupérer l'historique avec résumé si conversation existante
   let conversationHistory: ConversationMessage[] = []
   let conversationSummary: string | null = null
@@ -1269,7 +1348,7 @@ export async function answerQuestion(
   // Sélectionner le prompt système approprié selon le contexte
   // Par défaut: 'chat' si conversation, 'consultation' sinon
   const contextType: PromptContextType = options.contextType || (options.conversationId ? 'chat' : 'consultation')
-  const supportedLang: SupportedLanguage = questionLang === 'ar' ? 'ar' : 'fr'
+  const supportedLang: SupportedLanguage = questionLang === 'fr' ? 'fr' : 'ar'
   const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang)
 
   // 4. Construire les messages (format OpenAI-compatible pour Ollama/Groq)
@@ -1288,10 +1367,11 @@ export async function answerQuestion(
     messagesOpenAI.push({ role: msg.role, content: msg.content })
   }
 
-  // Ajouter la nouvelle question avec le contexte
+  // Ajouter la nouvelle question avec le contexte (template bilingue)
+  const msgTemplate = USER_MESSAGE_TEMPLATES[supportedLang]
   messagesOpenAI.push({
     role: 'user',
-    content: `Documents du dossier:\n\n${context}\n\n---\n\nQuestion: ${question}`,
+    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n\n---\n\n${msgTemplate.questionLabel} ${question}`,
   })
 
   // Messages format Anthropic (sans 'system' dans les messages)
@@ -1301,7 +1381,7 @@ export async function answerQuestion(
   }
   messagesAnthropic.push({
     role: 'user',
-    content: `Documents du dossier:\n\n${context}\n\n---\n\nQuestion: ${question}`,
+    content: `${msgTemplate.prefix}\n\n${contextWithWarning}\n\n---\n\n${msgTemplate.questionLabel} ${question}`,
   })
 
   // Log si résumé utilisé
@@ -1512,6 +1592,8 @@ export async function answerQuestion(
     conversationId: options.conversationId,
     citationWarnings: citationWarnings.length > 0 ? citationWarnings : undefined,
     abrogationWarnings: abrogationWarnings.length > 0 ? abrogationWarnings : undefined,
+    qualityIndicator: qualityMetrics.qualityLevel,
+    averageSimilarity: qualityMetrics.averageSimilarity,
   }
 }
 
@@ -1678,9 +1760,9 @@ export async function generateConversationTitle(
   }
 
   const firstMessage = result.rows[0].content
-  // Tronquer et nettoyer pour faire un titre
+  // Tronquer et nettoyer pour faire un titre (supporte formats FR et AR)
   const title = firstMessage
-    .replace(/Documents du dossier:[\s\S]*?---\s*Question:\s*/i, '')
+    .replace(/(?:Documents du dossier|وثائق مرجعية):[\s\S]*?---\s*(?:Question|السؤال):\s*/i, '')
     .substring(0, 60)
     .trim()
 

@@ -128,20 +128,25 @@ export function UnifiedChatPage({
   const messages: ChatMessage[] = useMemo(() =>
     (selectedConversation?.messages || [])
       .filter((m) => m.role !== 'system')
-      .map((m) => ({
-        id: m.id,
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-        createdAt: m.timestamp,
-        sources: m.metadata?.sources?.map((s) => ({
-          documentId: s.id,
-          documentName: s.title,
-          chunkContent: '',
-          similarity: s.similarity,
-        })),
-        abrogationAlerts: m.metadata?.abrogationAlerts,
-        metadata: m.metadata, // Conserver metadata pour actionType
-      } as any)),
+      .map((m) => {
+        // Sources directement sur m (via fetchConversation) OU dans metadata (legacy)
+        const rawSources = (m as any).sources || m.metadata?.sources
+        return {
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          createdAt: m.timestamp,
+          sources: rawSources?.map((s: any) => ({
+            documentId: s.documentId || s.id,
+            documentName: s.documentName || s.title,
+            chunkContent: s.chunkContent || '',
+            similarity: s.similarity,
+          })),
+          abrogationAlerts: m.metadata?.abrogationAlerts,
+          qualityIndicator: m.metadata?.qualityIndicator,
+          metadata: m.metadata, // Conserver metadata pour actionType
+        } as any
+      }),
     [selectedConversation?.messages]
   )
 

@@ -13,11 +13,12 @@ interface SourcesPanelProps {
   sources: ChatSource[]
   className?: string
   onViewDocument?: (documentId: string) => void
+  qualityIndicator?: 'high' | 'medium' | 'low'
 }
 
 type SortOption = 'relevance' | 'name'
 
-export function SourcesPanel({ sources, className, onViewDocument }: SourcesPanelProps) {
+export function SourcesPanel({ sources, className, onViewDocument, qualityIndicator }: SourcesPanelProps) {
   const t = useTranslations('assistantIA')
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeFilter, setActiveFilter] = useState<SourceType>('all')
@@ -89,6 +90,16 @@ export function SourcesPanel({ sources, className, onViewDocument }: SourcesPane
           <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
             {sources.length}
           </span>
+          {qualityIndicator === 'low' && (
+            <span className="px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-xs font-medium">
+              Pertinence faible
+            </span>
+          )}
+          {qualityIndicator === 'medium' && (
+            <span className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 text-xs font-medium">
+              Pertinence moyenne
+            </span>
+          )}
         </div>
 
         <Icons.chevronDown
