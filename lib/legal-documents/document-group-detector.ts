@@ -118,9 +118,9 @@ async function detect9anounGroups(sourceId: string): Promise<DocumentGroup[]> {
 // =============================================================================
 
 async function detectGenericGroups(sourceId: string): Promise<DocumentGroup[]> {
-  // Récupérer toutes les pages crawlées de cette source
-  const pagesResult = await db.query<{ url: string }>(
-    `SELECT url FROM web_pages
+  // Récupérer toutes les pages crawlées de cette source avec leur titre
+  const pagesResult = await db.query<{ url: string; title: string | null }>(
+    `SELECT url, title FROM web_pages
      WHERE web_source_id = $1
        AND status IN ('crawled', 'indexed')
      ORDER BY url ASC`,
@@ -129,21 +129,26 @@ async function detectGenericGroups(sourceId: string): Promise<DocumentGroup[]> {
 
   if (pagesResult.rows.length === 0) return []
 
-  // Grouper par 2ème segment de path
-  const groupMap = new Map<string, string[]>()
+  // Grouper par 2ème segment de path (décodé)
+  const groupMap = new Map<string, { urls: string[]; titles: string[] }>()
 
   for (const row of pagesResult.rows) {
     try {
       const parsed = new URL(row.url)
       const segments = parsed.pathname.split('/').filter(Boolean)
       // Utiliser le 2ème segment si disponible, sinon le 1er
-      const groupKey = segments.length >= 2 ? segments[1] : segments[0]
-      if (!groupKey) continue
+      const rawKey = segments.length >= 2 ? segments[1] : segments[0]
+      if (!rawKey) continue
+
+      // Décoder les segments URL-encodés (ex: %D8%A3 → arabe)
+      const groupKey = decodeURIComponent(rawKey)
 
       if (!groupMap.has(groupKey)) {
-        groupMap.set(groupKey, [])
+        groupMap.set(groupKey, { urls: [], titles: [] })
       }
-      groupMap.get(groupKey)!.push(row.url)
+      const group = groupMap.get(groupKey)!
+      group.urls.push(row.url)
+      if (row.title) group.titles.push(row.title)
     } catch {
       continue
     }
@@ -152,17 +157,21 @@ async function detectGenericGroups(sourceId: string): Promise<DocumentGroup[]> {
   // Filtrer : minimum 3 pages par groupe
   const groups: DocumentGroup[] = []
 
-  for (const [slug, urls] of groupMap.entries()) {
+  for (const [decodedSlug, { urls, titles }] of groupMap.entries()) {
     if (urls.length < 3) continue
 
-    const citationKey = slug
+    const citationKey = decodedSlug
     const existing = await getDocumentByCitationKey(citationKey)
 
+    // Déterminer le label depuis les titres des pages ou le slug décodé
+    const label = deriveGroupLabel(decodedSlug, titles)
+    const documentType = detectDocumentType(decodedSlug, titles)
+
     groups.push({
-      slug,
+      slug: decodedSlug,
       citationKey,
-      label: slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-      documentType: 'autre',
+      label,
+      documentType,
       primaryCategory: 'legislation',
       pageCount: urls.length,
       sampleUrls: urls.slice(0, 3),
@@ -173,4 +182,32 @@ async function detectGenericGroups(sourceId: string): Promise<DocumentGroup[]> {
   // Trier par pageCount décroissant
   groups.sort((a, b) => b.pageCount - a.pageCount)
   return groups
+}
+
+/**
+ * Dériver un label lisible depuis le slug décodé et les titres des pages
+ */
+function deriveGroupLabel(slug: string, titles: string[]): string {
+  // Vérifier si le slug est en arabe
+  if (/[\u0600-\u06FF]/.test(slug)) {
+    return slug
+  }
+  // Sinon, formater le slug
+  return slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+/**
+ * Détecter le type de document depuis le slug et les titres
+ */
+function detectDocumentType(slug: string, titles: string[]): string {
+  const combined = `${slug} ${titles.slice(0, 5).join(' ')}`.toLowerCase()
+
+  // Patterns de détection (arabe + français)
+  if (/مجلة|code/i.test(combined)) return 'code'
+  if (/قانون.*عدد|قانون.*أساسي|loi/i.test(combined)) return 'loi'
+  if (/أمر.*عدد|أمر.*حكومي|décret|decret/i.test(combined)) return 'decret'
+  if (/قرار.*من|arrêté|arrete/i.test(combined)) return 'arrete'
+  if (/منشور|circulaire/i.test(combined)) return 'circulaire'
+
+  return 'loi' // Par défaut pour les sources legislation, 'loi' est plus pertinent que 'autre'
 }

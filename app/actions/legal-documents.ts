@@ -232,19 +232,11 @@ async function import9anounCode(sourceId: string, slug: string): Promise<void> {
 }
 
 async function importGenericGroup(sourceId: string, slug: string): Promise<void> {
-  const citationKey = slug
+  // Le slug peut être déjà décodé (depuis le détecteur) ou encodé (ancien format)
+  const decodedSlug = decodeURIComponent(slug)
+  const citationKey = decodedSlug
 
-  // Créer le document
-  const document = await findOrCreateDocument({
-    citationKey,
-    documentType: 'autre',
-    officialTitleFr: slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-    primaryCategory: 'legislation',
-    tags: [slug],
-    canonicalSourceId: sourceId,
-  })
-
-  // Récupérer les pages du groupe (même logique que le détecteur)
+  // Récupérer les pages du groupe pour extraire titres et metadata
   const pagesResult = await db.query<{
     id: string
     url: string
@@ -258,25 +250,64 @@ async function importGenericGroup(sourceId: string, slug: string): Promise<void>
     [sourceId]
   )
 
-  let pageOrder = 0
+  // Filtrer les pages appartenant à ce groupe
+  const groupPages: typeof pagesResult.rows = []
   for (const page of pagesResult.rows) {
     try {
       const parsed = new URL(page.url)
       const segments = parsed.pathname.split('/').filter(Boolean)
-      const groupKey = segments.length >= 2 ? segments[1] : segments[0]
-      if (groupKey !== slug) continue
+      const rawKey = segments.length >= 2 ? segments[1] : segments[0]
+      const groupKey = decodeURIComponent(rawKey || '')
+      if (groupKey !== decodedSlug) continue
+      groupPages.push(page)
     } catch {
       continue
     }
+  }
 
+  // Détecter le type de document
+  const titles = groupPages.filter(p => p.title).map(p => p.title!)
+  const combined = `${decodedSlug} ${titles.slice(0, 5).join(' ')}`.toLowerCase()
+  let documentType: string = 'loi'
+  if (/مجلة|code/i.test(combined)) documentType = 'code'
+  else if (/أمر.*عدد|أمر.*حكومي|décret|decret/i.test(combined)) documentType = 'decret'
+  else if (/قرار.*من|arrêté|arrete/i.test(combined)) documentType = 'arrete'
+  else if (/منشور|circulaire/i.test(combined)) documentType = 'circulaire'
+
+  // Extraire les titres AR et FR depuis les pages ou le slug
+  const isArabic = /[\u0600-\u06FF]/.test(decodedSlug)
+  const officialTitleAr = isArabic ? decodedSlug : (titles.find(t => /[\u0600-\u06FF]/.test(t)) || null)
+  const officialTitleFr = !isArabic
+    ? decodedSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    : (titles.find(t => !/[\u0600-\u06FF]/.test(t)) || null)
+
+  // Créer le document
+  const document = await findOrCreateDocument({
+    citationKey,
+    documentType: documentType as any,
+    officialTitleAr: officialTitleAr || undefined,
+    officialTitleFr: officialTitleFr || undefined,
+    primaryCategory: 'legislation',
+    tags: [decodedSlug],
+    canonicalSourceId: sourceId,
+  })
+
+  // Lier les pages avec extraction d'article si possible
+  let pageOrder = 0
+  for (const page of groupPages) {
     pageOrder++
+
+    // Tenter d'extraire un numéro d'article depuis l'URL
+    const articleNumber = extractArticleNumberFromUrl(page.url)
+    const contributionType = articleNumber ? 'article' : 'section'
+
     try {
       await linkPageToDocument(
         page.id,
         document.id,
-        null,
+        articleNumber,
         pageOrder,
-        'section',
+        contributionType,
         false
       )
     } catch {
