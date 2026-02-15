@@ -198,7 +198,15 @@ export function UnifiedChatPage({
   const SidebarContent = (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
-        <h2 className="font-semibold text-lg">{t('title')}</h2>
+        <div className="flex items-center gap-2.5 mb-1">
+          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', modeConfig.iconBgClass)}>
+            <ModeIcon className={cn('h-4 w-4', modeConfig.iconTextClass)} />
+          </div>
+          <div>
+            <h2 className="font-semibold text-sm tracking-tight">{t('title')}</h2>
+            <p className="text-[11px] text-muted-foreground">{t(`actions.${modeConfig.translationKey}.description`)}</p>
+          </div>
+        </div>
       </div>
       <div className="flex-1 overflow-hidden">
         <ConversationsList
@@ -222,18 +230,18 @@ export function UnifiedChatPage({
       }}
     >
       <div className={cn('h-[calc(100vh-4rem)] flex bg-gradient-to-br', modeConfig.gradientClass)}>
-        {/* Sidebar - Desktop avec Glassmorphism */}
-        <aside className="hidden lg:flex lg:w-80 xl:w-96 border-r flex-col backdrop-blur-xl bg-background/95">
+        {/* Sidebar - Desktop */}
+        <aside className="hidden lg:flex lg:w-72 xl:w-80 border-r flex-col bg-background/80 backdrop-blur-sm">
           {SidebarContent}
         </aside>
 
         {/* Zone Chat Principale */}
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col min-w-0">
           {/* Header Mobile */}
-          <div className="lg:hidden flex items-center justify-between p-4 border-b">
+          <div className="lg:hidden flex items-center justify-between px-3 py-2.5 border-b bg-background/80 backdrop-blur-sm">
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="h-9 w-9">
                   <Icons.menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -241,37 +249,40 @@ export function UnifiedChatPage({
                 {SidebarContent}
               </SheetContent>
             </Sheet>
-            <Badge variant="outline" className={cn('gap-1.5', modeConfig.badgeClass)}>
-              <ModeIcon className="h-3.5 w-3.5" />
+            <Badge variant="outline" className={cn('gap-1.5 text-xs', modeConfig.badgeClass)}>
+              <ModeIcon className="h-3 w-3" />
               {t(`actions.${modeConfig.translationKey}.label`)}
             </Badge>
-            <div className="w-10" /> {/* Spacer */}
+            <div className="w-9" />
           </div>
 
-          {/* Messages avec Shadow Inner */}
-          <div className="flex-1 overflow-auto shadow-inner">
-            <ChatMessages
-              messages={messages}
-              isLoading={isLoadingMessages}
-              modeConfig={modeConfig}
-              // Utiliser EnrichedMessage pour les messages enrichis
-              renderEnriched={(message) => <EnrichedMessage message={message} />}
-            />
-          </div>
-
-          {/* Actions Contextuelles - CONDITIONNELLES */}
-          {!hideActionButtons && (
-            <div className="border-t p-4">
-              <ActionButtons
-                selected={currentAction}
-                onSelect={handleActionSelect}
-                disabled={isSending}
+          {/* Messages */}
+          <div className="flex-1 overflow-auto">
+            <div className="max-w-3xl mx-auto">
+              <ChatMessages
+                messages={messages}
+                isLoading={isLoadingMessages}
+                modeConfig={modeConfig}
+                renderEnriched={(message) => <EnrichedMessage message={message} />}
+                onSendExample={handleSendMessage}
               />
             </div>
-          )}
+          </div>
 
-          {/* Input avec Shadow Subtile */}
-          <div className="border-t shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+          {/* Zone basse : Tabs + Input */}
+          <div className="border-t bg-background/80 backdrop-blur-sm">
+            {/* Tabs de mode */}
+            {!hideActionButtons && (
+              <div className="pt-3 pb-1">
+                <ActionButtons
+                  selected={currentAction}
+                  onSelect={handleActionSelect}
+                  disabled={isSending}
+                />
+              </div>
+            )}
+
+            {/* Input */}
             <ChatInput
               onSend={handleSendMessage}
               disabled={isSending}
