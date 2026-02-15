@@ -1,22 +1,36 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 // Force dynamic rendering - pas de prérendu statique
 export const dynamic = 'force-dynamic'
 
 const COOKIE_NAME = 'auth_session'
 
+function clearSessionCookie(response: NextResponse) {
+  response.cookies.set(COOKIE_NAME, '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  })
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const url = new URL('/login', request.url)
+    const response = NextResponse.redirect(url)
+    clearSessionCookie(response)
+    return response
+  } catch (error) {
+    console.error('[API Signout] Erreur GET:', error)
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+}
+
 export async function POST() {
   try {
     const response = NextResponse.json({ success: true })
-
-    response.cookies.set(COOKIE_NAME, '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 0,
-    })
-
+    clearSessionCookie(response)
     return response
   } catch (error) {
     console.error('[API Signout] Erreur:', error)
