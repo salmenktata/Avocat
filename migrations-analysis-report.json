@@ -1,0 +1,187 @@
+{
+  "timestamp": "2026-02-16T22:02:23.285Z",
+  "summary": {
+    "total": 28,
+    "critical": 7,
+    "important": 0,
+    "optional": 21,
+    "duplicate": 0
+  },
+  "migrations": [
+    {
+      "filename": "2026-02-12-add-hybrid-search.sql",
+      "path": "migrations/2026-02-12-add-hybrid-search.sql",
+      "type": "critical",
+      "reason": "Contient \"hybrid\" - fonctionnalité essentielle",
+      "targetFilename": "20260217XXXXXX_add-hybrid-search.sql"
+    },
+    {
+      "filename": "2026-02-12-add-openai-embeddings.sql",
+      "path": "migrations/2026-02-12-add-openai-embeddings.sql",
+      "type": "critical",
+      "reason": "Contient \"openai\" - fonctionnalité essentielle",
+      "targetFilename": "20260217XXXXXX_add-openai-embeddings.sql"
+    },
+    {
+      "filename": "2026-02-15-add-kb-usage-priority.sql",
+      "path": "migrations/2026-02-15-add-kb-usage-priority.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260209_create_api_keys_table.sql",
+      "path": "migrations/20260209_create_api_keys_table.sql",
+      "type": "critical",
+      "reason": "Contient \"api_keys\" - fonctionnalité essentielle",
+      "targetFilename": "20260217XXXXXX_create_api_keys_table.sql"
+    },
+    {
+      "filename": "20260210_classification_ux.sql",
+      "path": "migrations/20260210_classification_ux.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260210_legal_abrogations.sql",
+      "path": "migrations/20260210_legal_abrogations.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260210_phase1_indexes.sql",
+      "path": "migrations/20260210_phase1_indexes.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260210_populate_codes_metadata.sql",
+      "path": "migrations/20260210_populate_codes_metadata.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260210_review_prioritization.sql",
+      "path": "migrations/20260210_review_prioritization.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260210_usage_logs_indexes.sql",
+      "path": "migrations/20260210_usage_logs_indexes.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260213_add_classify_pages_to_job_type_check.sql",
+      "path": "migrations/20260213_add_classify_pages_to_job_type_check.sql",
+      "type": "critical",
+      "reason": "Contient \"classify_pages\" - fonctionnalité essentielle",
+      "targetFilename": "20260217XXXXXX_add_classify_pages_to_job_type_check.sql"
+    },
+    {
+      "filename": "20260213_add_domain_legal_abrogations.sql",
+      "path": "migrations/20260213_add_domain_legal_abrogations.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260213_enrich_metadata_fields.sql",
+      "path": "migrations/20260213_enrich_metadata_fields.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260213_kb_validation_gamification.sql",
+      "path": "migrations/20260213_kb_validation_gamification.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260214_bm25_search.sql",
+      "path": "migrations/20260214_bm25_search.sql",
+      "type": "critical",
+      "reason": "Contient \"bm25\" - fonctionnalité essentielle",
+      "targetFilename": "20260217XXXXXX_bm25_search.sql"
+    },
+    {
+      "filename": "20260214_mv_kb_metadata_enriched.sql",
+      "path": "migrations/20260214_mv_kb_metadata_enriched.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260214_optimize_autovacuum.sql",
+      "path": "migrations/20260214_optimize_autovacuum.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260214_partial_indexes_language.sql",
+      "path": "migrations/20260214_partial_indexes_language.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260214_redisearch_setup.sql",
+      "path": "migrations/20260214_redisearch_setup.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260215_create_operation_provider_configs.sql",
+      "path": "migrations/20260215_create_operation_provider_configs.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260215_kb_approval.sql",
+      "path": "migrations/20260215_kb_approval.sql",
+      "type": "critical",
+      "reason": "Contient \"approval\" - fonctionnalité essentielle",
+      "targetFilename": "20260217XXXXXX_kb_approval.sql"
+    },
+    {
+      "filename": "20260215_kb_dedup_cleanup.sql",
+      "path": "migrations/20260215_kb_dedup_cleanup.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260216_add_doc_type.sql",
+      "path": "migrations/20260216_add_doc_type.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260216_add_doc_type_to_search.sql",
+      "path": "migrations/20260216_add_doc_type_to_search.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260216_fix_subcategory_type_casting.sql",
+      "path": "migrations/20260216_fix_subcategory_type_casting.sql",
+      "type": "critical",
+      "reason": "Contient \"type_casting\" - fonctionnalité essentielle",
+      "targetFilename": "20260217XXXXXX_fix_subcategory_type_casting.sql"
+    },
+    {
+      "filename": "20260226_enrich_legal_relations.sql",
+      "path": "migrations/20260226_enrich_legal_relations.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "20260228_rag_feedback.sql",
+      "path": "migrations/20260228_rag_feedback.sql",
+      "type": "optional",
+      "reason": ""
+    },
+    {
+      "filename": "fix-content-chunk-column.sql",
+      "path": "migrations/fix-content-chunk-column.sql",
+      "type": "optional",
+      "reason": ""
+    }
+  ]
+}
