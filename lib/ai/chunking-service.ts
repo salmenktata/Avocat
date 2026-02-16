@@ -33,6 +33,14 @@ export function getOverlapForCategory(category?: string): number {
 // TYPES
 // =============================================================================
 
+/**
+ * Stratégies de chunking disponibles
+ */
+export type ChunkingStrategy =
+  | 'adaptive'    // Existant : par taille + catégorie
+  | 'article'     // Phase 3 : 1 article = 1 chunk (codes/lois)
+  | 'semantic'    // Chunking sémantique via embeddings
+
 export interface Chunk {
   content: string
   index: number
@@ -46,6 +54,9 @@ export interface ChunkMetadata {
   endPosition: number
   overlapWithPrevious: boolean
   overlapWithNext: boolean
+  articleNumber?: string  // Phase 3: numéro d'article si applicable
+  chunkingStrategy?: ChunkingStrategy  // Phase 3: stratégie utilisée
+  [key: string]: any  // Permettre métadonnées additionnelles
 }
 
 export interface ChunkingOptions {
@@ -59,6 +70,10 @@ export interface ChunkingOptions {
   preserveSentences?: boolean
   /** Catégorie du document pour overlap adaptatif (code, jurisprudence, doctrine, modele) */
   category?: string
+  /** Phase 3: Stratégie de chunking (défaut: adaptive) */
+  strategy?: ChunkingStrategy
+  /** Phase 3: Langue du document (pour détection articles) */
+  language?: 'fr' | 'ar'
 }
 
 // =============================================================================
@@ -78,6 +93,8 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
     preserveParagraphs = true,
     preserveSentences = true,
     category,
+    strategy = 'adaptive',  // Phase 3: stratégie par défaut
+    language,
   } = options
 
   // Log si overlap adaptatif utilisé
@@ -91,6 +108,28 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
 
   // Nettoyer le texte
   const cleanedText = text.trim()
+
+  // Phase 3: Router selon stratégie
+  if (strategy === 'article') {
+    // Vérifier si applicable (codes/legislation)
+    const isLegalCode = ['codes', 'legislation', 'constitution', 'code'].includes(category || '')
+    if (isLegalCode) {
+      const articleChunks = chunkTextByArticles(cleanedText, {
+        language,
+        maxChunkWords: chunkSize,
+        category
+      })
+
+      // Si détection articles réussie, retourner
+      if (articleChunks.length > 0) {
+        console.log(`[Chunking] Stratégie article-level: ${articleChunks.length} articles détectés (catégorie: ${category})`)
+        return articleChunks
+      }
+
+      console.log(`[Chunking] Aucun article détecté, fallback vers chunking adaptive`)
+    }
+    // Fallback vers adaptive si pas applicable
+  }
 
   // Si le texte est plus court que la taille de chunk, retourner un seul chunk
   const words = cleanedText.split(/\s+/)
@@ -106,12 +145,13 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
           endPosition: cleanedText.length,
           overlapWithPrevious: false,
           overlapWithNext: false,
+          chunkingStrategy: strategy,
         },
       },
     ]
   }
 
-  // Stratégie de chunking selon les options
+  // Stratégie de chunking selon les options (adaptive)
   let chunks: Chunk[]
 
   if (preserveParagraphs) {
@@ -122,6 +162,15 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
     // Chunking simple par mots
     chunks = chunkByWords(cleanedText, chunkSize, overlap)
   }
+
+  // Ajouter stratégie aux métadonnées
+  chunks = chunks.map(chunk => ({
+    ...chunk,
+    metadata: {
+      ...chunk.metadata,
+      chunkingStrategy: strategy,
+    },
+  }))
 
   // Filtrer les chunks trop petits (< 100 mots) SAUF le dernier chunk
   // pour éviter la perte de contenu en fin de document
@@ -457,6 +506,151 @@ export interface ArticleChunkingOptions {
   maxChunkWords?: number
   /** Nom du code pour le contexte */
   codeName?: string
+}
+
+/**
+ * Phase 3: Options pour le chunking par articles depuis texte brut
+ */
+export interface ArticleTextChunkingOptions {
+  /** Langue du document (pour patterns regex) */
+  language?: 'fr' | 'ar'
+  /** Taille max d'un chunk en mots */
+  maxChunkWords?: number
+  /** Catégorie pour contexte */
+  category?: string
+}
+
+/**
+ * Phase 3: Chunking article-level depuis texte brut
+ * Détecte automatiquement les articles via patterns FR/AR
+ *
+ * Patterns supportés:
+ * - FR: "Article 258", "art. 42 bis", "Art 12"
+ * - AR: "الفصل 258", "فصل 12", "الفصل 42 مكرر"
+ *
+ * @param text - Texte brut du document juridique
+ * @param options - Options de chunking
+ * @returns Liste de chunks (1 article = 1 chunk)
+ */
+export function chunkTextByArticles(
+  text: string,
+  options: ArticleTextChunkingOptions = {}
+): Chunk[] {
+  const { language, maxChunkWords = 2000, category } = options
+
+  // Patterns de détection articles
+  const articlePatterns: Record<string, RegExp> = {
+    // Français: "Article 258" ou "art. 42 bis"
+    fr: /(?:^|\n)\s*(?:Article|art\.?)\s+(\d+(?:\s+(?:bis|ter|quater))?)/gi,
+    // Arabe: "الفصل 258" ou "فصل 12 مكرر"
+    ar: /(?:^|\n)\s*(?:الفصل|فصل)\s+(\d+(?:\s+مكرر)?)/g,
+  }
+
+  // Auto-détection langue si non fournie
+  let detectedLanguage = language
+  if (!detectedLanguage) {
+    // Chercher pattern arabe
+    const hasArabic = articlePatterns.ar.test(text)
+    articlePatterns.ar.lastIndex = 0 // Reset regex
+
+    detectedLanguage = hasArabic ? 'ar' : 'fr'
+  }
+
+  const pattern = articlePatterns[detectedLanguage]
+  if (!pattern) {
+    console.warn(`[chunkTextByArticles] Langue non supportée: ${detectedLanguage}`)
+    return []
+  }
+
+  // Détecter tous les articles
+  const articleMatches: Array<{ number: string; index: number }> = []
+  let match: RegExpExecArray | null
+
+  while ((match = pattern.exec(text)) !== null) {
+    articleMatches.push({
+      number: match[1].trim(),
+      index: match.index,
+    })
+  }
+
+  // Si aucun article détecté, retourner vide (fallback adaptive)
+  if (articleMatches.length === 0) {
+    return []
+  }
+
+  console.log(`[chunkTextByArticles] ${articleMatches.length} articles détectés (langue: ${detectedLanguage})`)
+
+  // Construire chunks par article
+  const chunks: Chunk[] = []
+
+  for (let i = 0; i < articleMatches.length; i++) {
+    const currentArticle = articleMatches[i]
+    const nextArticle = articleMatches[i + 1]
+
+    // Extraire texte de l'article (jusqu'au prochain article ou fin)
+    const startIndex = currentArticle.index
+    const endIndex = nextArticle ? nextArticle.index : text.length
+
+    const articleText = text.slice(startIndex, endIndex).trim()
+    const articleWords = countWords(articleText)
+
+    // Construire label article
+    const articleLabel =
+      detectedLanguage === 'ar'
+        ? `الفصل ${currentArticle.number}`
+        : `Article ${currentArticle.number}`
+
+    if (articleWords <= maxChunkWords) {
+      // Article tient dans 1 chunk
+      chunks.push({
+        content: articleText,
+        index: chunks.length,
+        metadata: {
+          wordCount: articleWords,
+          charCount: articleText.length,
+          startPosition: startIndex,
+          endPosition: endIndex,
+          overlapWithPrevious: false,
+          overlapWithNext: false,
+          articleNumber: currentArticle.number,
+          chunkingStrategy: 'article',
+        },
+      })
+    } else {
+      // Article trop long : splitter en gardant contexte
+      console.log(
+        `[chunkTextByArticles] ${articleLabel} trop long (${articleWords} mots), split en sous-chunks`
+      )
+
+      const subChunks = chunkText(articleText, {
+        chunkSize: maxChunkWords,
+        overlap: 100,
+        preserveSentences: true,
+        category,
+      })
+
+      for (let j = 0; j < subChunks.length; j++) {
+        const partLabel =
+          detectedLanguage === 'ar'
+            ? `${articleLabel} (${j + 1}/${subChunks.length})`
+            : `${articleLabel} (partie ${j + 1}/${subChunks.length})`
+
+        chunks.push({
+          content: `[${partLabel}]\n\n${subChunks[j].content}`,
+          index: chunks.length,
+          metadata: {
+            ...subChunks[j].metadata,
+            startPosition: startIndex + subChunks[j].metadata.startPosition,
+            endPosition: startIndex + subChunks[j].metadata.endPosition,
+            articleNumber: currentArticle.number,
+            chunkingStrategy: 'article',
+          },
+        })
+      }
+    }
+  }
+
+  return chunks
 }
 
 /**

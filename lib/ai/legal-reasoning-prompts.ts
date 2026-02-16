@@ -287,13 +287,36 @@ export function getSystemPromptForContext(
       break
   }
 
+  // ✨ PHASE 5: Préfixer tous les prompts avec règle Citation-First
+  // Import inline pour éviter dépendance circulaire
+  const CITATION_FIRST_RULE = `
+🚨 **RÈGLE ABSOLUE : CITATION-FIRST** 🚨
+
+Tu DOIS TOUJOURS commencer ta réponse par citer la source principale avant toute explication.
+
+**FORMAT OBLIGATOIRE** :
+[Source-X] "Extrait exact pertinent"
+Explication basée sur cette citation...
+
+**RÈGLES STRICTES** :
+✅ TOUJOURS commencer par [Source-X] "extrait exact"
+✅ TOUJOURS inclure extrait exact entre guillemets
+✅ JAMAIS expliquer avant de citer
+✅ Maximum 10 mots avant la première citation
+
+---
+`
+
+  // Combiner règle citation-first + prompt contexte
+  const promptWithCitationFirst = `${CITATION_FIRST_RULE}\n${basePrompt}`
+
   // Arabe par défaut, français seulement si explicitement demandé
   if (language === 'fr') {
-    return `${basePrompt}\n\n**IMPORTANT : Le client a demandé une réponse en français. Réponds en français.**`
+    return `${promptWithCitationFirst}\n\n**IMPORTANT : Le client a demandé une réponse en français. Réponds en français.**`
   }
 
   // Arabe par défaut
-  return `${basePrompt}\n\n**مهم: أجب باللغة العربية فقط. استخدم المصطلحات القانونية التونسية الرسمية بالعربية. اكتب عناوين الأقسام بالعربية (أولاً، ثانياً...). اكتب أسماء المحاكم والمجلات القانونية بالعربية أولاً ثم الاختصار الفرنسي إن لزم.**`
+  return `${promptWithCitationFirst}\n\n**مهم: أجب باللغة العربية فقط. استخدم المصطلحات القانونية التونسية الرسمية بالعربية. اكتب عناوين الأقسام بالعربية (أولاً، ثانياً...). اكتب أسماء المحاكم والمجلات القانونية بالعربية أولاً ثم الاختصار الفرنسي إن لزم.**`
 }
 
 /**

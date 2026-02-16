@@ -15,6 +15,8 @@ import { onKnowledgeDocumentChange } from './related-documents-service'
 import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
 import { LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
 import { getChunkConfig } from './adaptive-chunking-config'
+import type { DocumentType } from '@/lib/categories/doc-types'
+import { getDocumentType } from '@/lib/categories/doc-types'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse en RSC
 async function getDocumentParser() {
@@ -42,10 +44,15 @@ async function getEmbeddingsService() {
 export type KnowledgeBaseCategory = KnowledgeCategory
 export type KnowledgeBaseLanguage = 'ar' | 'fr'
 
+// ✨ PHASE 2: Types enrichis
+export type LegalStatus = 'en_vigueur' | 'abroge' | 'modifie' | 'suspendu' | 'inconnu'
+export type SourceReliability = 'officiel' | 'verifie' | 'interne' | 'commentaire' | 'non_verifie'
+
 export interface KnowledgeBaseDocument {
   id: string
   category: KnowledgeBaseCategory
   subcategory: string | null
+  docType?: DocumentType | null  // Meta-catégorie (type de savoir juridique)
   language: KnowledgeBaseLanguage
   title: string
   description: string | null
@@ -60,6 +67,17 @@ export interface KnowledgeBaseDocument {
   uploadedBy: string | null
   createdAt: Date
   updatedAt: Date
+  // ✨ PHASE 2: Nouveaux champs métadonnées enrichies
+  status?: LegalStatus
+  citation?: string | null
+  citationAr?: string | null
+  articleId?: string | null
+  reliability?: SourceReliability
+  versionDate?: Date | null
+  supersedesId?: string | null
+  supersededById?: string | null
+  // ✨ PHASE 3: Stratégie de chunking utilisée
+  chunkingStrategy?: 'adaptive' | 'article' | 'semantic'
 }
 
 export interface KnowledgeBaseUploadInput {
@@ -236,7 +254,10 @@ export async function uploadKnowledgeDocument(
 /**
  * Indexe un document de la base de connaissances (génère chunks + embeddings)
  */
-export async function indexKnowledgeDocument(documentId: string): Promise<{
+export async function indexKnowledgeDocument(
+  documentId: string,
+  options: { strategy?: 'adaptive' | 'article' | 'semantic' } = {}
+): Promise<{
   success: boolean
   chunksCreated: number
   error?: string
@@ -269,12 +290,17 @@ export async function indexKnowledgeDocument(documentId: string): Promise<{
   const category = (doc.category as KnowledgeCategory) || 'autre'
   const chunkConfig = getChunkConfig(category)
 
+  // ✨ PHASE 3: Déterminer stratégie de chunking
+  const strategy = options.strategy || 'adaptive'
+
   const chunkingOptions = {
     chunkSize: chunkConfig.size,
     overlap: chunkConfig.overlap,
     preserveParagraphs: chunkConfig.preserveParagraphs ?? true,
     preserveSentences: chunkConfig.preserveSentences ?? true,
     category,
+    strategy,  // Phase 3: ajouter stratégie
+    language: doc.language as 'fr' | 'ar',  // Phase 3: langue pour détection articles
   }
 
   // Semantic chunking si activé, sinon chunking classique
@@ -362,12 +388,17 @@ export async function indexKnowledgeDocument(documentId: string): Promise<{
       )
     }
 
-    // Mettre à jour le document avec son embedding et marquer comme indexé
+    // Mettre à jour le document avec son embedding, stratégie et marquer comme indexé
     await client.query(
       `UPDATE knowledge_base
-       SET embedding = $1::vector, is_indexed = true, updated_at = NOW()
-       WHERE id = $2`,
-      [formatEmbeddingForPostgres(docEmbeddingResult.embedding), documentId]
+       SET embedding = $1::vector, is_indexed = true, chunk_count = $2, chunking_strategy = $3, updated_at = NOW()
+       WHERE id = $4`,
+      [
+        formatEmbeddingForPostgres(docEmbeddingResult.embedding),
+        chunks.length,
+        strategy,
+        documentId
+      ]
     )
 
     await client.query('COMMIT')
@@ -604,13 +635,14 @@ async function searchHybridSingle(
   queryText: string,
   embeddingStr: string,
   category: string | null,
+  docType: string | null,  // Nouveau paramètre
   limit: number,
   threshold: number,
   useOpenAI: boolean,
 ): Promise<KnowledgeBaseSearchResult[]> {
   const result = await db.query(
-    `SELECT * FROM search_knowledge_base_hybrid($1::text, $2::vector, $3::text, $4::integer, $5::double precision, $6::boolean)`,
-    [queryText, embeddingStr, category, limit, threshold, useOpenAI]
+    `SELECT * FROM search_knowledge_base_hybrid($1::text, $2::vector, $3::text, $4::text, $5::integer, $6::double precision, $7::boolean)`,
+    [queryText, embeddingStr, category, docType, limit, threshold, useOpenAI]
   )
 
   return result.rows.map((row) => {
@@ -659,6 +691,8 @@ export async function searchKnowledgeBaseHybrid(
   options: {
     category?: KnowledgeBaseCategory
     subcategory?: string
+    docType?: DocumentType  // Nouveau: filtrage par meta-catégorie
+    docTypes?: DocumentType[]  // Nouveau: filtrage par plusieurs meta-catégories
     limit?: number
     threshold?: number
     operationName?: string
@@ -672,10 +706,19 @@ export async function searchKnowledgeBaseHybrid(
   const {
     category,
     subcategory,
+    docType,
+    docTypes,
     limit = aiConfig.rag.maxResults,
     threshold = aiConfig.rag.similarityThreshold - 0.20, // SQL vector_threshold permissif (0.35) ; le HARD_QUALITY_GATE (0.50) filtre ensuite
     operationName,
   } = options
+
+  // Normaliser docTypes en array unique
+  const targetDocTypes = docTypes || (docType ? [docType] : null)
+
+  // Pour l'instant, on ne supporte qu'un seul doc_type dans la fonction SQL
+  // TODO: Améliorer pour supporter plusieurs doc_types (array) via SQL ANY()
+  const singleDocType = targetDocTypes ? targetDocTypes[0] : null
 
   // Import dynamique des services
   const { generateEmbedding, formatEmbeddingForPostgres } =
@@ -711,7 +754,7 @@ export async function searchKnowledgeBaseHybrid(
   if (useOpenAI) {
     // Recherche primaire avec OpenAI (haute qualité, couverture partielle ~5% chunks)
     const openaiResults = await searchHybridSingle(
-      queryText, embeddingStr, category || null, limit, threshold, true
+      queryText, embeddingStr, category || null, singleDocType, limit, threshold, true
     )
 
     // Si couverture insuffisante, chercher aussi avec Ollama (couvre 95% chunks legacy)
@@ -725,7 +768,7 @@ export async function searchKnowledgeBaseHybrid(
       const ollamaEmbStr = formatEmbeddingForPostgres(ollamaEmbedding.embedding)
 
       const ollamaResults = await searchHybridSingle(
-        queryText, ollamaEmbStr, category || null, limit, threshold, false
+        queryText, ollamaEmbStr, category || null, singleDocType, limit, threshold, false
       )
 
       // Fusionner : dédupliquer par chunk_id, prioriser OpenAI
@@ -745,7 +788,7 @@ export async function searchKnowledgeBaseHybrid(
   } else {
     // Recherche Ollama uniquement (couverture 100% chunks legacy)
     results = await searchHybridSingle(
-      queryText, embeddingStr, category || null, limit, threshold, false
+      queryText, embeddingStr, category || null, singleDocType, limit, threshold, false
     )
   }
 
@@ -1035,10 +1078,13 @@ export async function getKnowledgeBaseStats(): Promise<KnowledgeBaseStats> {
 // =============================================================================
 
 function mapRowToKnowledgeBase(row: Record<string, unknown>): KnowledgeBaseDocument {
+  const category = row.category as KnowledgeBaseCategory
+
   return {
     id: row.id as string,
-    category: row.category as KnowledgeBaseCategory,
+    category,
     subcategory: (row.subcategory as string) || null,
+    docType: (row.doc_type as DocumentType) || getDocumentType(category), // Auto-détect si absent
     language: (row.language as KnowledgeBaseLanguage) || 'ar',
     title: row.title as string,
     description: row.description as string | null,
@@ -1053,6 +1099,15 @@ function mapRowToKnowledgeBase(row: Record<string, unknown>): KnowledgeBaseDocum
     uploadedBy: row.uploaded_by as string | null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
+    // ✨ PHASE 2: Mapping nouveaux champs métadonnées enrichies
+    status: (row.status as LegalStatus) || 'en_vigueur',
+    citation: row.citation as string | null,
+    citationAr: row.citation_ar as string | null,
+    articleId: row.article_id as string | null,
+    reliability: (row.reliability as SourceReliability) || 'verifie',
+    versionDate: row.version_date ? new Date(row.version_date as string) : null,
+    supersedesId: row.supersedes_id as string | null,
+    supersededById: row.superseded_by_id as string | null,
   }
 }
 

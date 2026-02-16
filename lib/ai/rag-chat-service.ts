@@ -48,6 +48,11 @@ import {
 import { translateQuery, isTranslationAvailable } from './translation-service'
 import { filterAbrogatedSources } from './rag-abrogation-filter'
 import {
+  validateCitationFirst,
+  enforceCitationFirst,
+  CITATION_FIRST_SYSTEM_PROMPT,
+} from './citation-first-enforcer'
+import {
   getConversationContext,
   triggerSummaryGenerationIfNeeded,
   SUMMARY_CONFIG,
@@ -1686,6 +1691,54 @@ export async function answerQuestion(
       tokensUsed = llmResponse.tokensUsed
       modelUsed = llmResponse.modelUsed
       fallbackUsed = llmResponse.fallbackUsed
+
+      // ✨ PHASE 5: Citation-First Enforcement
+      // Valider que la réponse commence par une citation
+      if (sources.length > 0) {
+        const citationValidation = validateCitationFirst(answer)
+
+        if (!citationValidation.valid) {
+          console.warn(
+            `[RAG] Citation-first violation detected: ${citationValidation.issue} ` +
+            `(words before citation: ${citationValidation.metrics.wordsBeforeFirstCitation})`
+          )
+
+          // Conversion des sources au format attendu par l'enforcer
+          const enforcerSources = sources.map((src, idx) => ({
+            label: `[Source-${idx + 1}]`,
+            content: src.chunkContent,
+            title: src.documentName,
+            category: src.category,
+          }))
+
+          // Auto-correction
+          const correctedAnswer = enforceCitationFirst(answer, enforcerSources)
+
+          // Vérifier si correction réussie
+          const correctedValidation = validateCitationFirst(correctedAnswer)
+
+          if (correctedValidation.valid) {
+            console.log(
+              `[RAG] Citation-first enforced successfully ` +
+              `(${citationValidation.issue} → valid)`
+            )
+            answer = correctedAnswer
+          } else {
+            console.warn(
+              `[RAG] Citation-first enforcement partial ` +
+              `(issue: ${correctedValidation.issue})`
+            )
+            // Utiliser réponse corrigée même si pas parfaite (mieux que rien)
+            answer = correctedAnswer
+          }
+        } else {
+          console.log(
+            `[RAG] Citation-first validation passed ` +
+            `(${citationValidation.metrics.totalCitations} citations, ` +
+            `${citationValidation.metrics.wordsBeforeFirstCitation} words before first)`
+          )
+        }
+      }
 
       // Log si fallback utilisé
       if (fallbackUsed && llmResponse.originalProvider) {
