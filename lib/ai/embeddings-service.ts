@@ -236,7 +236,7 @@ export async function generateEmbedding(
   options?: EmbeddingOptions
 ): Promise<EmbeddingResult> {
   // Tronquer si le texte dépasse la limite du modèle d'embedding (~6000 chars pour 8192 tokens arabe)
-  const MAX_EMBEDDING_CHARS = 6000
+  const MAX_EMBEDDING_CHARS = 3500
   if (text.length > MAX_EMBEDDING_CHARS) {
     text = text.substring(0, MAX_EMBEDDING_CHARS)
   }
@@ -278,7 +278,7 @@ export async function generateEmbeddingsBatch(
   }
 
   // Tronquer les textes trop longs pour le modèle d'embedding
-  const MAX_EMBEDDING_CHARS = 6000
+  const MAX_EMBEDDING_CHARS = 3500
   texts = texts.map(t => t.length > MAX_EMBEDDING_CHARS ? t.substring(0, MAX_EMBEDDING_CHARS) : t)
 
   const provider = resolveEmbeddingProvider(options)
