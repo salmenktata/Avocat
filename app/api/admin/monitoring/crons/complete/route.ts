@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { pool } from '@/lib/db'
+import { getPool } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 10
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mettre à jour l'exécution
+    const pool = getPool()
     const result = await pool.query(
       `UPDATE cron_executions
        SET
