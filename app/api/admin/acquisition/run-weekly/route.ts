@@ -1,0 +1,122 @@
+/**
+ * API : Acquisition Hebdomadaire Automatique
+ *
+ * POST /api/admin/acquisition/run-weekly
+ * Lance l'acquisition pour toutes les sources web actives configurées pour acquisition auto
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db/postgres'
+
+// Protection CRON_SECRET
+function validateCronSecret(request: NextRequest): boolean {
+  const cronSecret = request.headers.get('x-cron-secret')
+  const expectedSecret = process.env.CRON_SECRET
+
+  if (!expectedSecret) {
+    console.error('❌ CRON_SECRET non configuré')
+    return false
+  }
+
+  return cronSecret === expectedSecret
+}
+
+export async function POST(request: NextRequest) {
+  // Vérifier authentification cron
+  if (!validateCronSecret(request)) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized - Invalid CRON_SECRET' },
+      { status: 401 }
+    )
+  }
+
+  try {
+    // 1. Récupérer toutes les sources actives configurées pour acquisition
+    const sources = await db.query(
+      `
+      SELECT id, url, name, category
+      FROM web_sources
+      WHERE is_active = true
+        AND auto_crawl = true
+      ORDER BY last_crawled_at ASC NULLS FIRST
+      `
+    )
+
+    if (sources.rows.length === 0) {
+      return NextResponse.json({
+        success: true,
+        sources: 0,
+        pages: 0,
+        message: 'Aucune source active avec auto_crawl=true',
+      })
+    }
+
+    let totalPages = 0
+    const results = []
+
+    // 2. Lancer l'acquisition pour chaque source
+    for (const source of sources.rows) {
+      try {
+        // Appeler l'API de crawl existante
+        const crawlResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/admin/web-sources/${source.id}/crawl`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              forceRecrawl: false, // Crawl incrémental
+            }),
+          }
+        )
+
+        if (crawlResponse.ok) {
+          const data = await crawlResponse.json()
+          totalPages += data.pagesFound || 0
+
+          results.push({
+            sourceId: source.id,
+            name: source.name,
+            status: 'success',
+            pages: data.pagesFound || 0,
+          })
+        } else {
+          results.push({
+            sourceId: source.id,
+            name: source.name,
+            status: 'failed',
+            error: `HTTP ${crawlResponse.status}`,
+          })
+        }
+      } catch (error) {
+        console.error(`❌ Erreur crawl source ${source.id}:`, error)
+        results.push({
+          sourceId: source.id,
+          name: source.name,
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        })
+      }
+    }
+
+    // 3. Retourner résumé
+    return NextResponse.json({
+      success: true,
+      sources: sources.rows.length,
+      pages: totalPages,
+      results,
+      timestamp: new Date().toISOString(),
+    })
+  } catch (error) {
+    console.error('❌ Erreur acquisition hebdomadaire:', error)
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
+  }
+}
