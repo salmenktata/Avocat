@@ -25,7 +25,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   let totalIndexed = 0
   let totalFailed = 0
   const batchSize = 5 // OpenAI embeddings rapide en prod
-  const maxBatches = 20 // Max 100 pages par appel (timeout 5min)
+  const maxBatches = 12 // Max 60 pages par appel (~4min pour grosses pages)
 
   console.log(`[IndexWebPages] Démarrage indexation web_pages (batch de ${batchSize}, max ${maxBatches} batches)`)
 
