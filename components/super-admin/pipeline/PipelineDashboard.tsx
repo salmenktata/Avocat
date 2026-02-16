@@ -30,6 +30,16 @@ interface FunnelData {
     count: number
     avgDaysInStage: number
   }>
+  avgTimePerStage?: Array<{
+    stage: string
+    avgHours: number
+    count: number
+  }>
+  throughput?: {
+    dailyAdvanced: Array<{ date: string; count: number }>
+    rejectionsBySource: Array<{ source_name: string; rejected: number; total: number; rate: number }>
+    slaBreaches: number
+  }
 }
 
 interface DocumentSummary {
@@ -223,6 +233,74 @@ export function PipelineDashboard() {
           needsRevision={funnelData.funnel.needsRevision}
           onStageClick={handleStageClick}
         />
+      )}
+
+      {/* Stats enrichies */}
+      {funnelData?.throughput && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Throughput 7j */}
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-sm font-medium text-muted-foreground mb-2">Throughput 7j</p>
+            <div className="space-y-1">
+              {funnelData.throughput.dailyAdvanced.length > 0 ? (
+                funnelData.throughput.dailyAdvanced.slice(0, 7).map(d => (
+                  <div key={d.date} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{new Date(d.date).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit' })}</span>
+                    <span className="font-medium">{d.count} docs</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Aucune activité</p>
+              )}
+            </div>
+          </div>
+
+          {/* SLA Breaches */}
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-sm font-medium text-muted-foreground mb-2">SLA ({'>'}3j sans avancer)</p>
+            <p className={`text-3xl font-bold ${funnelData.throughput.slaBreaches > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              {funnelData.throughput.slaBreaches}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">documents en attente</p>
+          </div>
+
+          {/* Taux rejet par source */}
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-sm font-medium text-muted-foreground mb-2">Taux rejet par source</p>
+            <div className="space-y-1">
+              {funnelData.throughput.rejectionsBySource.length > 0 ? (
+                funnelData.throughput.rejectionsBySource.slice(0, 5).map(s => (
+                  <div key={s.source_name} className="flex justify-between text-sm">
+                    <span className="truncate max-w-[140px] text-muted-foreground">{s.source_name}</span>
+                    <span className={`font-medium ${s.rate > 20 ? 'text-red-600' : s.rate > 10 ? 'text-amber-600' : 'text-green-600'}`}>
+                      {s.rate}%
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Aucune donnée</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Temps moyen par transition */}
+      {funnelData?.avgTimePerStage && funnelData.avgTimePerStage.length > 0 && (
+        <div className="rounded-lg border bg-card p-4">
+          <p className="text-sm font-medium text-muted-foreground mb-3">Temps moyen par transition</p>
+          <div className="flex flex-wrap gap-3">
+            {funnelData.avgTimePerStage.map(t => (
+              <div key={t.stage} className="rounded-md bg-muted/50 px-3 py-1.5 text-sm">
+                <span className="text-muted-foreground">{t.stage}</span>
+                <span className="ml-2 font-medium">
+                  {t.avgHours < 1 ? `${Math.round(t.avgHours * 60)}min` : t.avgHours < 24 ? `${t.avgHours}h` : `${Math.round(t.avgHours / 24)}j`}
+                </span>
+                <span className="ml-1 text-xs text-muted-foreground">({t.count})</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Tabs par étape */}

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
-import { getPipelineFunnelStats, getBottlenecks } from '@/lib/pipeline/pipeline-stats-service'
+import { getPipelineFunnelStats, getBottlenecks, getAverageTimePerStage, getThroughputStats } from '@/lib/pipeline/pipeline-stats-service'
 
 async function checkAdminAccess(userId: string): Promise<boolean> {
   const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
@@ -26,12 +26,14 @@ export async function GET(): Promise<NextResponse> {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    const [funnel, bottlenecks] = await Promise.all([
+    const [funnel, bottlenecks, avgTimePerStage, throughput] = await Promise.all([
       getPipelineFunnelStats(),
       getBottlenecks(),
+      getAverageTimePerStage(),
+      getThroughputStats(),
     ])
 
-    return NextResponse.json({ funnel, bottlenecks })
+    return NextResponse.json({ funnel, bottlenecks, avgTimePerStage, throughput })
   } catch (error) {
     console.error('[Pipeline API] Erreur stats:', error)
     return NextResponse.json(

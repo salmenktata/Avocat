@@ -41,6 +41,7 @@ interface PipelineStageTabProps {
   onRefresh: () => void
   onBulkAdvance: (ids: string[], notes?: string) => Promise<void>
   onBulkReject: (ids: string[], reason: string) => Promise<void>
+  onBulkReclassify?: (ids: string[], category: string) => Promise<void>
   searchValue: string
   onSearchChange: (value: string) => void
   sourceId: string
@@ -65,6 +66,7 @@ export function PipelineStageTab({
   onRefresh,
   onBulkAdvance,
   onBulkReject,
+  onBulkReclassify,
   searchValue,
   onSearchChange,
   sourceId,
@@ -115,6 +117,16 @@ export function PipelineStageTab({
       setBulkLoading(false)
     }
   }
+
+  const handleBulkReclassify = onBulkReclassify ? async (ids: string[], cat: string) => {
+    setBulkLoading(true)
+    try {
+      await onBulkReclassify(ids, cat)
+      setSelectedIds(new Set())
+    } finally {
+      setBulkLoading(false)
+    }
+  } : undefined
 
   const allSelected = documents.length > 0 && documents.every(d => selectedIds.has(d.id))
 
@@ -255,6 +267,7 @@ export function PipelineStageTab({
         currentStage={stage}
         onBulkAdvance={handleBulkAdvance}
         onBulkReject={handleBulkReject}
+        onBulkReclassify={handleBulkReclassify}
         onClearSelection={() => setSelectedIds(new Set())}
         isLoading={bulkLoading}
       />

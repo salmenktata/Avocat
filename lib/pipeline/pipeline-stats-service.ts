@@ -297,3 +297,61 @@ export async function getAverageTimePerStage(): Promise<Array<{
     count: parseInt(row.cnt),
   }))
 }
+
+// =============================================================================
+// THROUGHPUT & REJECTION STATS
+// =============================================================================
+
+export async function getThroughputStats(): Promise<{
+  dailyAdvanced: Array<{ date: string; count: number }>
+  rejectionsBySource: Array<{ source_name: string; rejected: number; total: number; rate: number }>
+  slaBreaches: number
+}> {
+  const [dailyResult, rejectionsResult, slaResult] = await Promise.all([
+    // Throughput: docs avancés par jour sur 7j
+    db.query(
+      `SELECT DATE(created_at) as date, COUNT(*) as cnt
+      FROM document_pipeline_history
+      WHERE action IN ('admin_approve', 'auto_advance')
+        AND created_at >= NOW() - INTERVAL '7 days'
+      GROUP BY DATE(created_at)
+      ORDER BY date DESC`
+    ),
+    // Taux de rejet par source
+    db.query(
+      `SELECT
+        COALESCE(ws.name, 'Inconnu') as source_name,
+        COUNT(*) FILTER (WHERE kb.pipeline_stage = 'rejected') as rejected,
+        COUNT(*) as total
+      FROM knowledge_base kb
+      LEFT JOIN web_pages wp ON wp.knowledge_base_id = kb.id
+      LEFT JOIN web_sources ws ON wp.web_source_id = ws.id
+      GROUP BY ws.name
+      HAVING COUNT(*) >= 5
+      ORDER BY COUNT(*) FILTER (WHERE kb.pipeline_stage = 'rejected') DESC
+      LIMIT 10`
+    ),
+    // Docs en dépassement SLA (>3j à une étape hors terminal)
+    db.query(
+      `SELECT COUNT(*) as cnt
+      FROM knowledge_base
+      WHERE pipeline_stage NOT IN ('rag_active', 'rejected')
+        AND is_active = true
+        AND pipeline_stage_updated_at < NOW() - INTERVAL '3 days'`
+    ),
+  ])
+
+  return {
+    dailyAdvanced: dailyResult.rows.map(r => ({
+      date: r.date,
+      count: parseInt(r.cnt),
+    })),
+    rejectionsBySource: rejectionsResult.rows.map(r => ({
+      source_name: r.source_name,
+      rejected: parseInt(r.rejected),
+      total: parseInt(r.total),
+      rate: Math.round((parseInt(r.rejected) / parseInt(r.total)) * 100),
+    })),
+    slaBreaches: parseInt(slaResult.rows[0]?.cnt || '0'),
+  }
+}

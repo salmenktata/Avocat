@@ -78,12 +78,17 @@ export function PipelineDocumentRow({ doc, isSelected, onSelect }: PipelineDocum
           <Icons.xCircle className="h-4 w-4 text-muted-foreground mx-auto" />
         )}
       </td>
-      <td className="p-3 text-sm text-muted-foreground text-center">
-        {doc.days_in_stage > 1
-          ? `${doc.days_in_stage}j`
-          : doc.days_in_stage > 0
-          ? `${Math.round(doc.days_in_stage * 24)}h`
-          : '< 1h'}
+      <td className="p-3 text-sm text-center">
+        <span className={doc.days_in_stage >= 3 ? 'text-red-600 font-medium' : doc.days_in_stage >= 1 ? 'text-amber-600' : 'text-muted-foreground'}>
+          {doc.days_in_stage > 1
+            ? `${doc.days_in_stage}j`
+            : doc.days_in_stage > 0
+            ? `${Math.round(doc.days_in_stage * 24)}h`
+            : '< 1h'}
+        </span>
+        {doc.days_in_stage >= 3 && (
+          <Badge variant="destructive" className="ml-1 text-[10px] px-1 py-0">SLA</Badge>
+        )}
       </td>
       <td className="p-3">
         <Link

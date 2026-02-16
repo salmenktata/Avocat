@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
-import { LEGAL_CATEGORY_TRANSLATIONS, type LegalCategory } from '@/lib/categories/legal-categories'
+import { LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
 
 interface PipelineBulkActionsProps {
   selectedCount: number
