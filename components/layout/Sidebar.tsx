@@ -57,8 +57,10 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
     groupIcon: 'search',
     items: [
       { href: '/client/knowledge-base', label: 'knowledgeBaseExplorer', icon: 'bookOpen' },
-      { href: '/client/jurisprudence-timeline', label: 'jurisprudenceTimeline', icon: 'history' },
-      { href: '/client/legal-reasoning', label: 'legalReasoning', icon: 'lightbulb' },
+      ...(userRole === 'super_admin' ? [
+        { href: '/client/jurisprudence-timeline', label: 'jurisprudenceTimeline', icon: 'history' as keyof typeof Icons },
+        { href: '/client/legal-reasoning', label: 'legalReasoning', icon: 'lightbulb' as keyof typeof Icons },
+      ] : []),
     ],
   },
   {

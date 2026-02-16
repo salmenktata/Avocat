@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { stopImpersonationAction } from '@/app/actions/super-admin/impersonation'
 
 interface ImpersonationStatus {
@@ -11,7 +10,6 @@ interface ImpersonationStatus {
 }
 
 export function ImpersonationBanner() {
-  const router = useRouter()
   const [status, setStatus] = useState<ImpersonationStatus | null>(null)
   const [stopping, setStopping] = useState(false)
 
@@ -29,8 +27,8 @@ export function ImpersonationBanner() {
     try {
       const result = await stopImpersonationAction()
       if (!result.error) {
-        router.push('/super-admin/users')
-        router.refresh()
+        // Navigation dure pour s'assurer que les cookies restaurés sont envoyés
+        window.location.href = '/super-admin/users'
       }
     } finally {
       setStopping(false)
