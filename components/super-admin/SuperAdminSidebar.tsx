@@ -36,7 +36,7 @@ interface SuperAdminSidebarProps {
   onToggleCollapse?: () => void
 }
 
-// Navigation Super Admin - 4 groupes, 14 items
+// Navigation Super Admin - 5 groupes, 21 items
 const getNavGroups = (
   pendingCount: number,
   pendingContradictions: number,
@@ -74,8 +74,11 @@ const getNavGroups = (
   {
     group: 'Contenu & Données',
     items: [
-      { href: '/super-admin/pipeline-status', label: 'Pipeline KB', icon: 'merge' },
+      { href: '/super-admin/knowledge-base', label: 'Base de Connaissances', icon: 'bookOpen' },
+      { href: '/super-admin/pipeline', label: 'Pipeline', icon: 'target' },
+      { href: '/super-admin/pipeline-status', label: 'Statut Pipeline', icon: 'merge' },
       { href: '/super-admin/web-sources', label: 'Sources Web', icon: 'globe' },
+      { href: '/super-admin/web-files', label: 'Fichiers Web', icon: 'fileText' },
       { href: '/super-admin/legal-documents', label: 'Documents Juridiques', icon: 'scale' },
       {
         href: '/super-admin/contradictions',
@@ -84,6 +87,14 @@ const getNavGroups = (
         badge: pendingContradictions || undefined,
         badgeVariant: 'secondary' as const,
       },
+    ],
+  },
+  {
+    group: 'IA & Qualité',
+    items: [
+      { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'checkCircle' },
+      { href: '/super-admin/classification', label: 'Classification', icon: 'tag' },
+      { href: '/super-admin/notifications', label: 'Notifications', icon: 'bell' },
     ],
   },
   {
