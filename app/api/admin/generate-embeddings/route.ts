@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db/db'
-import { sql } from 'drizzle-orm'
+import { db } from '@/lib/db/postgres'
 import OpenAI from 'openai'
 
 const openai = new OpenAI({
@@ -40,7 +39,7 @@ export async function POST(request: NextRequest) {
     console.log(`   Max chunks: ${maxChunks || 'illimité'}`)
 
     // Récupérer les chunks sans embeddings
-    let query = sql`
+    let queryText = `
       SELECT
         kbc.id,
         kbc.content,
@@ -52,15 +51,19 @@ export async function POST(request: NextRequest) {
       AND kbc.embedding_openai IS NULL
     `
 
+    const params: any[] = []
+
     if (category) {
-      query = sql`${query} AND kb.category = ${category}`
+      params.push(category)
+      queryText += ` AND kb.category = $${params.length}`
     }
 
     if (maxChunks > 0) {
-      query = sql`${query} LIMIT ${maxChunks}`
+      params.push(maxChunks)
+      queryText += ` LIMIT $${params.length}`
     }
 
-    const chunks = await db.execute(query)
+    const chunks = await db.query(queryText, params)
 
     if (chunks.rows.length === 0) {
       return NextResponse.json({
@@ -93,11 +96,12 @@ export async function POST(request: NextRequest) {
           const embedding = response.data[0].embedding
 
           // Mettre à jour en DB
-          await db.execute(sql`
-            UPDATE knowledge_base_chunks
-            SET embedding_openai = ${JSON.stringify(embedding)}::vector(1536)
-            WHERE id = ${chunk.id as string}
-          `)
+          await db.query(
+            `UPDATE knowledge_base_chunks
+             SET embedding_openai = $1::vector(1536)
+             WHERE id = $2`,
+            [JSON.stringify(embedding), chunk.id]
+          )
 
           processed++
 
