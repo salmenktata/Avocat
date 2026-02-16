@@ -478,6 +478,32 @@ export async function callLLMWithFallback(
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error))
 
+      // Sur erreur 429 (rate limit), basculer vers cascade fallback au lieu de throw
+      if (isRateLimitError(error)) {
+        console.warn(
+          `[LLM] ⚠️ ${provider} rate-limité pour ${options.operationName || 'default'}, cascade fallback...`
+        )
+        // Trouver les providers alternatifs disponibles
+        const available = getAvailableProviders().filter(p => p !== provider)
+        for (const fallbackProvider of available) {
+          try {
+            const response = await callProvider(fallbackProvider, messages, options)
+            console.log(`[LLM] ✓ Fallback rate-limit réussi: ${provider} → ${fallbackProvider}`)
+            return {
+              ...response,
+              fallbackUsed: true,
+              originalProvider: provider,
+            }
+          } catch (fallbackErr) {
+            console.warn(`[LLM] ⚠ Fallback ${fallbackProvider} échoué:`, fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr))
+          }
+        }
+        // Si tous les fallbacks échouent aussi
+        throw new Error(
+          `Provider ${provider} rate-limité et aucun fallback disponible pour ${options.operationName || 'default'}: ${err.message}`
+        )
+      }
+
       // Envoyer alerte si opération critique
       if (operationConfig?.alerts?.onFailure === 'email') {
         sendProviderFailureAlert(provider, options.operationName, err).catch(() => {})
