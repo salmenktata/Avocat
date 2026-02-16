@@ -80,13 +80,23 @@ export async function middleware(request: NextRequest) {
 
     // Vérifier le rôle pour les routes super-admin
     if (pathname.startsWith('/super-admin')) {
-      if (user.role !== 'super_admin') {
-        // Rediriger vers le dashboard normal
+      // Pages accessibles aux admins (en plus des super_admin)
+      const adminAllowedPages = ['/super-admin/pipeline']
+      const isAdminAllowedPage = adminAllowedPages.some(page => pathname.startsWith(page))
+
+      if (isAdminAllowedPage) {
+        if (user.role !== 'super_admin' && user.role !== 'admin') {
+          return NextResponse.redirect(new URL('/dashboard', request.url))
+        }
+      } else if (user.role !== 'super_admin') {
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
     }
 
-    return NextResponse.next()
+    // Passer le pathname au layout via header (pour vérification rôle admin)
+    const response = NextResponse.next()
+    response.headers.set('x-pathname', pathname)
+    return response
   } catch {
     // Token invalide ou expiré
     const response = NextResponse.redirect(new URL('/login', request.url))

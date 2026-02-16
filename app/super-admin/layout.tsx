@@ -1,8 +1,12 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { SuperAdminLayout } from '@/components/super-admin/SuperAdminLayout'
 import { Toaster } from '@/components/ui/toaster'
+
+// Pages super-admin accessibles aux admins (en plus des super_admin)
+const ADMIN_ALLOWED_PAGES = ['/super-admin/pipeline']
 
 export default async function SuperAdminRootLayout({
   children,
@@ -15,16 +19,30 @@ export default async function SuperAdminRootLayout({
     redirect('/login')
   }
 
-  // Vérifier le rôle super_admin
+  // Vérifier le rôle
   const userResult = await query(
     'SELECT id, email, nom, prenom, role FROM users WHERE id = $1',
     [session.user.id]
   )
   const user = userResult.rows[0]
 
-  if (!user || user.role !== 'super_admin') {
-    // Rediriger vers le dashboard normal si pas super admin
+  if (!user) {
     redirect('/dashboard')
+  }
+
+  // Super admin a accès à tout
+  // Admin a accès uniquement aux pages autorisées
+  if (user.role !== 'super_admin') {
+    if (user.role === 'admin') {
+      const headersList = await headers()
+      const pathname = headersList.get('x-pathname') || ''
+      const isAllowed = ADMIN_ALLOWED_PAGES.some(page => pathname.startsWith(page))
+      if (!isAllowed) {
+        redirect('/dashboard')
+      }
+    } else {
+      redirect('/dashboard')
+    }
   }
 
   // Récupérer le nombre d'utilisateurs en attente
