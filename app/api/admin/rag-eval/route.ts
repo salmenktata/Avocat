@@ -142,7 +142,7 @@ function applyDomainBoost(results: KnowledgeBaseSearchResult[], query: string): 
   // Apply code source boost (1.3x) + domain boost and re-sort
   const CODE_BOOST = 1.3
   const boosted = results.map(r => {
-    let boost = r.category === 'code' ? CODE_BOOST : 1.0
+    let boost = r.category === 'codes' ? CODE_BOOST : 1.0
     for (const { pattern, factor } of boostPatterns) {
       if (r.title.includes(pattern)) {
         boost *= factor
