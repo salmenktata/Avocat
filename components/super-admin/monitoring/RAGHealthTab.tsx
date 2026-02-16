@@ -238,7 +238,7 @@ export function RAGHealthTab() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name.split(' ')[0]}: ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${(name || '').split(' ')[0]}: ${((percent || 0) * 100).toFixed(0)}%`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -247,8 +247,8 @@ export function RAGHealthTab() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  formatter={(value: number) => value.toLocaleString() + ' chunks'}
+                <Tooltip
+                  formatter={(value) => `${Number(value).toLocaleString()} chunks`}
                 />
                 <Legend />
               </PieChart>
@@ -270,8 +270,8 @@ export function RAGHealthTab() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis domain={[0, 100]} />
-                <Tooltip 
-                  formatter={(value: number) => `${value.toFixed(1)}%`}
+                <Tooltip
+                  formatter={(value) => `${Number(value).toFixed(1)}%`}
                   labelFormatter={(label) => `Date: ${label}`}
                 />
                 <Line 
