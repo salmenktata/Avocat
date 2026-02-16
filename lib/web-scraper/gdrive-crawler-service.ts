@@ -157,6 +157,22 @@ export async function crawlGoogleDriveFolder(
     })
   }
 
+  // Mettre à jour lastCrawlAt si crawl réussi (Phase 3.3 - Incrémental)
+  if (result.success && options.incrementalMode) {
+    try {
+      await db.query(
+        `UPDATE web_sources
+         SET last_crawl_at = NOW(), updated_at = NOW()
+         WHERE id = $1`,
+        [source.id]
+      )
+      console.log(`[GDriveCrawler] ✅ Updated lastCrawlAt for source ${source.id}`)
+    } catch (updateError: any) {
+      console.warn(`[GDriveCrawler] Failed to update lastCrawlAt:`, updateError.message)
+      // Non-fatal, on continue
+    }
+  }
+
   return result
 }
 
