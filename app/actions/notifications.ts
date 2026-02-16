@@ -89,22 +89,35 @@ export async function testNotificationAction() {
 
     const userId = session.user.id
 
-    // TODO: Appeler l'API de notification (remplacer Supabase Edge Function)
-    // Pour l'instant, on retourne un message indiquant que la fonction doit être implémentée
-    console.log('[testNotificationAction] Test notification pour user:', userId)
+    // Phase 4.3: Appeler l'API de notification Next.js (remplace Supabase Edge Function)
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000'
 
-    // Dans une vraie implémentation, on appellerait une route API Next.js
-    // const response = await fetch('/api/notifications/test', {
-    //   method: 'POST',
-    //   body: JSON.stringify({ user_id: userId }),
-    // })
+    const response = await fetch(`${baseUrl}/api/notifications/test`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Pas besoin de Authorization car route API utilise getSession()
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || data.details || 'Erreur inconnue')
+    }
 
     return {
       success: true,
-      message: 'Email de test envoyé avec succès ! Vérifiez votre boîte de réception.',
+      message: data.message || 'Email de test envoyé avec succès ! Vérifiez votre boîte de réception.',
+      email: data.email,
     }
   } catch (error) {
     console.error('Erreur testNotification:', error)
-    return { error: 'Erreur lors du test' }
+    return {
+      error: `Erreur lors du test: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
+    }
   }
 }
