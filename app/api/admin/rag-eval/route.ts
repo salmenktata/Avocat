@@ -112,6 +112,50 @@ const EVAL_BENCHMARK: EvalQuery[] = [
 // HELPERS
 // =============================================================================
 
+// Domain boost mapping (mirrors rag-chat-service.ts detectDomainBoost)
+const DOMAIN_BOOST_MAP: { keywords: string[]; titlePatterns: string[]; factor: number }[] = [
+  { keywords: ['جزائي', 'جزائية', 'جنائي', 'عقوبة', 'عقوبات', 'جريمة', 'القتل', 'السرقة', 'الدفاع الشرعي', 'الرشوة', 'pénal', 'criminel', 'légitime défense'], titlePatterns: ['المجلة الجزائية', 'الإجراءات الجزائية'], factor: 1.25 },
+  { keywords: ['مدني', 'التزامات', 'عقود', 'تعويض', 'مسؤولية مدنية', 'تقادم', 'civil', 'responsabilité', 'délictuel'], titlePatterns: ['مجلة الالتزامات والعقود'], factor: 1.25 },
+  { keywords: ['أحوال شخصية', 'طلاق', 'زواج', 'نفقة', 'حضانة', 'ميراث', 'divorce', 'mariage', 'garde', 'famille'], titlePatterns: ['مجلة الأحوال الشخصية'], factor: 1.25 },
+  { keywords: ['شغل', 'عمل', 'طرد تعسفي', 'إضراب', 'أجر', 'عامل', 'مؤجر', 'travail', 'licenciement', 'grève'], titlePatterns: ['مجلة الشغل'], factor: 1.25 },
+  { keywords: ['تجاري', 'تجارية', 'شيك', 'إفلاس', 'تفليس', 'كمبيالة', 'commercial', 'chèque', 'faillite'], titlePatterns: ['المجلة التجارية', 'مجلة الشركات التجارية'], factor: 1.25 },
+  { keywords: ['مرافعات', 'استئناف', 'تعقيب', 'دعوى', 'إجراءات مدنية', 'procédure'], titlePatterns: ['مجلة المرافعات المدنية والتجارية'], factor: 1.20 },
+]
+
+function applyDomainBoost(results: KnowledgeBaseSearchResult[], query: string): KnowledgeBaseSearchResult[] {
+  if (results.length === 0) return results
+
+  const queryLower = query.toLowerCase()
+  const boostPatterns: { pattern: string; factor: number }[] = []
+
+  for (const domain of DOMAIN_BOOST_MAP) {
+    const hasKeyword = domain.keywords.some(kw => query.includes(kw) || queryLower.includes(kw))
+    if (hasKeyword) {
+      for (const p of domain.titlePatterns) {
+        boostPatterns.push({ pattern: p, factor: domain.factor })
+      }
+    }
+  }
+
+  if (boostPatterns.length === 0) return results
+
+  // Apply code source boost (1.3x) + domain boost and re-sort
+  const CODE_BOOST = 1.3
+  const boosted = results.map(r => {
+    let boost = r.category === 'code' ? CODE_BOOST : 1.0
+    for (const { pattern, factor } of boostPatterns) {
+      if (r.title.includes(pattern)) {
+        boost *= factor
+        break
+      }
+    }
+    return { ...r, similarity: r.similarity * boost }
+  })
+
+  boosted.sort((a, b) => b.similarity - a.similarity)
+  return boosted
+}
+
 function titleMatchesExpected(resultTitle: string, expectedTitle: string): boolean {
   const normalizedResult = resultTitle.trim()
   const normalizedExpected = expectedTitle.trim()
@@ -167,6 +211,9 @@ async function evaluateQuery(
   } catch (error) {
     console.error(`[RAG Eval] Search error for "${evalQuery.query}":`, error)
   }
+
+  // Appliquer domain boost (comme le fait le pipeline réel dans rag-chat-service)
+  results = applyDomainBoost(results, evalQuery.query)
 
   const latencyMs = Date.now() - start
 
