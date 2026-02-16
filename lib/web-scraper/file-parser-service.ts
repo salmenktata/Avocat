@@ -355,7 +355,11 @@ async function getOrCreateWorker() {
   }
 
   const Tesseract = await loadTesseract()
-  tesseractWorker = await Tesseract.createWorker(OCR_CONFIG.LANGUAGES, 1)
+  tesseractWorker = await Tesseract.createWorker(OCR_CONFIG.LANGUAGES, 1, {
+    // Utiliser les traineddata locales (tessdata_best) au lieu du CDN
+    langPath: '/usr/share/tesseract-ocr/5/tessdata',
+    gzip: false,
+  })
   workerUseCount = 1
   return tesseractWorker
 }
@@ -378,14 +382,16 @@ export async function terminateOcrWorker(): Promise<void> {
 /**
  * Prétraite une image pour améliorer la qualité OCR
  * Optimisé pour le texte arabe (script connecté, ligatures)
+ *
+ * IMPORTANT: Pas de threshold() — la binarisation dure casse les ligatures arabes.
+ * Tesseract gère mieux les images en niveaux de gris normalisées.
  */
 async function preprocessImageForOcr(imageBuffer: Buffer): Promise<Buffer> {
   const sharp = (await import('sharp')).default
   return sharp(imageBuffer)
     .greyscale()
     .normalize()
-    .sharpen({ sigma: 1.5 })
-    .threshold(128)
+    .sharpen({ sigma: 1.0 })
     .png()
     .toBuffer()
 }

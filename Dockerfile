@@ -89,7 +89,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libdrm2 libdbus-1-3 libxkbcommon0 libatspi2.0-0 libxcomposite1 \
     libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
     tesseract-ocr tesseract-ocr-ara tesseract-ocr-fra \
-    libreoffice-writer --no-install-recommends \
+    libreoffice-writer curl --no-install-recommends \
+    && curl -sL -o /usr/share/tesseract-ocr/5/tessdata/ara.traineddata \
+       https://github.com/tesseract-ocr/tessdata_best/raw/main/ara.traineddata \
+    && curl -sL -o /usr/share/tesseract-ocr/5/tessdata/fra.traineddata \
+       https://github.com/tesseract-ocr/tessdata_best/raw/main/fra.traineddata \
+    && apt-get purge -y curl && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
