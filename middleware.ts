@@ -78,6 +78,18 @@ export async function middleware(request: NextRequest) {
       }
     }
 
+    // Pages réservées au super_admin dans le dashboard
+    const superAdminOnlyPages = [
+      '/parametres/base-connaissances',
+      '/client/jurisprudence-timeline',
+      '/client/legal-reasoning',
+    ]
+    if (superAdminOnlyPages.some(page => pathname.startsWith(page))) {
+      if (user.role !== 'super_admin') {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+    }
+
     // Vérifier le rôle pour les routes super-admin
     if (pathname.startsWith('/super-admin')) {
       // Pages accessibles aux admins (en plus des super_admin)
@@ -112,6 +124,7 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/clients/:path*',
+    '/client/:path*',
     '/dossiers/:path*',
     '/factures/:path*',
     '/parametres/:path*',
