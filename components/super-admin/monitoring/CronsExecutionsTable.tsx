@@ -3,6 +3,8 @@
 /**
  * Table Historique Exécutions Crons
  * Avec filtres, tri, pagination et détails collapsibles
+ * QW2: Headers triables avec icônes ⬆️⬇️
+ * QW3: Export CSV avec filtres appliqués
  */
 
 import { useState, useEffect } from 'react'
@@ -30,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ChevronLeft, ChevronRight, Eye, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, RefreshCw, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -52,6 +54,9 @@ interface Execution {
   triggered_by: string
 }
 
+type SortField = 'cron_name' | 'status' | 'started_at' | 'duration_ms' | 'triggered_by'
+type SortDirection = 'asc' | 'desc' | null
+
 export function CronsExecutionsTable() {
   const [executions, setExecutions] = useState<Execution[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,6 +65,10 @@ export function CronsExecutionsTable() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [cronNameFilter, setCronNameFilter] = useState<string>('all')
   const [selectedExecution, setSelectedExecution] = useState<Execution | null>(null)
+
+  // QW2: États pour tri
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
 
   const fetchExecutions = async () => {
     try {
@@ -130,6 +139,87 @@ export function CronsExecutionsTable() {
     return `${(ms / 60000).toFixed(1)}min`
   }
 
+  // QW2: Fonction de tri
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Cycle: asc → desc → null
+      if (sortDirection === 'asc') {
+        setSortDirection('desc')
+      } else if (sortDirection === 'desc') {
+        setSortDirection(null)
+        setSortField(null)
+      }
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  // Tri des données
+  const sortedExecutions = [...executions].sort((a, b) => {
+    if (!sortField || !sortDirection) return 0
+
+    let aValue: any = a[sortField]
+    let bValue: any = b[sortField]
+
+    // Gérer les valeurs null/undefined
+    if (aValue === null || aValue === undefined) return 1
+    if (bValue === null || bValue === undefined) return -1
+
+    // Dates
+    if (sortField === 'started_at') {
+      aValue = new Date(aValue).getTime()
+      bValue = new Date(bValue).getTime()
+    }
+
+    // Comparaison
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+
+  // Icône de tri
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-3 w-3 ml-1 inline opacity-30" />
+    }
+    if (sortDirection === 'asc') {
+      return <ArrowUp className="h-3 w-3 ml-1 inline text-primary" />
+    }
+    return <ArrowDown className="h-3 w-3 ml-1 inline text-primary" />
+  }
+
+  // QW3: Export CSV
+  const exportToCSV = () => {
+    const headers = ['Cron', 'Statut', 'Démarré', 'Durée (ms)', 'Exit Code', 'Déclencheur', 'ID']
+    const rows = sortedExecutions.map((exec) => [
+      exec.cron_name,
+      exec.status,
+      new Date(exec.started_at).toLocaleString('fr-FR'),
+      exec.duration_ms?.toString() || 'N/A',
+      exec.exit_code?.toString() || 'N/A',
+      exec.triggered_by,
+      exec.id,
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+
+    const filename = `crons-executions-${new Date().toISOString().split('T')[0]}.csv`
+    link.setAttribute('href', url)
+    link.setAttribute('download', filename)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <>
       <Card>
@@ -141,17 +231,28 @@ export function CronsExecutionsTable() {
                 50 exécutions par page • Page {page} / {totalPages}
               </CardDescription>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchExecutions}
-              disabled={loading}
-            >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
-              />
-              Rafraîchir
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToCSV}
+                disabled={loading || executions.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchExecutions}
+                disabled={loading}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
+                />
+                Rafraîchir
+              </Button>
+            </div>
           </div>
 
           {/* Filtres */}
@@ -189,11 +290,36 @@ export function CronsExecutionsTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Cron</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Démarré</TableHead>
-                <TableHead>Durée</TableHead>
-                <TableHead>Déclencheur</TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('cron_name')}
+                >
+                  Cron {getSortIcon('cron_name')}
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('status')}
+                >
+                  Statut {getSortIcon('status')}
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('started_at')}
+                >
+                  Démarré {getSortIcon('started_at')}
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('duration_ms')}
+                >
+                  Durée {getSortIcon('duration_ms')}
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('triggered_by')}
+                >
+                  Déclencheur {getSortIcon('triggered_by')}
+                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -212,7 +338,7 @@ export function CronsExecutionsTable() {
                   </TableCell>
                 </TableRow>
               ) : (
-                executions.map((exec) => (
+                sortedExecutions.map((exec) => (
                   <TableRow key={exec.id}>
                     <TableCell className="font-medium">{exec.cron_name}</TableCell>
                     <TableCell>{getStatusBadge(exec.status)}</TableCell>

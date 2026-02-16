@@ -3,9 +3,19 @@
 /**
  * Timeline Chart - Exécutions crons sur 7 derniers jours
  * Stacked bar chart (completed vs failed)
+ * QW4: Filtres rapides (24h | 3j | 7j) + filtre par cron
  */
 
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   BarChart,
   Bar,
@@ -24,16 +34,51 @@ interface CronsTimelineChartProps {
     failed: number
     running: number
     total: number
+    cron_name?: string
   }>
 }
 
+type TimeRange = '24h' | '3j' | '7j'
+
 export function CronsTimelineChart({ data }: CronsTimelineChartProps) {
+  const [timeRange, setTimeRange] = useState<TimeRange>('7j')
+  const [cronFilter, setCronFilter] = useState<string>('all')
+
   if (!data || data.length === 0) {
     return null
   }
 
+  // QW4: Filtrer par période
+  const filterByTimeRange = (items: typeof data): typeof data => {
+    const now = new Date()
+    const cutoffDate = new Date()
+
+    if (timeRange === '24h') {
+      cutoffDate.setDate(cutoffDate.getDate() - 1)
+    } else if (timeRange === '3j') {
+      cutoffDate.setDate(cutoffDate.getDate() - 3)
+    } else {
+      cutoffDate.setDate(cutoffDate.getDate() - 7)
+    }
+
+    return items.filter((d) => new Date(d.date) >= cutoffDate)
+  }
+
+  // QW4: Filtrer par cron (si les données contiennent cron_name)
+  const filterByCron = (items: typeof data): typeof data => {
+    if (cronFilter === 'all') return items
+    return items.filter((d) => d.cron_name === cronFilter)
+  }
+
+  // Appliquer les filtres
+  let filteredData = filterByTimeRange(data)
+  filteredData = filterByCron(filteredData)
+
+  // Liste unique des crons
+  const uniqueCrons = Array.from(new Set(data.map((d) => d.cron_name).filter(Boolean)))
+
   // Formater les données pour Recharts
-  const chartData = data.map((d) => ({
+  const chartData = filteredData.map((d) => ({
     ...d,
     date: new Date(d.date).toLocaleDateString('fr-FR', {
       day: '2-digit',
@@ -44,10 +89,59 @@ export function CronsTimelineChart({ data }: CronsTimelineChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Timeline Exécutions</CardTitle>
-        <CardDescription>
-          Historique des exécutions sur les derniers jours
-        </CardDescription>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <CardTitle>Timeline Exécutions</CardTitle>
+            <CardDescription>
+              Historique des exécutions sur les derniers jours
+            </CardDescription>
+          </div>
+        </div>
+
+        {/* QW4: Filtres rapides */}
+        <div className="flex gap-4 items-center">
+          {/* Pills période */}
+          <div className="flex gap-2">
+            <Button
+              variant={timeRange === '24h' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTimeRange('24h')}
+            >
+              24h
+            </Button>
+            <Button
+              variant={timeRange === '3j' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTimeRange('3j')}
+            >
+              3j
+            </Button>
+            <Button
+              variant={timeRange === '7j' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTimeRange('7j')}
+            >
+              7j
+            </Button>
+          </div>
+
+          {/* Filtre par cron */}
+          {uniqueCrons.length > 0 && (
+            <Select value={cronFilter} onValueChange={setCronFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Tous les crons" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les crons</SelectItem>
+                {uniqueCrons.map((name) => (
+                  <SelectItem key={name} value={name!}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
@@ -96,19 +190,19 @@ export function CronsTimelineChart({ data }: CronsTimelineChartProps) {
         <div className="mt-4 grid grid-cols-3 gap-4 border-t pt-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
-              {data.reduce((sum, d) => sum + d.completed, 0)}
+              {filteredData.reduce((sum, d) => sum + d.completed, 0)}
             </div>
             <div className="text-xs text-muted-foreground">Total Succès</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-red-600">
-              {data.reduce((sum, d) => sum + d.failed, 0)}
+              {filteredData.reduce((sum, d) => sum + d.failed, 0)}
             </div>
             <div className="text-xs text-muted-foreground">Total Échecs</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold">
-              {data.reduce((sum, d) => sum + d.total, 0)}
+              {filteredData.reduce((sum, d) => sum + d.total, 0)}
             </div>
             <div className="text-xs text-muted-foreground">Total Exécutions</div>
           </div>

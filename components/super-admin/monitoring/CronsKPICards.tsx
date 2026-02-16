@@ -3,8 +3,10 @@
 /**
  * KPI Cards pour Crons Monitoring
  * 4 métriques principales : Exécutions 24h, En Cours, Échecs, Prochaine Exécution
+ * QW1: Countdown live tick granularité seconde
  */
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +18,8 @@ interface CronsKPICardsProps {
 }
 
 export function CronsKPICards({ stats, schedules }: CronsKPICardsProps) {
+  const [liveCountdown, setLiveCountdown] = useState<string | null>(null)
+
   if (!stats || !schedules) {
     return null
   }
@@ -73,14 +77,38 @@ export function CronsKPICards({ stats, schedules }: CronsKPICardsProps) {
       )
     })[0]
 
-  const nextExecutionCountdown = nextCron?.next_execution_at
-    ? Math.max(
-        0,
-        Math.round(
-          (new Date(nextCron.next_execution_at).getTime() - Date.now()) / 1000 / 60
-        )
-      )
-    : null
+  // QW1: Live countdown avec granularité seconde
+  const formatCountdown = (diffSeconds: number): string => {
+    if (diffSeconds <= 0) return '0s'
+    const minutes = Math.floor(diffSeconds / 60)
+    const seconds = diffSeconds % 60
+    if (minutes > 0) {
+      return `${minutes}min ${seconds}s`
+    }
+    return `${seconds}s`
+  }
+
+  // useEffect pour update countdown chaque seconde
+  useEffect(() => {
+    if (!nextCron?.next_execution_at) {
+      setLiveCountdown(null)
+      return
+    }
+
+    const updateCountdown = () => {
+      const diffMs = new Date(nextCron.next_execution_at).getTime() - Date.now()
+      const diffSeconds = Math.max(0, Math.floor(diffMs / 1000))
+      setLiveCountdown(formatCountdown(diffSeconds))
+    }
+
+    // Update initial
+    updateCountdown()
+
+    // Update chaque seconde
+    const interval = setInterval(updateCountdown, 1000)
+
+    return () => clearInterval(interval)
+  }, [nextCron?.next_execution_at])
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -176,7 +204,7 @@ export function CronsKPICards({ stats, schedules }: CronsKPICardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {nextExecutionCountdown !== null ? `${nextExecutionCountdown}min` : 'N/A'}
+            {liveCountdown || 'N/A'}
           </div>
           <p className="text-xs text-muted-foreground">
             {nextCron ? (
