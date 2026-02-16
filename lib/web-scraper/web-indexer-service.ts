@@ -610,7 +610,7 @@ export async function indexWebPages(
   // Les pages fichiers-seuls (Google Drive sans texte) sont exclues pour éviter une boucle infinie
   const sql = `
     SELECT id FROM web_pages
-    WHERE status IN ('crawled', 'unchanged')
+    WHERE status IN ('crawled', 'unchanged', 'indexed')
     AND is_indexed = false
     AND extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100
     ${KB_ARABIC_ONLY ? `AND (language_detected = 'ar' OR language_detected IS NULL)` : ''}
