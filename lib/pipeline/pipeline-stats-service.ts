@@ -88,20 +88,31 @@ const PIPELINE_ORDER: PipelineStage[] = [
 // =============================================================================
 
 export async function getPipelineFunnelStats(): Promise<PipelineFunnelStats> {
-  const result = await db.query(
-    `SELECT pipeline_stage, COUNT(*) as cnt
-    FROM knowledge_base
-    WHERE is_active = true OR pipeline_stage = 'rejected'
-    GROUP BY pipeline_stage
-    ORDER BY pipeline_stage`
-  )
+  const [kbResult, sourcesResult] = await Promise.all([
+    db.query(
+      `SELECT pipeline_stage, COUNT(*) as cnt
+      FROM knowledge_base
+      WHERE is_active = true OR pipeline_stage = 'rejected'
+      GROUP BY pipeline_stage
+      ORDER BY pipeline_stage`
+    ),
+    // source_configured = web_sources actives (docs KB n'ont jamais ce stage)
+    db.query(
+      `SELECT COUNT(*) as cnt FROM web_sources WHERE is_active = true`
+    ),
+  ])
 
   const countMap: Record<string, number> = {}
   let total = 0
-  for (const row of result.rows) {
+  for (const row of kbResult.rows) {
     countMap[row.pipeline_stage] = parseInt(row.cnt)
     total += parseInt(row.cnt)
   }
+
+  // Injecter le count des web_sources actives pour source_configured
+  const sourceConfiguredCount = parseInt(sourcesResult.rows[0]?.cnt || '0')
+  countMap['source_configured'] = sourceConfiguredCount
+  total += sourceConfiguredCount
 
   const stages = PIPELINE_ORDER.map(stage => ({
     stage,
@@ -146,9 +157,14 @@ export async function getStageDocuments(
   let paramIdx = 2
 
   if (filters?.search) {
-    conditions.push(`(kb.title ILIKE $${paramIdx} OR kb.source_file ILIKE $${paramIdx})`)
-    params.push(`%${filters.search}%`)
-    paramIdx++
+    conditions.push(`(
+      kb.title ILIKE $${paramIdx}
+      OR kb.source_file ILIKE $${paramIdx}
+      OR to_tsvector('french', COALESCE(kb.full_text, '')) @@ plainto_tsquery('french', $${paramIdx + 1})
+      OR to_tsvector('simple', COALESCE(kb.full_text, '')) @@ plainto_tsquery('simple', $${paramIdx + 1})
+    )`)
+    params.push(`%${filters.search}%`, filters.search)
+    paramIdx += 2
   }
 
   if (filters?.category) {

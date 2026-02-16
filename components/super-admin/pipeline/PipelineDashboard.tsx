@@ -184,6 +184,18 @@ export function PipelineDashboard() {
     }
   }
 
+  const handleBulkReclassify = async (ids: string[], newCategory: string) => {
+    const res = await fetch('/api/admin/pipeline/bulk/reclassify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ docIds: ids, category: newCategory }),
+    })
+    if (res.ok) {
+      await fetchDocs()
+      await fetchFunnel()
+    }
+  }
+
   // Debounce search
   const [searchInput, setSearchInput] = useState('')
   useEffect(() => {
@@ -248,6 +260,7 @@ export function PipelineDashboard() {
               onRefresh={() => { fetchDocs(); fetchFunnel() }}
               onBulkAdvance={handleBulkAdvance}
               onBulkReject={handleBulkReject}
+              onBulkReclassify={handleBulkReclassify}
               searchValue={searchInput}
               onSearchChange={setSearchInput}
               sourceId={sourceId}

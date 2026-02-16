@@ -57,6 +57,16 @@ export interface PipelineDocument {
   is_approved: boolean
   is_active: boolean
   quality_score: number | null
+  quality_clarity: number | null
+  quality_structure: number | null
+  quality_completeness: number | null
+  quality_reliability: number | null
+  quality_analysis_summary: string | null
+  quality_detected_issues: unknown[] | null
+  quality_recommendations: unknown[] | null
+  quality_llm_provider: string | null
+  quality_llm_model: string | null
+  quality_assessed_at: string | null
   full_text: string | null
   source_file: string | null
   metadata: Record<string, unknown>
@@ -422,6 +432,46 @@ export async function bulkReject(
   return { succeeded, failed }
 }
 
+/**
+ * Reclassifie plusieurs documents en batch avec une nouvelle catégorie
+ */
+export async function bulkReclassify(
+  docIds: string[],
+  userId: string,
+  category: string,
+  subcategory?: string | null
+): Promise<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }> {
+  const succeeded: string[] = []
+  const failed: Array<{ id: string; error: string }> = []
+
+  for (const docId of docIds.slice(0, 100)) {
+    try {
+      const doc = await getDocumentForPipeline(docId)
+      if (!doc) {
+        failed.push({ id: docId, error: 'Document non trouvé' })
+        continue
+      }
+
+      const oldCategory = doc.category
+      await db.query(
+        `UPDATE knowledge_base SET category = $2, subcategory = $3, updated_at = NOW() WHERE id = $1`,
+        [docId, category, subcategory ?? null]
+      )
+
+      await logHistory(docId, doc.pipeline_stage, doc.pipeline_stage, 'admin_edit', userId,
+        `Reclassification: ${oldCategory} → ${category}`,
+        { old_category: oldCategory, new_category: category, new_subcategory: subcategory ?? null }
+      )
+
+      succeeded.push(docId)
+    } catch (error) {
+      failed.push({ id: docId, error: error instanceof Error ? error.message : 'Erreur inconnue' })
+    }
+  }
+
+  return { succeeded, failed }
+}
+
 // =============================================================================
 // HELPERS
 // =============================================================================
@@ -431,6 +481,9 @@ async function getDocumentForPipeline(docId: string): Promise<PipelineDocument |
     `SELECT id, title, category, subcategory, language,
       pipeline_stage, pipeline_stage_updated_at, pipeline_notes, pipeline_rejected_reason,
       is_indexed, is_approved, is_active, quality_score,
+      quality_clarity, quality_structure, quality_completeness, quality_reliability,
+      quality_analysis_summary, quality_detected_issues, quality_recommendations,
+      quality_llm_provider, quality_llm_model, quality_assessed_at,
       full_text, source_file, metadata, created_at, updated_at
     FROM knowledge_base WHERE id = $1`,
     [docId]
@@ -470,9 +523,40 @@ async function checkQualityGate(doc: PipelineDocument, targetStage: PipelineStag
       if (doc.quality_score !== null && doc.quality_score < 50) {
         return `Score qualité trop bas (${doc.quality_score}/100, minimum 50)`
       }
+      // Vérifier cohérence is_indexed vs chunks réels
+      if (doc.is_indexed) {
+        const ragChunksResult = await db.query(
+          'SELECT COUNT(*) as cnt FROM knowledge_base_chunks WHERE knowledge_base_id = $1',
+          [doc.id]
+        )
+        if (parseInt(ragChunksResult.rows[0].cnt) === 0) {
+          return 'Incohérence: document marqué indexé mais 0 chunks trouvés'
+        }
+      } else {
+        return 'Document non indexé - indexation requise avant activation RAG'
+      }
       break
   }
   return null
+}
+
+/**
+ * Retry helper: exécute fn avec N tentatives et délai entre chaque
+ */
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts: number = 2, delayMs: number = 5000): Promise<T> {
+  let lastError: Error | undefined
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      console.warn(`[Pipeline] Tentative ${attempt}/${maxAttempts} échouée: ${lastError.message}`)
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+    }
+  }
+  throw lastError!
 }
 
 /**
@@ -481,24 +565,28 @@ async function checkQualityGate(doc: PipelineDocument, targetStage: PipelineStag
 async function executeStageAction(doc: PipelineDocument, targetStage: PipelineStage, userId: string): Promise<void> {
   switch (targetStage) {
     case 'indexed':
-      // Lance l'indexation (chunking + embeddings)
+      // Lance l'indexation (chunking + embeddings) avec retry
       try {
-        const { indexKnowledgeDocument } = await import('@/lib/ai/knowledge-base-service')
-        await indexKnowledgeDocument(doc.id)
+        await withRetry(async () => {
+          const { indexKnowledgeDocument } = await import('@/lib/ai/knowledge-base-service')
+          await indexKnowledgeDocument(doc.id)
+        })
       } catch (error) {
-        console.error(`[Pipeline] Erreur indexation doc ${doc.id}:`, error)
+        console.error(`[Pipeline] Erreur indexation doc ${doc.id} après retries:`, error)
         throw new Error(`Indexation échouée: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
       }
       break
 
     case 'quality_analyzed':
-      // Lance l'analyse qualité
+      // Lance l'analyse qualité avec retry
       try {
-        const { analyzeKBDocumentQuality } = await import('@/lib/ai/kb-quality-analyzer-service')
-        await analyzeKBDocumentQuality(doc.id)
+        await withRetry(async () => {
+          const { analyzeKBDocumentQuality } = await import('@/lib/ai/kb-quality-analyzer-service')
+          await analyzeKBDocumentQuality(doc.id)
+        })
       } catch (error) {
-        console.error(`[Pipeline] Erreur analyse qualité doc ${doc.id}:`, error)
-        // Don't throw - quality analysis failure shouldn't block pipeline
+        console.error(`[Pipeline] Erreur analyse qualité doc ${doc.id} après retries:`, error)
+        throw new Error(`Analyse qualité échouée: ${error instanceof Error ? error.message : 'Erreur inconnue'}`)
       }
       break
 
@@ -678,4 +766,62 @@ export async function getDocumentPipelineDetail(docId: string): Promise<{
     nextStage: getNextStage(doc.pipeline_stage),
     validTransitions: VALID_TRANSITIONS[doc.pipeline_stage] || [],
   }
+}
+
+/**
+ * Auto-avance un document si tous les quality gates sont remplis automatiquement.
+ * Appelé après les actions automatiques (indexation, crawl, etc.)
+ * Retourne les étapes traversées ou null si aucun avancement.
+ */
+export async function autoAdvanceIfEligible(
+  docId: string,
+  systemUserId: string = 'system'
+): Promise<{ advanced: PipelineStage[]; stoppedAt: PipelineStage } | null> {
+  const { canAutoAdvance } = await import('./pipeline-config')
+
+  const doc = await getDocumentForPipeline(docId)
+  if (!doc) return null
+
+  const advanced: PipelineStage[] = []
+  let current = doc
+
+  // Avancer tant que possible (max 5 étapes pour éviter boucle infinie)
+  for (let i = 0; i < 5; i++) {
+    const nextStage = getNextStage(current.pipeline_stage)
+    if (!nextStage) break
+
+    // Compter les chunks pour le check
+    const chunksResult = await db.query(
+      'SELECT COUNT(*) as cnt FROM knowledge_base_chunks WHERE knowledge_base_id = $1',
+      [docId]
+    )
+    const chunksCount = parseInt(chunksResult.rows[0].cnt)
+
+    if (!canAutoAdvance(current, nextStage, chunksCount)) break
+
+    // Vérifier le quality gate standard
+    const gateError = await checkQualityGate(current, nextStage)
+    if (gateError) break
+
+    // Exécuter les actions de l'étape
+    try {
+      await executeStageAction(current, nextStage, systemUserId)
+    } catch {
+      break // Arrêter si l'action échoue
+    }
+
+    // Effectuer la transition
+    await performTransition(docId, current.pipeline_stage, nextStage, 'auto_advance', systemUserId, 'Auto-avancement', {}, current.quality_score)
+
+    advanced.push(nextStage)
+
+    // Re-lire le document pour la prochaine itération
+    const updated = await getDocumentForPipeline(docId)
+    if (!updated) break
+    current = updated
+  }
+
+  if (advanced.length === 0) return null
+
+  return { advanced, stoppedAt: current.pipeline_stage }
 }
