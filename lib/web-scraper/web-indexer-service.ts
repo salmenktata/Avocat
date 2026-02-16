@@ -495,17 +495,12 @@ export async function indexSourcePages(
   const { limit = 50, reindex = false } = options
 
   // Récupérer les pages à indexer
-  // FIX: Inclure aussi les pages 'unchanged' qui n'ont jamais été indexées
-  // FIX: Accepter aussi les pages avec fichiers liés (Google Drive) même si extracted_text est vide
+  // Seules les pages avec texte extrait suffisant sont indexables
   let sql = `
     SELECT id FROM web_pages
     WHERE web_source_id = $1
     AND status IN ('crawled', 'unchanged')
-    AND (
-      (extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100)
-      OR
-      (linked_files IS NOT NULL AND jsonb_array_length(linked_files) > 0)
-    )
+    AND extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100
   `
 
   if (KB_ARABIC_ONLY) {
@@ -573,17 +568,13 @@ export async function indexWebPages(
   results: Array<{ pageId: string; success: boolean; error?: string }>
 }> {
   // Récupérer les pages à indexer (toutes sources)
-  // FIX: Inclure aussi les pages 'unchanged' qui n'ont jamais été indexées
-  // FIX: Accepter aussi les pages avec fichiers liés (Google Drive) même si extracted_text est vide
+  // Seules les pages avec texte extrait suffisant sont indexables
+  // Les pages fichiers-seuls (Google Drive sans texte) sont exclues pour éviter une boucle infinie
   const sql = `
     SELECT id FROM web_pages
     WHERE status IN ('crawled', 'unchanged')
     AND is_indexed = false
-    AND (
-      (extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100)
-      OR
-      (linked_files IS NOT NULL AND jsonb_array_length(linked_files) > 0)
-    )
+    AND extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100
     ${KB_ARABIC_ONLY ? `AND (language_detected = 'ar' OR language_detected IS NULL)` : ''}
     ORDER BY last_crawled_at DESC
     LIMIT $1
@@ -641,18 +632,13 @@ export async function queueSourcePagesForIndexing(
   const { limit = 100, priority = 5 } = options
 
   // Récupérer les pages à indexer
-  // FIX: Inclure aussi les pages 'unchanged' qui n'ont jamais été indexées
-  // FIX: Accepter aussi les pages avec fichiers liés (Google Drive) même si extracted_text est vide
+  // Seules les pages avec texte extrait suffisant sont indexables
   const pagesResult = await db.query(
     `SELECT id FROM web_pages
      WHERE web_source_id = $1
      AND status IN ('crawled', 'unchanged')
      AND is_indexed = false
-     AND (
-       (extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100)
-       OR
-       (linked_files IS NOT NULL AND jsonb_array_length(linked_files) > 0)
-     )
+     AND extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100
      ORDER BY last_crawled_at DESC
      LIMIT $2`,
     [sourceId, limit]
