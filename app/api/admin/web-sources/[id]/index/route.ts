@@ -16,6 +16,7 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { getWebSource } from '@/lib/web-scraper'
 import { indexSourcePages } from '@/lib/web-scraper/web-indexer-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
@@ -67,7 +68,7 @@ export async function POST(
        ${reindex ? '' : 'AND is_indexed = false'}`,
       [id]
     )
-    const totalToIndex = parseInt(countResult.rows[0].count)
+    const totalToIndex = parseInt(countResult.rows[0].count, 10)
 
     if (totalToIndex === 0) {
       return NextResponse.json({
@@ -135,10 +136,10 @@ export async function GET(
     const stats = statsResult.rows[0]
 
     return NextResponse.json({
-      totalPages: parseInt(stats.total_pages),
-      indexedPages: parseInt(stats.indexed_pages),
-      pendingPages: parseInt(stats.pending_pages),
-      totalChunks: parseInt(stats.total_chunks),
+      totalPages: parseInt(stats.total_pages, 10),
+      indexedPages: parseInt(stats.indexed_pages, 10),
+      pendingPages: parseInt(stats.pending_pages, 10),
+      totalChunks: parseInt(stats.total_chunks, 10),
     })
   } catch (error) {
     console.error('Erreur stats indexation:', error)

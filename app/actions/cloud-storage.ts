@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache'
 import { createGoogleDriveAuthProvider, createGoogleDriveProvider } from '@/lib/integrations/cloud-storage'
 import { z } from 'zod'
 import { decrypt } from '@/lib/crypto'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * Récupérer les configurations cloud providers de l'utilisateur
@@ -186,7 +187,7 @@ export async function toggleSyncAction(params: {
     }
 
     if (validated.frequency) {
-      updateData.sync_frequency = parseInt(validated.frequency)
+      updateData.sync_frequency = parseInt(validated.frequency, 10)
     }
 
     // Si activation sync et pas de webhook actif, créer webhook

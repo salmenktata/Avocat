@@ -3,6 +3,7 @@
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { revalidatePath } from 'next/cache'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * Crée un dossier à partir d'une structure IA
@@ -63,7 +64,7 @@ export async function createDossierFromStructure(
       `SELECT COUNT(*) as count FROM dossiers WHERE user_id = $1 AND EXTRACT(YEAR FROM created_at) = $2`,
       [userId, year]
     )
-    const count = parseInt(countResult.rows[0]?.count || '0') + 1
+    const count = parseInt(countResult.rows[0]?.count || '0', 10) + 1
     const numero = `${year}-${count.toString().padStart(4, '0')}`
 
     // Créer le dossier

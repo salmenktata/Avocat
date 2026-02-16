@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import type { AbrogationSearchResult, AbrogationSearchResponse } from '@/types/legal-abrogations'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * API REST - Recherche Fuzzy Abrogations Juridiques

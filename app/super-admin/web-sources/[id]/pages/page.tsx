@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,7 +70,7 @@ async function getSourcePages(
     `SELECT COUNT(*) as total FROM web_pages ${whereClause}`,
     params
   )
-  const total = parseInt(countResult.rows[0].total)
+  const total = parseInt(countResult.rows[0].total, 10)
 
   // Récupérer les pages avec pagination
   const offset = (page - 1) * ITEMS_PER_PAGE
@@ -98,7 +99,7 @@ async function getSourcePages(
 
   const stats = statsResult.rows.reduce(
     (acc, row) => {
-      acc[row.status] = parseInt(row.count)
+      acc[row.status] = parseInt(row.count, 10)
       return acc
     },
     {} as Record<string, number>
@@ -131,7 +132,7 @@ export default async function WebSourcePagesPage({
 }: PageProps) {
   const { id } = await params
   const { page: pageParam, status, search } = await searchParams
-  const page = parseInt(pageParam || '1')
+  const page = parseInt(pageParam || '1', 10)
 
   const data = await getSourcePages(id, page, status, search)
 

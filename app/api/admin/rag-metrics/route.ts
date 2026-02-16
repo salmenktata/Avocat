@@ -38,6 +38,7 @@ import {
 import { getRerankerInfo } from '@/lib/ai/reranker-service'
 import { getRAGConfig } from '@/lib/ai/config'
 import { getCacheHeaders, CACHE_PRESETS } from '@/lib/api/cache-headers'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // Helper: Vérification accès super-admin

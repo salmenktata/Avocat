@@ -11,6 +11,7 @@ import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // Dynamic imports pour réduire le bundle initial
 const WebSourcesList = nextDynamic(
@@ -76,7 +77,7 @@ async function getWebSourcesData(params: {
     `SELECT COUNT(*) FROM web_sources ${whereClause}`,
     queryParams
   )
-  const total = parseInt(countResult.rows[0].count)
+  const total = parseInt(countResult.rows[0].count, 10)
 
   // Récupérer les sources avec stats (seulement les champs nécessaires)
   const sourcesResult = await db.query(
@@ -183,7 +184,7 @@ async function getWebSourcesData(params: {
 
 export default async function WebSourcesPage({ searchParams }: PageProps) {
   const params = await searchParams
-  const page = parseInt(params.page || '1')
+  const page = parseInt(params.page || '1', 10)
 
   // Récupérer le rôle utilisateur
   const session = await getSession()

@@ -15,6 +15,7 @@ import { getSession } from '@/lib/auth/session'
 import { aiConfig } from '@/lib/ai/config'
 import { getGeminiRPMStats } from '@/lib/ai/gemini-client'
 import { getCircuitBreakerState } from '@/lib/ai/embeddings-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // TYPES

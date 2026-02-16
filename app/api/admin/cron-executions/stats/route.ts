@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,14 +29,14 @@ export async function GET(req: NextRequest) {
     // Convertir les valeurs string en nombres
     const stats = statsResult.rows.map((row) => ({
       ...row,
-      total_executions: parseInt(row.total_executions) || 0,
-      completed_count: parseInt(row.completed_count) || 0,
-      failed_count: parseInt(row.failed_count) || 0,
-      running_count: parseInt(row.running_count) || 0,
+      total_executions: parseInt(row.total_executions, 10) || 0,
+      completed_count: parseInt(row.completed_count, 10) || 0,
+      failed_count: parseInt(row.failed_count, 10) || 0,
+      running_count: parseInt(row.running_count, 10) || 0,
       success_rate: parseFloat(row.success_rate) || 0,
-      avg_duration_ms: parseInt(row.avg_duration_ms) || 0,
-      max_duration_ms: parseInt(row.max_duration_ms) || 0,
-      consecutive_failures: parseInt(row.consecutive_failures) || 0,
+      avg_duration_ms: parseInt(row.avg_duration_ms, 10) || 0,
+      max_duration_ms: parseInt(row.max_duration_ms, 10) || 0,
+      consecutive_failures: parseInt(row.consecutive_failures, 10) || 0,
     }))
 
     // 3. Récupérer timeline (par jour pour graph)

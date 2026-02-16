@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { batchDetectAbrogations } from '@/lib/knowledge-base/abrogation-detector'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * POST - Lance enrichissement batch abrogations

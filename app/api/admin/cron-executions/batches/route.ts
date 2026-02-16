@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export async function GET(req: NextRequest) {
   try {
@@ -60,40 +61,40 @@ export async function GET(req: NextRequest) {
 
     // 4. Calcul taux de succès
     const kbSuccessRate = kbStats.completed_today > 0
-      ? (parseInt(kbStats.completed_today) / (parseInt(kbStats.completed_today) + parseInt(kbStats.failed_today))) * 100
+      ? (parseInt(kbStats.completed_today, 10) / (parseInt(kbStats.completed_today, 10) + parseInt(kbStats.failed_today, 10))) * 100
       : 0
 
     const crawlSuccessRate = crawlStats.pages_crawled_today > 0
-      ? (parseInt(crawlStats.pages_crawled_today) / (parseInt(crawlStats.pages_crawled_today) + parseInt(crawlStats.pages_failed_today))) * 100
+      ? (parseInt(crawlStats.pages_crawled_today, 10) / (parseInt(crawlStats.pages_crawled_today, 10) + parseInt(crawlStats.pages_failed_today, 10))) * 100
       : 0
 
     const qualitySuccessRate = qualityStats.analyzed_today > 0
-      ? (parseInt(qualityStats.high_quality_today) / parseInt(qualityStats.analyzed_today)) * 100
+      ? (parseInt(qualityStats.high_quality_today, 10) / parseInt(qualityStats.analyzed_today, 10)) * 100
       : 0
 
     return NextResponse.json({
       success: true,
       batches: {
         kbIndexation: {
-          pending: parseInt(kbStats.pending) || 0,
-          processing: parseInt(kbStats.processing) || 0,
-          completedToday: parseInt(kbStats.completed_today) || 0,
-          failedToday: parseInt(kbStats.failed_today) || 0,
+          pending: parseInt(kbStats.pending, 10) || 0,
+          processing: parseInt(kbStats.processing, 10) || 0,
+          completedToday: parseInt(kbStats.completed_today, 10) || 0,
+          failedToday: parseInt(kbStats.failed_today, 10) || 0,
           avgDurationSec: parseFloat(kbStats.avg_duration_sec) || 0,
           successRate: Math.round(kbSuccessRate * 100) / 100,
         },
         webCrawls: {
-          activeJobs: parseInt(crawlStats.active_jobs) || 0,
-          pagesCrawledToday: parseInt(crawlStats.pages_crawled_today) || 0,
-          pagesFailedToday: parseInt(crawlStats.pages_failed_today) || 0,
+          activeJobs: parseInt(crawlStats.active_jobs, 10) || 0,
+          pagesCrawledToday: parseInt(crawlStats.pages_crawled_today, 10) || 0,
+          pagesFailedToday: parseInt(crawlStats.pages_failed_today, 10) || 0,
           avgFetchMs: parseFloat(crawlStats.avg_fetch_ms) || 0,
           successRate: Math.round(crawlSuccessRate * 100) / 100,
         },
         qualityAnalysis: {
-          pendingAnalysis: parseInt(qualityStats.pending_analysis) || 0,
-          analyzedToday: parseInt(qualityStats.analyzed_today) || 0,
-          highQualityToday: parseInt(qualityStats.high_quality_today) || 0,
-          lowQualityToday: parseInt(qualityStats.low_quality_today) || 0,
+          pendingAnalysis: parseInt(qualityStats.pending_analysis, 10) || 0,
+          analyzedToday: parseInt(qualityStats.analyzed_today, 10) || 0,
+          highQualityToday: parseInt(qualityStats.high_quality_today, 10) || 0,
+          lowQualityToday: parseInt(qualityStats.low_quality_today, 10) || 0,
           avgScoreToday: Math.round((parseFloat(qualityStats.avg_score_today) || 0) * 100) / 100,
           successRate: Math.round(qualitySuccessRate * 100) / 100,
         },

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { indexWebPage } from '@/lib/web-scraper/web-indexer-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutes
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
       [sourceId]
     )
 
-    const totalToIndex = parseInt(countResult.rows[0].count)
+    const totalToIndex = parseInt(countResult.rows[0].count, 10)
     console.log(`📊 Fichiers à indexer: ${totalToIndex}`)
 
     if (totalToIndex === 0) {

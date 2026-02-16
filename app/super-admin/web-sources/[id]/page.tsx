@@ -16,6 +16,7 @@ import { WebSourceActivityTabs } from '@/components/super-admin/web-sources/WebS
 import { CollapsibleSection } from '@/components/super-admin/web-sources/CollapsibleSection'
 import { CategoryBadge } from '@/components/super-admin/web-sources/CategoryBadge'
 import { WebSourceTreeView } from '@/components/super-admin/web-sources/WebSourceTreeView'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 interface CodeStats {
   code_name: string
@@ -194,16 +195,16 @@ async function getWebSourceData(id: string) {
         codes: [],
       }
     }
-    acc[domain].total_pages += parseInt(row.total_pages)
+    acc[domain].total_pages += parseInt(row.total_pages, 10)
     acc[domain].codes.push({
       code_name: row.code_name,
       code_slug: row.code_slug,
-      total_pages: parseInt(row.total_pages),
-      pending: parseInt(row.pending),
-      crawled: parseInt(row.crawled),
-      unchanged: parseInt(row.unchanged),
-      failed: parseInt(row.failed),
-      indexed: parseInt(row.indexed),
+      total_pages: parseInt(row.total_pages, 10),
+      pending: parseInt(row.pending, 10),
+      crawled: parseInt(row.crawled, 10),
+      unchanged: parseInt(row.unchanged, 10),
+      failed: parseInt(row.failed, 10),
+      indexed: parseInt(row.indexed, 10),
       last_crawl_at: row.last_crawl_at?.toISOString() || null,
     })
     return acc
@@ -292,33 +293,33 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard
           label="Pages crawlées"
-          value={parseInt(stats.total)}
+          value={parseInt(stats.total, 10)}
           icon={<Icons.fileText className="h-4 w-4" />}
         />
         <StatCard
           label="Pages indexées"
-          value={parseInt(stats.indexed)}
+          value={parseInt(stats.indexed, 10)}
           icon={<Icons.checkCircle className="h-4 w-4" />}
           color="green"
         />
         <StatCard
           label="Pages organisées"
-          value={parseInt(stats.pages_with_metadata)}
+          value={parseInt(stats.pages_with_metadata, 10)}
           icon={<Icons.sparkles className="h-4 w-4" />}
           color="orange"
-          subtitle={`${((parseInt(stats.pages_with_metadata) / parseInt(stats.total)) * 100).toFixed(1)}%`}
+          subtitle={`${((parseInt(stats.pages_with_metadata, 10) / parseInt(stats.total, 10)) * 100).toFixed(1)}%`}
         />
         <StatCard
           label="Chunks RAG"
-          value={parseInt(stats.total_chunks)}
+          value={parseInt(stats.total_chunks, 10)}
           icon={<Icons.box className="h-4 w-4" />}
           color="purple"
         />
         <StatCard
           label="En erreur"
-          value={parseInt(stats.failed)}
+          value={parseInt(stats.failed, 10)}
           icon={<Icons.alertTriangle className="h-4 w-4" />}
-          color={parseInt(stats.failed) > 0 ? 'red' : 'slate'}
+          color={parseInt(stats.failed, 10) > 0 ? 'red' : 'slate'}
         />
       </div>
 
@@ -326,8 +327,8 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
       <WebSourceHealthSummary
         lastCrawlAt={source.last_crawl_at}
         nextCrawlAt={source.next_crawl_at}
-        totalPages={parseInt(stats.total)}
-        failedPages={parseInt(stats.failed)}
+        totalPages={parseInt(stats.total, 10)}
+        failedPages={parseInt(stats.failed, 10)}
         healthStatus={source.health_status}
       />
 

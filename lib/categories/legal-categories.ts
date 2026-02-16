@@ -41,6 +41,27 @@ export type LegalContentCategory = Exclude<LegalCategory, 'codes' | 'constitutio
 export type { KnowledgeSubcategory } from '@/lib/knowledge-base/categories'
 
 /**
+ * Liste de toutes les catégories juridiques
+ */
+export const ALL_LEGAL_CATEGORIES: readonly LegalCategory[] = [
+  'legislation',
+  'jurisprudence',
+  'doctrine',
+  'jort',
+  'modeles',
+  'procedures',
+  'formulaires',
+  'codes',
+  'constitution',
+  'conventions',
+  'guides',
+  'lexique',
+  'actualites',
+  'google_drive',
+  'autre',
+] as const
+
+/**
  * Traductions unifiées pour toutes les catégories
  */
 export const LEGAL_CATEGORY_TRANSLATIONS: Record<LegalCategory, { ar: string; fr: string }> = {

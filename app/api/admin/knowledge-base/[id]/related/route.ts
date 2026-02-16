@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { findRelatedDocuments } from '@/lib/ai/related-documents-service'
 import { getKnowledgeDocument } from '@/lib/ai/knowledge-base-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'

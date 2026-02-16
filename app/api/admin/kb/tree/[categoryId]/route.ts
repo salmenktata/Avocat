@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * GET /api/admin/kb/tree/:categoryId
@@ -57,7 +58,7 @@ export async function GET(
         qualityScore: row.quality_score ? parseFloat(row.quality_score) : null,
         updatedAt: row.updated_at,
         version: row.version,
-        chunkCount: parseInt(row.chunk_count) || 0,
+        chunkCount: parseInt(row.chunk_count, 10) || 0,
         sourceUrl: row.source_url,
         lastCrawledAt: row.last_crawled_at,
         isStale: row.is_stale,

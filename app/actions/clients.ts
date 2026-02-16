@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth/session'
 import { clientSchema, type ClientFormData } from '@/lib/validations/client'
 import { revalidatePath } from 'next/cache'
 import { logClientAccess } from '@/lib/audit/activity-logger'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 interface ClientData {
   user_id: string
@@ -197,7 +198,7 @@ export async function deleteClientAction(id: string) {
       'SELECT COUNT(*) FROM dossiers WHERE client_id = $1',
       [id]
     )
-    const count = parseInt(countResult.rows[0].count)
+    const count = parseInt(countResult.rows[0].count, 10)
 
     if (count > 0) {
       return {

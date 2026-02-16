@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import type { LegalAbrogation } from '@/types/legal-abrogations'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * API REST - Liste des Abrogations Juridiques
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
       WHERE ${conditions.join(' AND ')}
     `
     const countResult = await db.query(countQuery, params)
-    const total = parseInt(countResult.rows[0].total)
+    const total = parseInt(countResult.rows[0].total, 10)
 
     // Récupérer les résultats paginés
     params.push(limit, offset)

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { query } from '@/lib/db/postgres'
 import { KnowledgeBaseDetail } from '@/components/super-admin/knowledge-base/KnowledgeBaseDetail'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,7 +41,7 @@ async function getDocument(id: string) {
     isIndexed: row.is_indexed,
     isActive: row.is_active !== false,
     version: row.version || 1,
-    chunkCount: parseInt(row.chunk_count) || 0,
+    chunkCount: parseInt(row.chunk_count, 10) || 0,
     uploadedBy: row.uploaded_by,
     uploadedByEmail: row.uploaded_by_email,
     createdAt: row.created_at,

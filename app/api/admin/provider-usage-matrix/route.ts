@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 interface MatrixCell {
   tokens: number
@@ -62,9 +63,9 @@ export async function GET(request: NextRequest) {
       if (!matrix[provider]) matrix[provider] = {}
 
       matrix[provider][operation_type] = {
-        tokens: parseInt(total_tokens) || 0,
+        tokens: parseInt(total_tokens, 10) || 0,
         cost: parseFloat(total_cost_usd) || 0,
-        requests: parseInt(request_count) || 0
+        requests: parseInt(request_count, 10) || 0
       }
 
       // Accumulate totals

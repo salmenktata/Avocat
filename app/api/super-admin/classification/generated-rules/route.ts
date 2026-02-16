@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * GET /api/super-admin/classification/generated-rules
@@ -95,7 +96,7 @@ export async function GET(req: NextRequest) {
     }
 
     const countResult = await db.query(countQuery, countParams)
-    const total = parseInt(countResult.rows[0].count)
+    const total = parseInt(countResult.rows[0].count, 10)
 
     const items = result.rows.map((row: any) => ({
       id: row.id,
@@ -110,11 +111,11 @@ export async function GET(req: NextRequest) {
       },
       priority: row.priority,
       isActive: row.is_active,
-      timesMatched: parseInt(row.times_matched || '0'),
-      timesCorrect: parseInt(row.times_correct || '0'),
+      timesMatched: parseInt(row.times_matched || '0', 10),
+      timesCorrect: parseInt(row.times_correct || '0', 10),
       accuracy: parseFloat(row.accuracy || '0'),
-      createdFromCorrections: parseInt(row.corrections_count) > 0,
-      correctionsCount: parseInt(row.corrections_count),
+      createdFromCorrections: parseInt(row.corrections_count, 10) > 0,
+      correctionsCount: parseInt(row.corrections_count, 10),
       createdAt: row.created_at,
       lastMatchedAt: row.last_matched_at,
     }))

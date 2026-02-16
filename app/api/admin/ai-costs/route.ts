@@ -17,6 +17,7 @@ import {
   checkBudgetLimit,
 } from '@/lib/ai/usage-tracker'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // GET: Statistiques d'utilisation IA
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
       response.global = {
         ...globalStats,
-        activeUsers: parseInt(activeUsersResult.rows[0].count),
+        activeUsers: parseInt(activeUsersResult.rows[0].count, 10),
         period: `${days} derniers jours`,
       }
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,8 +53,8 @@ export async function GET(request: NextRequest) {
       nom: row.nom,
       prenom: row.prenom,
       plan: row.plan || 'free',
-      totalOperations: parseInt(row.total_operations) || 0,
-      totalTokens: parseInt(row.total_tokens) || 0,
+      totalOperations: parseInt(row.total_operations, 10) || 0,
+      totalTokens: parseInt(row.total_tokens, 10) || 0,
       totalCost: parseFloat(row.total_cost) || 0,
       providerBreakdown: row.provider_breakdown || {}
     }))

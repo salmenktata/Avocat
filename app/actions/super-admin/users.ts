@@ -4,6 +4,7 @@ import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
 import { sendEmail } from '@/lib/email/email-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // VÉRIFICATION SUPER ADMIN
@@ -473,7 +474,7 @@ export async function changeUserRoleAction(userId: string, newRole: string) {
       const countResult = await query(
         "SELECT COUNT(*) as count FROM users WHERE role = 'super_admin'"
       )
-      if (parseInt(countResult.rows[0].count) <= 1) {
+      if (parseInt(countResult.rows[0].count, 10) <= 1) {
         return { error: 'Impossible de retirer le rôle du dernier super administrateur' }
       }
     }
@@ -679,7 +680,7 @@ export async function listUsersAction(options: {
       `SELECT COUNT(*) as count FROM users ${whereClause}`,
       params
     )
-    const total = parseInt(countResult.rows[0]?.count || '0')
+    const total = parseInt(countResult.rows[0]?.count || '0', 10)
 
     // Récupérer les utilisateurs
     const usersResult = await query(

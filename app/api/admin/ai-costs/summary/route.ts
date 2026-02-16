@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * API Route - AI Costs Summary
@@ -69,24 +70,24 @@ export async function GET(req: NextRequest) {
 
     const stats = {
       total_cost: parseFloat(globalStats.rows[0]?.total_cost || 0),
-      total_operations: parseInt(globalStats.rows[0]?.total_operations || 0),
-      unique_users: parseInt(globalStats.rows[0]?.unique_users || 0),
-      total_tokens: parseInt(globalStats.rows[0]?.total_tokens || 0),
+      total_operations: parseInt(globalStats.rows[0]?.total_operations || 0, 10),
+      unique_users: parseInt(globalStats.rows[0]?.unique_users || 0, 10),
+      total_tokens: parseInt(globalStats.rows[0]?.total_tokens || 0, 10),
       daily_costs: dailyCosts.rows.map(row => ({
         date: row.date,
         cost: parseFloat(row.cost || 0),
-        operations: parseInt(row.operations || 0),
+        operations: parseInt(row.operations || 0, 10),
       })),
       top_users: topUsers.rows.map(row => ({
         user_id: row.user_id,
         user_email: row.user_email || 'Unknown',
         total_cost: parseFloat(row.total_cost || 0),
-        operations: parseInt(row.operations || 0),
+        operations: parseInt(row.operations || 0, 10),
       })),
       costs_by_provider: costsByProvider.rows.map(row => ({
         provider: row.provider,
         total_cost: parseFloat(row.total_cost || 0),
-        operations: parseInt(row.operations || 0),
+        operations: parseInt(row.operations || 0, 10),
       })),
     }
 

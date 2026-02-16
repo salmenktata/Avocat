@@ -11,6 +11,7 @@ import { getStalenessThreshold } from '@/lib/legal-documents/freshness-service'
 import { LegalDocumentsTable } from '@/components/super-admin/legal-documents/LegalDocumentsTable'
 import { ImportLegalDocumentsDialog } from '@/components/super-admin/legal-documents/ImportLegalDocumentsDialog'
 import { normalizeLegalCategory, LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,7 +89,7 @@ function buildPaginationParams(
 
 export default async function LegalDocumentsPage({ searchParams }: PageProps) {
   const params = await searchParams
-  const page = parseInt(params.page || '1')
+  const page = parseInt(params.page || '1', 10)
   const pageSize = 20
   const offset = (page - 1) * pageSize
 
@@ -193,7 +194,7 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
 
   const stats = statsResult.rows[0]
   const docs = docsResult.rows
-  const filteredCount = parseInt(countResult.rows[0].count)
+  const filteredCount = parseInt(countResult.rows[0].count, 10)
   const totalPages = Math.ceil(filteredCount / pageSize)
   // Normaliser et dédupliquer les catégories (ex: code → codes)
   const categoriesRaw = categoriesResult.rows.map(r => r.primary_category)
@@ -258,31 +259,31 @@ export default async function LegalDocumentsPage({ searchParams }: PageProps) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard
           label="Total documents"
-          value={parseInt(stats.total_docs)}
+          value={parseInt(stats.total_docs, 10)}
           icon={Icons.scale}
           color="text-slate-400"
         />
         <StatCard
           label="Consolidés"
-          value={parseInt(stats.consolidated)}
+          value={parseInt(stats.consolidated, 10)}
           icon={Icons.check}
           color="text-blue-400"
         />
         <StatCard
           label="Approuvés"
-          value={parseInt(stats.approved)}
+          value={parseInt(stats.approved, 10)}
           icon={Icons.check}
           color="text-green-400"
         />
         <StatCard
           label="Pages liées"
-          value={parseInt(stats.total_pages)}
+          value={parseInt(stats.total_pages, 10)}
           icon={Icons.fileText}
           color="text-blue-400"
         />
         <StatCard
           label="Amendements"
-          value={parseInt(stats.total_amendments)}
+          value={parseInt(stats.total_amendments, 10)}
           icon={Icons.alertTriangle}
           color="text-orange-400"
         />

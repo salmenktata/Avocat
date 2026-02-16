@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { compareVariants } from '@/lib/ai/prompt-ab-testing-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export async function GET(request: NextRequest) {
   try {

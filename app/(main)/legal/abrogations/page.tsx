@@ -3,6 +3,7 @@ import { Metadata } from 'next'
 import { AbrogationsList } from '@/components/legal/abrogations/abrogations-list'
 import { StatsWidget } from '@/components/legal/abrogations/stats-widget'
 import type { AbrogationStats } from '@/types/legal-abrogations'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const metadata: Metadata = {
   title: 'Abrogations Juridiques Tunisiennes | Qadhya',
@@ -68,7 +69,7 @@ export default async function AbrogationsPage({
       <Suspense fallback={<AbrogationsListSkeleton />}>
         <AbrogationsList
           initialDomain={params.domain}
-          initialPage={parseInt(params.page || '1')}
+          initialPage={parseInt(params.page || '1', 10)}
           initialSearch={params.search}
         />
       </Suspense>

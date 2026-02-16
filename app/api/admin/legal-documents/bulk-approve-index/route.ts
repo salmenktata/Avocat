@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { indexLegalDocument } from '@/lib/web-scraper/web-indexer-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutes max
@@ -90,9 +91,9 @@ export async function POST(request: NextRequest) {
         summary: {
           documentsToApprove: documents.length,
           totalPages: documents.reduce((sum, d) => sum + (d.page_count || 0), 0),
-          linkedPages: parseInt(pagesResult.rows[0].count),
-          oldKbEntriesToClean: parseInt(kbResult.rows[0].kb_count),
-          oldChunksToClean: parseInt(kbResult.rows[0].chunk_count),
+          linkedPages: parseInt(pagesResult.rows[0].count, 10),
+          oldKbEntriesToClean: parseInt(kbResult.rows[0].kb_count, 10),
+          oldChunksToClean: parseInt(kbResult.rows[0].chunk_count, 10),
         },
         documents: documents.map(d => ({
           id: d.id,

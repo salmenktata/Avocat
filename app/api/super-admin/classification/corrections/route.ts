@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * GET /api/super-admin/classification/corrections
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
     }
 
     const countResult = await db.query(countQuery)
-    const total = parseInt(countResult.rows[0].count) || 0
+    const total = parseInt(countResult.rows[0].count, 10) || 0
 
     return NextResponse.json({
       items: result.rows,

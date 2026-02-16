@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export async function GET(req: NextRequest) {
   try {
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
       `SELECT COUNT(*) as count FROM cron_executions ${whereClause}`,
       params
     )
-    const count = parseInt(countResult.rows[0].count)
+    const count = parseInt(countResult.rows[0].count, 10)
 
     // Get executions
     const executionsResult = await db.query(

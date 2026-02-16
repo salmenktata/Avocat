@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { search } from '@/lib/ai/unified-rag-service'
 import type { RAGSearchFilters, RAGSearchResult } from '@/lib/ai/unified-rag-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // TYPES

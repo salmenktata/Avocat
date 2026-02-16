@@ -28,6 +28,7 @@ import {
 } from '@/lib/ai/knowledge-base-service'
 import { getCacheHeaders, CACHE_PRESETS } from '@/lib/api/cache-headers'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // VÉRIFICATION ADMIN

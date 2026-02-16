@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import { getCategoryLabel } from '@/lib/knowledge-base/categories'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // Dynamic imports pour réduire le bundle initial
 const KnowledgeBaseUploadDialog = dynamic(
@@ -78,11 +79,11 @@ async function KnowledgeBaseStats() {
   }
 
   const indexedPercentage = stats.total_docs > 0
-    ? ((parseInt(stats.indexed_docs) / parseInt(stats.total_docs)) * 100).toFixed(1)
+    ? ((parseInt(stats.indexed_docs, 10) / parseInt(stats.total_docs, 10)) * 100).toFixed(1)
     : '0'
 
   const approvedPercentage = stats.total_docs > 0
-    ? ((parseInt(stats.approved_docs) / parseInt(stats.total_docs)) * 100).toFixed(1)
+    ? ((parseInt(stats.approved_docs, 10) / parseInt(stats.total_docs, 10)) * 100).toFixed(1)
     : '0'
 
   return (
@@ -145,7 +146,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
   const indexed = params.indexed || 'all'
   const approved = params.approved || 'all'
   const search = params.search || ''
-  const page = parseInt(params.page || '1')
+  const page = parseInt(params.page || '1', 10)
   const view = params.view || 'list'
   const limit = 20
   const offset = (page - 1) * limit
@@ -198,7 +199,7 @@ export default async function KnowledgeBasePage({ searchParams }: PageProps) {
       `SELECT COUNT(*) as count FROM knowledge_base kb ${whereClause}`,
       queryParams
     )
-    total = parseInt(countResult.rows[0]?.count || '0')
+    total = parseInt(countResult.rows[0]?.count || '0', 10)
 
     docsResult = await query(
       `SELECT

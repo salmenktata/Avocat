@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { SuperAdminLayout } from '@/components/super-admin/SuperAdminLayout'
 import { Toaster } from '@/components/ui/toaster'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // Pages super-admin accessibles aux admins (en plus des super_admin)
 const ADMIN_ALLOWED_PAGES = ['/super-admin/pipeline', '/super-admin/pipeline-status', '/super-admin/web-sources']
@@ -49,7 +50,7 @@ export default async function SuperAdminRootLayout({
   const pendingResult = await query(
     "SELECT COUNT(*) as count FROM users WHERE status = 'pending'"
   )
-  const pendingCount = parseInt(pendingResult.rows[0]?.count || '0')
+  const pendingCount = parseInt(pendingResult.rows[0]?.count || '0', 10)
 
   // Récupérer le nombre de suggestions de taxonomie en attente
   let pendingTaxonomySuggestions = 0
@@ -57,7 +58,7 @@ export default async function SuperAdminRootLayout({
     const taxonomyResult = await query(
       "SELECT COUNT(*) as count FROM taxonomy_suggestions WHERE status = 'pending'"
     )
-    pendingTaxonomySuggestions = parseInt(taxonomyResult.rows[0]?.count || '0')
+    pendingTaxonomySuggestions = parseInt(taxonomyResult.rows[0]?.count || '0', 10)
   } catch {
     // Table n'existe pas encore, ignorer
   }

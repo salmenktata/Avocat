@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 async function checkAdminAccess(userId: string): Promise<boolean> {
   const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
@@ -50,7 +51,7 @@ export async function GET(
       chunk_index: row.chunk_index,
       content: row.content,
       metadata: row.metadata,
-      content_length: parseInt(row.content_length),
+      content_length: parseInt(row.content_length, 10),
       has_embedding: row.has_embedding,
       has_embedding_openai: row.has_embedding_openai,
     }))

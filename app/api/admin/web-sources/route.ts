@@ -25,6 +25,7 @@ import {
 } from '@/lib/web-scraper'
 import type { CreateWebSourceInput, WebSourceCategory } from '@/lib/web-scraper'
 import { getCacheHeaders, CACHE_PRESETS } from '@/lib/api/cache-headers'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // VÉRIFICATION ADMIN

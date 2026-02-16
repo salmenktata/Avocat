@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 const UsersFilters = dynamic(
   () => import('@/components/super-admin/users/UsersFilters').then(mod => mod.UsersFilters),
@@ -32,7 +33,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
   const role = params.role || 'all'
   const plan = params.plan || 'all'
   const search = params.search || ''
-  const page = parseInt(params.page || '1')
+  const page = parseInt(params.page || '1', 10)
   const limit = 20
   const offset = (page - 1) * limit
 
@@ -70,7 +71,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
     `SELECT COUNT(*) as count FROM users ${whereClause}`,
     queryParams
   )
-  const total = parseInt(countResult.rows[0]?.count || '0')
+  const total = parseInt(countResult.rows[0]?.count || '0', 10)
 
   // Récupérer les utilisateurs
   const usersResult = await query(

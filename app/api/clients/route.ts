@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { query } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'

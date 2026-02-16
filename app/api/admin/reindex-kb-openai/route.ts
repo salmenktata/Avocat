@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { generateEmbedding, formatEmbeddingForPostgres } from '@/lib/ai/embeddings-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * POST /api/admin/reindex-kb-openai

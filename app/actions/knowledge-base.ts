@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
 import type { KnowledgeCategory, KnowledgeSubcategory } from '@/lib/categories/legal-categories'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse
 async function getKnowledgeBaseService() {
@@ -541,7 +542,7 @@ export async function getKBDocumentsRequiringReviewAction(options?: {
     return {
       success: true,
       documents: result.rows,
-      total: parseInt(countResult.rows[0].count) || 0,
+      total: parseInt(countResult.rows[0].count, 10) || 0,
     }
   } catch (error) {
     console.error('Erreur récupération documents revue:', error)

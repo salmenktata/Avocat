@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // Quotas providers (tier gratuit)
 const PROVIDER_QUOTAS = {
@@ -112,8 +113,8 @@ export async function GET(req: NextRequest) {
     )
 
     // Calculer totaux
-    const todayTotal = todayUsage.rows.reduce((sum, row) => sum + parseInt(row.total_tokens || 0), 0)
-    const monthTotal = monthUsage.rows.reduce((sum, row) => sum + parseInt(row.total_tokens || 0), 0)
+    const todayTotal = todayUsage.rows.reduce((sum, row) => sum + parseInt(row.total_tokens || 0, 10), 0)
+    const monthTotal = monthUsage.rows.reduce((sum, row) => sum + parseInt(row.total_tokens || 0, 10), 0)
     const todayCost = todayUsage.rows.reduce((sum, row) => sum + parseFloat(row.cost_usd || 0), 0)
     const monthCost = monthUsage.rows.reduce((sum, row) => sum + parseFloat(row.cost_usd || 0), 0)
 
@@ -135,7 +136,7 @@ export async function GET(req: NextRequest) {
         quota: quotas.tokensPerMonth,
         usage_percent: quotas.tokensPerMonth ? (monthTotal / quotas.tokensPerMonth) * 100 : 0,
       },
-      current_rpm: parseInt(currentRPM.rows[0]?.requests || 0),
+      current_rpm: parseInt(currentRPM.rows[0]?.requests || 0, 10),
       rpm_limit: quotas.rpm,
       trend: trend.rows,
       quotas,

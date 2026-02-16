@@ -27,6 +27,7 @@ import {
   type KnowledgeBaseCategory,
 } from '@/lib/ai/knowledge-base-service'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // VÉRIFICATION ADMIN
@@ -77,7 +78,7 @@ export async function GET(
       chunks: chunksResult.rows.map((row) => ({
         id: row.id,
         index: row.chunk_index,
-        contentLength: parseInt(row.content_length),
+        contentLength: parseInt(row.content_length, 10),
         metadata: row.metadata,
       })),
     })

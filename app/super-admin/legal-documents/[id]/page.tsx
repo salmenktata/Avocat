@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/table'
 import { getStalenessThreshold } from '@/lib/legal-documents/freshness-service'
 import { ApprovalActions } from './approval-actions'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 
@@ -200,7 +201,7 @@ export default async function LegalDocumentDetailPage({ params }: PageProps) {
       <div className="rounded-lg border border-slate-700 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-700">
           <h2 className="text-lg font-semibold text-white">
-            Pages liées ({pages.length}{parseInt(doc.linked_pages_count) > 50 ? ` / ${doc.linked_pages_count}` : ''})
+            Pages liées ({pages.length}{parseInt(doc.linked_pages_count, 10) > 50 ? ` / ${doc.linked_pages_count}` : ''})
           </h2>
         </div>
         <Table>

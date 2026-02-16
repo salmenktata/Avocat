@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import Link from 'next/link'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // Dynamic import pour réduire le bundle initial
 const AuditLogsFilters = dynamic(
@@ -26,7 +27,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
   const action = params.action || 'all'
   const target = params.target || 'all'
   const admin = params.admin || 'all'
-  const page = parseInt(params.page || '1')
+  const page = safeParseInt(params.page, 1, 1, 9999)
   const limit = 50
   const offset = (page - 1) * limit
 
@@ -58,7 +59,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
     `SELECT COUNT(*) as count FROM admin_audit_logs ${whereClause}`,
     queryParams
   )
-  const total = parseInt(countResult.rows[0]?.count || '0')
+  const total = safeParseInt(countResult.rows[0]?.count, 0, 0)
 
   // Récupérer les logs
   const logsResult = await query(

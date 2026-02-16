@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import type { AbrogationStats, LegalAbrogation } from '@/types/legal-abrogations'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * API REST - Statistiques des Abrogations Juridiques
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
     // Total
     const totalQuery = 'SELECT COUNT(*) as total FROM legal_abrogations'
     const totalResult = await db.query(totalQuery)
-    const total = parseInt(totalResult.rows[0].total)
+    const total = parseInt(totalResult.rows[0].total, 10)
 
     // Par domaine
     const domainQuery = `
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     const domainResult = await db.query(domainQuery)
     const byDomain = domainResult.rows.reduce(
       (acc, row) => {
-        acc[row.domain] = parseInt(row.count)
+        acc[row.domain] = parseInt(row.count, 10)
         return acc
       },
       {} as Record<string, number>
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
     const scopeResult = await db.query(scopeQuery)
     const byScope = scopeResult.rows.reduce(
       (acc, row) => {
-        acc[row.scope] = parseInt(row.count)
+        acc[row.scope] = parseInt(row.count, 10)
         return acc
       },
       {} as Record<string, number>
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
     const confidenceResult = await db.query(confidenceQuery)
     const byConfidence = confidenceResult.rows.reduce(
       (acc, row) => {
-        acc[row.confidence] = parseInt(row.count)
+        acc[row.confidence] = parseInt(row.count, 10)
         return acc
       },
       {} as Record<string, number>
@@ -83,9 +84,9 @@ export async function GET(request: NextRequest) {
       FROM legal_abrogations
     `
     const verificationResult = await db.query(verificationQuery)
-    const verified = parseInt(verificationResult.rows[0].verified || '0')
-    const pending = parseInt(verificationResult.rows[0].pending || '0')
-    const disputed = parseInt(verificationResult.rows[0].disputed || '0')
+    const verified = parseInt(verificationResult.rows[0].verified || '0', 10)
+    const pending = parseInt(verificationResult.rows[0].pending || '0', 10)
+    const disputed = parseInt(verificationResult.rows[0].disputed || '0', 10)
 
     // Abrogations récentes (10 dernières)
     const recentQuery = `

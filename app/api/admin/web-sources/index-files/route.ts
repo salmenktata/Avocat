@@ -4,6 +4,7 @@ import { indexFile } from '@/lib/web-scraper/file-indexer-service'
 import { downloadFile } from '@/lib/web-scraper/scraper-service'
 import { uploadWebFile } from '@/lib/web-scraper/storage-adapter'
 import type { LinkedFile } from '@/lib/web-scraper/types'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -42,8 +43,8 @@ export async function POST(request: NextRequest) {
     const params = request.nextUrl.searchParams
     const sourceFilter = params.get('source')
     const dryRun = params.get('dry-run') === 'true'
-    const limit = Math.min(parseInt(params.get('limit') || '50'), 500)
-    const fileIndex = parseInt(params.get('file-index') || '1')
+    const limit = Math.min(parseInt(params.get('limit') || '50', 10), 500)
+    const fileIndex = parseInt(params.get('file-index') || '1', 10)
 
     if (!sourceFilter) {
       return NextResponse.json(

@@ -23,6 +23,7 @@ import {
   getContradictionsStats,
 } from '@/app/actions/super-admin/content-review'
 import type { ContradictionStatus, ContradictionSeverity } from '@/lib/web-scraper/types'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,7 +73,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default async function ContradictionsPage({ searchParams }: PageProps) {
   const params = await searchParams
-  const page = parseInt(params.page || '1')
+  const page = parseInt(params.page || '1', 10)
   const pageSize = 20
 
   // Préparer les filtres

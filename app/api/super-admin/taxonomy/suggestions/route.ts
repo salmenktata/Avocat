@@ -14,6 +14,7 @@ import {
   invalidateTaxonomyCache,
 } from '@/lib/web-scraper/taxonomy-service'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 

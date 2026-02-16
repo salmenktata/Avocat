@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { buildJurisprudenceTimeline } from '@/lib/ai/jurisprudence-timeline-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 import type {
   TimelineOptions,
   TimelineEvent,

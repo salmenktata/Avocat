@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * GET /api/super-admin/classification/queue
@@ -44,12 +45,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       items: result.rows,
-      total: parseInt(stats.total) || 0,
+      total: parseInt(stats.total, 10) || 0,
       stats: {
-        urgent: parseInt(stats.urgent) || 0,
-        high: parseInt(stats.high) || 0,
-        medium: parseInt(stats.medium) || 0,
-        low: parseInt(stats.low) || 0,
+        urgent: parseInt(stats.urgent, 10) || 0,
+        high: parseInt(stats.high, 10) || 0,
+        medium: parseInt(stats.medium, 10) || 0,
+        low: parseInt(stats.low, 10) || 0,
       },
     })
   } catch (error) {

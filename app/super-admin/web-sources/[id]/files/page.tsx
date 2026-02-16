@@ -8,6 +8,7 @@ import { db } from '@/lib/db/postgres'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import { WebSourceFiles } from '@/components/super-admin/web-sources/WebSourceFiles'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,8 +66,8 @@ export default async function WebSourceFilesPage({ params }: PageProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
   }
 
-  const indexationRate = parseInt(stats.total_files) > 0
-    ? Math.round((parseInt(stats.indexed_files) / parseInt(stats.total_files)) * 100)
+  const indexationRate = parseInt(stats.total_files, 10) > 0
+    ? Math.round((parseInt(stats.indexed_files, 10) / parseInt(stats.total_files, 10)) * 100)
     : 0
 
   return (
@@ -122,7 +123,7 @@ export default async function WebSourceFilesPage({ params }: PageProps) {
             <p className="text-xs text-slate-400">Erreurs</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-purple-400">{formatBytes(parseInt(stats.total_size))}</p>
+            <p className="text-2xl font-bold text-purple-400">{formatBytes(parseInt(stats.total_size, 10))}</p>
             <p className="text-xs text-slate-400">Stockage</p>
           </div>
         </div>

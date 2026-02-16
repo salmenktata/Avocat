@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export async function GET(request: NextRequest) {
   try {
@@ -113,8 +114,8 @@ export async function GET(request: NextRequest) {
     let totalCost = 0
 
     for (const row of usageResult.rows) {
-      const requests = parseInt(row.request_count) || 0
-      const tokens = parseInt(row.total_tokens) || 0
+      const requests = parseInt(row.request_count, 10) || 0
+      const tokens = parseInt(row.total_tokens, 10) || 0
       const cost = parseFloat(row.total_cost_usd) || 0
 
       // By provider
@@ -139,28 +140,28 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform classification data
-    const totalClassifications = parseInt(classifTotals.rows[0]?.total) || 0
+    const totalClassifications = parseInt(classifTotals.rows[0]?.total, 10) || 0
     const avgConfidence = parseFloat(classifTotals.rows[0]?.avg_confidence) || 0
 
     const sourceDistribution: Record<string, number> = {}
     for (const row of bySource.rows) {
-      sourceDistribution[row.source] = parseInt(row.count) || 0
+      sourceDistribution[row.source] = parseInt(row.count, 10) || 0
     }
 
     const confidenceDistribution: Record<string, number> = {}
     for (const row of byConfidence.rows) {
-      confidenceDistribution[row.bracket] = parseInt(row.count) || 0
+      confidenceDistribution[row.bracket] = parseInt(row.count, 10) || 0
     }
 
     const topCategories: Array<{ category: string; count: number }> = byCategory.rows.map(
       (row: { category: string; count: string }) => ({
         category: row.category,
-        count: parseInt(row.count) || 0,
+        count: parseInt(row.count, 10) || 0,
       })
     )
 
-    const validationCount = parseInt(validationRate.rows[0]?.validation_count) || 0
-    const validationTotal = parseInt(validationRate.rows[0]?.total) || 0
+    const validationCount = parseInt(validationRate.rows[0]?.validation_count, 10) || 0
+    const validationTotal = parseInt(validationRate.rows[0]?.total, 10) || 0
 
     // Compute LLM rate from source distribution
     const llmCount = sourceDistribution['llm'] || 0

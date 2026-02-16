@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * GET /api/admin/kb/tree
@@ -56,9 +57,9 @@ export async function GET() {
         }
       }
 
-      tree[cat].doc_count += parseInt(row.doc_count) || 0
-      tree[cat].indexed_count += parseInt(row.indexed_count) || 0
-      tree[cat].stale_count += parseInt(row.stale_count) || 0
+      tree[cat].doc_count += parseInt(row.doc_count, 10) || 0
+      tree[cat].indexed_count += parseInt(row.indexed_count, 10) || 0
+      tree[cat].stale_count += parseInt(row.stale_count, 10) || 0
 
       if (row.last_updated) {
         if (!tree[cat].last_updated || row.last_updated > tree[cat].last_updated) {
@@ -68,7 +69,7 @@ export async function GET() {
 
       // Calculer la moyenne pondérée de qualité
       if (row.avg_quality != null) {
-        const count = parseInt(row.doc_count) || 1
+        const count = parseInt(row.doc_count, 10) || 1
         if (tree[cat].avg_quality == null) {
           tree[cat].avg_quality = parseFloat(row.avg_quality)
         } else {
@@ -79,10 +80,10 @@ export async function GET() {
 
       tree[cat].subcategories.push({
         subcategory: row.subcategory,
-        doc_count: parseInt(row.doc_count) || 0,
-        indexed_count: parseInt(row.indexed_count) || 0,
+        doc_count: parseInt(row.doc_count, 10) || 0,
+        indexed_count: parseInt(row.indexed_count, 10) || 0,
         avg_quality: row.avg_quality ? parseFloat(row.avg_quality) : null,
-        stale_count: parseInt(row.stale_count) || 0,
+        stale_count: parseInt(row.stale_count, 10) || 0,
         last_updated: row.last_updated,
       })
     }

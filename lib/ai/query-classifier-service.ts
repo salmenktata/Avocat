@@ -24,6 +24,8 @@
 import { callLLMWithFallback } from './llm-fallback-service'
 import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
 import { getCategoriesForContext } from '@/lib/categories/legal-categories'
+import type { DocumentType } from '@/lib/categories/doc-types'
+import { ALL_DOC_TYPES } from '@/lib/categories/doc-types'
 
 // =============================================================================
 // TYPES
@@ -32,6 +34,9 @@ import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 export interface QueryClassification {
   /** Catégories juridiques pertinentes (max 3) */
   categories: KnowledgeCategory[]
+
+  /** Types de documents pertinents (meta-catégories) */
+  docTypes?: DocumentType[]
 
   /** Domaines de droit (ex: penal, civil, commercial) */
   domains: string[]
@@ -48,13 +53,15 @@ export interface QueryClassification {
 // =============================================================================
 
 const KB_CATEGORIES = getCategoriesForContext('knowledge_base').map(c => c.value).join(', ')
+const DOC_TYPES = ALL_DOC_TYPES.join(', ')
 
 const CLASSIFICATION_PROMPT = `Tu es un expert juridique tunisien spécialisé en classification de questions juridiques.
 
 Ta tâche: Analyser une question juridique et identifier:
 1. Les CATÉGORIES juridiques pertinentes (max 3 parmi: ${KB_CATEGORIES})
-2. Les DOMAINES de droit (ex: penal, civil, commercial, administratif, travail, famille, societes, etc.)
-3. Ton niveau de CONFIANCE (0-1)
+2. Les TYPES DE DOCUMENTS pertinents (parmi: ${DOC_TYPES})
+3. Les DOMAINES de droit (ex: penal, civil, commercial, administratif, travail, famille, societes, etc.)
+4. Ton niveau de CONFIANCE (0-1)
 
 RÈGLES DE CLASSIFICATION:
 
@@ -65,6 +72,19 @@ RÈGLES DE CLASSIFICATION:
 - Question théorique → legislation + doctrine
 - Demande modèle document → modeles
 - Question actualité juridique → actualites
+
+**Types de Documents** (meta-catégories):
+- TEXTES : lois, codes, constitution, conventions, JORT (النصوص القانونية)
+- JURIS : jurisprudence, décisions de justice (الاجتهاد القضائي)
+- PROC : procédures, formulaires (الإجراءات)
+- TEMPLATES : modèles de documents (النماذج)
+- DOCTRINE : doctrine, guides, analyses (الفقه والتحليل)
+
+Exemples:
+- "ما هي شروط الدفاع الشرعي؟" → docTypes: ["TEXTES", "JURIS"] (chercher codes + jurisprudence)
+- "هل يمكن إعفاء السارق من العقاب؟" → docTypes: ["TEXTES"] (surtout codes pénaux)
+- "نموذج عقد إيجار" → docTypes: ["TEMPLATES"] (modèles uniquement)
+- "شرح مفهوم الصفة في الدعوى" → docTypes: ["DOCTRINE", "JURIS"] (analyse + jurisprudence)
 
 **Domaines** (identifier tous les pertinents):
 - جنائي/جزائي → penal
@@ -89,6 +109,7 @@ RÈGLES DE CLASSIFICATION:
 **Format réponse** (STRICT JSON):
 {
   "categories": ["category1", "category2"],
+  "docTypes": ["TEXTES", "JURIS"],
   "domains": ["domain1", "domain2"],
   "confidence": 0.92,
   "reasoning": "Courte explication du choix"
@@ -105,6 +126,7 @@ const CLASSIFICATION_EXAMPLES = [
     query: 'ما هي شروط الدفاع الشرعي؟',
     expected: {
       categories: ['codes', 'jurisprudence'],
+      docTypes: ['TEXTES', 'JURIS'],
       domains: ['penal'],
       confidence: 0.95,
       reasoning: 'Question théorique claire sur concept juridique pénal',
@@ -114,6 +136,7 @@ const CLASSIFICATION_EXAMPLES = [
     query: 'قرار تعقيبي عدد 12345 بتاريخ 2023',
     expected: {
       categories: ['jurisprudence'],
+      docTypes: ['JURIS'],
       domains: [],
       confidence: 0.98,
       reasoning: 'Référence explicite à arrêt cassation',
@@ -123,6 +146,7 @@ const CLASSIFICATION_EXAMPLES = [
     query: 'كيفية تحرير عقد كراء محل تجاري',
     expected: {
       categories: ['modeles', 'legislation'],
+      docTypes: ['TEMPLATES', 'TEXTES'],
       domains: ['commercial', 'immobilier'],
       confidence: 0.90,
       reasoning: 'Demande modèle contrat commercial',
@@ -132,6 +156,7 @@ const CLASSIFICATION_EXAMPLES = [
     query: 'وقع شجار ليلي أمام نادٍ وأصيب شخص',
     expected: {
       categories: ['jurisprudence', 'codes'],
+      docTypes: ['JURIS', 'TEXTES'],
       domains: ['penal'],
       confidence: 0.85,
       reasoning: 'Cas concret pénal, recherche jurisprudence applicable',
@@ -141,6 +166,7 @@ const CLASSIFICATION_EXAMPLES = [
     query: 'ما هي عقوبات الرشوة في الصفقات العمومية؟',
     expected: {
       categories: ['codes', 'jurisprudence', 'legislation'],
+      docTypes: ['TEXTES', 'JURIS'],
       domains: ['penal', 'administratif'],
       confidence: 0.92,
       reasoning: 'Corruption pénale dans les marchés publics',

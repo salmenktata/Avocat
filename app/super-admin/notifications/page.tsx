@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 const NotificationActions = dynamic(
   () => import('@/components/super-admin/notifications/NotificationActions').then(mod => mod.NotificationActions),
@@ -26,7 +27,7 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
   const params = await searchParams
   const type = params.type || 'all'
   const read = params.read || 'all'
-  const page = parseInt(params.page || '1')
+  const page = parseInt(params.page || '1', 10)
   const limit = 20
   const offset = (page - 1) * limit
 
@@ -52,13 +53,13 @@ export default async function NotificationsPage({ searchParams }: PageProps) {
     `SELECT COUNT(*) as count FROM admin_notifications ${whereClause}`,
     queryParams
   )
-  const total = parseInt(countResult.rows[0]?.count || '0')
+  const total = parseInt(countResult.rows[0]?.count || '0', 10)
 
   // Compter non lues
   const unreadResult = await query(
     `SELECT COUNT(*) as count FROM admin_notifications WHERE is_read = FALSE AND (expires_at IS NULL OR expires_at > NOW())`
   )
-  const unreadCount = parseInt(unreadResult.rows[0]?.count || '0')
+  const unreadCount = parseInt(unreadResult.rows[0]?.count || '0', 10)
 
   // Récupérer les notifications
   const notifsResult = await query(

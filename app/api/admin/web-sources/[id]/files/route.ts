@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { indexSourceFiles } from '@/lib/web-scraper/file-indexer-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 async function checkAdminAccess(userId: string): Promise<boolean> {
   const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
@@ -138,7 +139,7 @@ export async function POST(
          AND wp.linked_files::text LIKE '%"type":"pdf"%'`,
       [id]
     )
-    const totalToProcess = parseInt(countResult.rows[0].count)
+    const totalToProcess = parseInt(countResult.rows[0].count, 10)
 
     if (totalToProcess === 0) {
       return NextResponse.json({

@@ -24,6 +24,7 @@ import {
   formatEmbeddingForPostgres,
 } from '@/lib/ai/embeddings-service'
 import { aiConfig, isSemanticSearchEnabled } from '@/lib/ai/config'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // GET: Statistiques d'indexation
@@ -68,15 +69,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({
       stats: {
-        totalDocuments: parseInt(stats.total_documents),
-        indexedDocuments: parseInt(stats.indexed_documents),
+        totalDocuments: parseInt(stats.total_documents, 10),
+        indexedDocuments: parseInt(stats.indexed_documents, 10),
         pendingDocuments:
-          parseInt(stats.total_documents) - parseInt(stats.indexed_documents),
-        totalChunks: parseInt(stats.total_chunks),
+          parseInt(stats.total_documents, 10) - parseInt(stats.indexed_documents, 10),
+        totalChunks: parseInt(stats.total_chunks, 10),
         coveragePercent:
-          parseInt(stats.total_documents) > 0
+          parseInt(stats.total_documents, 10) > 0
             ? Math.round(
-                (parseInt(stats.indexed_documents) / parseInt(stats.total_documents)) *
+                (parseInt(stats.indexed_documents, 10) / parseInt(stats.total_documents, 10)) *
                   100
               )
             : 0,

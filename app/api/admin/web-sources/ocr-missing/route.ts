@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { parsePdf, terminateOcrWorker } from '@/lib/web-scraper/file-parser-service'
 import { downloadGoogleDriveFileForIndexing } from '@/lib/web-scraper/storage-adapter'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 3600 // 1h

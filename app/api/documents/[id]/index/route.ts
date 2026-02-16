@@ -25,6 +25,7 @@ import {
   isEmbeddingsServiceAvailable,
 } from '@/lib/ai/embeddings-service'
 import { aiConfig, isSemanticSearchEnabled } from '@/lib/ai/config'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // TYPES
@@ -111,7 +112,7 @@ export async function POST(
       [documentId]
     )
 
-    if (parseInt(existingResult.rows[0].count) > 0) {
+    if (parseInt(existingResult.rows[0].count, 10) > 0) {
       // Supprimer les anciennes embeddings pour ré-indexer
       await db.query(
         `DELETE FROM document_embeddings WHERE document_id = $1`,
@@ -305,7 +306,7 @@ export async function GET(
       [documentId]
     )
 
-    const count = parseInt(countResult.rows[0].count)
+    const count = parseInt(countResult.rows[0].count, 10)
 
     return NextResponse.json({
       documentId,

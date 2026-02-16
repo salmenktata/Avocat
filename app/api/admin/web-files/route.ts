@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 async function checkAdminAccess(userId: string): Promise<boolean> {
   const result = await db.query('SELECT role FROM users WHERE id = $1', [userId])
@@ -128,7 +129,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       `SELECT COUNT(*) as total FROM web_files wf ${whereClause}`,
       params
     )
-    const total = parseInt(countResult.rows[0].total)
+    const total = parseInt(countResult.rows[0].total, 10)
 
     // Requête pour récupérer les fichiers avec pagination
     const filesResult = await db.query<WebFileRow>(
@@ -184,18 +185,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const byType: Record<string, number> = {}
     for (const row of typeStatsResult.rows) {
-      byType[row.file_type] = parseInt(row.count)
+      byType[row.file_type] = parseInt(row.count, 10)
     }
 
     const stats: WebFilesStats = {
-      totalFiles: parseInt(statsResult.rows[0].total_files),
-      totalSize: parseInt(statsResult.rows[0].total_size),
+      totalFiles: parseInt(statsResult.rows[0].total_files, 10),
+      totalSize: parseInt(statsResult.rows[0].total_size, 10),
       byType,
       byStatus: {
-        pending: parseInt(statsResult.rows[0].pending),
-        downloaded: parseInt(statsResult.rows[0].downloaded),
-        indexed: parseInt(statsResult.rows[0].indexed),
-        error: parseInt(statsResult.rows[0].error),
+        pending: parseInt(statsResult.rows[0].pending, 10),
+        downloaded: parseInt(statsResult.rows[0].downloaded, 10),
+        indexed: parseInt(statsResult.rows[0].indexed, 10),
+        error: parseInt(statsResult.rows[0].error, 10),
       },
     }
 

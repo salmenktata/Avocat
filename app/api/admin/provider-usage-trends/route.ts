@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 interface DailyTrend {
   date: string
@@ -53,9 +54,9 @@ export async function GET(request: NextRequest) {
       }
 
       const dayData = trendsMap.get(date)!
-      dayData[`${provider}_tokens`] = parseInt(row.tokens) || 0
+      dayData[`${provider}_tokens`] = parseInt(row.tokens, 10) || 0
       dayData[`${provider}_cost`] = parseFloat(row.cost) || 0
-      dayData[`${provider}_requests`] = parseInt(row.requests) || 0
+      dayData[`${provider}_requests`] = parseInt(row.requests, 10) || 0
     }
 
     // Convert map to array and sort by date ascending
@@ -69,13 +70,13 @@ export async function GET(request: NextRequest) {
       acc[provider] = {
         totalTokens: result.rows
           .filter(r => r.provider === provider)
-          .reduce((sum, r) => sum + (parseInt(r.tokens) || 0), 0),
+          .reduce((sum, r) => sum + (parseInt(r.tokens, 10) || 0), 0),
         totalCost: result.rows
           .filter(r => r.provider === provider)
           .reduce((sum, r) => sum + (parseFloat(r.cost) || 0), 0),
         totalRequests: result.rows
           .filter(r => r.provider === provider)
-          .reduce((sum, r) => sum + (parseInt(r.requests) || 0), 0)
+          .reduce((sum, r) => sum + (parseInt(r.requests, 10) || 0), 0)
       }
       return acc
     }, {} as Record<string, { totalTokens: number; totalCost: number; totalRequests: number }>)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * GET /api/super-admin/classification/analytics/top-errors
@@ -125,29 +126,29 @@ export async function GET(req: NextRequest) {
     // Transform results
     const byPriority: Record<string, number> = {}
     for (const row of byPriorityResult.rows) {
-      byPriority[row.priority] = parseInt(row.count) || 0
+      byPriority[row.priority] = parseInt(row.count, 10) || 0
     }
 
     const byDomain: Record<string, number> = {}
     for (const row of byDomainResult.rows) {
-      byDomain[row.domain] = parseInt(row.count) || 0
+      byDomain[row.domain] = parseInt(row.count, 10) || 0
     }
 
     const bySource: Record<string, number> = {}
     for (const row of bySourceResult.rows) {
-      bySource[row.source] = parseInt(row.count) || 0
+      bySource[row.source] = parseInt(row.count, 10) || 0
     }
 
     const errors = errorsResult.rows.map((row: any) => ({
       key: row.key,
-      count: parseInt(row.count) || 0,
+      count: parseInt(row.count, 10) || 0,
       avgConfidence: parseFloat(row.avg_confidence) || 0,
       examples: (row.examples || []).slice(0, 3),
     }))
 
     return NextResponse.json(
       {
-        totalPagesRequiringReview: parseInt(totalResult.rows[0].total) || 0,
+        totalPagesRequiringReview: parseInt(totalResult.rows[0].total, 10) || 0,
         byPriority,
         byDomain,
         bySource,

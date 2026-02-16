@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { crawlGoogleDriveFolder } from '@/lib/web-scraper/gdrive-crawler-service'
 import { db } from '@/lib/db/postgres'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 3600 // 60 minutes (1715+ fichiers PDF à télécharger)
@@ -124,9 +125,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         errors: result.errors.length,
       },
       content: {
-        withContent: parseInt(stats.with_content),
-        withoutContent: parseInt(stats.without_content),
-        total: parseInt(stats.total),
+        withContent: parseInt(stats.with_content, 10),
+        withoutContent: parseInt(stats.without_content, 10),
+        total: parseInt(stats.total, 10),
       },
       errorDetails: result.errors.slice(0, 10), // Limiter à 10 premières erreurs
     })

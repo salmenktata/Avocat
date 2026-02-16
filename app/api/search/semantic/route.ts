@@ -19,6 +19,7 @@ import {
   formatEmbeddingForPostgres,
 } from '@/lib/ai/embeddings-service'
 import { aiConfig, isSemanticSearchEnabled } from '@/lib/ai/config'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // TYPES

@@ -12,6 +12,7 @@ import {
   analyzeRulesEffectiveness,
 } from '@/lib/web-scraper/classification-learning-service'
 import { getClassificationStats } from '@/lib/web-scraper/legal-classifier-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 /**
  * GET /api/super-admin/learning

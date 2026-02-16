@@ -3,6 +3,7 @@
 import { query } from '@/lib/db/postgres'
 import { getSession } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 // =============================================================================
 // VÉRIFICATION SUPER ADMIN
@@ -119,7 +120,7 @@ export async function getUnreadNotificationsCountAction() {
        WHERE is_read = FALSE AND (expires_at IS NULL OR expires_at > NOW())`
     )
 
-    return { success: true, count: parseInt(result.rows[0]?.count || '0') }
+    return { success: true, count: parseInt(result.rows[0]?.count || '0', 10) }
   } catch (error) {
     console.error('Erreur comptage notifications:', error)
     return { error: 'Erreur lors du comptage' }

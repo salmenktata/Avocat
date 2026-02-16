@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { getStageDocuments } from '@/lib/pipeline/pipeline-stats-service'
 import type { PipelineStage } from '@/lib/pipeline/document-pipeline-service'
+import { safeParseInt } from '@/lib/utils/safe-number'
 
 const VALID_STAGES: PipelineStage[] = [
   'source_configured',

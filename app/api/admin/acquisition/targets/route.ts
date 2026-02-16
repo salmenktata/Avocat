@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { safeParseInt } from '@/lib/utils/safe-number'
 import {
   ACQUISITION_TARGETS,
   filterTargets,
