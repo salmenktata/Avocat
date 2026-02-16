@@ -171,24 +171,41 @@ function getOpenAIClient(): OpenAI {
 async function generateEmbeddingWithOpenAI(text: string): Promise<EmbeddingResult> {
   const client = getOpenAIClient()
 
-  const response = await client.embeddings.create({
-    model: aiConfig.openai.embeddingModel,
-    input: text.substring(0, 6500),
-    dimensions: aiConfig.openai.embeddingDimensions,
-  })
+  // Retry avec réduction progressive si dépassement token limit
+  let input = text
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await client.embeddings.create({
+        model: aiConfig.openai.embeddingModel,
+        input,
+        dimensions: aiConfig.openai.embeddingDimensions,
+      })
 
-  const embedding = response.data[0].embedding
+      const embedding = response.data[0].embedding
 
-  const validation = validateEmbedding(embedding, 'openai')
-  if (!validation.valid) {
-    throw new Error(`Embedding OpenAI invalide: ${validation.error}`)
+      const validation = validateEmbedding(embedding, 'openai')
+      if (!validation.valid) {
+        throw new Error(`Embedding OpenAI invalide: ${validation.error}`)
+      }
+
+      return {
+        embedding,
+        tokenCount: response.usage.total_tokens,
+        provider: 'openai',
+      }
+    } catch (error: unknown) {
+      const isTokenOverflow = error instanceof Error && error.message?.includes('maximum context length')
+      if (isTokenOverflow && attempt < 2) {
+        // Réduire de 30% à chaque tentative
+        input = input.substring(0, Math.floor(input.length * 0.7))
+        console.warn(`[Embeddings] Token overflow OpenAI, retry avec ${input.length} chars (tentative ${attempt + 2}/3)`)
+        continue
+      }
+      throw error
+    }
   }
 
-  return {
-    embedding,
-    tokenCount: response.usage.total_tokens,
-    provider: 'openai',
-  }
+  throw new Error('Unreachable')
 }
 
 async function generateEmbeddingsBatchWithOpenAI(
@@ -204,19 +221,34 @@ async function generateEmbeddingsBatchWithOpenAI(
   let totalTokens = 0
 
   for (let i = 0; i < texts.length; i += MAX_BATCH) {
-    const batch = texts.slice(i, i + MAX_BATCH).map(t => t.substring(0, 6500))
+    let batch = texts.slice(i, i + MAX_BATCH)
 
-    const response = await client.embeddings.create({
-      model: aiConfig.openai.embeddingModel,
-      input: batch,
-      dimensions: aiConfig.openai.embeddingDimensions,
-    })
+    // Retry avec réduction progressive si dépassement token limit
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await client.embeddings.create({
+          model: aiConfig.openai.embeddingModel,
+          input: batch,
+          dimensions: aiConfig.openai.embeddingDimensions,
+        })
 
-    const sorted = response.data.sort((a, b) => a.index - b.index)
-    for (const item of sorted) {
-      allEmbeddings.push(item.embedding)
+        const sorted = response.data.sort((a, b) => a.index - b.index)
+        for (const item of sorted) {
+          allEmbeddings.push(item.embedding)
+        }
+        totalTokens += response.usage.total_tokens
+        break
+      } catch (error: unknown) {
+        const isTokenOverflow = error instanceof Error && error.message?.includes('maximum context length')
+        if (isTokenOverflow && attempt < 2) {
+          // Réduire chaque texte de 30%
+          batch = batch.map(t => t.substring(0, Math.floor(t.length * 0.7)))
+          console.warn(`[Embeddings] Token overflow batch OpenAI, retry avec textes réduits (tentative ${attempt + 2}/3)`)
+          continue
+        }
+        throw error
+      }
     }
-    totalTokens += response.usage.total_tokens
   }
 
   return { embeddings: allEmbeddings, totalTokens, provider: 'openai' }
