@@ -13,6 +13,7 @@
 
 import { useState } from 'react'
 import { Search, Filter, Grid3x3, List, SortAsc, ChevronDown, BookOpen } from 'lucide-react'
+import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -191,10 +192,9 @@ export function DocumentExplorer({
                     <SelectValue placeholder="Catégorie" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="jurisprudence">Jurisprudence</SelectItem>
-                    <SelectItem value="codes">Codes</SelectItem>
-                    <SelectItem value="legislation">Législation</SelectItem>
-                    <SelectItem value="doctrine">Doctrine</SelectItem>
+                    {getCategoriesForContext('knowledge_base', 'fr').map(cat => (
+                      <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 

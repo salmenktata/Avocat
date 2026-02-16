@@ -5,6 +5,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { PipelineFunnel } from './PipelineFunnel'
 import { PipelineStageTab } from './PipelineStageTab'
+import { getCategoriesForContext } from '@/lib/categories/legal-categories'
+
+const CATEGORIES = getCategoriesForContext('knowledge_base').map(c => c.value)
 
 interface FunnelStage {
   stage: string
@@ -40,6 +43,15 @@ interface DocumentSummary {
   source_file: string | null
   days_in_stage: number
   created_at: string
+  web_source_id: string | null
+  source_name: string | null
+}
+
+interface PipelineSource {
+  id: string
+  name: string
+  base_url: string
+  category: string
 }
 
 interface DocsResult {
@@ -67,6 +79,10 @@ export function PipelineDashboard() {
   const [docs, setDocs] = useState<DocsResult | null>(null)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [sourceId, setSourceId] = useState('')
+  const [category, setCategory] = useState('')
+  const [language, setLanguage] = useState('')
+  const [sources, setSources] = useState<PipelineSource[]>([])
   const [isLoadingFunnel, setIsLoadingFunnel] = useState(true)
   const [isLoadingDocs, setIsLoadingDocs] = useState(false)
 
@@ -86,6 +102,19 @@ export function PipelineDashboard() {
     }
   }, [])
 
+  // Fetch sources list
+  const fetchSources = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/pipeline/sources')
+      if (res.ok) {
+        const data = await res.json()
+        setSources(data.sources || [])
+      }
+    } catch (error) {
+      console.error('Erreur fetch sources:', error)
+    }
+  }, [])
+
   // Fetch documents for active tab
   const fetchDocs = useCallback(async () => {
     setIsLoadingDocs(true)
@@ -96,6 +125,9 @@ export function PipelineDashboard() {
         limit: '20',
       })
       if (search) params.set('search', search)
+      if (sourceId) params.set('sourceId', sourceId)
+      if (category) params.set('category', category)
+      if (language) params.set('language', language)
 
       const res = await fetch(`/api/admin/pipeline/documents?${params}`)
       if (res.ok) {
@@ -107,20 +139,21 @@ export function PipelineDashboard() {
     } finally {
       setIsLoadingDocs(false)
     }
-  }, [activeTab, page, search])
+  }, [activeTab, page, search, sourceId, category, language])
 
   useEffect(() => {
     fetchFunnel()
-  }, [fetchFunnel])
+    fetchSources()
+  }, [fetchFunnel, fetchSources])
 
   useEffect(() => {
     fetchDocs()
   }, [fetchDocs])
 
-  // Reset page when changing tab or search
+  // Reset page when changing tab or filters
   useEffect(() => {
     setPage(1)
-  }, [activeTab, search])
+  }, [activeTab, search, sourceId, category, language])
 
   const handleStageClick = (stage: string) => {
     setActiveTab(stage)
@@ -217,6 +250,14 @@ export function PipelineDashboard() {
               onBulkReject={handleBulkReject}
               searchValue={searchInput}
               onSearchChange={setSearchInput}
+              sourceId={sourceId}
+              onSourceChange={setSourceId}
+              category={category}
+              onCategoryChange={setCategory}
+              language={language}
+              onLanguageChange={setLanguage}
+              sources={sources}
+              categories={CATEGORIES}
             />
           </TabsContent>
         ))}

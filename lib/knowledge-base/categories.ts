@@ -7,7 +7,7 @@
  */
 
 import type { KnowledgeCategory as _KnowledgeCategory } from '@/lib/categories/legal-categories'
-import { normalizeLegalCategory, LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
+import { normalizeLegalCategory, LEGAL_CATEGORY_TRANSLATIONS, LEGAL_CATEGORY_BADGE_COLORS, LEGAL_CATEGORY_ICONS } from '@/lib/categories/legal-categories'
 
 export type KnowledgeCategory =
   | _KnowledgeCategory
@@ -347,34 +347,21 @@ export function getAllCategoriesFlat(): Array<{ value: string; labelFr: string; 
 }
 
 /**
- * Couleurs des catégories pour les badges
+ * @deprecated Utiliser LEGAL_CATEGORY_BADGE_COLORS depuis @/lib/categories/legal-categories
  */
 export const CATEGORY_COLORS: Record<string, string> = {
-  legislation: 'bg-blue-500',
-  jurisprudence: 'bg-purple-500',
-  doctrine: 'bg-green-500',
-  modeles: 'bg-orange-500',
-  procedures: 'bg-cyan-500',
-  jort: 'bg-red-500',
-  formulaires: 'bg-yellow-500',
-  // Anciennes catégories
-  code: 'bg-blue-500',
-  modele: 'bg-orange-500',
-  autre: 'bg-gray-500',
+  ...(LEGAL_CATEGORY_BADGE_COLORS as Record<string, string>),
+  // Rétrocompatibilité anciennes catégories
+  code: LEGAL_CATEGORY_BADGE_COLORS.codes,
+  modele: LEGAL_CATEGORY_BADGE_COLORS.modeles,
 };
 
 /**
- * Icônes Lucide pour les catégories
+ * @deprecated Utiliser LEGAL_CATEGORY_ICONS depuis @/lib/categories/legal-categories
  */
 export const CATEGORY_ICONS: Record<string, string> = {
-  legislation: 'Scale',
-  jurisprudence: 'Gavel',
-  doctrine: 'BookOpen',
-  modeles: 'FileText',
-  procedures: 'ClipboardList',
-  jort: 'Newspaper',
-  formulaires: 'FileInput',
-  code: 'BookOpen',
-  modele: 'FileText',
-  autre: 'File',
+  ...(LEGAL_CATEGORY_ICONS as Record<string, string>),
+  // Rétrocompatibilité anciennes catégories
+  code: LEGAL_CATEGORY_ICONS.codes,
+  modele: LEGAL_CATEGORY_ICONS.modeles,
 };

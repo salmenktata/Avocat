@@ -18,6 +18,15 @@ interface DocumentSummary {
   source_file: string | null
   days_in_stage: number
   created_at: string
+  web_source_id: string | null
+  source_name: string | null
+}
+
+interface PipelineSource {
+  id: string
+  name: string
+  base_url: string
+  category: string
 }
 
 interface PipelineStageTabProps {
@@ -34,6 +43,14 @@ interface PipelineStageTabProps {
   onBulkReject: (ids: string[], reason: string) => Promise<void>
   searchValue: string
   onSearchChange: (value: string) => void
+  sourceId: string
+  onSourceChange: (value: string) => void
+  category: string
+  onCategoryChange: (value: string) => void
+  language: string
+  onLanguageChange: (value: string) => void
+  sources: PipelineSource[]
+  categories: string[]
 }
 
 export function PipelineStageTab({
@@ -50,6 +67,14 @@ export function PipelineStageTab({
   onBulkReject,
   searchValue,
   onSearchChange,
+  sourceId,
+  onSourceChange,
+  category,
+  onCategoryChange,
+  language,
+  onLanguageChange,
+  sources,
+  categories,
 }: PipelineStageTabProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
@@ -101,21 +126,52 @@ export function PipelineStageTab({
           <h3 className="text-lg font-semibold">{stageLabel}</h3>
           <p className="text-sm text-muted-foreground">{total} document{total > 1 ? 's' : ''}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Icons.search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchValue}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Rechercher..."
-              className="rounded-md border pl-8 pr-3 py-2 text-sm w-64"
-            />
-          </div>
-          <Button variant="outline" size="sm" onClick={onRefresh} disabled={isLoading}>
-            <Icons.refresh className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </Button>
+        <Button variant="outline" size="sm" onClick={onRefresh} disabled={isLoading}>
+          <Icons.refresh className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+        </Button>
+      </div>
+
+      {/* Filtres */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Icons.search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchValue}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Rechercher..."
+            className="rounded-md border pl-8 pr-3 py-2 text-sm w-56"
+          />
         </div>
+        <select
+          value={sourceId}
+          onChange={(e) => onSourceChange(e.target.value)}
+          className="rounded-md border px-3 py-2 text-sm bg-background"
+        >
+          <option value="">Toutes les sources</option>
+          {sources.map(s => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+        <select
+          value={category}
+          onChange={(e) => onCategoryChange(e.target.value)}
+          className="rounded-md border px-3 py-2 text-sm bg-background"
+        >
+          <option value="">Toutes catégories</option>
+          {categories.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        <select
+          value={language}
+          onChange={(e) => onLanguageChange(e.target.value)}
+          className="rounded-md border px-3 py-2 text-sm bg-background"
+        >
+          <option value="">Toutes langues</option>
+          <option value="ar">Arabe</option>
+          <option value="fr">Français</option>
+        </select>
       </div>
 
       {/* Table */}

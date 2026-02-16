@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Icons } from '@/lib/icons'
+import { LEGAL_CATEGORY_COLORS, type LegalCategory } from '@/lib/categories/legal-categories'
 
 interface DocumentSummary {
   id: string
@@ -16,6 +17,8 @@ interface DocumentSummary {
   source_file: string | null
   days_in_stage: number
   created_at: string
+  web_source_id?: string | null
+  source_name?: string | null
 }
 
 interface PipelineDocumentRowProps {
@@ -24,15 +27,8 @@ interface PipelineDocumentRowProps {
   onSelect: (id: string, checked: boolean) => void
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  jurisprudence: 'bg-blue-100 text-blue-800',
-  legislation: 'bg-purple-100 text-purple-800',
-  codes: 'bg-indigo-100 text-indigo-800',
-  doctrine: 'bg-amber-100 text-amber-800',
-  modeles: 'bg-green-100 text-green-800',
-  formulaires: 'bg-teal-100 text-teal-800',
-  autre: 'bg-gray-100 text-gray-800',
-}
+const getCategoryColor = (category: string) =>
+  LEGAL_CATEGORY_COLORS[category as LegalCategory] || LEGAL_CATEGORY_COLORS.autre
 
 export function PipelineDocumentRow({ doc, isSelected, onSelect }: PipelineDocumentRowProps) {
   return (
@@ -50,12 +46,14 @@ export function PipelineDocumentRow({ doc, isSelected, onSelect }: PipelineDocum
         >
           {doc.title || 'Sans titre'}
         </Link>
-        {doc.source_file && (
+        {doc.source_name ? (
+          <p className="text-xs text-muted-foreground truncate mt-0.5">{doc.source_name}</p>
+        ) : doc.source_file ? (
           <p className="text-xs text-muted-foreground truncate mt-0.5">{doc.source_file}</p>
-        )}
+        ) : null}
       </td>
       <td className="p-3">
-        <Badge variant="outline" className={CATEGORY_COLORS[doc.category] || CATEGORY_COLORS.autre}>
+        <Badge variant="outline" className={getCategoryColor(doc.category)}>
           {doc.category}
         </Badge>
       </td>

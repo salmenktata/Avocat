@@ -45,6 +45,8 @@ export interface PipelineDocumentSummary {
   metadata: Record<string, unknown>
   created_at: string
   days_in_stage: number
+  web_source_id: string | null
+  source_name: string | null
 }
 
 export interface PipelineBottleneck {
@@ -133,54 +135,70 @@ export async function getStageDocuments(
     search?: string
     category?: string
     language?: string
+    sourceId?: string
     sortBy?: string
     sortOrder?: 'asc' | 'desc'
   }
 ): Promise<StageDocumentsResult> {
   const offset = (page - 1) * limit
-  const conditions: string[] = ['pipeline_stage = $1']
+  const conditions: string[] = ['kb.pipeline_stage = $1']
   const params: unknown[] = [stage]
   let paramIdx = 2
 
   if (filters?.search) {
-    conditions.push(`(title ILIKE $${paramIdx} OR source_file ILIKE $${paramIdx})`)
+    conditions.push(`(kb.title ILIKE $${paramIdx} OR kb.source_file ILIKE $${paramIdx})`)
     params.push(`%${filters.search}%`)
     paramIdx++
   }
 
   if (filters?.category) {
-    conditions.push(`category = $${paramIdx}`)
+    conditions.push(`kb.category = $${paramIdx}`)
     params.push(filters.category)
     paramIdx++
   }
 
   if (filters?.language) {
-    conditions.push(`language = $${paramIdx}`)
+    conditions.push(`kb.language = $${paramIdx}`)
     params.push(filters.language)
+    paramIdx++
+  }
+
+  if (filters?.sourceId) {
+    conditions.push(`ws.id = $${paramIdx}`)
+    params.push(filters.sourceId)
     paramIdx++
   }
 
   const where = conditions.join(' AND ')
   const sortBy = filters?.sortBy || 'pipeline_stage_updated_at'
   const sortOrder = filters?.sortOrder || 'desc'
-  const validSortColumns = ['pipeline_stage_updated_at', 'created_at', 'title', 'quality_score', 'category']
+  const validSortColumns = ['pipeline_stage_updated_at', 'created_at', 'title', 'quality_score', 'category', 'source_name']
   const safeSort = validSortColumns.includes(sortBy) ? sortBy : 'pipeline_stage_updated_at'
+  const safeSortCol = safeSort === 'source_name' ? 'ws.name' : `kb.${safeSort}`
   const safeOrder = sortOrder === 'asc' ? 'ASC' : 'DESC'
 
   const [docsResult, countResult] = await Promise.all([
     db.query(
-      `SELECT id, title, category, subcategory, language,
-        pipeline_stage, pipeline_stage_updated_at, quality_score,
-        is_indexed, source_file, metadata, created_at,
-        EXTRACT(EPOCH FROM (NOW() - pipeline_stage_updated_at)) / 86400 as days_in_stage
-      FROM knowledge_base
+      `SELECT kb.id, kb.title, kb.category, kb.subcategory, kb.language,
+        kb.pipeline_stage, kb.pipeline_stage_updated_at, kb.quality_score,
+        kb.is_indexed, kb.source_file, kb.metadata, kb.created_at,
+        EXTRACT(EPOCH FROM (NOW() - kb.pipeline_stage_updated_at)) / 86400 as days_in_stage,
+        ws.id as web_source_id,
+        ws.name as source_name
+      FROM knowledge_base kb
+      LEFT JOIN web_pages wp ON wp.knowledge_base_id = kb.id
+      LEFT JOIN web_sources ws ON wp.web_source_id = ws.id
       WHERE ${where}
-      ORDER BY ${safeSort} ${safeOrder}
+      ORDER BY ${safeSortCol} ${safeOrder}
       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
       [...params, limit, offset]
     ),
     db.query(
-      `SELECT COUNT(*) as cnt FROM knowledge_base WHERE ${where}`,
+      `SELECT COUNT(*) as cnt
+      FROM knowledge_base kb
+      LEFT JOIN web_pages wp ON wp.knowledge_base_id = kb.id
+      LEFT JOIN web_sources ws ON wp.web_source_id = ws.id
+      WHERE ${where}`,
       params
     ),
   ])

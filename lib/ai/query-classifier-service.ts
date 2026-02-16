@@ -23,6 +23,7 @@
 
 import { callLLMWithFallback } from './llm-fallback-service'
 import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
+import { getCategoriesForContext } from '@/lib/categories/legal-categories'
 
 // =============================================================================
 // TYPES
@@ -46,10 +47,12 @@ export interface QueryClassification {
 // PROMPTS
 // =============================================================================
 
+const KB_CATEGORIES = getCategoriesForContext('knowledge_base').map(c => c.value).join(', ')
+
 const CLASSIFICATION_PROMPT = `Tu es un expert juridique tunisien spécialisé en classification de questions juridiques.
 
 Ta tâche: Analyser une question juridique et identifier:
-1. Les CATÉGORIES juridiques pertinentes (max 3 parmi: jurisprudence, legislation, codes, doctrine, modeles, actualites, autre)
+1. Les CATÉGORIES juridiques pertinentes (max 3 parmi: ${KB_CATEGORIES})
 2. Les DOMAINES de droit (ex: penal, civil, commercial, administratif, travail, famille, societes, etc.)
 3. Ton niveau de CONFIANCE (0-1)
 

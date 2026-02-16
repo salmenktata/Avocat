@@ -13,6 +13,7 @@ import { uploadFile, deleteFile } from '@/lib/storage/minio'
 import { aiConfig, isSemanticSearchEnabled } from './config'
 import { onKnowledgeDocumentChange } from './related-documents-service'
 import type { KnowledgeCategory } from '@/lib/categories/legal-categories'
+import { LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
 import { getChunkConfig } from './adaptive-chunking-config'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse en RSC
@@ -113,22 +114,12 @@ export interface KnowledgeBaseStats {
 // CONSTANTES
 // =============================================================================
 
-export const CATEGORY_LABELS: Record<KnowledgeBaseCategory, string> = {
-  jurisprudence: 'Jurisprudence',
-  codes: 'Codes juridiques',
-  doctrine: 'Doctrine',
-  modeles: 'Modèles de documents',
-  autre: 'Autre',
-  // Nouvelles catégories
-  legislation: 'Législation',
-  procedures: 'Procédures',
-  jort: 'JORT',
-  formulaires: 'Formulaires',
-  constitution: 'Constitution',
-  conventions: 'Conventions',
-  guides: 'Guides',
-  lexique: 'Lexique',
-}
+/**
+ * @deprecated Utiliser LEGAL_CATEGORY_TRANSLATIONS depuis @/lib/categories/legal-categories
+ */
+export const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(LEGAL_CATEGORY_TRANSLATIONS).map(([key, val]) => [key, val.fr])
+)
 
 const KNOWLEDGE_BASE_BUCKET = 'knowledge-base'
 

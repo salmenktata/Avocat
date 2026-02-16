@@ -39,6 +39,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const search = searchParams.get('search') || undefined
     const category = searchParams.get('category') || undefined
     const language = searchParams.get('language') || undefined
+    const sourceId = searchParams.get('sourceId') || undefined
     const sortBy = searchParams.get('sortBy') || undefined
     const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc'
 
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const result = await getStageDocuments(stage, page, limit, {
-      search, category, language, sortBy, sortOrder,
+      search, category, language, sourceId, sortBy, sortOrder,
     })
 
     return NextResponse.json(result)
