@@ -77,6 +77,9 @@ lighthouse-*.json
 lighthouse-*
 lighthouse-analysis.json
 
+# Cache modèles ML (cross-encoder, transformers)
+.cache/
+
 # Données Tesseract OCR
 *.traineddata
 # RAG Audit Reports
