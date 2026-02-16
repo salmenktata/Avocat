@@ -618,6 +618,9 @@ export async function searchRelevantContext(
     }
   }
 
+  // Détection langue pour seuils adaptatifs (arabe → scores plus bas)
+  const queryLangForSearch = detectLanguage(question)
+
   // Recherche dans la base de connaissances partagée
   if (includeKnowledgeBase) {
     try {
@@ -640,8 +643,9 @@ export async function searchRelevantContext(
       // Mapping catégories classifieur → catégories réelles DB
       // Le classifieur peut retourner 'codes' mais la DB utilise 'legislation'
       const CATEGORY_DB_MAPPING: Record<string, string[]> = {
-        codes: ['legislation', 'codes'],
-        legislation: ['legislation', 'codes'],
+        codes: ['legislation', 'codes', 'code'],
+        code: ['legislation', 'codes', 'code'],
+        legislation: ['legislation', 'codes', 'code'],
         jurisprudence: ['jurisprudence'],
         doctrine: ['doctrine'],
         modeles: ['modeles'],
@@ -695,10 +699,14 @@ export async function searchRelevantContext(
 
         // Recherche HYBRIDE (vectoriel + BM25) dans chaque catégorie
         for (const category of expandedCategories) {
+          // Seuil plus permissif pour l'arabe (embeddings arabes → scores plus bas)
+          const categoryThreshold = queryLangForSearch === 'ar'
+            ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.40)
+            : RAG_THRESHOLDS.knowledgeBase
           const categoryResults = await searchKnowledgeBaseHybrid(question, {
             category: category as any,
             limit: Math.ceil(maxContextChunks / expandedCategories.size),
-            threshold: RAG_THRESHOLDS.knowledgeBase,
+            threshold: categoryThreshold,
             operationName: options.operationName,
           })
           kbResults.push(...categoryResults)
