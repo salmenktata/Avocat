@@ -5,18 +5,43 @@ import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type { ModeConfig } from '@/app/(dashboard)/qadhya-ia/mode-config'
+import { ALL_DOC_TYPES, DOC_TYPE_TRANSLATIONS, type DocumentType } from '@/lib/categories/doc-types'
 
 interface ChatInputProps {
-  onSend: (message: string) => void
+  onSend: (message: string, options?: { docType?: DocumentType }) => void
   disabled?: boolean
   placeholder?: string
   modeConfig?: ModeConfig
+  showDocTypeFilter?: boolean // Nouveau prop optionnel
 }
 
-export function ChatInput({ onSend, disabled = false, placeholder, modeConfig }: ChatInputProps) {
+const DOC_TYPE_ICONS: Record<DocumentType | 'ALL', string> = {
+  ALL: '📚',
+  TEXTES: '📕',
+  JURIS: '⚖️',
+  PROC: '📋',
+  TEMPLATES: '📄',
+  DOCTRINE: '📖',
+}
+
+export function ChatInput({
+  onSend,
+  disabled = false,
+  placeholder,
+  modeConfig,
+  showDocTypeFilter = true
+}: ChatInputProps) {
   const t = useTranslations('assistantIA')
   const [message, setMessage] = useState('')
+  const [selectedDocType, setSelectedDocType] = useState<DocumentType | 'ALL'>('ALL')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Auto-resize textarea
@@ -32,7 +57,8 @@ export function ChatInput({ onSend, disabled = false, placeholder, modeConfig }:
   const handleSend = () => {
     const trimmed = message.trim()
     if (trimmed && !disabled) {
-      onSend(trimmed)
+      const options = selectedDocType !== 'ALL' ? { docType: selectedDocType } : undefined
+      onSend(trimmed, options)
       setMessage('')
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
@@ -55,7 +81,38 @@ export function ChatInput({ onSend, disabled = false, placeholder, modeConfig }:
 
   return (
     <div className="p-3 md:p-4">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto space-y-2">
+        {/* Filtre doc_type */}
+        {showDocTypeFilter && (
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-xs text-muted-foreground">Rechercher dans:</span>
+            <Select value={selectedDocType} onValueChange={(v) => setSelectedDocType(v as DocumentType | 'ALL')}>
+              <SelectTrigger className="h-7 w-auto min-w-[180px] text-xs">
+                <SelectValue>
+                  <span className="flex items-center gap-1.5">
+                    {DOC_TYPE_ICONS[selectedDocType]}
+                    {selectedDocType === 'ALL' ? 'Tous les types' : DOC_TYPE_TRANSLATIONS[selectedDocType as DocumentType].fr}
+                  </span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">
+                  <span className="flex items-center gap-2">
+                    {DOC_TYPE_ICONS.ALL} Tous les types
+                  </span>
+                </SelectItem>
+                {ALL_DOC_TYPES.map((docType) => (
+                  <SelectItem key={docType} value={docType}>
+                    <span className="flex items-center gap-2">
+                      {DOC_TYPE_ICONS[docType]} {DOC_TYPE_TRANSLATIONS[docType].fr}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         <div className={cn(
           'relative flex items-end gap-2',
           'rounded-2xl border bg-card shadow-sm',

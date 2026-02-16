@@ -7,7 +7,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Activity, PieChart, DollarSign, Gauge, Heart, Database, Clock, Settings, Eye, FileType } from 'lucide-react'
+import { Activity, PieChart, DollarSign, Gauge, Heart, Database, Clock, Settings, Eye, FileType, Radar } from 'lucide-react'
 import { ProductionMonitoringTab } from '@/components/super-admin/monitoring/ProductionMonitoringTab'
 import { ProviderUsageTab } from '@/components/super-admin/monitoring/ProviderUsageTab'
 import { AICostsTab } from '@/components/super-admin/monitoring/AICostsTab'
@@ -17,6 +17,7 @@ import { CronsAndBatchesTab } from '@/components/super-admin/monitoring/CronsAnd
 import { ImpersonationsTab } from '@/components/super-admin/monitoring/ImpersonationsTab'
 import SystemConfigTab from '@/components/super-admin/monitoring/SystemConfigTab'
 import { DocTypeStatsPanel } from '@/components/super-admin/monitoring/DocTypeStatsPanel'
+import { RAGHealthTab } from '@/components/super-admin/monitoring/RAGHealthTab'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -54,7 +55,7 @@ export function MonitoringClient() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-9 lg:w-[1800px]">
+        <TabsList className="grid w-full grid-cols-10 lg:w-[2000px]">
           <TabsTrigger value="system-config" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
@@ -66,6 +67,10 @@ export function MonitoringClient() {
           <TabsTrigger value="kb-quality" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">KB Quality</span>
+          </TabsTrigger>
+          <TabsTrigger value="rag-health" className="flex items-center gap-2">
+            <Radar className="h-4 w-4" />
+            <span className="hidden sm:inline">RAG Health</span>
           </TabsTrigger>
           <TabsTrigger value="doc-types" className="flex items-center gap-2">
             <FileType className="h-4 w-4" />
@@ -108,7 +113,12 @@ export function MonitoringClient() {
           <KBQualityTab />
         </TabsContent>
 
-        {/* Tab 3: Doc Types - Statistiques par type de document */}
+        {/* Tab 3: RAG Health - Santé système RAG */}
+        <TabsContent value="rag-health" className="space-y-6">
+          <RAGHealthTab />
+        </TabsContent>
+
+        {/* Tab 4: Doc Types - Statistiques par type de document */}
         <TabsContent value="doc-types" className="space-y-6">
           <DocTypeStatsPanel />
         </TabsContent>

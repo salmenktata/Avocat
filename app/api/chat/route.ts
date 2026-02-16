@@ -34,6 +34,8 @@ import { structurerDossier } from '@/lib/ai/dossier-structuring-service'
 // TYPES
 // =============================================================================
 
+import type { DocumentType } from '@/lib/categories/doc-types'
+
 interface ChatRequestBody {
   question: string
   dossierId?: string
@@ -42,6 +44,7 @@ interface ChatRequestBody {
   stream?: boolean // Activer le streaming
   usePremiumModel?: boolean // Mode Premium: cloud providers au lieu d'Ollama
   actionType?: 'chat' | 'structure' | 'consult' // Nouveau: type d'action pour interface unifiée
+  docType?: DocumentType // Nouveau: filtrer recherche KB par type de document
 }
 
 interface ChatApiResponse {
@@ -90,7 +93,8 @@ async function handleConsultAction(
   question: string,
   userId: string,
   conversationId: string,
-  dossierId?: string
+  dossierId?: string,
+  docType?: DocumentType
 ) {
   // Utiliser answerQuestion avec configuration optimisée pour consultation
   const response = await answerQuestion(question, userId, {
@@ -99,6 +103,7 @@ async function handleConsultAction(
     includeJurisprudence: true,
     usePremiumModel: false,
     operationName: 'dossiers-consultation', // Configuration IRAC formelle
+    docType,
   })
 
   return {
@@ -121,7 +126,8 @@ async function handleChatAction(
   conversationId: string,
   dossierId?: string,
   includeJurisprudence = true,
-  usePremiumModel = false
+  usePremiumModel = false,
+  docType?: DocumentType
 ) {
   const response = await answerQuestion(question, userId, {
     dossierId,
@@ -129,6 +135,7 @@ async function handleChatAction(
     includeJurisprudence,
     usePremiumModel,
     operationName: 'assistant-ia',
+    docType,
   })
 
   return {
@@ -177,7 +184,8 @@ export async function POST(
       includeJurisprudence = true,
       stream = false,
       usePremiumModel = false,
-      actionType = 'chat' // Par défaut: conversation normale
+      actionType = 'chat', // Par défaut: conversation normale
+      docType // Nouveau: filtrage par type de document
     } = body
 
     if (!question || question.trim().length < 3) {
@@ -258,7 +266,8 @@ export async function POST(
         activeConversationId,
         dossierId,
         includeJurisprudence,
-        usePremiumModel
+        usePremiumModel,
+        docType
       )
     }
 
@@ -278,7 +287,7 @@ export async function POST(
         response = await handleStructureAction(question, userId, activeConversationId)
         break
       case 'consult':
-        response = await handleConsultAction(question, userId, activeConversationId, dossierId)
+        response = await handleConsultAction(question, userId, activeConversationId, dossierId, docType)
         break
       default:
         response = await handleChatAction(
@@ -287,7 +296,8 @@ export async function POST(
           activeConversationId,
           dossierId,
           includeJurisprudence,
-          usePremiumModel
+          usePremiumModel,
+          docType
         )
         break
     }
@@ -530,7 +540,8 @@ async function handleStreamingResponse(
   conversationId: string,
   dossierId?: string,
   includeJurisprudence: boolean = true,
-  usePremiumModel: boolean = false
+  usePremiumModel: boolean = false,
+  docType?: DocumentType
 ): Promise<Response> {
   const encoder = new TextEncoder()
 
@@ -541,6 +552,7 @@ async function handleStreamingResponse(
     includeJurisprudence,
     usePremiumModel,
     operationName: 'assistant-ia', // Configuration optimisée pour chat temps réel
+    docType,
   })
 
   // On a la réponse complète, maintenant on va la streamer

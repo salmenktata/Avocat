@@ -174,6 +174,8 @@ export interface ChatResponse {
   averageSimilarity?: number
 }
 
+import type { DocumentType } from '@/lib/categories/doc-types'
+
 export interface ChatOptions {
   dossierId?: string
   conversationId?: string
@@ -189,6 +191,8 @@ export interface ChatOptions {
   operationName?: OperationName
   /** Logger structuré pour traçabilité (auto-créé si non fourni) */
   logger?: RAGLogger
+  /** Filtrer la recherche KB par type de document */
+  docType?: DocumentType
 }
 
 export interface ConversationMessage {
@@ -713,6 +717,7 @@ export async function searchRelevantContext(
             limit: Math.ceil(maxContextChunks / expandedCategories.size),
             threshold: categoryThreshold,
             operationName: options.operationName,
+            docType: options.docType,
           })
           kbResults.push(...categoryResults)
         }
@@ -733,6 +738,7 @@ export async function searchRelevantContext(
             limit: maxContextChunks,
             threshold: fallbackThreshold,
             operationName: options.operationName,
+            docType: options.docType,
           })
         }
       } else {
@@ -748,6 +754,7 @@ export async function searchRelevantContext(
           limit: maxContextChunks,
           threshold: globalThreshold,
           operationName: options.operationName,
+          docType: options.docType,
         })
       }
 
