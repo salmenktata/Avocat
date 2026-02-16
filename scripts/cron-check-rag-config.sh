@@ -1,147 +1,116 @@
 #!/bin/bash
-
-#======================================================================
-# Cron de Vérification Configuration RAG
-#======================================================================
+#═══════════════════════════════════════════════════════════════════════════════
+# Cron: Vérification Configuration RAG
+#═══════════════════════════════════════════════════════════════════════════════
 # Vérifie quotidiennement la configuration RAG et envoie alerte si problème
 #
-# Déploiement VPS :
-#   1. Copier dans /opt/moncabinet/scripts/
-#   2. Permissions : chmod +x cron-check-rag-config.sh
-#   3. Crontab : 0 8 * * * /opt/moncabinet/scripts/cron-check-rag-config.sh
-#
-# Logs : /var/log/qadhya/rag-config-check.log
+# Usage: Exécuté automatiquement par cron (8h quotidien)
+# Logs: /var/log/qadhya/check-rag-config.log (via cron-logger.sh)
 #
 # Exit Codes:
 #   0 - Configuration OK
 #   1 - Configuration invalide (alerte envoyée)
-#======================================================================
+#
+# Déploiement VPS:
+#   1. Copier dans /opt/qadhya/scripts/
+#   2. Permissions: chmod +x cron-check-rag-config.sh
+#   3. Installer cron: bash scripts/setup-crontabs.sh
+#═══════════════════════════════════════════════════════════════════════════════
 
 set -euo pipefail
 
+# Charger bibliothèque cron logger
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/lib/cron-logger.sh" ]; then
+  source "$SCRIPT_DIR/lib/cron-logger.sh"
+else
+  echo "❌ Erreur: cron-logger.sh introuvable"
+  exit 1
+fi
+
 # Configuration
-LOG_FILE="/var/log/qadhya/rag-config-check.log"
 API_URL="https://qadhya.tn/api/health"
 ALERT_API_URL="https://qadhya.tn/api/admin/alerts/check"
-CRON_SECRET="${CRON_SECRET:-}"
 
-# Couleurs (désactivées dans cron)
-if [ -t 1 ]; then
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[1;33m'
-    NC='\033[0m'
-else
-    RED=''
-    GREEN=''
-    YELLOW=''
-    NC=''
-fi
+# Démarrer cron
+cron_start "check-rag-config" "scheduled"
 
-# Fonction logging
-log() {
-    local level="$1"
-    shift
-    local message="$*"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "[$timestamp] [$level] $message" | tee -a "$LOG_FILE"
-}
+echo "🔍 Vérification configuration RAG..."
 
-# Créer répertoire logs si nécessaire
-mkdir -p "$(dirname "$LOG_FILE")"
-
-log "INFO" "=========================================="
-log "INFO" "Démarrage vérification configuration RAG"
-log "INFO" "=========================================="
-
-# Vérifier que curl est disponible
+# Vérifier que curl et jq sont disponibles
 if ! command -v curl &> /dev/null; then
-    log "ERROR" "curl non trouvé - impossible de continuer"
+    cron_fail "{\"error\": \"curl non trouvé\"}"
     exit 1
 fi
 
-# Vérifier que jq est disponible
 if ! command -v jq &> /dev/null; then
-    log "ERROR" "jq non trouvé - impossible de continuer"
+    cron_fail "{\"error\": \"jq non trouvé\"}"
     exit 1
 fi
 
-# ========================================
-# 1. Récupérer health check
-# ========================================
-
-log "INFO" "Récupération health check depuis $API_URL"
+# Récupérer health check
+echo "  Récupération health check depuis $API_URL..."
 
 HEALTH_RESPONSE=$(curl -s --max-time 10 "$API_URL" 2>&1)
 CURL_EXIT_CODE=$?
 
 if [ $CURL_EXIT_CODE -ne 0 ]; then
-    log "ERROR" "Échec récupération health check (exit code: $CURL_EXIT_CODE)"
-    log "ERROR" "Impossible de vérifier configuration RAG"
+    cron_fail "{\"error\": \"Échec health check\", \"exitCode\": $CURL_EXIT_CODE}"
     exit 1
 fi
 
 # Vérifier que c'est du JSON valide
 if ! echo "$HEALTH_RESPONSE" | jq empty 2>/dev/null; then
-    log "ERROR" "Réponse health check invalide (pas du JSON)"
-    log "DEBUG" "Réponse: $HEALTH_RESPONSE"
+    cron_fail "{\"error\": \"Réponse health check invalide (pas JSON)\"}"
     exit 1
 fi
 
-# ========================================
-# 2. Extraire configuration RAG
-# ========================================
-
+# Extraire configuration RAG
 RAG_ENABLED=$(echo "$HEALTH_RESPONSE" | jq -r '.rag.enabled // "null"')
 SEMANTIC_SEARCH_ENABLED=$(echo "$HEALTH_RESPONSE" | jq -r '.rag.semanticSearchEnabled // "null"')
 OLLAMA_ENABLED=$(echo "$HEALTH_RESPONSE" | jq -r '.rag.ollamaEnabled // "null"')
 OPENAI_CONFIGURED=$(echo "$HEALTH_RESPONSE" | jq -r '.rag.openaiConfigured // "null"')
 RAG_STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.rag.status // "null"')
-KB_DOCS_INDEXED=$(echo "$HEALTH_RESPONSE" | jq -r '.rag.kbDocsIndexed // 0')
-KB_CHUNKS_AVAILABLE=$(echo "$HEALTH_RESPONSE" | jq -r '.rag.kbChunksAvailable // 0')
+KB_DOCS_INDEXED=$(echo "$HEALTH_RESPONSE" | jq -r '.rag.kbDocsIndexed // "0"')
+KB_CHUNKS_AVAILABLE=$(echo "$HEALTH_RESPONSE" | jq -r '.rag.kbChunksAvailable // "0"')
 
-log "INFO" "Configuration RAG détectée :"
-log "INFO" "  - RAG_ENABLED: $RAG_ENABLED"
-log "INFO" "  - SEMANTIC_SEARCH_ENABLED: $SEMANTIC_SEARCH_ENABLED"
-log "INFO" "  - OLLAMA_ENABLED: $OLLAMA_ENABLED"
-log "INFO" "  - OPENAI_CONFIGURED: $OPENAI_CONFIGURED"
-log "INFO" "  - RAG_STATUS: $RAG_STATUS"
-log "INFO" "  - KB_DOCS_INDEXED: $KB_DOCS_INDEXED"
-log "INFO" "  - KB_CHUNKS_AVAILABLE: $KB_CHUNKS_AVAILABLE"
+echo ""
+echo "Configuration détectée:"
+echo "  RAG_ENABLED:             $RAG_ENABLED"
+echo "  SEMANTIC_SEARCH_ENABLED: $SEMANTIC_SEARCH_ENABLED"
+echo "  OLLAMA_ENABLED:          $OLLAMA_ENABLED"
+echo "  OPENAI_CONFIGURED:       $OPENAI_CONFIGURED"
+echo "  RAG_STATUS:              $RAG_STATUS"
+echo "  KB_DOCS_INDEXED:         $KB_DOCS_INDEXED"
+echo "  KB_CHUNKS_AVAILABLE:     $KB_CHUNKS_AVAILABLE"
+echo ""
 
-# ========================================
-# 3. Vérifier configuration
-# ========================================
-
+# Vérifier configuration
 if [ "$RAG_STATUS" = "null" ]; then
-    log "ERROR" "Section .rag absente du health check"
-    log "ERROR" "Health check API peut-être pas à jour"
+    cron_fail "{\"error\": \"Section .rag absente du health check\"}"
     exit 1
 fi
 
 if [ "$RAG_STATUS" = "misconfigured" ]; then
-    log "ERROR" "❌ Configuration RAG INVALIDE détectée !"
-    log "ERROR" ""
-    log "ERROR" "Problème : RAG activé mais aucun provider embeddings disponible"
-    log "ERROR" "Impact : Assistant IA non-fonctionnel"
-    log "ERROR" ""
-    log "ERROR" "État détecté :"
-    log "ERROR" "  - RAG_ENABLED: $RAG_ENABLED"
-    log "ERROR" "  - OLLAMA_ENABLED: $OLLAMA_ENABLED"
-    log "ERROR" "  - OPENAI_CONFIGURED: $OPENAI_CONFIGURED"
-    log "ERROR" "  - SEMANTIC_SEARCH_ENABLED: $SEMANTIC_SEARCH_ENABLED"
-    log "ERROR" ""
-    log "ERROR" "Solutions :"
-    log "ERROR" "  1. Activer Ollama (gratuit) : OLLAMA_ENABLED=true"
-    log "ERROR" "  2. Configurer OpenAI (payant) : OPENAI_API_KEY=sk-proj-..."
-    log "ERROR" ""
+    echo "❌ Configuration RAG INVALIDE détectée !"
+    echo ""
+    echo "Problème: RAG activé mais aucun provider embeddings disponible"
+    echo "Impact: Assistant IA non-fonctionnel"
+    echo ""
+    echo "État détecté:"
+    echo "  RAG_ENABLED:           $RAG_ENABLED"
+    echo "  OLLAMA_ENABLED:        $OLLAMA_ENABLED"
+    echo "  OPENAI_CONFIGURED:     $OPENAI_CONFIGURED"
+    echo "  SEMANTIC_SEARCH:       $SEMANTIC_SEARCH_ENABLED"
+    echo ""
+    echo "Solutions:"
+    echo "  1. Activer Ollama (gratuit): OLLAMA_ENABLED=true"
+    echo "  2. Configurer OpenAI (payant): OPENAI_API_KEY=sk-proj-..."
+    echo ""
 
-    # ========================================
-    # 4. Déclencher système d'alertes email
-    # ========================================
-
-    if [ -n "$CRON_SECRET" ]; then
-        log "INFO" "Déclenchement système d'alertes email..."
+    # Déclencher système d'alertes email
+    if [ -n "${CRON_SECRET:-}" ]; then
+        echo "Déclenchement système d'alertes email..."
 
         ALERT_RESPONSE=$(curl -s -w "\n%{http_code}" \
             -H "X-Cron-Secret: $CRON_SECRET" \
@@ -153,41 +122,31 @@ if [ "$RAG_STATUS" = "misconfigured" ]; then
 
         if [ "$HTTP_CODE" = "200" ]; then
             ALERTS_SENT=$(echo "$ALERT_BODY" | jq -r '.alertsSent // 0')
-            log "INFO" "✅ Alertes email envoyées : $ALERTS_SENT"
+            echo "✅ Alertes email envoyées: $ALERTS_SENT"
         else
-            log "WARN" "⚠️ Échec envoi alertes email (HTTP $HTTP_CODE)"
-            log "DEBUG" "Réponse: $ALERT_BODY"
+            echo "⚠️ Échec envoi alertes email (HTTP $HTTP_CODE)"
         fi
     else
-        log "WARN" "⚠️ CRON_SECRET non défini - alertes email désactivées"
+        echo "⚠️ CRON_SECRET non défini - alertes email désactivées"
     fi
 
-    log "ERROR" "=========================================="
-    log "ERROR" "Vérification ÉCHOUÉE - Configuration invalide"
-    log "ERROR" "=========================================="
-
+    cron_fail "{\"error\": \"RAG misconfigured\", \"ragEnabled\": \"$RAG_ENABLED\", \"ollamaEnabled\": \"$OLLAMA_ENABLED\", \"semanticEnabled\": \"$SEMANTIC_SEARCH_ENABLED\"}"
     exit 1
 
 elif [ "$RAG_ENABLED" != "true" ]; then
-    log "WARN" "⚠️ RAG désactivé (RAG_ENABLED=$RAG_ENABLED)"
-    log "WARN" "Recommandation : Activer RAG pour utiliser la Knowledge Base"
+    echo "⚠️ RAG désactivé (RAG_ENABLED=$RAG_ENABLED)"
+    echo "   Recommandation: Activer RAG pour utiliser la Knowledge Base"
 
-    log "INFO" "=========================================="
-    log "INFO" "Vérification OK (RAG désactivé volontairement)"
-    log "INFO" "=========================================="
-
+    cron_complete "{\"status\": \"disabled\", \"message\": \"RAG désactivé volontairement\"}"
     exit 0
 
 else
-    log "INFO" "✅ Configuration RAG valide"
-    log "INFO" "  - RAG activé : $RAG_ENABLED"
-    log "INFO" "  - Recherche sémantique : $SEMANTIC_SEARCH_ENABLED"
-    log "INFO" "  - Provider actif : Ollama=$OLLAMA_ENABLED, OpenAI=$OPENAI_CONFIGURED"
-    log "INFO" "  - KB opérationnelle : $KB_DOCS_INDEXED docs, $KB_CHUNKS_AVAILABLE chunks"
+    echo "✅ Configuration RAG valide"
+    echo "   RAG activé:           $RAG_ENABLED"
+    echo "   Recherche sémantique: $SEMANTIC_SEARCH_ENABLED"
+    echo "   Provider actif:       Ollama=$OLLAMA_ENABLED, OpenAI=$OPENAI_CONFIGURED"
+    echo "   KB opérationnelle:    $KB_DOCS_INDEXED docs, $KB_CHUNKS_AVAILABLE chunks"
 
-    log "INFO" "=========================================="
-    log "INFO" "Vérification RÉUSSIE"
-    log "INFO" "=========================================="
-
+    cron_complete "{\"status\": \"ok\", \"kbDocs\": \"$KB_DOCS_INDEXED\", \"kbChunks\": \"$KB_CHUNKS_AVAILABLE\", \"ragEnabled\": \"$RAG_ENABLED\", \"semanticEnabled\": \"$SEMANTIC_SEARCH_ENABLED\"}"
     exit 0
 fi
