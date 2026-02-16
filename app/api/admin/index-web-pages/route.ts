@@ -24,10 +24,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const startTime = Date.now()
   let totalIndexed = 0
   let totalFailed = 0
-  const batchSize = 2 // Réduit à 2 pour Ollama lent
-  const maxBatches = 10 // Max 20 pages par appel (éviter timeout 4min)
+  const batchSize = 5 // OpenAI embeddings rapide en prod
+  const maxBatches = 20 // Max 100 pages par appel (timeout 5min)
 
-  console.log('[IndexWebPages] Démarrage indexation web_pages (batch de 2, max 10 batches)')
+  console.log(`[IndexWebPages] Démarrage indexation web_pages (batch de ${batchSize}, max ${maxBatches} batches)`)
 
   try {
     for (let i = 0; i < maxBatches; i++) {
@@ -46,8 +46,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         break
       }
 
-      // Pause de 500ms entre chaque batch
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // Pause entre batches (éviter surcharge)
+      await new Promise((resolve) => setTimeout(resolve, 200))
     }
 
     const duration = Date.now() - startTime
