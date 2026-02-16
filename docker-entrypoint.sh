@@ -8,6 +8,14 @@ until node -e "const {Client}=require('pg');const c=new Client({connectionString
   sleep 2
 done
 
+# Recovery jobs orphelins (Phase 2.3)
+echo "🔄 Recovery jobs orphelins..."
+if [ -f "/app/scripts/recover-orphaned-jobs-startup.sh" ]; then
+  sh /app/scripts/recover-orphaned-jobs-startup.sh || echo "⚠️  Recovery jobs échoué, continue"
+else
+  echo "⚠️  Script recovery introuvable, skip"
+fi
+
 # Créer l'utilisateur par défaut
 node - <<'SCRIPT'
 const { Client } = require('pg');

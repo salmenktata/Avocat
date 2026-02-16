@@ -185,6 +185,12 @@ ENV NODE_OPTIONS="--require ./scripts/polyfill-file.js"
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
+# Copier scripts recovery jobs orphelins (Phase 2.3)
+COPY --chown=nextjs:nodejs scripts/recover-orphaned-jobs-startup.sh ./scripts/
+COPY --chown=nextjs:nodejs scripts/cron-cleanup-orphaned-jobs.sh ./scripts/
+COPY --chown=nextjs:nodejs scripts/lib/cron-logger.sh ./scripts/lib/
+RUN chmod +x ./scripts/recover-orphaned-jobs-startup.sh ./scripts/cron-cleanup-orphaned-jobs.sh
+
 # Créer dossier logs
 RUN mkdir -p /app/logs
 RUN chown -R nextjs:nodejs /app
