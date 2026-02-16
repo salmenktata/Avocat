@@ -342,26 +342,38 @@ export async function POST(request: NextRequest) {
     if (chatMode && chatQuestion) {
       console.log(`[RAG Eval] Chat mode: "${chatQuestion.substring(0, 60)}..."`)
       const startTime = Date.now()
-      const response = await answerQuestion(chatQuestion, '00000000-0000-0000-0000-000000000000', {
-        operationName: 'assistant-ia',
-      })
-      const totalTimeMs = Date.now() - startTime
-      return NextResponse.json({
-        mode: 'chat',
-        answer: response.answer,
-        model: response.model,
-        tokensUsed: response.tokensUsed,
-        sources: response.sources.map(s => ({
-          title: s.documentName,
-          score: s.similarity,
-          category: s.metadata?.category,
-          contentPreview: s.chunkContent?.substring(0, 200),
-        })),
-        sourceCount: response.sources.length,
-        citationWarnings: response.citationWarnings,
-        totalTimeMs,
-        timestamp: new Date().toISOString(),
-      })
+      try {
+        const response = await answerQuestion(chatQuestion, '00000000-0000-0000-0000-000000000000', {
+          operationName: 'assistant-ia',
+        })
+        const totalTimeMs = Date.now() - startTime
+        return NextResponse.json({
+          mode: 'chat',
+          answer: response.answer,
+          model: response.model,
+          tokensUsed: response.tokensUsed,
+          sources: response.sources.map(s => ({
+            title: s.documentName,
+            score: s.similarity,
+            category: s.metadata?.category,
+            contentPreview: s.chunkContent?.substring(0, 200),
+          })),
+          sourceCount: response.sources.length,
+          citationWarnings: response.citationWarnings,
+          totalTimeMs,
+          timestamp: new Date().toISOString(),
+        })
+      } catch (chatError) {
+        const totalTimeMs = Date.now() - startTime
+        const errMsg = chatError instanceof Error ? chatError.message : String(chatError)
+        console.error(`[RAG Eval] Chat error: ${errMsg}`)
+        return NextResponse.json({
+          mode: 'chat',
+          error: errMsg,
+          totalTimeMs,
+          timestamp: new Date().toISOString(),
+        }, { status: 500 })
+      }
     }
 
     const queries = customQueries || EVAL_BENCHMARK

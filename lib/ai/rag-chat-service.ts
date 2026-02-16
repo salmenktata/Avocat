@@ -699,9 +699,9 @@ export async function searchRelevantContext(
 
         // Recherche HYBRIDE (vectoriel + BM25) dans chaque catégorie
         for (const category of expandedCategories) {
-          // Seuil plus permissif pour l'arabe (embeddings arabes → scores plus bas)
+          // Seuil plus permissif pour l'arabe (embeddings arabes → scores systématiquement plus bas)
           const categoryThreshold = queryLangForSearch === 'ar'
-            ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.40)
+            ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.30)
             : RAG_THRESHOLDS.knowledgeBase
           const categoryResults = await searchKnowledgeBaseHybrid(embeddingQuestion, {
             category: category as any,
@@ -732,9 +732,9 @@ export async function searchRelevantContext(
         }
       } else {
         // Recherche globale hybride (fallback si classification non confiante)
-        // Seuil plus permissif pour l'arabe (embeddings arabes → scores plus bas)
+        // Seuil plus permissif pour l'arabe (embeddings arabes → scores systématiquement plus bas)
         const globalThreshold = queryLangForSearch === 'ar'
-          ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.40)
+          ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.30)
           : RAG_THRESHOLDS.knowledgeBase
         console.log(
           `[RAG Search] Recherche KB globale hybride (classification confiance: ${(classification.confidence * 100).toFixed(1)}%, seuil: ${globalThreshold})`
@@ -774,7 +774,7 @@ export async function searchRelevantContext(
   // Filtrer par seuil minimum absolu (plus bas pour l'arabe: embeddings produisent des scores plus faibles)
   const queryLangForThreshold = detectLanguage(question)
   const effectiveMinimum = queryLangForThreshold === 'ar'
-    ? Math.min(RAG_THRESHOLDS.minimum, 0.40)
+    ? Math.min(RAG_THRESHOLDS.minimum, 0.30)
     : RAG_THRESHOLDS.minimum
   const aboveThreshold = allSources.filter(
     (s) => s.similarity >= effectiveMinimum
