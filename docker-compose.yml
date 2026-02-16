@@ -1,12 +1,30 @@
 version: '3.9'
 
+# ============================================================================
+# QADHYA DOCKER COMPOSE - CONFIGURATION UNIFIÉE
+# ============================================================================
+# Configuration unique pour dev local ET production
+#
+# Production (par défaut):
+#   docker compose up -d
+#   → Utilise image GHCR pré-buildée, 4 modules Redis
+#
+# Dev local:
+#   cp docker-compose.override.yml.example docker-compose.override.yml
+#   docker compose up -d
+#   → Override avec build local, PgAdmin, etc.
+# ============================================================================
+
 services:
+  # --------------------------------------------------------------------------
+  # PostgreSQL avec pgvector (embeddings vectoriels)
+  # --------------------------------------------------------------------------
   postgres:
     image: pgvector/pgvector:pg15
     container_name: qadhya-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: qadhya
+      POSTGRES_DB: ${DB_NAME:-qadhya}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
@@ -16,13 +34,14 @@ services:
     ports:
       - "127.0.0.1:5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d qadhya"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME:-qadhya}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - qadhya-network
     shm_size: 256mb
+    # Configuration PostgreSQL optimisée (8GB RAM, 4 CPUs)
     command:
       - "postgres"
       - "-c"
@@ -56,17 +75,24 @@ services:
       - "-c"
       - "max_parallel_maintenance_workers=2"
 
-  # Redis pour caching (sessions, rate limiting)
+  # --------------------------------------------------------------------------
+  # Redis Stack Server (Cache + RediSearch + modules)
+  # --------------------------------------------------------------------------
   redis:
-    image: redis/redis-stack-server:7.2.0-v11
+    image: redis/redis-stack-server:latest
     container_name: qadhya-redis
     restart: unless-stopped
+    # Configuration production: 4 modules (RediSearch, RedisTimeSeries, RedisJSON, RedisBloom)
     command: >
       redis-server
       --maxmemory 512mb
       --maxmemory-policy allkeys-lru
       --save ""
+      --protected-mode no
       --loadmodule /opt/redis-stack/lib/redisearch.so
+      --loadmodule /opt/redis-stack/lib/redistimeseries.so
+      --loadmodule /opt/redis-stack/lib/rejson.so
+      --loadmodule /opt/redis-stack/lib/redisbloom.so
     volumes:
       - redis_data:/data
     ports:
@@ -85,6 +111,9 @@ services:
         reservations:
           memory: 128M
 
+  # --------------------------------------------------------------------------
+  # MinIO Object Storage (Documents, avatars, uploads)
+  # --------------------------------------------------------------------------
   minio:
     image: minio/minio:latest
     container_name: qadhya-minio
@@ -112,14 +141,13 @@ services:
         reservations:
           memory: 512M
 
+  # --------------------------------------------------------------------------
+  # Next.js Application
+  # --------------------------------------------------------------------------
   nextjs:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME}
-        NEXT_PUBLIC_APP_DOMAIN: ${NEXT_PUBLIC_APP_DOMAIN}
+    # Production: Image pré-buildée depuis GitHub Container Registry
+    # Dev: Override avec build local dans docker-compose.override.yml
+    image: ${DOCKER_IMAGE:-ghcr.io/salmenktata/avocat:latest}
     container_name: qadhya-nextjs
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -132,47 +160,102 @@ services:
       redis:
         condition: service_healthy
     environment:
-      NODE_ENV: production
+      # Application
+      NODE_ENV: ${NODE_ENV:-production}
       HOSTNAME: "0.0.0.0"
+
+      # Database (contexte auto-adaptatif)
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-qadhya}
+      DATABASE_SSL: ${DATABASE_SSL:-false}
+
+      # Redis (contexte auto-adaptatif)
       REDIS_URL: redis://redis:6379
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/qadhya
+
+      # MinIO (contexte auto-adaptatif)
       MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
-      MINIO_USE_SSL: "false"
+      MINIO_PORT: ${MINIO_PORT:-9000}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-      MINIO_BUCKET: documents
-      NEXTAUTH_URL: ${NEXT_PUBLIC_APP_URL}
+      MINIO_BUCKET: ${MINIO_BUCKET:-documents}
+
+      # Auth
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+
+      # Email
       RESEND_API_KEY: ${RESEND_API_KEY}
+      BREVO_API_KEY: ${BREVO_API_KEY}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+
+      # LLM Providers (cascade fallback automatique)
       GROQ_API_KEY: ${GROQ_API_KEY}
       GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
-      OLLAMA_ENABLED: ${OLLAMA_ENABLED}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
-      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL}
-      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL}
-      RAG_ENABLED: ${RAG_ENABLED}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4o-mini}
+
+      # Ollama (contexte auto-adaptatif: host.docker.internal en Docker)
+      OLLAMA_ENABLED: ${OLLAMA_ENABLED:-true}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-qwen3-embedding:0.6b}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen2.5:3b}
+
+      # RAG Configuration (seuils optimisés Feb 2026)
+      RAG_ENABLED: ${RAG_ENABLED:-true}
+      RAG_THRESHOLD_KB: ${RAG_THRESHOLD_KB:-0.30}
+      RAG_SIMILARITY_THRESHOLD: ${RAG_SIMILARITY_THRESHOLD:-0.50}
+      RAG_MAX_RESULTS: ${RAG_MAX_RESULTS:-15}
+      RAG_MAX_CONTEXT_TOKENS: ${RAG_MAX_CONTEXT_TOKENS:-6000}
+      RAG_CHUNK_SIZE: ${RAG_CHUNK_SIZE:-1200}
+      RAG_CHUNK_OVERLAP: ${RAG_CHUNK_OVERLAP:-200}
+
+      # Features
       USE_KB_METADATA_MV: ${USE_KB_METADATA_MV:-true}
       USE_REDISEARCH: ${USE_REDISEARCH:-false}
-      PLAYWRIGHT_BROWSERS_PATH: /app/.playwright
+      FORCE_REGEX_ONLY: ${FORCE_REGEX_ONLY:-false}
+
+      # Google Drive
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
       GOOGLE_DRIVE_WEBHOOK_VERIFY_TOKEN: ${GOOGLE_DRIVE_WEBHOOK_VERIFY_TOKEN}
+
+      # WhatsApp
       WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN}
       WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET}
+
+      # Cron & Backup
       CRON_SECRET: ${CRON_SECRET}
-      CRON_TRIGGER_SERVER_URL: http://host.docker.internal:9998/trigger
+      CRON_TRIGGER_SERVER_URL: ${CRON_TRIGGER_SERVER_URL:-http://host.docker.internal:9998/trigger}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      BACKUP_DIR: ${BACKUP_DIR:-/opt/backups/qadhya}
+      BACKUP_SERVER_URL: ${BACKUP_SERVER_URL:-http://host.docker.internal:9999/backup}
+
+      # Playwright
+      PLAYWRIGHT_BROWSERS_PATH: /app/.playwright
     volumes:
       - ./logs:/app/logs
+      - ${BACKUP_DIR:-/opt/backups/qadhya}:${BACKUP_DIR:-/opt/backups/qadhya}:ro
     ports:
       - "127.0.0.1:3000:3000"
     networks:
       - qadhya-network
+    # Health check optimisé (Feb 2026)
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http = require('http'); http.get('http://localhost:3000/api/health', (r) => { let data = ''; r.on('data', chunk => data += chunk); r.on('end', () => { try { const json = JSON.parse(data); process.exit(json.status === 'healthy' ? 0 : 1); } catch(e) { process.exit(1); } }); }).on('error', () => process.exit(1));"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
@@ -180,25 +263,9 @@ services:
         reservations:
           memory: 1G
 
-  # Optionnel: PgAdmin pour gestion BDD
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: qadhya-pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
-      PGADMIN_CONFIG_SERVER_MODE: "False"
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
-    ports:
-      - "127.0.0.1:5050:80"
-    depends_on:
-      - postgres
-    networks:
-      - qadhya-network
-    profiles:
-      - tools
-
+# ----------------------------------------------------------------------------
+# Volumes persistants
+# ----------------------------------------------------------------------------
 volumes:
   postgres_data:
     driver: local
@@ -207,6 +274,9 @@ volumes:
   redis_data:
     driver: local
 
+# ----------------------------------------------------------------------------
+# Réseau interne
+# ----------------------------------------------------------------------------
 networks:
   qadhya-network:
     driver: bridge

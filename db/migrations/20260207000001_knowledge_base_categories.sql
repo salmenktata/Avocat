@@ -182,7 +182,7 @@ BEGIN
     kbc.id as chunk_id,
     kb.title,
     kb.category,
-    kb.subcategory,
+    kb.subcategory::text,
     kbc.content as chunk_content,
     kbc.chunk_index,
     (1 - (kbc.embedding <=> query_embedding))::FLOAT as similarity,

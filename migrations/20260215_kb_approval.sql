@@ -51,7 +51,7 @@ BEGIN
       kbc.chunk_index,
       (1 - (kbc.embedding_openai <=> query_embedding)) AS similarity,
       kb.category::text,
-      kb.subcategory,
+      kb.subcategory::text,
       kb.metadata
     FROM knowledge_base_chunks kbc
     JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
@@ -73,7 +73,7 @@ BEGIN
       kbc.chunk_index,
       (1 - (kbc.embedding <=> query_embedding)) AS similarity,
       kb.category::text,
-      kb.subcategory,
+      kb.subcategory::text,
       kb.metadata
     FROM knowledge_base_chunks kbc
     JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id

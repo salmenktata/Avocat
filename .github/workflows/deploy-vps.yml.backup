@@ -1,0 +1,893 @@
+# =============================================================================
+# Deploy to VPS - Intelligent 2-Tier Deployment
+# =============================================================================
+# Tier 1 "Lightning Deploy" (~2-3 min) : Code-only changes
+#   → Build Next.js in GHA, rsync to VPS, docker cp, restart
+# Tier 2 "Docker Deploy" (~5-8 min) : Dependencies/infra changes
+#   → Full Docker build with GHA cache
+#
+# Selection automatique basee sur les fichiers modifies
+# =============================================================================
+
+name: Deploy to VPS Contabo
+
+# Timeout global pour éviter queues infinies
+run-name: "Deploy #${{ github.run_number }} (${{ github.event.head_commit.message || 'manual trigger' }})"
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_docker:
+        description: 'Force Docker rebuild (Tier 2)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false  # Laisser déploiement se terminer
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ===========================================================================
+  # Job 0: Merge Queue - Éviter queues infinies + Batch commits proches
+  # ===========================================================================
+  check-queue:
+    runs-on: ubuntu-latest
+    name: Merge Queue Check
+    outputs:
+      should_skip: ${{ steps.check.outputs.should_skip }}
+      queue_length: ${{ steps.check.outputs.queue_length }}
+      skip_reason: ${{ steps.check.outputs.skip_reason }}
+    timeout-minutes: 2
+
+    steps:
+      - name: Intelligent Queue Check
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "🔍 Vérification Merge Queue intelligente..."
+
+          # Compter les runs en queue/in_progress
+          PENDING=$(gh run list \
+            --repo ${{ github.repository }} \
+            --workflow="Deploy to VPS Contabo" \
+            --status=queued,in_progress \
+            --json databaseId,status,createdAt,headSha,event \
+            --jq 'length' || echo "0")
+
+          echo "queue_length=$PENDING" >> $GITHUB_OUTPUT
+          echo "📊 Déploiements en queue/en cours: $PENDING"
+
+          # Stratégie 1: Skip si 3+ déploiements en queue (auto-batch)
+          if [ "$PENDING" -ge 3 ]; then
+            echo "should_skip=true" >> $GITHUB_OUTPUT
+            echo "skip_reason=queue_overflow" >> $GITHUB_OUTPUT
+            echo "⏭️  SKIP: $PENDING déploiements en queue (auto-batch)"
+            echo "💡 Le dernier déploiement inclura automatiquement ces changements"
+            exit 0
+          fi
+
+          # Stratégie 2: Détecter commits proches (<5min) et batch automatiquement
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # Récupérer les 5 derniers runs pour détecter les commits proches
+            RECENT_RUNS=$(gh run list \
+              --repo ${{ github.repository }} \
+              --workflow="Deploy to VPS Contabo" \
+              --limit 5 \
+              --json createdAt,headSha,event,status \
+              --jq 'map(select(.event == "push")) | sort_by(.createdAt) | reverse')
+
+            # Vérifier si un commit récent (<5min) est déjà en queue
+            CURRENT_TIME=$(date -u +%s)
+            HAS_RECENT_PUSH=$(echo "$RECENT_RUNS" | jq -r --arg now "$CURRENT_TIME" '
+              map(
+                select(
+                  (.status == "queued" or .status == "in_progress") and
+                  (.createdAt | fromdateiso8601) > ($now | tonumber - 300)
+                )
+              ) | length > 1
+            ')
+
+            if [ "$HAS_RECENT_PUSH" = "true" ]; then
+              echo "should_skip=true" >> $GITHUB_OUTPUT
+              echo "skip_reason=recent_commits" >> $GITHUB_OUTPUT
+              echo "⏭️  SKIP: Commits proches détectés (<5min)"
+              echo "💡 Les changements seront inclus dans le prochain déploiement"
+              exit 0
+            fi
+          fi
+
+          # Stratégie 3: Workflow_dispatch toujours prioritaire (jamais skip)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_skip=false" >> $GITHUB_OUTPUT
+            echo "skip_reason=manual_override" >> $GITHUB_OUTPUT
+            echo "🚀 Déploiement manuel : PRIORITAIRE (pas de skip)"
+            exit 0
+          fi
+
+          # Pas de raison de skip
+          echo "should_skip=false" >> $GITHUB_OUTPUT
+          echo "skip_reason=none" >> $GITHUB_OUTPUT
+          echo "✅ Proceeding with deployment"
+
+  # ===========================================================================
+  # Job 0.5: Validate Environment Schema - Phase 2
+  # ===========================================================================
+  validate-schema:
+    runs-on: ubuntu-latest
+    name: Validate Environment Schema
+    needs: [check-queue]
+    if: needs.check-queue.outputs.should_skip != 'true'
+    timeout-minutes: 3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies (validation only)
+        run: |
+          echo "📦 Installation dépendances validation..."
+          npm ci --production=false
+
+      - name: Validate .env.production.template against schema
+        run: |
+          echo "🔍 Validation schéma centralisé..."
+          npx tsx scripts/validate-env-schema.ts \
+            --env=.env.production.template \
+            --environment=prod \
+            --output=json \
+            > /tmp/validation-result.json || true
+
+          # Afficher résultat
+          echo "📊 Résultat validation:"
+          cat /tmp/validation-result.json | jq '.'
+
+          # Vérifier succès
+          VALID=$(cat /tmp/validation-result.json | jq -r '.valid')
+          CRITICAL=$(cat /tmp/validation-result.json | jq -r '.stats.criticalIssues')
+
+          if [ "$VALID" != "true" ]; then
+            echo "❌ Template configuration invalide"
+
+            # Afficher erreurs
+            echo ""
+            echo "Erreurs détectées:"
+            cat /tmp/validation-result.json | jq -r '.errors[] | "  - \(.variable): \(.message)"'
+
+            # Bloquer SEULEMENT si erreurs CRITICAL
+            if [ "$CRITICAL" -gt 0 ]; then
+              echo ""
+              echo "🚨 $CRITICAL erreurs CRITICAL détectées - Déploiement bloqué"
+              exit 1
+            else
+              echo ""
+              echo "⚠️  Erreurs non-critiques détectées - Déploiement autorisé avec avertissement"
+            fi
+          else
+            echo "✅ Template validé contre schéma (${VALID})"
+          fi
+
+      - name: Audit divergences template
+        run: |
+          echo "🔍 Audit divergences .env.production vs template..."
+          npx tsx scripts/audit-env-divergences.ts || true
+          echo "⚠️  Audit non-bloquant (secrets peuvent différer)"
+
+  # ===========================================================================
+  # Job 1: Detect Changes - Choisir Tier 1 (fast) ou Tier 2 (docker)
+  # ===========================================================================
+  detect-changes:
+    runs-on: ubuntu-latest
+    name: Detect Changes
+    needs: [check-queue, validate-schema]
+    if: needs.check-queue.outputs.should_skip != 'true'
+    outputs:
+      needs_docker: ${{ steps.check.outputs.needs_docker }}
+      deploy_tier: ${{ steps.check.outputs.deploy_tier }}
+    timeout-minutes: 3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate RAG Configuration Template
+        run: |
+          echo "🔍 Validation configuration RAG template..."
+          if [ -f ".env.production.template" ]; then
+            if bash scripts/validate-rag-config.sh .env.production.template; then
+              echo "✅ Template RAG configuration valide"
+            else
+              echo "❌ Template RAG configuration invalide"
+              exit 1
+            fi
+          else
+            echo "⚠️ Fichier .env.production.template absent, validation ignorée"
+          fi
+
+      - name: Check changed files
+        id: check
+        run: |
+          # Force Docker if requested
+          if [ "${{ inputs.force_docker }}" == "true" ]; then
+            echo "needs_docker=true" >> $GITHUB_OUTPUT
+            echo "deploy_tier=2-docker-forced" >> $GITHUB_OUTPUT
+            echo "Force Docker rebuild requested"
+            exit 0
+          fi
+
+          # Get the diff range
+          BEFORE="${{ github.event.before }}"
+          if [ -z "$BEFORE" ] || [ "$BEFORE" == "0000000000000000000000000000000000000000" ]; then
+            BEFORE="HEAD~1"
+          fi
+
+          CHANGED=$(git diff --name-only "$BEFORE" HEAD 2>/dev/null || echo "FORCE_DOCKER")
+
+          echo "Changed files:"
+          echo "$CHANGED"
+          echo "---"
+
+          # Check if any infra/dependency files changed
+          DOCKER_TRIGGERS="Dockerfile|package\.json|package-lock\.json|docker-entrypoint\.sh|docker-compose\.prod\.yml"
+
+          if echo "$CHANGED" | grep -qE "^($DOCKER_TRIGGERS)$"; then
+            echo "needs_docker=true" >> $GITHUB_OUTPUT
+            echo "deploy_tier=2-docker-auto" >> $GITHUB_OUTPUT
+            echo "Infrastructure files changed -> Tier 2 (Docker)"
+          elif echo "$CHANGED" | grep -q "FORCE_DOCKER"; then
+            echo "needs_docker=true" >> $GITHUB_OUTPUT
+            echo "deploy_tier=2-docker-fallback" >> $GITHUB_OUTPUT
+            echo "Cannot determine changes -> Tier 2 (Docker) as fallback"
+          else
+            echo "needs_docker=false" >> $GITHUB_OUTPUT
+            echo "deploy_tier=1-lightning" >> $GITHUB_OUTPUT
+            echo "Code-only changes -> Tier 1 (Lightning)"
+          fi
+
+  # ===========================================================================
+  # Job 2a: Lightning Deploy (Tier 1) - Code only, ~2-3 min
+  # ===========================================================================
+  deploy-fast:
+    runs-on: ubuntu-latest
+    name: Lightning Deploy
+    needs: detect-changes
+    if: needs.detect-changes.outputs.needs_docker == 'false' && github.ref == 'refs/heads/main'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat >> ~/.ssh/config << EOF
+          Host vps
+            HostName ${{ secrets.VPS_HOST }}
+            Port ${{ secrets.VPS_PORT }}
+            User ${{ secrets.VPS_USER }}
+            IdentityFile ~/.ssh/id_rsa
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('app/**', 'lib/**', 'components/**') }}
+          restore-keys: |
+            nextjs-${{ hashFiles('package-lock.json') }}-
+
+      - name: Build Next.js
+        run: npx next build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096 --require ./scripts/polyfill-file.js"
+          DATABASE_URL: "postgresql://build:build@localhost:5432/build"
+          NEXTAUTH_SECRET: "build-secret-not-used-in-production"
+          NEXTAUTH_URL: "http://localhost:3000"
+          RESEND_API_KEY: "re_build_placeholder"
+          OPENAI_API_KEY: "sk-build-placeholder"
+          NEXT_TELEMETRY_DISABLED: "1"
+
+      - name: Prepare deploy bundle
+        run: |
+          # Copy static assets into standalone structure
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+
+          # Create tarball WITHOUT node_modules (container keeps its own native modules)
+          cd .next/standalone
+          tar czf ../../deploy.tar.gz --exclude='node_modules' .
+          cd ../..
+
+          SIZE=$(du -sh deploy.tar.gz | cut -f1)
+          echo "Deploy bundle: $SIZE"
+
+      - name: Backup current code on VPS
+        run: |
+          ssh vps << 'BACKUP'
+            mkdir -p /opt/moncabinet/rollback
+            docker cp qadhya-nextjs:/app/server.js /opt/moncabinet/rollback/server.js 2>/dev/null || true
+            docker cp qadhya-nextjs:/app/.next /opt/moncabinet/rollback/.next 2>/dev/null || true
+            docker cp qadhya-nextjs:/app/public /opt/moncabinet/rollback/public 2>/dev/null || true
+            echo "Backup completed at $(date)"
+          BACKUP
+
+      - name: Upload deploy scripts
+        run: |
+          # Upload deploy-with-lock.sh to VPS if not exists
+          scp scripts/deploy-with-lock.sh vps:/opt/moncabinet/scripts/deploy-with-lock.sh || true
+          scp scripts/check-deploy-lock.sh vps:/opt/moncabinet/scripts/check-deploy-lock.sh || true
+          ssh vps 'chmod +x /opt/moncabinet/scripts/deploy-with-lock.sh /opt/moncabinet/scripts/check-deploy-lock.sh'
+
+      - name: Upload and deploy
+        run: |
+          # SCP deploy bundle to VPS
+          scp deploy.tar.gz vps:/tmp/deploy.tar.gz
+
+          # Extract and docker cp into container (PROTECTED BY LOCK)
+          ssh vps << 'DEPLOY'
+            set -e
+
+            # Wrapper pour protection concurrence
+            bash /opt/moncabinet/scripts/deploy-with-lock.sh bash -c '
+              set -e
+
+              # Extract bundle
+              rm -rf /tmp/deploy-bundle
+              mkdir -p /tmp/deploy-bundle
+              tar xzf /tmp/deploy.tar.gz -C /tmp/deploy-bundle
+
+              # CRITIQUE: Supprimer COMPLÈTEMENT .next/server pour éviter erreurs routes API
+              # (Tier 1 rsync .ts source mais container utilise .js compilé dans .next/server)
+              docker exec qadhya-nextjs rm -rf /app/.next/server /app/.next/server-* /app/.next/static || true
+
+              # Copy into running container (server.js, .next/, public/)
+              docker cp /tmp/deploy-bundle/server.js qadhya-nextjs:/app/server.js
+              docker cp /tmp/deploy-bundle/.next/. qadhya-nextjs:/app/.next/
+              docker cp /tmp/deploy-bundle/public/. qadhya-nextjs:/app/public/
+
+              # Fix permissions (docker cp copie avec root, pas nextjs)
+              docker exec -u root qadhya-nextjs chown -R nextjs:nodejs /app/.next /app/public /app/server.js
+
+              # Restart container to pick up new code
+              docker restart qadhya-nextjs
+
+              # Cleanup
+              rm -rf /tmp/deploy-bundle /tmp/deploy.tar.gz
+
+              echo "Lightning deploy completed at $(date)"
+            '
+          DEPLOY
+
+      - name: Health check
+        run: |
+          echo "================================================"
+          echo "Waiting 20s for container (Docker start_period: 30s optimized)..."
+          sleep 20
+
+          for i in 1 2 3; do
+            echo "================================================"
+            echo "Health check attempt $i/3 ($(date '+%H:%M:%S'))"
+
+            # Vérifier PostgreSQL
+            PG_STATUS=$(ssh vps 'docker exec qadhya-postgres pg_isready -U moncabinet 2>&1' || echo "FAIL")
+            echo "PostgreSQL: $PG_STATUS"
+
+            # Vérifier MinIO
+            MINIO_STATUS=$(ssh vps 'curl -sf http://localhost:9000/minio/health/live 2>&1' || echo "FAIL")
+            echo "MinIO: ${MINIO_STATUS:0:50}"
+
+            # Health check API
+            RESPONSE=$(ssh vps 'curl -sf http://localhost:3000/api/health' || echo "FAILED")
+            echo "API Response: $RESPONSE"
+
+            if echo "$RESPONSE" | grep -q '"status":"healthy"'; then
+              echo "================================================"
+              echo "✓ Health check PASSED!"
+              DEPLOYED_SHA=$(ssh vps "docker inspect qadhya-nextjs --format='{{.Config.Labels.org.opencontainers.image.revision}}' 2>/dev/null" || echo "N/A (Lightning Deploy)")
+              echo "Deployed SHA: $DEPLOYED_SHA"
+              echo "================================================"
+              exit 0
+            fi
+
+            if [ $i -lt 3 ]; then
+              echo "Waiting 15s before retry..."
+              sleep 15
+            fi
+          done
+
+          echo "================================================"
+          echo "✗ Health check FAILED after 3 attempts"
+          echo "================================================"
+          exit 1
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "================================================"
+          echo "⚠ ROLLBACK TRIGGERED - Deployment failed"
+          echo "================================================"
+
+          ssh vps << 'ROLLBACK'
+            # Capturer informations échec
+            FAILED_SHA=$(docker inspect qadhya-nextjs --format='{{.Config.Labels.org.opencontainers.image.revision}}' 2>/dev/null || echo "unknown")
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+            echo "Failed deployment SHA: $FAILED_SHA"
+            echo "Timestamp: $(date)"
+
+            # Sauvegarder logs
+            mkdir -p /opt/moncabinet/failed-deployments
+            docker logs qadhya-nextjs --tail 200 > "/opt/moncabinet/failed-deployments/logs_${TIMESTAMP}.txt" 2>&1
+
+            # Créer rapport incident (avec echo multi-lignes, pas de heredoc)
+            {
+              echo "ROLLBACK INCIDENT REPORT"
+              echo "========================"
+              echo "Time: $(date)"
+              echo "Failed SHA: $FAILED_SHA"
+              echo "Logs: logs_${TIMESTAMP}.txt"
+              echo ""
+              echo "Services Status:"
+              echo "- PostgreSQL: $(docker exec qadhya-postgres pg_isready -U moncabinet 2>&1 || echo 'FAIL')"
+              echo "- MinIO: $(curl -sf http://localhost:9000/minio/health/live 2>&1 || echo 'FAIL')"
+              echo "- Container started: $(docker inspect qadhya-nextjs --format='{{.State.StartedAt}}' 2>/dev/null)"
+              echo ""
+              echo "Next Steps:"
+              echo "1. Review logs: cat /opt/moncabinet/failed-deployments/logs_${TIMESTAMP}.txt"
+              echo "2. Check GitHub Actions logs for build errors"
+              echo "3. Fix issue locally and redeploy"
+            } > "/opt/moncabinet/failed-deployments/incident_${TIMESTAMP}.txt"
+
+            echo "Incident report saved: /opt/moncabinet/failed-deployments/incident_${TIMESTAMP}.txt"
+
+            # Exécuter rollback
+            if [ -f /opt/moncabinet/rollback/server.js ]; then
+              echo "Restoring previous version..."
+              docker cp /opt/moncabinet/rollback/server.js qadhya-nextjs:/app/server.js
+              docker cp /opt/moncabinet/rollback/.next/. qadhya-nextjs:/app/.next/
+              docker cp /opt/moncabinet/rollback/public/. qadhya-nextjs:/app/public/
+              docker restart qadhya-nextjs
+
+              echo "Rollback completed, waiting for health..."
+              sleep 20
+
+              if curl -sf http://localhost:3000/api/health | grep -q '"status":"healthy"'; then
+                echo "✓ Rollback successful - application healthy"
+              else
+                echo "⚠ WARNING: Rollback health check failed"
+              fi
+            else
+              echo "⚠ No rollback backup available"
+            fi
+          ROLLBACK
+
+          echo "================================================"
+          echo "Rollback procedure completed"
+          echo "================================================"
+
+  # ===========================================================================
+  # Job 2b: Docker Deploy (Tier 2) - Full rebuild, ~5-8 min with cache
+  # ===========================================================================
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    name: Docker Deploy
+    needs: detect-changes
+    if: needs.detect-changes.outputs.needs_docker == 'true' && github.ref == 'refs/heads/main'
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            GIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Upload deploy scripts
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            mkdir -p /opt/moncabinet/scripts
+
+      - name: Copy scripts to VPS
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          scp -i ~/.ssh/id_rsa -P ${{ secrets.VPS_PORT }} -o StrictHostKeyChecking=no \
+            scripts/deploy-with-lock.sh scripts/check-deploy-lock.sh \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/moncabinet/scripts/
+          ssh -i ~/.ssh/id_rsa -P ${{ secrets.VPS_PORT }} -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            'chmod +x /opt/moncabinet/scripts/deploy-with-lock.sh /opt/moncabinet/scripts/check-deploy-lock.sh'
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          command_timeout: 10m
+          script: |
+            cd /opt/moncabinet
+
+            # Wrapper pour protection concurrence
+            bash scripts/deploy-with-lock.sh bash -c '
+              set -e
+
+              # Mettre a jour les secrets
+              sed -i "s|RESEND_API_KEY=.*|RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}|" .env
+              sed -i "s|BREVO_API_KEY=.*|BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}|" .env
+              sed -i "s|GOOGLE_API_KEY=.*|GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}|" .env
+              sed -i "s|GROQ_API_KEY=.*|GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}|" .env
+              sed -i "s|DEEPSEEK_API_KEY=.*|DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}|" .env
+              sed -i "s|ENCRYPTION_KEY=.*|ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}|" .env
+              sed -i "s|CRON_SECRET=.*|CRON_SECRET=${{ secrets.CRON_SECRET }}|" .env
+
+              # Pull et deployer
+              docker pull ghcr.io/salmenktata/moncabinet:latest
+              docker compose -f docker-compose.prod.yml up -d --force-recreate nextjs
+
+              # Cleanup anciennes images
+              docker image prune -f
+            '
+
+      - name: Health check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            echo "================================================"
+            echo "Waiting 20s for container (Docker start_period: 30s optimized)..."
+            sleep 20
+
+            for i in 1 2 3; do
+              echo "================================================"
+              echo "Health check attempt $i/3 ($(date '+%H:%M:%S'))"
+
+              # Vérifier services
+              PG_STATUS=$(docker exec qadhya-postgres pg_isready -U moncabinet 2>&1 || echo "FAIL")
+              echo "PostgreSQL: $PG_STATUS"
+
+              MINIO_STATUS=$(curl -sf http://localhost:9000/minio/health/live 2>&1 || echo "FAIL")
+              echo "MinIO: ${MINIO_STATUS:0:50}"
+
+              # Health check API
+              RESPONSE=$(curl -sf http://localhost:3000/api/health || echo "FAILED")
+              echo "API Response: $RESPONSE"
+
+              if echo "$RESPONSE" | grep -q '"status":"healthy"'; then
+                echo "================================================"
+                echo "✓ Health check PASSED!"
+                DEPLOYED_SHA=$(docker inspect qadhya-nextjs --format='{{.Config.Labels.org.opencontainers.image.revision}}' 2>/dev/null || echo "unknown")
+                echo "Deployed SHA: $DEPLOYED_SHA"
+                echo "Deployment successful!"
+                echo "================================================"
+                exit 0
+              fi
+
+              if [ $i -lt 3 ]; then
+                echo "Waiting 15s before retry..."
+                sleep 15
+              fi
+            done
+
+            echo "================================================"
+            echo "✗ Health check FAILED after 3 attempts"
+            echo "================================================"
+            exit 1
+
+  # ===========================================================================
+  # Job 3: Post-Deploy Validation - Phase 5
+  # ===========================================================================
+  validate-post-deploy:
+    runs-on: ubuntu-latest
+    name: Post-Deploy Validation
+    needs: [deploy-fast, build-and-deploy]
+    if: |
+      always() &&
+      (needs.deploy-fast.result == 'success' || needs.build-and-deploy.result == 'success')
+    timeout-minutes: 5
+
+    steps:
+      - name: Wait for Container Healthy
+        run: |
+          echo "⏳ Attente container healthy (grace period 40s)..."
+          sleep 40
+
+      - name: Health Check API
+        id: health
+        run: |
+          echo "🔍 Health check API..."
+
+          HEALTH=$(curl -sf https://qadhya.tn/api/health || echo '{"status":"error"}')
+          echo "$HEALTH" | jq '.' || echo "Invalid JSON"
+
+          RAG_STATUS=$(echo "$HEALTH" | jq -r '.rag.status' 2>/dev/null || echo "unknown")
+
+          if [ "$RAG_STATUS" != "ok" ]; then
+            echo "❌ RAG misconfigured after deployment!"
+            echo "::error::RAG status: $RAG_STATUS"
+            echo "health_check_passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          echo "✅ Health check passed (RAG: $RAG_STATUS)"
+          echo "health_check_passed=true" >> $GITHUB_OUTPUT
+
+      - name: E2E Deployment Tests
+        id: e2e
+        run: |
+          echo "🧪 Tests E2E post-déploiement..."
+
+          E2E_RESULT=$(curl -sf https://qadhya.tn/api/test-deploy || echo '{"status":"error"}')
+          echo "$E2E_RESULT" | jq '.' || echo "Invalid JSON"
+
+          ALL_PASSED=$(echo "$E2E_RESULT" | jq -r '.allTestsPassed' 2>/dev/null || echo "false")
+          STATUS=$(echo "$E2E_RESULT" | jq -r '.status' 2>/dev/null || echo "error")
+          DB_STATUS=$(echo "$E2E_RESULT" | jq -r '.tests.database.status' 2>/dev/null || echo "unknown")
+          RAG_STATUS=$(echo "$E2E_RESULT" | jq -r '.tests.rag.status' 2>/dev/null || echo "unknown")
+          KB_STATUS=$(echo "$E2E_RESULT" | jq -r '.tests.knowledgeBase.status' 2>/dev/null || echo "unknown")
+          EMB_STATUS=$(echo "$E2E_RESULT" | jq -r '.tests.embeddings.status' 2>/dev/null || echo "unknown")
+
+          echo "📊 Résultats E2E:"
+          echo "  Database:       $DB_STATUS"
+          echo "  RAG Config:     $RAG_STATUS"
+          echo "  Knowledge Base: $KB_STATUS"
+          echo "  Embeddings:     $EMB_STATUS"
+          echo "  Global:         $STATUS"
+
+          echo "e2e_passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+
+          if [ "$STATUS" = "error" ]; then
+            echo "❌ Tests E2E échoués - vérifier la configuration"
+            echo "::warning::E2E tests failed: DB=$DB_STATUS RAG=$RAG_STATUS KB=$KB_STATUS EMB=$EMB_STATUS"
+          else
+            echo "✅ Tests E2E passés ($STATUS)"
+          fi
+
+      - name: Config Hash Validation
+        id: config
+        run: |
+          echo "🔍 Validation config hash..."
+
+          CONFIG=$(curl -sf https://qadhya.tn/api/health/config || echo '{"driftDetected":false}')
+          echo "$CONFIG" | jq '.' || echo "Invalid JSON"
+
+          DRIFT=$(echo "$CONFIG" | jq -r '.driftDetected' 2>/dev/null || echo "false")
+          CRITICAL_DRIFT=$(echo "$CONFIG" | jq -r '.criticalDrift' 2>/dev/null || echo "false")
+
+          if [ "$DRIFT" = "true" ]; then
+            echo "⚠️  Config drift détecté après déploiement"
+            echo "Expected: $(echo "$CONFIG" | jq -r '.expectedHash')"
+            echo "Actual:   $(echo "$CONFIG" | jq -r '.configHash')"
+
+            # Bloquer SEULEMENT si CRITICAL vars driftées
+            if [ "$CRITICAL_DRIFT" = "true" ]; then
+              echo "::error::CRITICAL config drift detected"
+              echo "Drifted vars:"
+              echo "$CONFIG" | jq -r '.driftedVars[]'
+              echo "config_valid=false" >> $GITHUB_OUTPUT
+              exit 1
+            else
+              echo "::warning::Non-critical drift (proceeding)"
+              echo "config_valid=true" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "✅ Config hash validation passed"
+            echo "config_valid=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Reset Expected Config Hash
+        if: steps.config.outputs.config_valid == 'true'
+        run: |
+          echo "🔄 Mise à jour hash de référence..."
+
+          RESPONSE=$(curl -sf -X POST https://qadhya.tn/api/health/config || echo '{}')
+          SUCCESS=$(echo "$RESPONSE" | jq -r '.success' 2>/dev/null || echo "false")
+
+          if [ "$SUCCESS" = "true" ]; then
+            echo "✅ Hash de référence mis à jour"
+          else
+            echo "⚠️  Échec mise à jour hash (non-bloquant)"
+          fi
+
+      - name: Generate Deployment Report
+        if: always()
+        run: |
+          DEPLOYED_TIER="${{ needs.detect-changes.outputs.deploy_tier || 'unknown' }}"
+
+          # Créer rapport avec jq pour échapper correctement le commitMessage
+          jq -n \
+            --arg deploymentId "${{ github.run_number }}" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg tier "$DEPLOYED_TIER" \
+            --arg commit "${{ github.sha }}" \
+            --arg commitMessage "${{ github.event.head_commit.message }}" \
+            --arg preDeploySchema "${{ needs.validate-schema.result }}" \
+            --arg postDeployHealth "${{ steps.health.outputs.health_check_passed || 'unknown' }}" \
+            --arg e2eTests "${{ steps.e2e.outputs.e2e_passed || 'unknown' }}" \
+            --arg configHash "${{ steps.config.outputs.config_valid || 'unknown' }}" \
+            --arg outcome "${{ job.status }}" \
+            '{
+              deploymentId: $deploymentId,
+              timestamp: $timestamp,
+              tier: $tier,
+              commit: $commit,
+              commitMessage: $commitMessage,
+              validations: {
+                preDeploySchema: $preDeploySchema,
+                postDeployHealth: $postDeployHealth,
+                e2eTests: $e2eTests,
+                configHash: $configHash
+              },
+              outcome: $outcome
+            }' > /tmp/deploy-report.json
+
+          echo "📊 Deployment Report:"
+          cat /tmp/deploy-report.json | jq '.'
+
+      - name: Upload Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-report-${{ github.run_number }}
+          path: /tmp/deploy-report.json
+          retention-days: 30
+
+  # ===========================================================================
+  # Job 4: Skip Notification (Merge Queue intelligente)
+  # ===========================================================================
+  notify-skip:
+    runs-on: ubuntu-latest
+    name: Merge Queue Skip
+    needs: check-queue
+    if: needs.check-queue.outputs.should_skip == 'true'
+    timeout-minutes: 1
+
+    steps:
+      - name: Report skip reason
+        run: |
+          QUEUE_LENGTH="${{ needs.check-queue.outputs.queue_length }}"
+          SKIP_REASON="${{ needs.check-queue.outputs.skip_reason }}"
+
+          echo "================================================"
+          echo "⏭️  DEPLOYMENT SKIPPED (Merge Queue)"
+          echo "================================================"
+
+          case "$SKIP_REASON" in
+            queue_overflow)
+              echo "📊 Raison: Trop de déploiements en queue ($QUEUE_LENGTH)"
+              echo ""
+              echo "💡 Optimisation automatique:"
+              echo "   Le dernier déploiement en queue inclura TOUS les commits"
+              echo "   en attente, y compris celui-ci."
+              echo ""
+              echo "🎯 Action: Aucune (auto-batch optimal)"
+              ;;
+
+            recent_commits)
+              echo "⏱️  Raison: Commits proches détectés (<5min)"
+              echo ""
+              echo "💡 Optimisation automatique:"
+              echo "   Vos changements seront inclus dans le prochain"
+              echo "   déploiement déjà en queue."
+              echo ""
+              echo "🎯 Action: Attendez ~3-10min que le déploiement en cours"
+              echo "   se termine. Il inclura vos changements."
+              ;;
+
+            *)
+              echo "📋 Raison: Auto-batch ($QUEUE_LENGTH déploiements en queue)"
+              ;;
+          esac
+
+          echo ""
+          echo "🚨 Pour forcer un déploiement immédiat (bypass queue):"
+          echo "   gh workflow run 'Deploy to VPS Contabo'"
+          echo ""
+          echo "ℹ️  Vérifier la queue:"
+          echo "   gh run list --workflow='Deploy to VPS Contabo' --limit 5"
+          echo "================================================"
+
+  # ===========================================================================
+  # Job 4: Notification
+  # ===========================================================================
+  notify:
+    runs-on: ubuntu-latest
+    name: Notify Status
+    needs: [check-queue, detect-changes, deploy-fast, build-and-deploy]
+    if: always() && github.ref == 'refs/heads/main'
+    timeout-minutes: 2
+
+    steps:
+      - name: Report result
+        run: |
+          SKIPPED="${{ needs.check-queue.outputs.should_skip }}"
+          TIER="${{ needs.detect-changes.outputs.deploy_tier }}"
+          FAST="${{ needs.deploy-fast.result }}"
+          DOCKER="${{ needs.build-and-deploy.result }}"
+
+          echo "Queue Skip: $SKIPPED | Tier: $TIER | Fast: $FAST | Docker: $DOCKER"
+
+          if [ "$SKIPPED" == "true" ]; then
+            echo "✅ Deployment skipped (auto-batch) - OK"
+            exit 0
+          elif [ "$FAST" == "success" ]; then
+            echo "✅ Lightning Deploy (Tier 1) successful!"
+          elif [ "$DOCKER" == "success" ]; then
+            echo "✅ Docker Deploy (Tier 2) successful!"
+          elif [ "$FAST" == "skipped" ] && [ "$DOCKER" == "skipped" ]; then
+            echo "No deployment triggered"
+          else
+            echo "❌ Deployment FAILED (tier: $TIER)"
+            exit 1
+          fi

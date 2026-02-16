@@ -32,6 +32,10 @@ yarn-error.log*
 .env
 .env.production
 .env.production.backup.*
+.env.secrets
+
+# docker override dev local
+docker-compose.override.yml
 
 # vercel
 .vercel

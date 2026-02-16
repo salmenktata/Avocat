@@ -1,0 +1,74 @@
+version: '3.9'
+
+# ============================================================================
+# QADHYA DOCKER COMPOSE - OVERRIDE DEV LOCAL
+# ============================================================================
+# Fichier d'override pour développement local uniquement
+#
+# Setup:
+#   cp docker-compose.override.yml.example docker-compose.override.yml
+#   docker compose up -d
+#
+# Ce fichier override automatiquement docker-compose.yml en dev local
+# Ne PAS committer docker-compose.override.yml (gitignored)
+# ============================================================================
+
+services:
+  # --------------------------------------------------------------------------
+  # Next.js - Build local au lieu d'image GHCR
+  # --------------------------------------------------------------------------
+  nextjs:
+    # Override: Build l'image localement
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Qadhya}
+        NEXT_PUBLIC_APP_DOMAIN: ${NEXT_PUBLIC_APP_DOMAIN:-localhost}
+    # Enlève l'image GHCR définie dans docker-compose.yml
+    image: qadhya-nextjs:local
+
+    # Environment dev local
+    environment:
+      NODE_ENV: development
+      # Autres variables héritées de docker-compose.yml
+
+  # --------------------------------------------------------------------------
+  # PgAdmin - Interface web PostgreSQL (optionnel, profile tools)
+  # --------------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: qadhya-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@qadhya.tn}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "127.0.0.1:5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - qadhya-network
+    profiles:
+      - tools
+
+  # --------------------------------------------------------------------------
+  # Redis Commander - Interface web Redis (optionnel, profile tools)
+  # --------------------------------------------------------------------------
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: qadhya-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - qadhya-network
+    profiles:
+      - tools
