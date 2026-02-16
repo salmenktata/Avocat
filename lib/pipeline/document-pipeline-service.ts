@@ -41,6 +41,10 @@ export interface PipelineTransitionResult {
   fromStage: PipelineStage | null
   toStage: PipelineStage
   error?: string
+  // NOUVEAU : Phase 2 - Tracking retries
+  stage?: PipelineStage
+  attemptNumber?: number
+  duration_ms?: number
 }
 
 export interface PipelineDocument {
@@ -242,26 +246,90 @@ export async function rejectDocument(
 
 /**
  * Relance le traitement automatique de l'étape courante
+ * ENRICHI pour Phase 2 : Tracking des retries
  */
 export async function replayStage(
   docId: string,
-  userId: string
-): Promise<PipelineTransitionResult> {
+  userId: string,
+  stage?: PipelineStage,
+  options?: { force?: boolean; reason?: string }
+): Promise<PipelineTransitionResult & { attemptNumber?: number; duration_ms?: number; stage?: PipelineStage }> {
   const doc = await getDocumentForPipeline(docId)
   if (!doc) {
     return { success: false, documentId: docId, fromStage: null, toStage: 'crawled', error: 'Document non trouvé' }
   }
 
-  const currentStage = doc.pipeline_stage
+  const targetStage = stage || doc.pipeline_stage
+  const startTime = Date.now()
+
+  // NOUVEAU : Importer le service retry pour tracking
+  const { createRetryAttempt, updateRetryAttempt, getDocumentRetryAttempts } = await import('./pipeline-retry-service')
+
+  // NOUVEAU : Créer une tentative de retry
+  let attemptId: string = ''
+  try {
+    attemptId = await createRetryAttempt(
+      docId,
+      targetStage,
+      userId,
+      options?.reason || 'Manual replay via dashboard'
+    )
+  } catch (error) {
+    console.error('Erreur création retry attempt:', error)
+  }
 
   try {
-    await executeReplay(doc, currentStage)
-    await logHistory(docId, currentStage, currentStage, 'admin_replay', userId, `Replay étape ${currentStage}`)
-    return { success: true, documentId: docId, fromStage: currentStage, toStage: currentStage }
+    await executeReplay(doc, targetStage)
+    const duration = Date.now() - startTime
+
+    // NOUVEAU : Marquer le retry comme succès
+    if (attemptId) {
+      await updateRetryAttempt(attemptId, 'success', duration)
+    }
+
+    await logHistory(docId, targetStage, targetStage, 'admin_replay', userId, {
+      message: `Replay étape ${targetStage}`,
+      reason: options?.reason,
+      force: options?.force,
+      duration_ms: duration,
+    })
+
+    // NOUVEAU : Récupérer le nombre de tentatives
+    const attempts = await getDocumentRetryAttempts(docId, targetStage)
+
+    return {
+      success: true,
+      documentId: docId,
+      fromStage: targetStage,
+      toStage: targetStage,
+      stage: targetStage,
+      attemptNumber: attempts.length,
+      duration_ms: duration,
+    }
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : 'Erreur replay'
-    await logHistory(docId, currentStage, currentStage, 'system_error', userId, errMsg)
-    return { success: false, documentId: docId, fromStage: currentStage, toStage: currentStage, error: errMsg }
+    const duration = Date.now() - startTime
+
+    // NOUVEAU : Marquer le retry comme échec
+    if (attemptId) {
+      await updateRetryAttempt(attemptId, 'failed', duration, errMsg)
+    }
+
+    await logHistory(docId, targetStage, targetStage, 'system_error', userId, errMsg)
+
+    // NOUVEAU : Récupérer le nombre de tentatives
+    const attempts = await getDocumentRetryAttempts(docId, targetStage)
+
+    return {
+      success: false,
+      documentId: docId,
+      fromStage: targetStage,
+      toStage: targetStage,
+      stage: targetStage,
+      error: errMsg,
+      attemptNumber: attempts.length,
+      duration_ms: duration,
+    }
   }
 }
 

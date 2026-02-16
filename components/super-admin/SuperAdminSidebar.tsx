@@ -74,7 +74,7 @@ const getNavGroups = (
   {
     group: 'Contenu & Données',
     items: [
-      { href: '/super-admin/pipeline', label: 'Pipeline KB', icon: 'merge' },
+      { href: '/super-admin/pipeline-status', label: 'Pipeline KB', icon: 'merge' },
       { href: '/super-admin/web-sources', label: 'Sources Web', icon: 'globe' },
       { href: '/super-admin/legal-documents', label: 'Documents Juridiques', icon: 'scale' },
       {

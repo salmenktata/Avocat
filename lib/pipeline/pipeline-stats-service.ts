@@ -355,3 +355,90 @@ export async function getThroughputStats(): Promise<{
     slaBreaches: parseInt(slaResult.rows[0]?.cnt || '0'),
   }
 }
+
+// =============================================================================
+// FILTRES POUR BATCH REPLAY
+// =============================================================================
+
+export interface DocumentFilters {
+  category?: string
+  source?: string
+  scoreRange?: { min?: number; max?: number }
+  dateRange?: { from?: string; to?: string }
+  onlyFailed?: boolean
+}
+
+/**
+ * Récupérer les documents filtrés pour batch replay
+ */
+export async function getDocumentsByFilters(
+  stage: PipelineStage,
+  filters: DocumentFilters,
+  limit: number = 100
+): Promise<PipelineDocumentSummary[]> {
+  let query = `
+    SELECT
+      kb.id, kb.title, kb.category, kb.subcategory, kb.language,
+      kb.pipeline_stage, kb.pipeline_stage_updated_at, kb.quality_score,
+      kb.is_indexed, kb.source_file, kb.metadata, kb.created_at,
+      EXTRACT(EPOCH FROM (NOW() - kb.pipeline_stage_updated_at)) / 86400 as days_in_stage,
+      ws.id as web_source_id,
+      ws.name as source_name,
+      COUNT(ra.id) FILTER (WHERE ra.status = 'failed') as failed_retries
+    FROM knowledge_base kb
+    LEFT JOIN web_pages wp ON wp.knowledge_base_id = kb.id
+    LEFT JOIN web_sources ws ON wp.web_source_id = ws.id
+    LEFT JOIN pipeline_retry_attempts ra
+      ON ra.knowledge_base_id = kb.id AND ra.stage = kb.pipeline_stage
+    WHERE kb.pipeline_stage = $1 AND kb.is_active = true
+  `
+
+  const params: unknown[] = [stage]
+  let paramIndex = 2
+
+  if (filters.category) {
+    query += ` AND kb.category = $${paramIndex++}`
+    params.push(filters.category)
+  }
+
+  if (filters.source) {
+    query += ` AND ws.id = $${paramIndex++}`
+    params.push(filters.source)
+  }
+
+  if (filters.scoreRange?.min !== undefined) {
+    query += ` AND kb.quality_score >= $${paramIndex++}`
+    params.push(filters.scoreRange.min)
+  }
+
+  if (filters.scoreRange?.max !== undefined) {
+    query += ` AND kb.quality_score <= $${paramIndex++}`
+    params.push(filters.scoreRange.max)
+  }
+
+  if (filters.dateRange?.from) {
+    query += ` AND kb.pipeline_stage_updated_at >= $${paramIndex++}`
+    params.push(filters.dateRange.from)
+  }
+
+  if (filters.dateRange?.to) {
+    query += ` AND kb.pipeline_stage_updated_at <= $${paramIndex++}`
+    params.push(filters.dateRange.to)
+  }
+
+  query += ` GROUP BY kb.id, ws.id, ws.name`
+
+  if (filters.onlyFailed) {
+    query += ` HAVING COUNT(ra.id) FILTER (WHERE ra.status = 'failed') > 0`
+  }
+
+  query += ` ORDER BY kb.pipeline_stage_updated_at DESC LIMIT $${paramIndex}`
+  params.push(limit)
+
+  const result = await db.query(query, params)
+
+  return result.rows.map(row => ({
+    ...row,
+    days_in_stage: Math.round(parseFloat(row.days_in_stage) * 10) / 10,
+  }))
+}
