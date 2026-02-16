@@ -721,20 +721,27 @@ export async function searchRelevantContext(
           console.log(
             `[RAG Search] ⚠️ 0 résultats filtrés → fallback recherche globale hybride (seuil abaissé)`
           )
+          const fallbackThreshold = queryLangForSearch === 'ar'
+            ? 0.25
+            : Math.max(RAG_THRESHOLDS.knowledgeBase - 0.15, 0.25)
           kbResults = await searchKnowledgeBaseHybrid(question, {
             limit: maxContextChunks,
-            threshold: Math.max(RAG_THRESHOLDS.knowledgeBase - 0.15, 0.25), // Seuil abaissé pour fallback
+            threshold: fallbackThreshold,
             operationName: options.operationName,
           })
         }
       } else {
         // Recherche globale hybride (fallback si classification non confiante)
+        // Seuil plus permissif pour l'arabe (embeddings arabes → scores plus bas)
+        const globalThreshold = queryLangForSearch === 'ar'
+          ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.40)
+          : RAG_THRESHOLDS.knowledgeBase
         console.log(
-          `[RAG Search] Recherche KB globale hybride (classification confiance: ${(classification.confidence * 100).toFixed(1)}%)`
+          `[RAG Search] Recherche KB globale hybride (classification confiance: ${(classification.confidence * 100).toFixed(1)}%, seuil: ${globalThreshold})`
         )
         kbResults = await searchKnowledgeBaseHybrid(question, {
           limit: maxContextChunks,
-          threshold: RAG_THRESHOLDS.knowledgeBase,
+          threshold: globalThreshold,
           operationName: options.operationName,
         })
       }
