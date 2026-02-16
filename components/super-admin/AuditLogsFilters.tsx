@@ -33,15 +33,24 @@ export function AuditLogsFilters({ currentAction, currentTarget }: AuditLogsFilt
         onChange={(e) => updateFilter('action', e.target.value)}
       >
         <option value="all">Toutes les actions</option>
-        <option value="user_approved">Approbation</option>
-        <option value="user_rejected">Rejet</option>
-        <option value="user_suspended">Suspension</option>
-        <option value="user_reactivated">Réactivation</option>
-        <option value="user_deleted">Suppression</option>
-        <option value="role_changed">Changement rôle</option>
-        <option value="plan_changed">Changement plan</option>
-        <option value="kb_upload">Upload KB</option>
-        <option value="kb_delete">Suppression KB</option>
+        <optgroup label="Gestion Utilisateurs">
+          <option value="user_approved">Approbation</option>
+          <option value="user_rejected">Rejet</option>
+          <option value="user_suspended">Suspension</option>
+          <option value="user_reactivated">Réactivation</option>
+          <option value="user_deleted">Suppression</option>
+          <option value="role_changed">Changement rôle</option>
+          <option value="plan_changed">Changement plan</option>
+        </optgroup>
+        <optgroup label="Impersonation">
+          <option value="impersonation_start">Impersonation démarrée</option>
+          <option value="impersonation_stop">Impersonation arrêtée</option>
+          <option value="impersonation_expired">Impersonation expirée</option>
+        </optgroup>
+        <optgroup label="Base de Connaissances">
+          <option value="kb_upload">Upload KB</option>
+          <option value="kb_delete">Suppression KB</option>
+        </optgroup>
       </select>
 
       {/* Filtre Target */}

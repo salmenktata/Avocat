@@ -60,9 +60,11 @@ export function UserActions({ user }: UserActionsProps) {
   const [showRoleDialog, setShowRoleDialog] = useState(false)
   const [showPlanDialog, setShowPlanDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showImpersonateDialog, setShowImpersonateDialog] = useState(false)
 
   // Form values
   const [reason, setReason] = useState('')
+  const [impersonationReason, setImpersonationReason] = useState('')
   const [newRole, setNewRole] = useState(user.role || 'user')
   const [newPlan, setNewPlan] = useState(user.plan || 'free')
   const [confirmEmail, setConfirmEmail] = useState('')
@@ -344,29 +346,7 @@ export function UserActions({ user }: UserActionsProps) {
         {/* Voir comme - seulement si approuvé et pas super_admin */}
         {user.status === 'approved' && user.role !== 'super_admin' && (
           <Button
-            onClick={async () => {
-              setLoading(true)
-              try {
-                const result = await startImpersonationAction(user.id)
-                if (result.error) {
-                  toast({
-                    title: 'Erreur',
-                    description: result.error,
-                    variant: 'destructive'
-                  })
-                } else {
-                  window.location.href = '/dashboard'
-                }
-              } catch {
-                toast({
-                  title: 'Erreur',
-                  description: 'Une erreur est survenue',
-                  variant: 'destructive'
-                })
-              } finally {
-                setLoading(false)
-              }
-            }}
+            onClick={() => setShowImpersonateDialog(true)}
             disabled={loading}
             variant="outline"
             className="border-orange-600 text-orange-400 hover:bg-orange-900/30"
@@ -561,6 +541,101 @@ export function UserActions({ user }: UserActionsProps) {
               className="bg-blue-600 hover:bg-blue-700"
             >
               {loading ? 'Modification...' : 'Confirmer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Impersonation */}
+      <Dialog open={showImpersonateDialog} onOpenChange={(open) => {
+        setShowImpersonateDialog(open)
+        if (!open) setImpersonationReason('')
+      }}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-orange-400">Action Sensible - Impersonnalisation</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Vous allez voir l'application en tant que {user.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Alert Warning */}
+            <div className="p-4 bg-orange-900/20 border border-orange-700 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Icons.alertTriangle className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-orange-300">
+                  <p className="font-medium mb-2">Points importants :</p>
+                  <ul className="list-disc list-inside space-y-1 text-orange-400">
+                    <li>Cette action sera tracée dans l'audit</li>
+                    <li>Durée maximale : 2 heures</li>
+                    <li>Toutes vos actions seront enregistrées</li>
+                    <li>Autres super-admins peuvent voir cette session</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Raison obligatoire */}
+            <div>
+              <Label className="text-slate-300">
+                Raison de l'impersonnalisation <span className="text-red-400">*</span>
+              </Label>
+              <Textarea
+                value={impersonationReason}
+                onChange={(e) => setImpersonationReason(e.target.value)}
+                placeholder="Expliquez la raison (support client, débogage, test UX, etc.)&#10;Minimum 10 caractères..."
+                className="mt-2 bg-slate-700 border-slate-600 text-white min-h-[100px]"
+                maxLength={500}
+              />
+              <div className="mt-1 text-xs text-slate-500">
+                {impersonationReason.length}/10 caractères minimum
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowImpersonateDialog(false)
+                setImpersonationReason('')
+              }}
+              className="text-slate-400"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={async () => {
+                setLoading(true)
+                try {
+                  const result = await startImpersonationAction(user.id, impersonationReason)
+                  if (result.error) {
+                    toast({
+                      title: 'Erreur',
+                      description: result.error,
+                      variant: 'destructive'
+                    })
+                  } else {
+                    toast({
+                      title: 'Impersonnalisation démarrée',
+                      description: 'Redirection en cours...'
+                    })
+                    window.location.href = '/dashboard'
+                  }
+                } catch {
+                  toast({
+                    title: 'Erreur',
+                    description: 'Une erreur est survenue',
+                    variant: 'destructive'
+                  })
+                } finally {
+                  setLoading(false)
+                  setImpersonationReason('')
+                }
+              }}
+              disabled={loading || impersonationReason.trim().length < 10}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {loading ? 'Démarrage...' : 'Confirmer l\'impersonnalisation'}
             </Button>
           </DialogFooter>
         </DialogContent>

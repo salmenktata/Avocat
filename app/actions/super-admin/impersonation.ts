@@ -51,11 +51,17 @@ async function createAuditLog(
     headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     headersList.get('x-real-ip') ||
     'unknown'
+  const userAgent = headersList.get('user-agent') || 'unknown'
+
+  // Détection impersonation via headers injectés par middleware
+  const impersonationAdmin = headersList.get('x-impersonation-admin')
+  const impersonationTarget = headersList.get('x-impersonation-target')
+  const isImpersonation = !!impersonationAdmin && !!impersonationTarget
 
   await query(
     `INSERT INTO admin_audit_logs
-     (admin_id, admin_email, action_type, target_type, target_id, target_identifier, old_value, new_value, ip_address)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+     (admin_id, admin_email, action_type, target_type, target_id, target_identifier, old_value, new_value, ip_address, user_agent, is_impersonation, impersonated_user_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
     [
       adminId,
       adminEmail,
@@ -65,7 +71,10 @@ async function createAuditLog(
       targetIdentifier,
       oldValue ? JSON.stringify(oldValue) : null,
       newValue ? JSON.stringify(newValue) : null,
-      ipAddress
+      ipAddress,
+      userAgent,
+      isImpersonation,
+      impersonationTarget || null
     ]
   )
 }
@@ -74,9 +83,17 @@ async function createAuditLog(
 // ACTIONS
 // =============================================================================
 
-export async function startImpersonationAction(targetUserId: string): Promise<{ error?: string }> {
+export async function startImpersonationAction(
+  targetUserId: string,
+  reason: string
+): Promise<{ error?: string }> {
   const authCheck = await checkSuperAdminAccess()
   if ('error' in authCheck) return { error: authCheck.error }
+
+  // Validation raison obligatoire
+  if (!reason || reason.trim().length < 10) {
+    return { error: 'Raison obligatoire (minimum 10 caractères)' }
+  }
 
   // Vérifier que la cible existe, est approuvée, et n'est pas super_admin
   const targetResult = await query(
@@ -95,6 +112,28 @@ export async function startImpersonationAction(targetUserId: string): Promise<{ 
 
   const targetName = target.nom && target.prenom ? `${target.prenom} ${target.nom}` : target.email
 
+  // Récupérer IP et User-Agent
+  const headersList = await headers()
+  const ipAddress =
+    headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    headersList.get('x-real-ip') ||
+    'unknown'
+  const userAgent = headersList.get('user-agent') || 'unknown'
+
+  // Créer l'entrée dans active_impersonations
+  await query(`
+    INSERT INTO active_impersonations
+    (admin_id, target_user_id, reason, started_at, expires_at, ip_address, user_agent, is_active)
+    VALUES ($1, $2, $3, NOW(), NOW() + INTERVAL '2 hours', $4, $5, true)
+  `, [
+    authCheck.adminId,
+    targetUserId,
+    reason.trim(),
+    ipAddress,
+    userAgent
+  ])
+
+  // Créer l'audit log
   await createAuditLog(
     authCheck.adminId,
     authCheck.adminEmail,
@@ -103,7 +142,12 @@ export async function startImpersonationAction(targetUserId: string): Promise<{ 
     targetUserId,
     target.email,
     undefined,
-    { targetName, targetEmail: target.email, targetRole: target.role }
+    {
+      targetName,
+      targetEmail: target.email,
+      targetRole: target.role,
+      reason: reason.trim()
+    }
   )
 
   return {}
@@ -121,6 +165,14 @@ export async function stopImpersonationAction(): Promise<{ error?: string }> {
   if (!result.success) return { error: result.error || 'Erreur lors de l\'arrêt' }
 
   if (admin && impersonation.targetUser) {
+    // Désactiver la session dans active_impersonations
+    await query(`
+      UPDATE active_impersonations
+      SET is_active = false
+      WHERE admin_id = $1 AND target_user_id = $2 AND is_active = true
+    `, [admin.id, impersonation.targetUser.id])
+
+    // Créer l'audit log
     await createAuditLog(
       admin.id,
       admin.email,

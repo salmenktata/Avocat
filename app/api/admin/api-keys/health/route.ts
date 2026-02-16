@@ -265,6 +265,53 @@ async function testOllama(): Promise<ProviderHealth> {
 }
 
 /**
+ * Test OpenAI Embeddings
+ */
+async function testOpenAIEmbeddings(): Promise<ProviderHealth> {
+  const start = Date.now()
+
+  try {
+    const apiKey = process.env.OPENAI_API_KEY
+
+    if (!apiKey) {
+      return {
+        provider: 'openai-embeddings',
+        status: 'missing',
+        error: 'OPENAI_API_KEY not configured',
+        lastChecked: new Date().toISOString(),
+      }
+    }
+
+    const client = new OpenAI({ apiKey })
+
+    // Test avec un texte simple
+    const response = await client.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: 'Test embedding',
+      encoding_format: 'float',
+    })
+
+    const responseTime = Date.now() - start
+
+    return {
+      provider: 'openai-embeddings',
+      status: 'healthy',
+      responseTime,
+      model: 'text-embedding-3-small (1536-dim)',
+      lastChecked: new Date().toISOString(),
+    }
+  } catch (error: any) {
+    return {
+      provider: 'openai-embeddings',
+      status: 'error',
+      responseTime: Date.now() - start,
+      error: error.message || 'Unknown error',
+      lastChecked: new Date().toISOString(),
+    }
+  }
+}
+
+/**
  * Endpoint principal
  */
 export async function GET(request: NextRequest) {
@@ -272,15 +319,16 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Health check des clés API démarré...')
 
     // Exécuter tous les tests en parallèle
-    const [gemini, groq, deepseek, anthropic, ollama] = await Promise.all([
+    const [gemini, groq, deepseek, anthropic, ollama, openaiEmbeddings] = await Promise.all([
       testGemini(),
       testGroq(),
       testDeepSeek(),
       testAnthropic(),
       testOllama(),
+      testOpenAIEmbeddings(),
     ])
 
-    const results = [gemini, groq, deepseek, anthropic, ollama]
+    const results = [gemini, groq, deepseek, anthropic, ollama, openaiEmbeddings]
 
     // Statistiques globales
     const healthy = results.filter((r) => r.status === 'healthy').length

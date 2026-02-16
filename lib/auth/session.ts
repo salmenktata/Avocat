@@ -35,6 +35,7 @@ const COOKIE_OPTIONS = {
   path: '/',
 }
 const SESSION_DURATION = 30 * 24 * 60 * 60 // 30 jours en secondes
+const IMPERSONATION_MAX_DURATION = 2 * 60 * 60 // 2 heures en secondes
 
 // =============================================================================
 // TYPES
@@ -356,10 +357,15 @@ export async function startImpersonation(targetUserId: string): Promise<{ succes
   const targetUser = await fetchUserForSession(targetUserId)
   if (!targetUser) return { success: false, error: 'Utilisateur cible introuvable ou non approuvé' }
 
-  // Sauvegarder le token admin original
-  cookieStore.set(IMPERSONATION_COOKIE, currentToken, {
+  // Sauvegarder le token admin original avec timestamp de début
+  const impersonationData = {
+    token: currentToken,
+    startedAt: Date.now()
+  }
+
+  cookieStore.set(IMPERSONATION_COOKIE, JSON.stringify(impersonationData), {
     ...COOKIE_OPTIONS,
-    maxAge: SESSION_DURATION,
+    maxAge: IMPERSONATION_MAX_DURATION, // 2 heures maximum
   })
 
   // Remplacer la session par celle de l'utilisateur cible
@@ -373,8 +379,18 @@ export async function startImpersonation(targetUserId: string): Promise<{ succes
  */
 export async function stopImpersonation(): Promise<{ success: boolean; error?: string }> {
   const cookieStore = await cookies()
-  const originalToken = cookieStore.get(IMPERSONATION_COOKIE)?.value
-  if (!originalToken) return { success: false, error: 'Pas d\'impersonation en cours' }
+  const impersonationCookie = cookieStore.get(IMPERSONATION_COOKIE)?.value
+  if (!impersonationCookie) return { success: false, error: 'Pas d\'impersonation en cours' }
+
+  // Parser pour récupérer le token original
+  let originalToken: string
+  try {
+    const data = JSON.parse(impersonationCookie)
+    originalToken = data.token
+  } catch {
+    // Ancienne version du cookie (juste le token)
+    originalToken = impersonationCookie
+  }
 
   // Restaurer le cookie admin original
   cookieStore.set(COOKIE_NAME, originalToken, {
@@ -393,26 +409,58 @@ export async function stopImpersonation(): Promise<{ success: boolean; error?: s
  */
 export async function getImpersonationStatus(): Promise<{
   isImpersonating: boolean
-  originalAdmin?: { email: string; name: string }
-  targetUser?: { email: string; name: string }
+  originalAdmin?: { email: string; name: string; id: string }
+  targetUser?: { email: string; name: string; id: string }
+  startedAt?: number
+  expired?: boolean
 }> {
   try {
     const cookieStore = await cookies()
-    const originalToken = cookieStore.get(IMPERSONATION_COOKIE)?.value
-    if (!originalToken) return { isImpersonating: false }
+    const impersonationCookie = cookieStore.get(IMPERSONATION_COOKIE)?.value
+    if (!impersonationCookie) return { isImpersonating: false }
 
-    const adminUser = await verifyToken(originalToken)
-    if (!adminUser) return { isImpersonating: false }
+    // Parser le cookie qui contient maintenant { token, startedAt }
+    let impersonationData: { token: string; startedAt: number }
+    try {
+      impersonationData = JSON.parse(impersonationCookie)
+    } catch {
+      // Ancienne version du cookie (juste le token), migrer automatiquement
+      await stopImpersonation()
+      return { isImpersonating: false, expired: true }
+    }
+
+    // Vérifier expiration (2 heures)
+    const elapsed = (Date.now() - impersonationData.startedAt) / 1000
+    if (elapsed > IMPERSONATION_MAX_DURATION) {
+      // Session expirée, arrêter automatiquement
+      await stopImpersonation()
+      return { isImpersonating: false, expired: true }
+    }
+
+    const adminUser = await verifyToken(impersonationData.token)
+    if (!adminUser) {
+      await stopImpersonation()
+      return { isImpersonating: false }
+    }
 
     // Récupérer les infos de l'utilisateur actuellement impersoné
     const currentSession = await getSession()
 
     return {
       isImpersonating: true,
-      originalAdmin: { email: adminUser.email, name: adminUser.name },
+      originalAdmin: {
+        id: adminUser.id,
+        email: adminUser.email,
+        name: adminUser.name
+      },
       targetUser: currentSession?.user
-        ? { email: currentSession.user.email, name: currentSession.user.name }
+        ? {
+            id: currentSession.user.id,
+            email: currentSession.user.email,
+            name: currentSession.user.name
+          }
         : undefined,
+      startedAt: impersonationData.startedAt,
     }
   } catch {
     return { isImpersonating: false }

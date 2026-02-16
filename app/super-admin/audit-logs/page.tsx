@@ -88,6 +88,9 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
       kb_upload: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30',
       kb_delete: 'bg-red-500/20 text-red-500 border-red-500/30',
       kb_index: 'bg-blue-500/20 text-blue-500 border-blue-500/30',
+      impersonation_start: 'bg-orange-500/20 text-orange-500 border-orange-500/30',
+      impersonation_stop: 'bg-orange-500/20 text-orange-500 border-orange-500/30',
+      impersonation_expired: 'bg-red-500/20 text-red-500 border-red-500/30',
     }
 
     const labels: Record<string, string> = {
@@ -101,6 +104,9 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
       kb_upload: 'Upload KB',
       kb_delete: 'Suppression KB',
       kb_index: 'Indexation KB',
+      impersonation_start: '🔐 Impersonation démarrée',
+      impersonation_stop: '🔐 Impersonation arrêtée',
+      impersonation_expired: '⏱️ Impersonation expirée',
     }
 
     return (

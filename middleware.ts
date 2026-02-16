@@ -36,6 +36,37 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value
   const pathname = request.nextUrl.pathname
 
+  // Vérifier expiration impersonation en premier (avant vérification auth)
+  const impersonationCookie = request.cookies.get('impersonation_original')?.value
+  if (impersonationCookie) {
+    try {
+      const data = JSON.parse(impersonationCookie)
+      const IMPERSONATION_MAX_DURATION = 2 * 60 * 60 // 2 heures en secondes
+      const elapsed = (Date.now() - data.startedAt) / 1000
+
+      if (elapsed > IMPERSONATION_MAX_DURATION) {
+        // Impersonation expirée, rediriger vers page super-admin avec message
+        const response = NextResponse.redirect(new URL('/super-admin/users?impersonation=expired', request.url))
+
+        // Restaurer le token admin et supprimer le cookie impersonation
+        response.cookies.set(COOKIE_NAME, data.token, {
+          httpOnly: true,
+          secure: request.nextUrl.protocol === 'https:',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 30 * 24 * 60 * 60,
+        })
+        response.cookies.delete('impersonation_original')
+
+        return response
+      }
+    } catch {
+      // Cookie invalide, le supprimer
+      const response = NextResponse.next()
+      response.cookies.delete('impersonation_original')
+    }
+  }
+
   // Pas de token = pas authentifié
   if (!token) {
     const loginUrl = new URL('/login', request.url)
@@ -102,9 +133,26 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Passer le pathname au layout via header (pour vérification rôle admin)
+    // Injecter contexte d'impersonation si actif
     const response = NextResponse.next()
     response.headers.set('x-pathname', pathname)
+
+    // Vérifier si impersonation active pour injecter les headers
+    if (impersonationCookie) {
+      try {
+        const data = JSON.parse(impersonationCookie)
+        const { payload } = await jwtVerify(data.token, SECRET_KEY)
+        const adminPayload = payload as unknown as TokenPayload
+
+        if (adminPayload?.user?.id) {
+          response.headers.set('x-impersonation-admin', adminPayload.user.id)
+          response.headers.set('x-impersonation-target', user.id)
+        }
+      } catch {
+        // Ignore errors
+      }
+    }
+
     return response
   } catch {
     // Token invalide ou expiré
