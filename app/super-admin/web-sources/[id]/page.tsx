@@ -4,7 +4,8 @@
 
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { db } from '@/lib/db/postgres'
+import { db, query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Icons } from '@/lib/icons'
@@ -225,6 +226,16 @@ async function getWebSourceData(id: string) {
 
 export default async function WebSourceDetailPage({ params }: PageProps) {
   const { id } = await params
+
+  // Récupérer le rôle utilisateur
+  const session = await getSession()
+  let userRole = 'user'
+  if (session?.user?.id) {
+    const userResult = await query('SELECT role FROM users WHERE id = $1', [session.user.id])
+    userRole = userResult.rows[0]?.role || 'user'
+  }
+  const isSuperAdmin = userRole === 'super_admin'
+
   const data = await getWebSourceData(id)
 
   if (!data) {
@@ -274,7 +285,7 @@ export default async function WebSourceDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        <WebSourceActions source={source} />
+        <WebSourceActions source={source} readOnly={!isSuperAdmin} />
       </div>
 
       {/* Stats KPI - Position #2 (priorité) */}

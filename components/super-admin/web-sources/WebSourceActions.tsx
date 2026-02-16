@@ -33,9 +33,10 @@ interface WebSource {
 
 interface WebSourceActionsProps {
   source: WebSource
+  readOnly?: boolean
 }
 
-export function WebSourceActions({ source }: WebSourceActionsProps) {
+export function WebSourceActions({ source, readOnly = false }: WebSourceActionsProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
@@ -302,6 +303,15 @@ export function WebSourceActions({ source }: WebSourceActionsProps) {
     } finally {
       setLoading(null)
     }
+  }
+
+  if (readOnly) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-slate-400">
+        <Icons.eye className="h-4 w-4" />
+        <span>Lecture seule</span>
+      </div>
+    )
   }
 
   return (

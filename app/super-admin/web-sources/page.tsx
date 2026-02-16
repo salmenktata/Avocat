@@ -7,6 +7,8 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import nextDynamic from 'next/dynamic'
 import { db } from '@/lib/db/postgres'
+import { query } from '@/lib/db/postgres'
+import { getSession } from '@/lib/auth/session'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/lib/icons'
 
@@ -183,6 +185,15 @@ export default async function WebSourcesPage({ searchParams }: PageProps) {
   const params = await searchParams
   const page = parseInt(params.page || '1')
 
+  // Récupérer le rôle utilisateur
+  const session = await getSession()
+  let userRole = 'user'
+  if (session?.user?.id) {
+    const userResult = await query('SELECT role FROM users WHERE id = $1', [session.user.id])
+    userRole = userResult.rows[0]?.role || 'user'
+  }
+  const isSuperAdmin = userRole === 'super_admin'
+
   const data = await getWebSourcesData({
     category: params.category,
     status: params.status,
@@ -197,15 +208,20 @@ export default async function WebSourcesPage({ searchParams }: PageProps) {
         <div>
           <h1 className="text-2xl font-bold text-white">Sources Web</h1>
           <p className="text-slate-400 mt-1">
-            Gérez les sources web pour l'ingestion automatique dans le RAG
+            {isSuperAdmin
+              ? 'Gérez les sources web pour l\'ingestion automatique dans le RAG'
+              : 'Consultez les sources web utilisées pour le RAG'
+            }
           </p>
         </div>
-        <Link href="/super-admin/web-sources/new">
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Icons.plus className="h-4 w-4 mr-2" />
-            Ajouter une source
-          </Button>
-        </Link>
+        {isSuperAdmin && (
+          <Link href="/super-admin/web-sources/new">
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Icons.plus className="h-4 w-4 mr-2" />
+              Ajouter une source
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Statistiques */}
@@ -229,6 +245,7 @@ export default async function WebSourcesPage({ searchParams }: PageProps) {
           category={params.category || ''}
           status={params.status || ''}
           search={params.search || ''}
+          readOnly={!isSuperAdmin}
         />
       </Suspense>
     </div>

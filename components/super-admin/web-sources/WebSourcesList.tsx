@@ -54,6 +54,7 @@ interface WebSourcesListProps {
   category: string
   status: string
   search: string
+  readOnly?: boolean
 }
 
 export function WebSourcesList({
@@ -63,6 +64,7 @@ export function WebSourcesList({
   category,
   status,
   search,
+  readOnly = false,
 }: WebSourcesListProps) {
   const router = useRouter()
   const locale = useLocale() as 'fr' | 'ar'
@@ -212,11 +214,13 @@ export function WebSourcesList({
       <div className="text-center py-12 text-slate-400 bg-slate-800/50 rounded-lg">
         <Icons.globe className="h-12 w-12 mx-auto mb-4" />
         <p>Aucune source trouvée</p>
-        <Link href="/super-admin/web-sources/new">
-          <Button className="mt-4 bg-blue-600 hover:bg-blue-700">
-            Ajouter une source
-          </Button>
-        </Link>
+        {!readOnly && (
+          <Link href="/super-admin/web-sources/new">
+            <Button className="mt-4 bg-blue-600 hover:bg-blue-700">
+              Ajouter une source
+            </Button>
+          </Link>
+        )}
       </div>
     )
   }
@@ -296,89 +300,104 @@ export function WebSourcesList({
 
             {/* Actions */}
             <div className="flex items-center gap-1 shrink-0">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleCrawl(source.id)}
-                disabled={loading === source.id || !source.is_active}
-                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                title="Lancer un crawl"
-                aria-label="Lancer un crawl"
-              >
-                {loading === source.id ? (
-                  <Icons.loader className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Icons.refresh className="h-4 w-4" />
-                )}
-              </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              {readOnly ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  asChild
+                  className="text-slate-400 hover:text-white"
+                >
+                  <Link href={`/super-admin/web-sources/${source.id}`}>
+                    <Icons.eye className="h-4 w-4" />
+                  </Link>
+                </Button>
+              ) : (
+                <>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-slate-400 hover:text-white"
-                    aria-label="Actions"
-                  >
-                    <Icons.moreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/super-admin/web-sources/${source.id}`}
-                      className="text-slate-200 hover:bg-slate-700 cursor-pointer"
-                    >
-                      <Icons.eye className="h-4 w-4 mr-2" />
-                      Voir détail
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/super-admin/web-sources/${source.id}/edit`}
-                      className="text-slate-200 hover:bg-slate-700 cursor-pointer"
-                    >
-                      <Icons.edit className="h-4 w-4 mr-2" />
-                      Modifier
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
                     onClick={() => handleCrawl(source.id)}
-                    disabled={!source.is_active}
-                    className="text-blue-400 hover:bg-slate-700 cursor-pointer"
+                    disabled={loading === source.id || !source.is_active}
+                    className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                    title="Lancer un crawl"
+                    aria-label="Lancer un crawl"
                   >
-                    <Icons.refresh className="h-4 w-4 mr-2" />
-                    Lancer crawl
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-slate-700" />
-                  <DropdownMenuItem
-                    onClick={() => handleToggleActive(source.id, source.is_active)}
-                    className={source.is_active
-                      ? "text-yellow-400 hover:bg-slate-700 cursor-pointer"
-                      : "text-green-400 hover:bg-slate-700 cursor-pointer"
-                    }
-                  >
-                    {source.is_active ? (
-                      <>
-                        <Icons.pause className="h-4 w-4 mr-2" />
-                        Désactiver
-                      </>
+                    {loading === source.id ? (
+                      <Icons.loader className="h-4 w-4 animate-spin" />
                     ) : (
-                      <>
-                        <Icons.play className="h-4 w-4 mr-2" />
-                        Activer
-                      </>
+                      <Icons.refresh className="h-4 w-4" />
                     )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setDeleteId(source.id)}
-                    className="text-red-400 hover:bg-red-500/10 cursor-pointer"
-                  >
-                    <Icons.trash className="h-4 w-4 mr-2" />
-                    Supprimer
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-slate-400 hover:text-white"
+                        aria-label="Actions"
+                      >
+                        <Icons.moreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={`/super-admin/web-sources/${source.id}`}
+                          className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+                        >
+                          <Icons.eye className="h-4 w-4 mr-2" />
+                          Voir détail
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={`/super-admin/web-sources/${source.id}/edit`}
+                          className="text-slate-200 hover:bg-slate-700 cursor-pointer"
+                        >
+                          <Icons.edit className="h-4 w-4 mr-2" />
+                          Modifier
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleCrawl(source.id)}
+                        disabled={!source.is_active}
+                        className="text-blue-400 hover:bg-slate-700 cursor-pointer"
+                      >
+                        <Icons.refresh className="h-4 w-4 mr-2" />
+                        Lancer crawl
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="bg-slate-700" />
+                      <DropdownMenuItem
+                        onClick={() => handleToggleActive(source.id, source.is_active)}
+                        className={source.is_active
+                          ? "text-yellow-400 hover:bg-slate-700 cursor-pointer"
+                          : "text-green-400 hover:bg-slate-700 cursor-pointer"
+                        }
+                      >
+                        {source.is_active ? (
+                          <>
+                            <Icons.pause className="h-4 w-4 mr-2" />
+                            Désactiver
+                          </>
+                        ) : (
+                          <>
+                            <Icons.play className="h-4 w-4 mr-2" />
+                            Activer
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setDeleteId(source.id)}
+                        className="text-red-400 hover:bg-red-500/10 cursor-pointer"
+                      >
+                        <Icons.trash className="h-4 w-4 mr-2" />
+                        Supprimer
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
             </div>
           </div>
         ))}

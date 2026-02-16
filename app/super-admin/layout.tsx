@@ -6,7 +6,7 @@ import { SuperAdminLayout } from '@/components/super-admin/SuperAdminLayout'
 import { Toaster } from '@/components/ui/toaster'
 
 // Pages super-admin accessibles aux admins (en plus des super_admin)
-const ADMIN_ALLOWED_PAGES = ['/super-admin/pipeline']
+const ADMIN_ALLOWED_PAGES = ['/super-admin/pipeline', '/super-admin/web-sources']
 
 export default async function SuperAdminRootLayout({
   children,

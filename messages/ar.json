@@ -56,7 +56,9 @@
     "conseilIA": "استشارة قانونية",
     "knowledgeBaseExplorer": "مستكشف قاعدة المعرفة",
     "jurisprudenceTimeline": "الخط الزمني للاجتهاد القضائي",
-    "legalReasoning": "التفكير القانوني IRAC"
+    "legalReasoning": "التفكير القانوني IRAC",
+    "pipeline": "خط المعالجة",
+    "webSources": "مصادر الويب"
   },
   "breadcrumbs": {
     "home": "الرئيسية",
@@ -70,6 +72,7 @@
     "documents": "الوثائق",
     "intelligence": "قضية - ذكاء اصطناعي",
     "research": "البحث القانوني",
+    "administration": "الإدارة",
     "système": "النظام"
   },
   "auth": {

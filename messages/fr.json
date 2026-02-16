@@ -56,7 +56,9 @@
     "conseilIA": "Conseil Juridique",
     "knowledgeBaseExplorer": "Explorateur KB",
     "jurisprudenceTimeline": "Timeline Jurisprudence",
-    "legalReasoning": "Raisonnement IRAC"
+    "legalReasoning": "Raisonnement IRAC",
+    "pipeline": "Pipeline",
+    "webSources": "Sources Web"
   },
   "breadcrumbs": {
     "home": "Accueil",
@@ -70,6 +72,7 @@
     "documents": "Documents",
     "intelligence": "Qadhya IA",
     "research": "Recherche Juridique",
+    "administration": "Administration",
     "système": "Système"
   },
   "auth": {
