@@ -92,8 +92,12 @@ export async function middleware(request: NextRequest) {
 
     // Vérifier le rôle pour les routes super-admin
     if (pathname.startsWith('/super-admin')) {
-      // Toutes les pages super-admin réservées aux super_admin uniquement
-      if (user.role !== 'super_admin') {
+      // Pipeline accessible aux admins
+      if (pathname.startsWith('/super-admin/pipeline')) {
+        if (user.role !== 'super_admin' && user.role !== 'admin') {
+          return NextResponse.redirect(new URL('/dashboard', request.url))
+        }
+      } else if (user.role !== 'super_admin') {
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
     }

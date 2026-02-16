@@ -63,12 +63,14 @@ const getNavGroups = (userRole?: string): NavGroup[] => [
       ] : []),
     ],
   },
-  ...(userRole === 'super_admin' ? [{
+  ...((userRole === 'super_admin' || userRole === 'admin') ? [{
     group: 'Administration',
     groupIcon: 'shield' as keyof typeof Icons,
     items: [
       { href: '/super-admin/pipeline', label: 'pipeline', icon: 'layers' as keyof typeof Icons },
-      { href: '/super-admin/web-sources', label: 'webSources', icon: 'globe' as keyof typeof Icons },
+      ...(userRole === 'super_admin' ? [
+        { href: '/super-admin/web-sources', label: 'webSources', icon: 'globe' as keyof typeof Icons },
+      ] : []),
     ],
   }] : []),
   {
