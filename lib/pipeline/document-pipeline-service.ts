@@ -690,7 +690,7 @@ async function performTransition(
   fromStage: PipelineStage | null,
   toStage: PipelineStage,
   action: PipelineAction,
-  userId: string,
+  userId: string | null,
   notes?: string,
   changes?: Record<string, unknown>,
   qualityScore?: number | null
@@ -713,7 +713,7 @@ async function logHistory(
   fromStage: PipelineStage | string | null,
   toStage: PipelineStage | string,
   action: PipelineAction,
-  userId: string,
+  userId: string | null,
   notes?: string,
   changes?: Record<string, unknown>,
   qualityScore?: number | null
@@ -795,7 +795,7 @@ export async function getDocumentPipelineDetail(docId: string): Promise<{
  */
 export async function autoAdvanceIfEligible(
   docId: string,
-  systemUserId: string = 'system'
+  systemUserId?: string | null
 ): Promise<{ advanced: PipelineStage[]; stoppedAt: PipelineStage } | null> {
   const { canAutoAdvance } = await import('./pipeline-config')
 
@@ -804,6 +804,8 @@ export async function autoAdvanceIfEligible(
 
   const advanced: PipelineStage[] = []
   let current = doc
+  // Passer null si userId n'est pas un UUID valide (actions système)
+  const userId = systemUserId && /^[0-9a-f]{8}-/.test(systemUserId) ? systemUserId : null
 
   // Avancer tant que possible (max 5 étapes pour éviter boucle infinie)
   for (let i = 0; i < 5; i++) {
@@ -825,13 +827,13 @@ export async function autoAdvanceIfEligible(
 
     // Exécuter les actions de l'étape
     try {
-      await executeStageAction(current, nextStage, systemUserId)
+      await executeStageAction(current, nextStage, userId || 'system')
     } catch {
       break // Arrêter si l'action échoue
     }
 
-    // Effectuer la transition
-    await performTransition(docId, current.pipeline_stage, nextStage, 'auto_advance', systemUserId, 'Auto-avancement', {}, current.quality_score)
+    // Effectuer la transition (userId null pour actions système)
+    await performTransition(docId, current.pipeline_stage, nextStage, 'auto_advance', userId, 'Auto-avancement', {}, current.quality_score)
 
     advanced.push(nextStage)
 
