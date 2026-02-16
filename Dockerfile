@@ -89,6 +89,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libdrm2 libdbus-1-3 libxkbcommon0 libatspi2.0-0 libxcomposite1 \
     libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
     tesseract-ocr tesseract-ocr-ara tesseract-ocr-fra \
+    poppler-utils \
     libreoffice-writer wget ca-certificates --no-install-recommends \
     && wget -q -O /usr/share/tesseract-ocr/5/tessdata/ara.traineddata \
        https://github.com/tesseract-ocr/tessdata_best/raw/main/ara.traineddata \

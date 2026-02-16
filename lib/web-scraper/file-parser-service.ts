@@ -402,82 +402,174 @@ async function preprocessImageForOcr(imageBuffer: Buffer): Promise<Buffer> {
 
 /**
  * Extrait le texte d'un PDF scanné en utilisant l'OCR
- * Utilise pdf-to-img pour convertir en images + sharp pour prétraitement + Tesseract pour l'OCR
+ *
+ * Stratégie en 2 passes :
+ * 1. pdf-to-img (pdfjs) — rapide, fonctionne pour les PDFs vectoriels
+ * 2. Si page 1 est vide → fallback pdftoppm (poppler) — gère les PDFs scannés (images intégrées)
  */
 async function extractTextWithOcr(
   buffer: Buffer,
   totalPages: number
 ): Promise<{ text: string; pagesProcessed: number; avgConfidence: number }> {
   const pagesToProcess = Math.min(totalPages || OCR_CONFIG.MAX_OCR_PAGES, OCR_CONFIG.MAX_OCR_PAGES)
-  const textParts: string[] = []
-  const confidences: number[] = []
 
   console.log(`[FileParser] OCR: traitement de ${pagesToProcess} pages (max: ${OCR_CONFIG.MAX_OCR_PAGES})`)
 
+  // Essayer d'abord pdf-to-img, vérifier si page 1 est non-vide
+  const sharp = (await import('sharp')).default
+  let usePdftoppm = false
+
+  try {
+    const { pdf } = await loadPdfToImg()
+    const doc = await pdf(buffer, { scale: OCR_CONFIG.SCALE })
+    for await (const pageImage of doc) {
+      const rawBuf = Buffer.from(pageImage)
+      const stats = await sharp(rawBuf).stats()
+      const isBlank = stats.channels.every((ch: { stdev: number }) => ch.stdev < 5)
+      if (isBlank) {
+        console.log('[FileParser] pdf-to-img rend des pages blanches (PDF scanné) → fallback pdftoppm')
+        usePdftoppm = true
+      } else {
+        console.log('[FileParser] pdf-to-img OK (pages non-vides)')
+      }
+      break // On teste seulement la première page
+    }
+  } catch {
+    console.log('[FileParser] pdf-to-img échoué → fallback pdftoppm')
+    usePdftoppm = true
+  }
+
+  if (usePdftoppm) {
+    return extractTextWithOcrPdftoppm(buffer, pagesToProcess)
+  }
+  return extractTextWithOcrPdfToImg(buffer, pagesToProcess)
+}
+
+/**
+ * OCR via pdf-to-img (pdfjs) — pour PDFs avec contenu vectoriel
+ */
+async function extractTextWithOcrPdfToImg(
+  buffer: Buffer,
+  pagesToProcess: number
+): Promise<{ text: string; pagesProcessed: number; avgConfidence: number }> {
+  const textParts: string[] = []
+  const confidences: number[] = []
   const { cleanArabicOcrText } = await import('./arabic-text-utils')
   const { pdf } = await loadPdfToImg()
-
-  // Obtenir le worker Tesseract (réutilisable)
   const worker = await getOrCreateWorker()
 
   let pageIndex = 0
   const doc = await pdf(buffer, { scale: OCR_CONFIG.SCALE })
-
   const ocrStartTime = Date.now()
 
   for await (const pageImage of doc) {
     if (pageIndex >= pagesToProcess) break
-
     try {
-      const rawImageBuf = Buffer.from(pageImage)
-
-      // Diagnostic sur la première page : vérifier si l'image est vide
-      if (pageIndex === 0) {
-        const sharp = (await import('sharp')).default
-        const meta = await sharp(rawImageBuf).metadata()
-        const stats = await sharp(rawImageBuf).stats()
-        const isBlank = stats.channels.every((ch: { stdev: number }) => ch.stdev < 5)
-        console.log(
-          `[FileParser] OCR page 1 diag: ${meta.width}x${meta.height} ${meta.format} ` +
-          `${rawImageBuf.length} bytes, blank=${isBlank}, ` +
-          `mean=[${stats.channels.map((ch: { mean: number }) => ch.mean.toFixed(0)).join(',')}] ` +
-          `stdev=[${stats.channels.map((ch: { stdev: number }) => ch.stdev.toFixed(1)).join(',')}]`
-        )
-      }
-
-      // Prétraiter l'image avec sharp (A2)
-      const preprocessed = await preprocessImageForOcr(rawImageBuf)
-
-      // OCR avec Tesseract
+      const preprocessed = await preprocessImageForOcr(Buffer.from(pageImage))
       const { data } = await worker.recognize(preprocessed)
-
-      // Vérifier la confiance (A4)
       if (data.confidence < OCR_CONFIG.MIN_OCR_CONFIDENCE) {
         console.warn(`[FileParser] OCR page ${pageIndex + 1} faible confiance: ${data.confidence}%`)
       }
       confidences.push(data.confidence)
-
-      // Nettoyage du texte : cleanText de base + nettoyage post-OCR arabe (A5)
       let pageText = cleanText(data.text)
       pageText = cleanArabicOcrText(pageText)
-
       if (pageText.length > 0) {
         textParts.push(`--- Page ${pageIndex + 1} ---\n${pageText}`)
       }
     } catch (pageError) {
       console.error(`[FileParser] Erreur OCR page ${pageIndex + 1}:`, pageError)
     }
-
     pageIndex++
-
-    // Progression toutes les 25 pages (utile pour les gros PDFs)
     if (pageIndex % 25 === 0) {
       const elapsedSec = ((Date.now() - ocrStartTime) / 1000).toFixed(0)
       const pagesPerMin = (pageIndex / (Date.now() - ocrStartTime) * 60000).toFixed(1)
-      console.log(
-        `[FileParser] OCR progression: ${pageIndex}/${pagesToProcess} pages | ${elapsedSec}s | ${pagesPerMin} pages/min`
-      )
+      console.log(`[FileParser] OCR progression: ${pageIndex}/${pagesToProcess} pages | ${elapsedSec}s | ${pagesPerMin} pages/min`)
     }
+  }
+
+  const avgConfidence = confidences.length > 0
+    ? confidences.reduce((a, b) => a + b, 0) / confidences.length
+    : 0
+
+  return { text: textParts.join('\n\n'), pagesProcessed: textParts.length, avgConfidence }
+}
+
+/**
+ * OCR via pdftoppm (poppler) — pour PDFs scannés (images intégrées)
+ * pdftoppm rend correctement les images intégrées dans les PDFs contrairement à pdfjs
+ */
+async function extractTextWithOcrPdftoppm(
+  buffer: Buffer,
+  pagesToProcess: number
+): Promise<{ text: string; pagesProcessed: number; avgConfidence: number }> {
+  const { promises: fs } = await import('fs')
+  const { tmpdir } = await import('os')
+  const { join } = await import('path')
+  const { exec } = await import('child_process')
+  const { promisify } = await import('util')
+  const execAsync = promisify(exec)
+  const { cleanArabicOcrText } = await import('./arabic-text-utils')
+
+  const textParts: string[] = []
+  const confidences: number[] = []
+  const worker = await getOrCreateWorker()
+  const ocrStartTime = Date.now()
+
+  const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const tempDir = join(tmpdir(), `ocr-${uid}`)
+  const pdfPath = join(tempDir, 'input.pdf')
+
+  try {
+    await fs.mkdir(tempDir, { recursive: true })
+    await fs.writeFile(pdfPath, buffer)
+
+    // Convertir PDF en images PNG via pdftoppm (300 DPI)
+    const lastPage = Math.min(pagesToProcess, 250)
+    await execAsync(
+      `pdftoppm -png -r 300 -l ${lastPage} "${pdfPath}" "${join(tempDir, 'page')}"`,
+      { timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
+    )
+
+    // Lister les images générées (triées par numéro de page)
+    const files = (await fs.readdir(tempDir))
+      .filter(f => f.startsWith('page-') && f.endsWith('.png'))
+      .sort()
+
+    console.log(`[FileParser] pdftoppm: ${files.length} pages rendues`)
+
+    for (let i = 0; i < files.length && i < pagesToProcess; i++) {
+      try {
+        const imgPath = join(tempDir, files[i])
+        const rawBuf = await fs.readFile(imgPath)
+        const preprocessed = await preprocessImageForOcr(rawBuf)
+        const { data } = await worker.recognize(preprocessed)
+
+        if (data.confidence < OCR_CONFIG.MIN_OCR_CONFIDENCE) {
+          console.warn(`[FileParser] OCR page ${i + 1} faible confiance: ${data.confidence}%`)
+        }
+        confidences.push(data.confidence)
+
+        let pageText = cleanText(data.text)
+        pageText = cleanArabicOcrText(pageText)
+        if (pageText.length > 0) {
+          textParts.push(`--- Page ${i + 1} ---\n${pageText}`)
+        }
+
+        // Supprimer l'image après traitement (économie mémoire)
+        await fs.unlink(imgPath).catch(() => {})
+      } catch (pageError) {
+        console.error(`[FileParser] Erreur OCR page ${i + 1}:`, pageError)
+      }
+
+      if ((i + 1) % 25 === 0) {
+        const elapsedSec = ((Date.now() - ocrStartTime) / 1000).toFixed(0)
+        const pagesPerMin = ((i + 1) / (Date.now() - ocrStartTime) * 60000).toFixed(1)
+        console.log(`[FileParser] OCR progression: ${i + 1}/${files.length} pages | ${elapsedSec}s | ${pagesPerMin} pages/min`)
+      }
+    }
+  } finally {
+    // Nettoyer le répertoire temporaire
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {})
   }
 
   const avgConfidence = confidences.length > 0
