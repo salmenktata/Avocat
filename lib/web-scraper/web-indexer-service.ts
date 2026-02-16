@@ -310,7 +310,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
           kbCategory, // ← Classification IA pure (pas de fallback source)
           null, // subcategory
           language,
-          row.title || row.url,
+          pageTitle,
           row.meta_description,
           JSON.stringify({
             source: 'web_scraper',
@@ -365,7 +365,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
         WHERE id = $1`,
         [
           knowledgeBaseId,
-          row.title || row.url,
+          pageTitle,
           row.meta_description,
           language,
           normalizedText,
@@ -442,17 +442,19 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
       )
     }
 
-    // Mettre à jour la page web
+    // Mettre à jour la page web (titre corrigé + langue détectée)
     await client.query(
       `UPDATE web_pages SET
         knowledge_base_id = $2,
         is_indexed = true,
         chunks_count = $3,
+        title = $4,
+        language_detected = COALESCE(language_detected, $5),
         last_indexed_at = NOW(),
         status = 'indexed',
         updated_at = NOW()
       WHERE id = $1`,
-      [pageId, knowledgeBaseId, chunks.length]
+      [pageId, knowledgeBaseId, chunks.length, pageTitle, detectedLang]
     )
 
     await client.query('COMMIT')
@@ -481,7 +483,7 @@ export async function indexWebPage(pageId: string): Promise<IndexingResult> {
            (notification_type, priority, title, message, target_type, target_id, metadata)
            VALUES ('kb_update', 'normal', $1, $2, 'knowledge_base', $3, $4)`,
           [
-            `Document KB mis à jour : ${row.title || row.url}`,
+            `Document KB mis à jour : ${pageTitle}`,
             `Contenu modifié détecté sur ${row.url}. Re-indexation automatique (${chunks.length} chunks).`,
             knowledgeBaseId,
             JSON.stringify({ pageId, sourceUrl: row.url, chunksCreated: chunks.length }),
