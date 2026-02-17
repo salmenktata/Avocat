@@ -114,13 +114,17 @@ const EVAL_BENCHMARK: EvalQuery[] = [
 // =============================================================================
 
 // Domain boost mapping (mirrors rag-chat-service.ts detectDomainBoost)
+// ✨ Fix (Feb 2026): factor 1.25→2.5 pour compenser écart sémantique queries naturelles vs textes légaux formels.
+// Seul le code EXACT attendu reçoit 2.5×. Les mauvais codes reçoivent seulement 1.3× (generic code boost).
+// Note: commercial → "مجلة الشركات التجارية" retiré des titlePatterns (causait faux positifs
+//       car les 2 codes recevaient le même boost alors que leur raw score diffère).
 const DOMAIN_BOOST_MAP: { keywords: string[]; titlePatterns: string[]; factor: number }[] = [
-  { keywords: ['جزائي', 'جزائية', 'جنائي', 'عقوبة', 'عقوبات', 'جريمة', 'القتل', 'السرقة', 'الدفاع الشرعي', 'الرشوة', 'pénal', 'criminel', 'légitime défense'], titlePatterns: ['المجلة الجزائية', 'الإجراءات الجزائية'], factor: 1.25 },
-  { keywords: ['مدني', 'التزامات', 'عقود', 'تعويض', 'مسؤولية مدنية', 'تقادم', 'civil', 'responsabilité', 'délictuel'], titlePatterns: ['مجلة الالتزامات والعقود'], factor: 1.25 },
-  { keywords: ['أحوال شخصية', 'طلاق', 'زواج', 'نفقة', 'حضانة', 'ميراث', 'divorce', 'mariage', 'garde', 'famille'], titlePatterns: ['مجلة الأحوال الشخصية'], factor: 1.25 },
-  { keywords: ['شغل', 'عمل', 'طرد تعسفي', 'إضراب', 'أجر', 'عامل', 'مؤجر', 'travail', 'licenciement', 'grève'], titlePatterns: ['مجلة الشغل'], factor: 1.25 },
-  { keywords: ['تجاري', 'تجارية', 'شيك', 'إفلاس', 'تفليس', 'كمبيالة', 'commercial', 'chèque', 'faillite'], titlePatterns: ['المجلة التجارية', 'مجلة الشركات التجارية'], factor: 1.25 },
-  { keywords: ['مرافعات', 'استئناف', 'تعقيب', 'دعوى', 'إجراءات مدنية', 'procédure'], titlePatterns: ['مجلة المرافعات المدنية والتجارية'], factor: 1.20 },
+  { keywords: ['جزائي', 'جزائية', 'جنائي', 'عقوبة', 'عقوبات', 'جريمة', 'القتل', 'السرقة', 'الدفاع الشرعي', 'الرشوة', 'pénal', 'criminel', 'légitime défense'], titlePatterns: ['المجلة الجزائية'], factor: 2.5 },
+  { keywords: ['مدني', 'التزامات', 'عقود', 'تعويض', 'مسؤولية مدنية', 'تقادم', 'civil', 'responsabilité', 'délictuel'], titlePatterns: ['مجلة الالتزامات والعقود'], factor: 2.5 },
+  { keywords: ['أحوال شخصية', 'طلاق', 'زواج', 'نفقة', 'حضانة', 'ميراث', 'divorce', 'mariage', 'garde', 'famille'], titlePatterns: ['مجلة الأحوال الشخصية'], factor: 2.5 },
+  { keywords: ['شغل', 'عمل', 'طرد تعسفي', 'إضراب', 'أجر', 'عامل', 'مؤجر', 'travail', 'licenciement', 'grève'], titlePatterns: ['مجلة الشغل'], factor: 2.5 },
+  { keywords: ['تجاري', 'تجارية', 'شيك', 'إفلاس', 'تفليس', 'كمبيالة', 'commercial', 'chèque', 'faillite'], titlePatterns: ['المجلة التجارية'], factor: 2.5 },
+  { keywords: ['مرافعات', 'استئناف', 'تعقيب', 'دعوى', 'إجراءات مدنية', 'procédure'], titlePatterns: ['مجلة المرافعات المدنية والتجارية'], factor: 2.0 },
 ]
 
 function applyDomainBoost(results: KnowledgeBaseSearchResult[], query: string): KnowledgeBaseSearchResult[] {
@@ -140,7 +144,8 @@ function applyDomainBoost(results: KnowledgeBaseSearchResult[], query: string): 
 
   if (boostPatterns.length === 0) return results
 
-  // Apply code source boost (1.3x) + domain boost and re-sort
+  // Apply code source boost (1.3x, mirrors SOURCE_BOOST.code) + strong domain boost for the specific matching code
+  // Correct code: 1.3 × 2.5 = 3.25× vs wrong code: 1.3× only → ratio 2.5 compensates for raw score differences
   const CODE_BOOST = 1.3
   const boosted = results.map(r => {
     let boost = r.category === 'codes' ? CODE_BOOST : 1.0

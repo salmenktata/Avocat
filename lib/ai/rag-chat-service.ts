@@ -252,42 +252,44 @@ function getSourceId(source: ChatSource): string {
  * et retourne les patterns de titre à booster
  */
 function detectDomainBoost(query: string): { pattern: string; factor: number }[] | null {
+  // ✨ Fix (Feb 2026): factor 1.25→2.5 pour compenser l'écart sémantique entre queries naturelles et textes légaux.
+  // Seul le code EXACT attendu reçoit 2.5×. Les mauvais codes reçoivent seulement le CODE_BOOST générique.
   const DOMAIN_KEYWORDS: { keywords: string[]; titlePatterns: string[]; factor: number }[] = [
     // Pénal
     {
       keywords: ['جزائي', 'جزائية', 'جنائي', 'عقوبة', 'عقوبات', 'جريمة', 'القتل', 'السرقة', 'الدفاع الشرعي', 'الرشوة', 'pénal', 'criminel', 'légitime défense'],
-      titlePatterns: ['المجلة الجزائية', 'الإجراءات الجزائية'],
-      factor: 1.25,
+      titlePatterns: ['المجلة الجزائية'],
+      factor: 2.5,
     },
     // Civil
     {
       keywords: ['مدني', 'التزامات', 'عقود', 'تعويض', 'مسؤولية مدنية', 'تقادم', 'civil', 'responsabilité', 'délictuel'],
       titlePatterns: ['مجلة الالتزامات والعقود'],
-      factor: 1.25,
+      factor: 2.5,
     },
     // Famille
     {
       keywords: ['أحوال شخصية', 'طلاق', 'زواج', 'نفقة', 'حضانة', 'ميراث', 'divorce', 'mariage', 'garde', 'famille'],
       titlePatterns: ['مجلة الأحوال الشخصية'],
-      factor: 1.25,
+      factor: 2.5,
     },
     // Travail
     {
       keywords: ['شغل', 'عمل', 'طرد تعسفي', 'إضراب', 'أجر', 'عامل', 'مؤجر', 'travail', 'licenciement', 'grève'],
       titlePatterns: ['مجلة الشغل'],
-      factor: 1.25,
+      factor: 2.5,
     },
-    // Commercial
+    // Commercial: "مجلة الشركات التجارية" retiré (causait des faux positifs car raw score > المجلة التجارية)
     {
       keywords: ['تجاري', 'تجارية', 'شيك', 'إفلاس', 'تفليس', 'كمبيالة', 'commercial', 'chèque', 'faillite'],
-      titlePatterns: ['المجلة التجارية', 'مجلة الشركات التجارية'],
-      factor: 1.25,
+      titlePatterns: ['المجلة التجارية'],
+      factor: 2.5,
     },
     // Procédure civile
     {
       keywords: ['مرافعات', 'استئناف', 'تعقيب', 'دعوى', 'إجراءات مدنية', 'procédure'],
       titlePatterns: ['مجلة المرافعات المدنية والتجارية'],
-      factor: 1.20,
+      factor: 2.0,
     },
   ]
 
