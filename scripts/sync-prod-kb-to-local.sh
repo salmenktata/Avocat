@@ -32,7 +32,7 @@ LOCAL_USER="moncabinet"
 
 DUMP_DIR="/tmp"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-DUMP_FILE="${DUMP_DIR}/qadhya-kb-prod-${TIMESTAMP}.sql"
+DUMP_FILE="${DUMP_DIR}/qadhya-kb-prod-${TIMESTAMP}.dump"
 
 # Couleurs
 RED='\033[0;31m'
@@ -166,7 +166,7 @@ fi
 echo ""
 echo -e "${CYAN}[2/5] Préparation schéma local...${NC}"
 
-docker exec "$LOCAL_CONTAINER" psql -U "$LOCAL_USER" -d "$LOCAL_DB" -q <<'SCHEMA_SQL'
+docker exec "$LOCAL_CONTAINER" psql -U "$LOCAL_USER" -d "$LOCAL_DB" -q -v ON_ERROR_STOP=0 <<'SCHEMA_SQL'
 -- Colonnes potentiellement manquantes sur knowledge_base_chunks
 ALTER TABLE knowledge_base_chunks
   ADD COLUMN IF NOT EXISTS embedding_openai vector(1536);
@@ -174,10 +174,40 @@ ALTER TABLE knowledge_base_chunks
   ADD COLUMN IF NOT EXISTS content_tsvector tsvector;
 
 -- Colonnes potentiellement manquantes sur knowledge_base
-ALTER TABLE knowledge_base
-  ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true;
-ALTER TABLE knowledge_base
-  ADD COLUMN IF NOT EXISTS subcategory text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS subcategory text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS chunking_strategy text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS status text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS citation text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS citation_ar text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS article_id text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS reliability text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS version_date date;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS supersedes_id uuid;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS superseded_by_id uuid;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS pipeline_stage text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS pipeline_stage_updated_at timestamptz;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS pipeline_notes text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS pipeline_rejected_reason text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS is_approved boolean;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS approved_at timestamptz;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS approved_by uuid;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS taxonomy_category_code text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS taxonomy_domain_code text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS taxonomy_document_type_code text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS bulk_import_id uuid;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_score float;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_clarity float;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_structure float;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_completeness float;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_reliability float;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_analysis_summary text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_detected_issues jsonb;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_recommendations jsonb;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_requires_review boolean;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_assessed_at timestamptz;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_llm_provider text;
+ALTER TABLE knowledge_base ADD COLUMN IF NOT EXISTS quality_llm_model text;
 
 -- Index GIN pour BM25
 CREATE INDEX IF NOT EXISTS idx_kb_chunks_tsvector_gin
@@ -397,25 +427,19 @@ echo -e "  Dump en cours (peut prendre 1-5 min selon les embeddings)..."
 START_TIME=$(date +%s)
 
 if [ "$NO_EMBEDDINGS" = true ]; then
-  # Dump sans embeddings : dump KB sans data, puis insert séparément sans colonnes embedding
-  ssh "$REMOTE_HOST" "docker exec ${REMOTE_CONTAINER} pg_dump -U ${REMOTE_USER} -d ${REMOTE_DB} \
-    --data-only --no-owner --no-privileges --disable-triggers \
-    -t knowledge_base -t web_sources $([ "$FULL_SYNC" = true ] && echo '-t web_pages')" > "$DUMP_FILE"
+  # Dump sans embeddings : format custom pour KB+web_sources, CSV pour chunks (exclure colonnes embedding)
+  KB_TABLES="-t knowledge_base -t web_sources"
+  [ "$FULL_SYNC" = true ] && KB_TABLES="${KB_TABLES} -t web_pages"
+  ssh "$REMOTE_HOST" "docker exec ${REMOTE_CONTAINER} pg_dump -Fc -U ${REMOTE_USER} -d ${REMOTE_DB} \
+    --data-only --no-owner --no-privileges --disable-triggers ${KB_TABLES}" > "$DUMP_FILE"
 
-  # Pour les chunks, on doit exclure les colonnes embedding via COPY avec colonnes explicites
+  # Pour les chunks, exclure les colonnes embedding via COPY CSV
   ssh "$REMOTE_HOST" "docker exec ${REMOTE_CONTAINER} psql -U ${REMOTE_USER} -d ${REMOTE_DB} -c \"
     COPY (SELECT id, knowledge_base_id, chunk_index, content, metadata, created_at
           FROM knowledge_base_chunks) TO STDOUT WITH CSV HEADER\"" > "${DUMP_FILE}.chunks.csv"
-
-  # Ajouter l'import CSV au dump
-  cat >> "$DUMP_FILE" <<'CHUNKS_IMPORT'
-
--- Import chunks sans embeddings (CSV)
-\copy knowledge_base_chunks(id, knowledge_base_id, chunk_index, content, metadata, created_at) FROM PROGRAM 'cat /dev/stdin' WITH CSV HEADER
-CHUNKS_IMPORT
 else
-  # Dump complet avec embeddings
-  ssh "$REMOTE_HOST" "docker exec ${REMOTE_CONTAINER} pg_dump -U ${REMOTE_USER} -d ${REMOTE_DB} \
+  # Dump complet avec embeddings — format custom (binaire, pas de problème d'interprétation SQL)
+  ssh "$REMOTE_HOST" "docker exec ${REMOTE_CONTAINER} pg_dump -Fc -U ${REMOTE_USER} -d ${REMOTE_DB} \
     --data-only --no-owner --no-privileges --disable-triggers \
     ${TABLES}" > "$DUMP_FILE"
 fi
@@ -452,20 +476,26 @@ echo -e "  Import en cours..."
 START_TIME=$(date +%s)
 
 if [ "$NO_EMBEDDINGS" = true ]; then
-  # Import dump SQL (KB + web_sources)
-  docker exec -i "$LOCAL_CONTAINER" psql -U "$LOCAL_USER" -d "$LOCAL_DB" -q \
-    -c "SET session_replication_role = 'replica';" < "$DUMP_FILE" 2>&1 | tail -5
+  # Import KB+web_sources via pg_restore (format custom)
+  docker cp "$DUMP_FILE" "${LOCAL_CONTAINER}:/tmp/restore.dump"
+  docker exec "$LOCAL_CONTAINER" pg_restore \
+    -U "$LOCAL_USER" -d "$LOCAL_DB" \
+    --data-only --disable-triggers --no-owner --no-privileges \
+    /tmp/restore.dump 2>&1 | grep -v "^$" | tail -5 || true
+  docker exec "$LOCAL_CONTAINER" rm -f /tmp/restore.dump
 
-  # Import chunks CSV
+  # Import chunks CSV (sans embeddings)
   docker exec -i "$LOCAL_CONTAINER" psql -U "$LOCAL_USER" -d "$LOCAL_DB" -q \
     -c "SET session_replication_role = 'replica';" \
     -c "\copy knowledge_base_chunks(id, knowledge_base_id, chunk_index, content, metadata, created_at) FROM STDIN WITH CSV HEADER" < "${DUMP_FILE}.chunks.csv" 2>&1 | tail -5
 else
-  # Import standard
-  docker exec -i "$LOCAL_CONTAINER" psql -U "$LOCAL_USER" -d "$LOCAL_DB" -q \
-    -c "SET session_replication_role = 'replica';" 2>&1 | tail -1
-
-  docker exec -i "$LOCAL_CONTAINER" psql -U "$LOCAL_USER" -d "$LOCAL_DB" -q < "$DUMP_FILE" 2>&1 | tail -5
+  # Import standard via pg_restore (format custom binaire — fiable avec contenu multilangue)
+  docker cp "$DUMP_FILE" "${LOCAL_CONTAINER}:/tmp/restore.dump"
+  docker exec "$LOCAL_CONTAINER" pg_restore \
+    -U "$LOCAL_USER" -d "$LOCAL_DB" \
+    --data-only --disable-triggers --no-owner --no-privileges \
+    /tmp/restore.dump 2>&1 | grep -v "^$" | tail -5 || true
+  docker exec "$LOCAL_CONTAINER" rm -f /tmp/restore.dump
 fi
 
 # Réactiver les triggers
@@ -547,7 +577,7 @@ docker exec "$LOCAL_CONTAINER" psql -U "$LOCAL_USER" -d "$LOCAL_DB" -c "
 # Nettoyage dump
 echo ""
 echo -e "${CYAN}Nettoyage...${NC}"
-rm -f "$DUMP_FILE" "${DUMP_FILE}.chunks.csv" 2>/dev/null
+rm -f "$DUMP_FILE" "${DUMP_FILE}.chunks.csv" "${DUMP_FILE}.dump" 2>/dev/null
 echo -e "  ${GREEN}✓${NC} Fichiers temporaires supprimés"
 
 echo ""
