@@ -23,13 +23,13 @@ import { getOperationConfig, type OperationName } from './operations-config'
 export interface EmbeddingResult {
   embedding: number[]
   tokenCount: number
-  provider: 'ollama' | 'openai'
+  provider: 'ollama' | 'openai' | 'gemini'
 }
 
 export interface BatchEmbeddingResult {
   embeddings: number[][]
   totalTokens: number
-  provider: 'ollama' | 'openai'
+  provider: 'ollama' | 'openai' | 'gemini'
 }
 
 export interface EmbeddingOptions {
@@ -38,6 +38,8 @@ export interface EmbeddingOptions {
   operationName?: OperationName
   /** Force Ollama même en production (pour dual-provider search sur chunks legacy 1024-dim) */
   forceOllama?: boolean
+  /** Force Gemini (text-embedding-004, 768-dim) pour triple-provider search */
+  forceGemini?: boolean
 }
 
 interface OllamaEmbeddingResponse {
@@ -53,7 +55,10 @@ const isDev = process.env.NODE_ENV === 'development'
 /**
  * Détermine le provider d'embeddings pour une opération donnée
  */
-function resolveEmbeddingProvider(options?: EmbeddingOptions): 'ollama' | 'openai' {
+function resolveEmbeddingProvider(options?: EmbeddingOptions): 'ollama' | 'openai' | 'gemini' {
+  // Force Gemini explicitement (triple-provider search : chunks 768-dim)
+  if (options?.forceGemini && aiConfig.gemini.apiKey) return 'gemini'
+
   // Force Ollama explicitement (dual-provider search : chunks legacy 1024-dim)
   if (options?.forceOllama && aiConfig.ollama.enabled) return 'ollama'
 
@@ -260,6 +265,38 @@ async function generateEmbeddingsBatchWithOpenAI(
 }
 
 // =============================================================================
+// GEMINI EMBEDDINGS (text-embedding-004, 768-dim)
+// =============================================================================
+
+async function generateEmbeddingWithGemini(text: string): Promise<EmbeddingResult> {
+  if (!aiConfig.gemini.apiKey) {
+    throw new Error('Gemini API key non configurée (GOOGLE_API_KEY)')
+  }
+
+  const { GoogleGenerativeAI } = await import('@google/generative-ai')
+  const client = new GoogleGenerativeAI(aiConfig.gemini.apiKey)
+  const model = client.getGenerativeModel({ model: aiConfig.gemini.embeddingModel })
+
+  const result = await model.embedContent(text.substring(0, 8000))
+  const embedding = result.embedding.values
+
+  if (!embedding || !Array.isArray(embedding)) {
+    throw new Error('Gemini embedContent a retourné un embedding invalide')
+  }
+
+  const validation = validateEmbedding(embedding, 'gemini')
+  if (!validation.valid) {
+    throw new Error(`Embedding Gemini invalide: ${validation.error}`)
+  }
+
+  return {
+    embedding,
+    tokenCount: countTokens(text),
+    provider: 'gemini',
+  }
+}
+
+// =============================================================================
 // FONCTIONS PRINCIPALES (no-fallback, provider unique)
 // =============================================================================
 
@@ -284,7 +321,7 @@ export async function generateEmbedding(
     return {
       embedding: cached.embedding,
       tokenCount: countTokens(text),
-      provider: cached.provider as 'ollama' | 'openai',
+      provider: cached.provider as 'ollama' | 'openai' | 'gemini',
     }
   }
 
@@ -293,6 +330,8 @@ export async function generateEmbedding(
   let result: EmbeddingResult
   if (provider === 'openai') {
     result = await generateEmbeddingWithOpenAI(text)
+  } else if (provider === 'gemini') {
+    result = await generateEmbeddingWithGemini(text)
   } else {
     result = await generateEmbeddingWithOllama(text)
   }
@@ -365,11 +404,12 @@ export function parseEmbeddingFromPostgres(pgVector: string): number[] {
 const EXPECTED_DIMENSIONS: Record<string, number> = {
   ollama: aiConfig.ollama.embeddingDimensions,
   openai: aiConfig.openai.embeddingDimensions,
+  gemini: aiConfig.gemini.embeddingDimensions,
 }
 
 export function validateEmbedding(
   embedding: number[],
-  provider: 'ollama' | 'openai'
+  provider: 'ollama' | 'openai' | 'gemini'
 ): { valid: boolean; error?: string } {
   if (!embedding || !Array.isArray(embedding)) {
     return { valid: false, error: 'Embedding null ou non-tableau' }
@@ -423,7 +463,7 @@ export function validateEmbedding(
 export { countTokens, estimateTokenCount } from './token-utils'
 
 export function isEmbeddingsServiceAvailable(): boolean {
-  return aiConfig.ollama.enabled || !!aiConfig.openai.apiKey
+  return aiConfig.ollama.enabled || !!aiConfig.openai.apiKey || !!aiConfig.gemini.apiKey
 }
 
 export async function checkOllamaHealth(): Promise<boolean> {
@@ -441,7 +481,7 @@ export async function checkOllamaHealth(): Promise<boolean> {
 }
 
 export function getEmbeddingProviderInfo(): {
-  provider: 'ollama' | 'openai' | null
+  provider: 'ollama' | 'openai' | 'gemini' | null
   model: string
   dimensions: number
   cost: 'free' | 'paid'
@@ -457,7 +497,18 @@ export function getEmbeddingProviderInfo(): {
       dimensions: aiConfig.ollama.embeddingDimensions,
       cost: 'free',
       turboMode: EMBEDDING_TURBO_CONFIG.enabled,
-      fallback: null, // No fallback in no-fallback mode
+      fallback: null,
+    }
+  }
+
+  if (provider === 'gemini') {
+    return {
+      provider: 'gemini',
+      model: aiConfig.gemini.embeddingModel,
+      dimensions: aiConfig.gemini.embeddingDimensions,
+      cost: 'free',
+      turboMode: EMBEDDING_TURBO_CONFIG.enabled,
+      fallback: null,
     }
   }
 

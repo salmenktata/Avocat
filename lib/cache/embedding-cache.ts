@@ -20,7 +20,7 @@ import { getEmbeddingDimensions } from '@/lib/ai/config'
 
 interface CachedEmbedding {
   embedding: number[]
-  provider: 'ollama' | 'openai'
+  provider: 'ollama' | 'openai' | 'gemini'
   createdAt: number
 }
 
@@ -85,7 +85,7 @@ export async function getCachedEmbedding(
 export async function setCachedEmbedding(
   text: string,
   embedding: number[],
-  provider: 'ollama' | 'openai'
+  provider: 'ollama' | 'openai' | 'gemini'
 ): Promise<void> {
   if (!isRedisAvailable()) {
     return

@@ -332,10 +332,28 @@ export async function indexKnowledgeDocument(
     return { success: false, chunksCreated: 0, error: 'Aucun chunk généré' }
   }
 
-  // Générer les embeddings en batch
-  const embeddingsResult = await generateEmbeddingsBatch(
-    chunks.map((c) => c.content)
-  )
+  // Générer les embeddings en batch (provider principal : OpenAI en prod, Ollama en dev)
+  const [embeddingsResult, geminiEmbeddingsResult] = await Promise.allSettled([
+    generateEmbeddingsBatch(chunks.map((c) => c.content)),
+    generateEmbeddingsBatch(chunks.map((c) => c.content), { forceGemini: true }),
+  ])
+
+  if (embeddingsResult.status === 'rejected') {
+    throw new Error(`Échec génération embeddings primaires: ${embeddingsResult.reason}`)
+  }
+  const primaryEmbeddings = embeddingsResult.value
+
+  // Déterminer la colonne d'embedding selon le provider utilisé
+  const embeddingColumn = primaryEmbeddings.provider === 'openai' ? 'embedding_openai' : 'embedding'
+  console.log(`[KB Index] Provider embeddings: ${primaryEmbeddings.provider} → colonne ${embeddingColumn}`)
+
+  if (geminiEmbeddingsResult.status === 'rejected') {
+    console.warn(`[KB Index] Embeddings Gemini non disponibles: ${geminiEmbeddingsResult.reason?.message || 'erreur inconnue'}`)
+  }
+  const hasGeminiEmbeddings = geminiEmbeddingsResult.status === 'fulfilled' && geminiEmbeddingsResult.value.embeddings.length > 0
+  if (hasGeminiEmbeddings) {
+    console.log(`[KB Index] Embeddings Gemini générés (768-dim) pour ${geminiEmbeddingsResult.value.embeddings.length} chunks`)
+  }
 
   // Générer un embedding pour le document entier (titre + description)
   const docSummary = `${doc.title}. ${doc.description || ''}`
@@ -364,26 +382,49 @@ export async function indexKnowledgeDocument(
 
       for (let i = 0; i < batchChunks.length; i++) {
         const chunkIndex = batchStart + i
-        const offset = i * 5
-        placeholders.push(
-          `($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}::vector, $${offset+5})`
-        )
-        values.push(
-          documentId,
-          batchChunks[i].index,
-          batchChunks[i].content,
-          formatEmbeddingForPostgres(embeddingsResult.embeddings[chunkIndex]),
-          JSON.stringify({
-            wordCount: batchChunks[i].metadata.wordCount,
-            charCount: batchChunks[i].metadata.charCount,
-          })
-        )
+
+        if (hasGeminiEmbeddings) {
+          // Insérer embedding primaire + Gemini ensemble
+          const offset = i * 6
+          placeholders.push(
+            `($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}::vector, $${offset+5}::vector, $${offset+6})`
+          )
+          values.push(
+            documentId,
+            batchChunks[i].index,
+            batchChunks[i].content,
+            formatEmbeddingForPostgres(primaryEmbeddings.embeddings[chunkIndex]),
+            formatEmbeddingForPostgres(geminiEmbeddingsResult.value.embeddings[chunkIndex]),
+            JSON.stringify({
+              wordCount: batchChunks[i].metadata.wordCount,
+              charCount: batchChunks[i].metadata.charCount,
+            })
+          )
+        } else {
+          // Insérer uniquement embedding primaire
+          const offset = i * 5
+          placeholders.push(
+            `($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}::vector, $${offset+5})`
+          )
+          values.push(
+            documentId,
+            batchChunks[i].index,
+            batchChunks[i].content,
+            formatEmbeddingForPostgres(primaryEmbeddings.embeddings[chunkIndex]),
+            JSON.stringify({
+              wordCount: batchChunks[i].metadata.wordCount,
+              charCount: batchChunks[i].metadata.charCount,
+            })
+          )
+        }
       }
 
+      const insertColumns = hasGeminiEmbeddings
+        ? `(knowledge_base_id, chunk_index, content, ${embeddingColumn}, embedding_gemini, metadata)`
+        : `(knowledge_base_id, chunk_index, content, ${embeddingColumn}, metadata)`
+
       await client.query(
-        `INSERT INTO knowledge_base_chunks
-         (knowledge_base_id, chunk_index, content, embedding, metadata)
-         VALUES ${placeholders.join(', ')}`,
+        `INSERT INTO knowledge_base_chunks ${insertColumns} VALUES ${placeholders.join(', ')}`,
         values
       )
     }
@@ -635,14 +676,14 @@ async function searchHybridSingle(
   queryText: string,
   embeddingStr: string,
   category: string | null,
-  docType: string | null,  // Nouveau paramètre
+  docType: string | null,
   limit: number,
   threshold: number,
-  useOpenAI: boolean,
+  provider: 'openai' | 'ollama' | 'gemini',
 ): Promise<KnowledgeBaseSearchResult[]> {
   const result = await db.query(
-    `SELECT * FROM search_knowledge_base_hybrid($1::text, $2::vector, $3::text, $4::text, $5::integer, $6::double precision, $7::boolean)`,
-    [queryText, embeddingStr, category, docType, limit, threshold, useOpenAI]
+    `SELECT * FROM search_knowledge_base_hybrid($1::text, $2::vector, $3::text, $4::text, $5::integer, $6::double precision, $7::text)`,
+    [queryText, embeddingStr, category, docType, limit, threshold, provider]
   )
 
   return result.rows.map((row) => {
@@ -734,34 +775,37 @@ export async function searchKnowledgeBaseHybrid(
   // ✨ OPTIMISATION Phase 2.4 : Détection auto type de query + poids adaptatifs
   const queryAnalysis = detectQueryType(query)
 
-  // ✨ DUAL EMBEDDING PARALLÈLE (Feb 17, 2026) - Fix régression RAG 90%→5%
-  // Problème : `codes` (7,446 chunks) = 100% OpenAI, 0% Ollama → introuvable via Ollama seul.
-  // Solution : générer TOUJOURS les 2 embeddings en parallèle, lancer les 2 recherches,
-  // fusionner par chunk_id (meilleur score gagne) → coverage 100% des chunks garantie.
+  // ✨ TRIPLE EMBEDDING PARALLÈLE (Feb 18, 2026) - OpenAI + Ollama + Gemini
+  // Génère les 3 embeddings en parallèle, lance les 3 recherches en parallèle,
+  // fusionne par chunk_id (meilleur score gagne) → coverage maximale garantie.
   const sqlCandidatePool = Math.min(limit * 3, 100)
 
-  // 1. Générer les 2 embeddings en parallèle
-  const [openaiEmbResult, ollamaEmbResult] = await Promise.allSettled([
-    generateEmbedding(query, { operationName: operationName as any }),
-    generateEmbedding(query, { forceOllama: true }), // Force Ollama (1024-dim, chunks legacy) même en prod
+  // 1. Générer les 3 embeddings en parallèle
+  const [openaiEmbResult, ollamaEmbResult, geminiEmbResult] = await Promise.allSettled([
+    generateEmbedding(query, { operationName: operationName as any }),       // OpenAI (1536-dim)
+    generateEmbedding(query, { forceOllama: true }),                         // Ollama (1024-dim, chunks legacy)
+    generateEmbedding(query, { forceGemini: true }),                         // Gemini (768-dim, multilingue AR)
   ])
 
   // Log providers disponibles
-  const openaiProvider = openaiEmbResult.status === 'fulfilled' ? openaiEmbResult.value.provider : 'failed'
-  const ollamaProvider = ollamaEmbResult.status === 'fulfilled' ? ollamaEmbResult.value.provider : 'failed'
+  const openaiStatus = openaiEmbResult.status === 'fulfilled' ? openaiEmbResult.value.provider : 'failed'
+  const ollamaStatus = ollamaEmbResult.status === 'fulfilled' ? ollamaEmbResult.value.provider : 'failed'
+  const geminiStatus = geminiEmbResult.status === 'fulfilled' ? geminiEmbResult.value.provider : 'failed'
   console.log(
-    `[KB Hybrid Search] Dual-embed: OpenAI=${openaiProvider}, Ollama=${ollamaProvider}, Type: ${queryAnalysis.type}, Weights: vector=${queryAnalysis.weights.vector} / bm25=${queryAnalysis.weights.bm25}, Query: "${queryText.substring(0, 50)}..."`
+    `[KB Hybrid Search] Triple-embed: OpenAI=${openaiStatus}, Ollama=${ollamaStatus}, Gemini=${geminiStatus}, Type: ${queryAnalysis.type}, Weights: vector=${queryAnalysis.weights.vector} / bm25=${queryAnalysis.weights.bm25}, Query: "${queryText.substring(0, 50)}..."`
   )
   console.log(`[KB Hybrid Search] Rationale: ${queryAnalysis.rationale}`)
 
   // 2. Lancer les recherches disponibles en parallèle
   const searchPromises: Promise<KnowledgeBaseSearchResult[]>[] = []
+  const providerLabels: string[] = []
 
   if (openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
     const embStr = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
     searchPromises.push(
-      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, true)
+      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'openai')
     )
+    providerLabels.push('openai')
   }
 
   if (ollamaEmbResult.status === 'fulfilled' && ollamaEmbResult.value.provider === 'ollama') {
@@ -769,12 +813,22 @@ export async function searchKnowledgeBaseHybrid(
     // Sinon dimension mismatch PostgreSQL (1536 vs 1024) → crash → 0% hit@5
     const embStr = formatEmbeddingForPostgres(ollamaEmbResult.value.embedding)
     searchPromises.push(
-      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, false)
+      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'ollama')
     )
+    providerLabels.push('ollama')
+  }
+
+  if (geminiEmbResult.status === 'fulfilled' && geminiEmbResult.value.provider === 'gemini') {
+    // Guard critique : ne lancer la recherche Gemini QUE si l'embedding est vraiment 768-dim
+    const embStr = formatEmbeddingForPostgres(geminiEmbResult.value.embedding)
+    searchPromises.push(
+      searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, 'gemini')
+    )
+    providerLabels.push('gemini')
   }
 
   if (searchPromises.length === 0) {
-    console.warn('[KB Hybrid Search] Aucun embedding disponible (OpenAI + Ollama tous deux en échec)')
+    console.warn('[KB Hybrid Search] Aucun embedding disponible (OpenAI + Ollama + Gemini tous en échec)')
     return []
   }
 
@@ -782,21 +836,19 @@ export async function searchKnowledgeBaseHybrid(
 
   // 3. Fusionner : dédupliquer par chunk_id, garder meilleur score
   const seen = new Map<string, KnowledgeBaseSearchResult>()
-  let openaiCount = 0
-  let ollamaCount = 0
+  const countByProvider: Record<string, number> = {}
 
   for (let i = 0; i < searchResultSets.length; i++) {
     const resultSet = searchResultSets[i]
-    // Déterminer si ce set vient d'OpenAI ou Ollama selon l'ordre des promises
-    const isOpenAISet = openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai' && i === 0
+    const label = providerLabels[i]
+    countByProvider[label] = 0
 
     for (const r of resultSet) {
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
       const existing = seen.get(key)
       if (!existing || r.similarity > existing.similarity) {
         seen.set(key, r)
-        if (isOpenAISet) openaiCount++
-        else ollamaCount++
+        countByProvider[label] = (countByProvider[label] || 0) + 1
       }
     }
   }
@@ -805,7 +857,8 @@ export async function searchKnowledgeBaseHybrid(
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, sqlCandidatePool)
 
-  console.log(`[KB Hybrid Search] Dual-parallel: ${openaiCount} OpenAI + ${ollamaCount} Ollama → ${results.length} total après dédup (pool=${sqlCandidatePool})`)
+  const providerSummary = Object.entries(countByProvider).map(([p, c]) => `${c} ${p}`).join(' + ')
+  console.log(`[KB Hybrid Search] Triple-parallel: ${providerSummary} → ${results.length} total après dédup (pool=${sqlCandidatePool})`)
 
   return results
 }

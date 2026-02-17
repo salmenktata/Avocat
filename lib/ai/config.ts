@@ -53,6 +53,8 @@ export interface AIConfig {
     apiKey: string
     model: string
     maxTokens: number
+    embeddingModel: string
+    embeddingDimensions: number
   }
 
   // RAG Configuration
@@ -115,6 +117,8 @@ export const aiConfig: AIConfig = {
     apiKey: process.env.GOOGLE_API_KEY || '',
     model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
     maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS || '4000', 10),
+    embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'text-embedding-004',
+    embeddingDimensions: 768, // text-embedding-004 dimensions
   },
 
   rag: {

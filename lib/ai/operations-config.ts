@@ -43,7 +43,7 @@ export interface OperationAIConfig {
 
   // Configuration embeddings (si applicable)
   embeddings?: {
-    provider: 'ollama' | 'openai'
+    provider: 'ollama' | 'openai' | 'gemini'
     model: string
     dimensions: number
   }
