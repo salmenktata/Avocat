@@ -126,7 +126,7 @@ export default function QuotasPage() {
 
       {/* Onglets providers */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className={`grid w-full grid-cols-${PROVIDERS_WITH_QUOTAS.length}`}>
+        <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${PROVIDERS_WITH_QUOTAS.length}, minmax(0, 1fr))` }}>
           {PROVIDERS_WITH_QUOTAS.map(provider => (
             <TabsTrigger key={provider.id} value={provider.id} className="flex items-center gap-2">
               <span>{provider.icon}</span>
