@@ -152,7 +152,7 @@ validate_environment_selection() {
     # Vérifier .env existe
     local env_file=".env"
     if [ "$DEPLOY_ENV" = "prod" ]; then
-        env_file=".env.production"
+        env_file=".env.production.local"
     fi
 
     if [ ! -f "$env_file" ]; then
@@ -185,7 +185,7 @@ pre_flight_checks() {
     # 2. Validation configuration
     if [ "$SKIP_VALIDATION" = false ]; then
         local env_file=".env"
-        [ "$DEPLOY_ENV" = "prod" ] && env_file=".env.production"
+        [ "$DEPLOY_ENV" = "prod" ] && env_file=".env.production.local"
 
         validate_environment_config "$env_file" || {
             log_error "Configuration environnement invalide"
