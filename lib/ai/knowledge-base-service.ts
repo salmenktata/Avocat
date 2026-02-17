@@ -743,7 +743,7 @@ export async function searchKnowledgeBaseHybrid(
   // 1. Générer les 2 embeddings en parallèle
   const [openaiEmbResult, ollamaEmbResult] = await Promise.allSettled([
     generateEmbedding(query, { operationName: operationName as any }),
-    generateEmbedding(query, { operationName: undefined }), // Force Ollama
+    generateEmbedding(query, { forceOllama: true }), // Force Ollama (1024-dim, chunks legacy) même en prod
   ])
 
   // Log providers disponibles
@@ -764,7 +764,9 @@ export async function searchKnowledgeBaseHybrid(
     )
   }
 
-  if (ollamaEmbResult.status === 'fulfilled') {
+  if (ollamaEmbResult.status === 'fulfilled' && ollamaEmbResult.value.provider === 'ollama') {
+    // Guard critique : ne lancer la recherche Ollama QUE si l'embedding est vraiment 1024-dim (Ollama)
+    // Sinon dimension mismatch PostgreSQL (1536 vs 1024) → crash → 0% hit@5
     const embStr = formatEmbeddingForPostgres(ollamaEmbResult.value.embedding)
     searchPromises.push(
       searchHybridSingle(queryText, embStr, category || null, singleDocType, sqlCandidatePool, threshold, false)

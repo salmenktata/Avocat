@@ -36,6 +36,8 @@ export interface EmbeddingOptions {
   forceTurbo?: boolean
   /** Type d'opération pour utiliser la configuration spécifique */
   operationName?: OperationName
+  /** Force Ollama même en production (pour dual-provider search sur chunks legacy 1024-dim) */
+  forceOllama?: boolean
 }
 
 interface OllamaEmbeddingResponse {
@@ -52,6 +54,9 @@ const isDev = process.env.NODE_ENV === 'development'
  * Détermine le provider d'embeddings pour une opération donnée
  */
 function resolveEmbeddingProvider(options?: EmbeddingOptions): 'ollama' | 'openai' {
+  // Force Ollama explicitement (dual-provider search : chunks legacy 1024-dim)
+  if (options?.forceOllama && aiConfig.ollama.enabled) return 'ollama'
+
   // Si opération spécifiée, utiliser sa config
   if (options?.operationName) {
     const opConfig = getOperationConfig(options.operationName)
