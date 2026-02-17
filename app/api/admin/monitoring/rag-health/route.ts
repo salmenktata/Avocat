@@ -29,24 +29,27 @@ export async function GET() {
     const totalChunks = parseInt(embeddingsStats.rows[0]?.total_chunks || '0', 10)
 
     // 2. Query success rate 24h/7j (depuis chat_messages)
+    // tokens_used est sur role='assistant', total_queries = nb messages role='user'
     const queryStats24h = await db.query(`
-      SELECT 
-        COUNT(*) as total_queries,
+      SELECT
+        (SELECT COUNT(*) FROM chat_messages
+          WHERE created_at >= NOW() - INTERVAL '24 hours' AND role = 'user') as total_queries,
         COUNT(*) FILTER (WHERE tokens_used > 0) as successful_queries,
         COUNT(*) FILTER (WHERE tokens_used IS NULL OR tokens_used = 0) as failed_queries
       FROM chat_messages
       WHERE created_at >= NOW() - INTERVAL '24 hours'
-        AND role = 'user'
+        AND role = 'assistant'
     `)
 
     const queryStats7d = await db.query(`
-      SELECT 
-        COUNT(*) as total_queries,
+      SELECT
+        (SELECT COUNT(*) FROM chat_messages
+          WHERE created_at >= NOW() - INTERVAL '7 days' AND role = 'user') as total_queries,
         COUNT(*) FILTER (WHERE tokens_used > 0) as successful_queries,
         COUNT(*) FILTER (WHERE tokens_used IS NULL OR tokens_used = 0) as failed_queries
       FROM chat_messages
       WHERE created_at >= NOW() - INTERVAL '7 days'
-        AND role = 'user'
+        AND role = 'assistant'
     `)
 
     const queries24h = {
@@ -62,15 +65,20 @@ export async function GET() {
     }
 
     // 3. Timeline query success rate (7 derniers jours)
+    // total = nb messages user, successful = nb réponses assistant avec tokens
     const timeline = await db.query(`
-      SELECT 
-        DATE(created_at) as date,
-        COUNT(*) as total,
-        COUNT(*) FILTER (WHERE tokens_used > 0) as successful
-      FROM chat_messages
-      WHERE created_at >= NOW() - INTERVAL '7 days'
-        AND role = 'user'
-      GROUP BY DATE(created_at)
+      SELECT
+        DATE(u.created_at) as date,
+        COUNT(u.id) as total,
+        COUNT(a.id) FILTER (WHERE a.tokens_used > 0) as successful
+      FROM chat_messages u
+      LEFT JOIN chat_messages a
+        ON a.conversation_id = u.conversation_id
+        AND a.role = 'assistant'
+        AND DATE(a.created_at) = DATE(u.created_at)
+      WHERE u.created_at >= NOW() - INTERVAL '7 days'
+        AND u.role = 'user'
+      GROUP BY DATE(u.created_at)
       ORDER BY date ASC
     `)
 
