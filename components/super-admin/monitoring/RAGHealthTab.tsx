@@ -145,15 +145,15 @@ export function RAGHealthTab() {
             <div className="mt-2 flex flex-col gap-1">
               <div className="flex items-center gap-1">
                 <span className="inline-block w-2 h-2 rounded-full" style={{ background: COLORS.openai }} />
-                <span className="text-xs">OpenAI: {data.embeddings.openai.toLocaleString()} ({data.embeddings.openaiRatio.toFixed(0)}%)</span>
+                <span className="text-xs">OpenAI: {data.embeddings.openai.toLocaleString()} ({data.embeddings.openaiRatio.toFixed(1)}%)</span>
               </div>
               <div className="flex items-center gap-1">
                 <span className="inline-block w-2 h-2 rounded-full" style={{ background: COLORS.ollama }} />
-                <span className="text-xs">Ollama: {data.embeddings.ollama.toLocaleString()} ({data.embeddings.ollamaRatio.toFixed(0)}%)</span>
+                <span className="text-xs">Ollama: {data.embeddings.ollama.toLocaleString()} ({data.embeddings.ollamaRatio.toFixed(1)}%)</span>
               </div>
               <div className="flex items-center gap-1">
                 <span className="inline-block w-2 h-2 rounded-full" style={{ background: COLORS.gemini }} />
-                <span className="text-xs">Gemini: {data.embeddings.gemini.toLocaleString()} ({data.embeddings.geminiRatio.toFixed(0)}%)</span>
+                <span className="text-xs">Gemini: {data.embeddings.gemini.toLocaleString()} ({data.embeddings.geminiRatio.toFixed(1)}%)</span>
               </div>
             </div>
           </CardContent>
