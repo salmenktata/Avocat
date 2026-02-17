@@ -11,7 +11,7 @@ done
 # Recovery jobs orphelins (Phase 2.3)
 echo "🔄 Recovery jobs orphelins..."
 if [ -f "/app/scripts/recover-orphaned-jobs-startup.sh" ]; then
-  sh /app/scripts/recover-orphaned-jobs-startup.sh || echo "⚠️  Recovery jobs échoué, continue"
+  bash /app/scripts/recover-orphaned-jobs-startup.sh || echo "⚠️  Recovery jobs échoué, continue"
 else
   echo "⚠️  Script recovery introuvable, skip"
 fi
