@@ -64,11 +64,12 @@ export async function GET(request: NextRequest) {
     const latency = latencyEstimateResult.rows[0] || { p50: 0, p95: 0 }
 
     // =========================================================================
-    // 4. Taux d'erreur (messages sans réponse ou avec erreur)
+    // 4. Taux d'erreur (réponses sans tokens = LLM échoué ou aucune source)
     // =========================================================================
+    // tokens_used IS NULL = erreur LLM | tokens_used = 0 = aucune source trouvée
     const errorRateResult = await db.query(`
       SELECT
-        COUNT(*) FILTER (WHERE content ILIKE '%erreur%' OR content ILIKE '%error%')::numeric as errors,
+        COUNT(*) FILTER (WHERE tokens_used IS NULL OR tokens_used = 0)::numeric as errors,
         COUNT(*)::numeric as total
       FROM chat_messages
       WHERE created_at >= NOW() - INTERVAL '${interval}'
@@ -116,7 +117,9 @@ export async function GET(request: NextRequest) {
         citationAccuracy: citationAccuracy,
         latencyP50: latency.p50 || 0,
         latencyP95: latency.p95 || 0,
+        latencyNote: 'Estimation basée sur tokens×50ms, non mesuré réellement',
         errorRate: errorRate,
+        errorRateNote: 'Basé sur réponses sans tokens (LLM échoué ou aucune source)',
         costPerQuery: costPerQuery,
         monthlyBudget: 10, // USD
       },

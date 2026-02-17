@@ -43,7 +43,7 @@ import {
 interface MonitoringMetrics {
   timestamp: string
   global: {
-    totalActive: number
+    totalIndexed: number
     totalAnalyzed: number
     totalNotAnalyzed: number
     avgQualityScore: number
@@ -506,9 +506,9 @@ export function KBQualityTab() {
         <CardContent>
           <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Documents Actifs</p>
+              <p className="text-sm font-medium text-muted-foreground">Documents Indexés</p>
               <p className="text-2xl font-bold">
-                {metrics.global.totalActive.toLocaleString('fr-FR')}
+                {metrics.global.totalIndexed.toLocaleString('fr-FR')}
               </p>
             </div>
             <div className="space-y-2">

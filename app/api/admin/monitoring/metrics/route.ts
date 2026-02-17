@@ -37,21 +37,21 @@ export async function GET(request: NextRequest) {
     // 1. Stats globales KB
     // ========================================
     const globalStatsResult = await db.query<{
-      total_active: number
+      total_indexed: number
       total_analyzed: number
       total_not_analyzed: number
       avg_quality_score: number
       total_chunks: number
     }>(`
       SELECT
-        COUNT(*) FILTER (WHERE is_active = true) as total_active,
-        COUNT(*) FILTER (WHERE is_active = true AND quality_score IS NOT NULL) as total_analyzed,
-        COUNT(*) FILTER (WHERE is_active = true AND quality_score IS NULL) as total_not_analyzed,
-        ROUND(AVG(quality_score)::numeric, 1) as avg_quality_score,
+        COUNT(*) FILTER (WHERE is_indexed = true) as total_indexed,
+        COUNT(*) FILTER (WHERE is_indexed = true AND quality_score IS NOT NULL) as total_analyzed,
+        COUNT(*) FILTER (WHERE is_indexed = true AND quality_score IS NULL) as total_not_analyzed,
+        ROUND(AVG(quality_score) FILTER (WHERE is_indexed = true)::numeric, 1) as avg_quality_score,
         (SELECT COUNT(*)
          FROM knowledge_base_chunks kbc
          INNER JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
-         WHERE kb.is_active = true) as total_chunks
+         WHERE kb.is_indexed = true) as total_chunks
       FROM knowledge_base
     `)
 
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
           1
         ) as success_rate
       FROM knowledge_base
-      WHERE is_active = true
+      WHERE is_indexed = true
         AND quality_score IS NOT NULL
         AND created_at >= DATE_TRUNC('month', CURRENT_DATE)
       GROUP BY quality_llm_provider
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
           AND LENGTH(COALESCE(full_text, '')) < 500
         ) as openai_short_docs
       FROM knowledge_base
-      WHERE is_active = true
+      WHERE is_indexed = true
         AND quality_score IS NOT NULL
         AND created_at >= DATE_TRUNC('month', CURRENT_DATE)
     `)
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) FILTER (WHERE quality_llm_provider = 'ollama') as ollama,
         ROUND(AVG(quality_score)::numeric, 1) as avg_score
       FROM knowledge_base
-      WHERE is_active = true
+      WHERE is_indexed = true
         AND quality_score IS NOT NULL
         AND quality_assessed_at >= CURRENT_DATE - INTERVAL '7 days'
       GROUP BY DATE(quality_assessed_at)
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
         END as score_range,
         COUNT(*) as count
       FROM knowledge_base
-      WHERE is_active = true
+      WHERE is_indexed = true
         AND quality_score IS NOT NULL
       GROUP BY score_range
       ORDER BY score_range DESC
@@ -180,7 +180,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) FILTER (WHERE LENGTH(COALESCE(full_text, '')) < 500) as short_failures,
         COUNT(*) FILTER (WHERE LENGTH(COALESCE(full_text, '')) >= 500) as long_failures
       FROM knowledge_base
-      WHERE is_active = true
+      WHERE is_indexed = true
         AND quality_score = 50
     `)
 
@@ -192,13 +192,13 @@ export async function GET(request: NextRequest) {
     const response = {
       timestamp: new Date().toISOString(),
       global: {
-        totalActive: globalStats.total_active || 0,
+        totalIndexed: globalStats.total_indexed || 0,
         totalAnalyzed: globalStats.total_analyzed || 0,
         totalNotAnalyzed: globalStats.total_not_analyzed || 0,
         avgQualityScore: parseFloat(String(globalStats.avg_quality_score || 0)),
         totalChunks: globalStats.total_chunks || 0,
-        coverage: globalStats.total_active > 0
-          ? parseFloat(((globalStats.total_analyzed / globalStats.total_active) * 100).toFixed(1))
+        coverage: globalStats.total_indexed > 0
+          ? parseFloat(((globalStats.total_analyzed / globalStats.total_indexed) * 100).toFixed(1))
           : 0,
       },
       budget: {

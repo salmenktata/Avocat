@@ -1,23 +1,35 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/postgres'
 import { getErrorMessage } from '@/lib/utils/error-utils'
+import { getSession } from '@/lib/auth/session'
 
 /**
  * GET /api/admin/monitoring/rag-health
- * 
+ *
  * Métriques santé RAG avancées:
- * - Embeddings consistency (OpenAI vs Ollama)
+ * - Embeddings consistency (OpenAI vs Ollama vs Gemini)
  * - Query success rate
- * - Threshold violations
+ * - Threshold violations (non tracké — retourne null)
  * - Dimension mismatch incidents
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Auth: session super_admin OU X-Cron-Secret
+    const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization')
+    const cronSecret = process.env.CRON_SECRET
+    const isCronAuth = cronSecret && (authHeader === cronSecret || authHeader === `Bearer ${cronSecret}`)
+    if (!isCronAuth) {
+      const session = await getSession()
+      if (!session?.user || session.user.role !== 'super_admin') {
+        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+      }
+    }
+
     // 1. Embeddings consistency (OpenAI vs Ollama vs Gemini ratio)
     const embeddingsStats = await db.query(`
       SELECT
         COUNT(*) FILTER (WHERE kbc.embedding_openai IS NOT NULL) as openai_count,
-        COUNT(*) FILTER (WHERE kbc.embedding IS NOT NULL AND kbc.embedding_openai IS NULL) as ollama_count,
+        COUNT(*) FILTER (WHERE kbc.embedding IS NOT NULL) as ollama_count,
         COUNT(*) FILTER (WHERE kbc.embedding_gemini IS NOT NULL) as gemini_count,
         COUNT(*) as total_chunks
       FROM knowledge_base_chunks kbc
@@ -79,9 +91,9 @@ export async function GET() {
       ORDER BY date ASC
     `)
 
-    // 4. Threshold violations (chunks avec similarité < 0.3 dans dernières recherches)
-    // Note: On n'a pas de table pour tracker ça, donc on simule avec 0 pour l'instant
-    const thresholdViolations = 0
+    // 4. Threshold violations — non tracké (aucune table de seuils de similarité)
+    // Retourne null pour indiquer l'absence de données réelles
+    const thresholdViolations: null = null
 
     // 5. Dimension mismatch incidents (détecté via cron_executions)
     const incidents = await db.query(`
