@@ -54,7 +54,6 @@ export async function POST(req: NextRequest) {
       INNER JOIN knowledge_base kb ON kb.id = kbc.knowledge_base_id
       WHERE kbc.embedding_gemini IS NULL
         AND kb.is_active = true
-        AND kb.is_indexed = true
     `
     const params: (string | number)[] = []
     let paramIndex = 1
