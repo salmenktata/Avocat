@@ -97,7 +97,7 @@ async function generateEmbeddingWithOllama(text: string): Promise<EmbeddingResul
       body: JSON.stringify({
         model: aiConfig.ollama.embeddingModel,
         prompt: text.substring(0, 2000),
-        keep_alive: '10m',
+        keep_alive: '60m',
       }),
       signal: controller.signal,
     })
