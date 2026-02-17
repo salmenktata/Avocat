@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db/postgres'
 import { getErrorMessage } from '@/lib/utils/error-utils'
 
@@ -16,11 +17,15 @@ import { getErrorMessage } from '@/lib/utils/error-utils'
  */
 export async function GET(request: NextRequest) {
   try {
-    // Auth: X-Cron-Secret ou Bearer token
+    // Auth: session super_admin OU X-Cron-Secret (pour les crons)
     const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET
-    if (cronSecret && authHeader !== cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    const isCronAuth = cronSecret && (authHeader === cronSecret || authHeader === `Bearer ${cronSecret}`)
+    if (!isCronAuth) {
+      const session = await getSession()
+      if (!session?.user || session.user.role !== 'super_admin') {
+        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+      }
     }
 
     console.log('[Monitoring Metrics] Récupération des métriques...')
@@ -59,12 +64,14 @@ export async function GET(request: NextRequest) {
       provider: string
       count: number
       avg_score: number
+      avg_processing_time_ms: number
       success_rate: number
     }>(`
       SELECT
         COALESCE(quality_llm_provider, 'unknown') as provider,
         COUNT(*) as count,
         ROUND(AVG(quality_score)::numeric, 1) as avg_score,
+        ROUND(COALESCE(AVG(quality_processing_time_ms), 0)::numeric, 0) as avg_processing_time_ms,
         ROUND(
           (COUNT(*) FILTER (WHERE quality_score > 50)::numeric / NULLIF(COUNT(*), 0) * 100),
           1
@@ -209,6 +216,7 @@ export async function GET(request: NextRequest) {
         provider: p.provider,
         count: p.count,
         avgScore: parseFloat(String(p.avg_score || 0)),
+        avgProcessingTimeMs: parseFloat(String(p.avg_processing_time_ms || 0)),
         successRate: parseFloat(String(p.success_rate || 0)),
       })),
       timeline: timeline.map(t => ({
