@@ -63,7 +63,6 @@ interface MonitoringMetrics {
     provider: string
     count: number
     avgScore: number
-    avgProcessingTimeMs: number
     successRate: number
   }>
   timeline: Array<{
@@ -430,10 +429,6 @@ export function KBQualityTab() {
                       <div className="flex items-center gap-1">
                         <TrendingUp className="h-3 w-3" />
                         <span>{provider.avgScore}/100</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{(provider.avgProcessingTimeMs / 1000).toFixed(1)}s</span>
                       </div>
                     </div>
                   </div>
