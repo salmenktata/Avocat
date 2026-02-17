@@ -829,9 +829,10 @@ export async function searchRelevantContext(
 
   // Hard quality gate: si TOUTES les sources sont en dessous du seuil, ne pas les envoyer au LLM
   // Seuil différencié : résultats vectoriels (similarity = vecSim réel) sont plus fiables que BM25-only
-  // Seuils plus bas pour l'arabe : embeddings arabes produisent systématiquement des scores plus faibles
-  const HARD_QUALITY_GATE = queryLang === 'ar' ? 0.40 : 0.50
-  const HARD_QUALITY_GATE_VECTOR = queryLang === 'ar' ? 0.25 : 0.35
+  // Seuils plus bas pour l'arabe : embeddings OpenAI donnent des scores 0.35-0.65 pour contenu pertinent
+  // BM25-only: synthetic similarity = max(0.35, bm25Rank*10) → plancher 0.35, donc gate < 0.35 = jamais filtré
+  const HARD_QUALITY_GATE = queryLang === 'ar' ? 0.30 : 0.50
+  const HARD_QUALITY_GATE_VECTOR = queryLang === 'ar' ? 0.20 : 0.35
   const hasVectorResults = finalSources.some(s => s.metadata?.searchType === 'vector' || s.metadata?.searchType === 'hybrid')
   const effectiveGate = hasVectorResults ? HARD_QUALITY_GATE_VECTOR : HARD_QUALITY_GATE
   if (finalSources.length > 0 && finalSources.every(s => s.similarity < effectiveGate)) {
