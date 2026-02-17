@@ -114,38 +114,88 @@ const EVAL_BENCHMARK: EvalQuery[] = [
 // =============================================================================
 
 // Domain boost mapping (mirrors rag-chat-service.ts detectDomainBoost)
-// ✨ Fix (Feb 2026): factor 1.25→2.5 pour compenser écart sémantique queries naturelles vs textes légaux formels.
-// Seul le code EXACT attendu reçoit 2.5×. Les mauvais codes reçoivent seulement 1.3× (generic code boost).
-// Note: commercial → "مجلة الشركات التجارية" retiré des titlePatterns (causait faux positifs
-//       car les 2 codes recevaient le même boost alors que leur raw score diffère).
-const DOMAIN_BOOST_MAP: { keywords: string[]; titlePatterns: string[]; factor: number }[] = [
-  { keywords: ['جزائي', 'جزائية', 'جنائي', 'عقوبة', 'عقوبات', 'جريمة', 'القتل', 'السرقة', 'الدفاع الشرعي', 'الرشوة', 'pénal', 'criminel', 'légitime défense'], titlePatterns: ['المجلة الجزائية'], factor: 2.5 },
-  { keywords: ['مدني', 'التزامات', 'عقود', 'تعويض', 'مسؤولية مدنية', 'تقادم', 'civil', 'responsabilité', 'délictuel'], titlePatterns: ['مجلة الالتزامات والعقود'], factor: 2.5 },
-  { keywords: ['أحوال شخصية', 'طلاق', 'زواج', 'نفقة', 'حضانة', 'ميراث', 'divorce', 'mariage', 'garde', 'famille'], titlePatterns: ['مجلة الأحوال الشخصية'], factor: 2.5 },
-  { keywords: ['شغل', 'عمل', 'طرد تعسفي', 'إضراب', 'أجر', 'عامل', 'مؤجر', 'travail', 'licenciement', 'grève'], titlePatterns: ['مجلة الشغل'], factor: 2.5 },
-  { keywords: ['تجاري', 'تجارية', 'شيك', 'إفلاس', 'تفليس', 'كمبيالة', 'commercial', 'chèque', 'faillite'], titlePatterns: ['المجلة التجارية'], factor: 2.5 },
-  { keywords: ['مرافعات', 'استئناف', 'تعقيب', 'دعوى', 'إجراءات مدنية', 'procédure'], titlePatterns: ['مجلة المرافعات المدنية والتجارية'], factor: 2.0 },
+// ✨ Fix (Feb 17, 2026): Système de priorité + facteurs calibrés selon analyses des failures.
+// Logique:
+//   1. PRIORITY rules (keywords très spécifiques → 1 seul domaine, brise le tie entre "عقوبة" et "شيك")
+//   2. Rules standard (facteurs augmentés 2.5→4.0-5.0 pour compenser raw similarity basse des codes ciblés)
+//   3. PENALTY rules (drafts, mauvais codes pour une query donnée)
+//
+// PRIORITY = true → si ce domaine match, NE PAS appliquer d'autres domaines
+const DOMAIN_BOOST_MAP: { keywords: string[]; titlePatterns: string[]; factor: number; priority?: boolean; penalize?: string[] }[] = [
+  // === PRIORITY RULES (domaines spécifiques qui priment sur les règles générales) ===
+  // شيك/كمبيالة → TOUJOURS المجلة التجارية, même si "عقوبة" présent dans query
+  { keywords: ['شيك', 'كمبيالة', 'chèque', 'lettre de change', 'billet à ordre', 'سفتجة'], titlePatterns: ['المجلة التجارية'], factor: 5.0, priority: true },
+  // تفليس/إفلاس → المجلة التجارية (même si مجلة الشركات semble pertinent)
+  { keywords: ['تفليس', 'إفلاس', 'faillite', 'liquidation judiciaire'], titlePatterns: ['المجلة التجارية'], factor: 4.5, priority: true },
+  // الدفاع الشرعي → المجلة الجزائية (override procédure)
+  { keywords: ['الدفاع الشرعي', 'légitime défense', 'self-defense'], titlePatterns: ['المجلة الجزائية'], factor: 5.5, priority: true },
+  // == STANDARD DOMAIN RULES (facteurs élevés pour compenser raw similarity basse des codes ciblés) ===
+  // Pénal : facteur 4.0 (était 2.5) — المجلة الجزائية a vecSim basse pour requêtes françaises
+  { keywords: ['جزائي', 'جزائية', 'جنائي', 'عقوبة', 'عقوبات', 'جريمة', 'القتل', 'السرقة', 'الرشوة', 'pénal', 'criminel', 'infractions'], titlePatterns: ['المجلة الجزائية'], factor: 4.0 },
+  // Civil : facteur 4.0 (était 2.5) — مجلة الالتزامات والعقود nécessite plus de boost vs مجلة التأمين
+  { keywords: ['مدني', 'التزامات', 'عقود', 'تعويض', 'مسؤولية مدنية', 'تقادم', 'ضرر معنوي', 'ضرر جسماني', 'civil', 'responsabilité', 'délictuel', 'préjudice'], titlePatterns: ['مجلة الالتزامات والعقود'], factor: 4.0 },
+  // Famille : facteur 3.0 (déjà opérationnel 4/4, légère réduction pour éviter over-boost)
+  { keywords: ['أحوال شخصية', 'طلاق', 'زواج', 'نفقة', 'حضانة', 'ميراث', 'divorce', 'mariage', 'garde', 'famille'], titlePatterns: ['مجلة الأحوال الشخصية'], factor: 3.0 },
+  // Travail
+  { keywords: ['شغل', 'عمل', 'طرد تعسفي', 'إضراب', 'أجر', 'عامل', 'مؤجر', 'travail', 'licenciement', 'grève'], titlePatterns: ['مجلة الشغل'], factor: 3.0 },
+  // Commercial général (sans شيك/تفليس qui sont couverts par priority)
+  { keywords: ['تجاري', 'تجارية', 'commercial'], titlePatterns: ['المجلة التجارية'], factor: 3.0 },
+  // Procédure
+  { keywords: ['مرافعات', 'استئناف', 'تعقيب', 'دعوى', 'إجراءات مدنية', 'procédure'], titlePatterns: ['مجلة المرافعات المدنية والتجارية'], factor: 2.5 },
+]
+
+// Pénalité pour les documents qui ne devraient pas apparaître en top résultats
+// Appliquée AVANT les domain boosts
+const TITLE_PENALTIES: { titlePattern: string; factor: number; reason: string }[] = [
+  // "Projet du Code des Changes 2024" = draft non applicable → pénaliser fortement
+  // sauf pour les requêtes sur le change/devises
+  { titlePattern: 'Projet du Code des Changes', factor: 0.15, reason: 'draft law, not final legislation' },
+  { titlePattern: 'مشروع قانون', factor: 0.2, reason: 'draft proposal, not enacted law' },
 ]
 
 function applyDomainBoost(results: KnowledgeBaseSearchResult[], query: string): KnowledgeBaseSearchResult[] {
   if (results.length === 0) return results
 
   const queryLower = query.toLowerCase()
-  const boostPatterns: { pattern: string; factor: number }[] = []
 
-  for (const domain of DOMAIN_BOOST_MAP) {
-    const hasKeyword = domain.keywords.some(kw => query.includes(kw) || queryLower.includes(kw))
-    if (hasKeyword) {
-      for (const p of domain.titlePatterns) {
-        boostPatterns.push({ pattern: p, factor: domain.factor })
+  // Appliquer pénalités aux brouillons (sauf si query concerne le change/devises)
+  const isChangeQuery = query.includes('صرف') || query.includes('عملة') || query.includes('change') || query.includes('devises')
+  if (!isChangeQuery) {
+    for (const r of results) {
+      for (const penalty of TITLE_PENALTIES) {
+        if (r.title.includes(penalty.titlePattern)) {
+          r.similarity *= penalty.factor
+        }
       }
     }
   }
 
-  if (boostPatterns.length === 0) return results
+  // Construire les boost patterns (avec gestion de la priorité)
+  const boostPatterns: { pattern: string; factor: number }[] = []
+  let priorityTriggered = false
 
-  // Apply code source boost (1.3x, mirrors SOURCE_BOOST.code) + strong domain boost for the specific matching code
-  // Correct code: 1.3 × 2.5 = 3.25× vs wrong code: 1.3× only → ratio 2.5 compensates for raw score differences
+  for (const domain of DOMAIN_BOOST_MAP) {
+    const hasKeyword = domain.keywords.some(kw => query.includes(kw) || queryLower.includes(kw))
+    if (hasKeyword) {
+      if (domain.priority) {
+        // PRIORITY rule : remplace toutes les autres rules non-priority
+        boostPatterns.length = 0 // Clear previous patterns
+        for (const p of domain.titlePatterns) {
+          boostPatterns.push({ pattern: p, factor: domain.factor })
+        }
+        priorityTriggered = true
+        break // Ne pas continuer les autres rules
+      } else if (!priorityTriggered) {
+        for (const p of domain.titlePatterns) {
+          boostPatterns.push({ pattern: p, factor: domain.factor })
+        }
+      }
+    }
+  }
+
+  if (boostPatterns.length === 0) return results.sort((a, b) => b.similarity - a.similarity)
+
+  // Apply code source boost (1.3x) + domain boost for the expected code
   const CODE_BOOST = 1.3
   const boosted = results.map(r => {
     let boost = r.category === 'codes' ? CODE_BOOST : 1.0

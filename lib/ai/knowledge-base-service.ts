@@ -840,9 +840,20 @@ export async function searchKnowledgeBaseHybrid(
   if (shouldForceCodes && openaiEmbResult.status === 'fulfilled' && openaiEmbResult.value.provider === 'openai') {
     const embStr = formatEmbeddingForPostgres(openaiEmbResult.value.embedding)
     searchPromises.push(
-      searchHybridSingle(queryText, embStr, 'codes', null, Math.ceil(limit / 2), 0.20, 'openai')
+      // Fix (Feb 17, 2026) : threshold 0.15 (était 0.20) pour capturer مجلة الالتزامات والعقود
+      // et المجلة التجارية qui ont vecSim 0.15-0.20 pour certaines queries juridiques spécifiques.
+      searchHybridSingle(queryText, embStr, 'codes', null, Math.ceil(limit / 2), 0.15, 'openai')
     )
     providerLabels.push('codes-forced')
+  }
+  // ✨ FORCED CODES - Gemini (multilingue) : couvre les requêtes françaises qui ont
+  // faible cross-lingual similarity avec OpenAI pour les codes en arabe.
+  if (shouldForceCodes && geminiEmbResult.status === 'fulfilled' && geminiEmbResult.value.provider === 'gemini') {
+    const embStr = formatEmbeddingForPostgres(geminiEmbResult.value.embedding)
+    searchPromises.push(
+      searchHybridSingle(queryText, embStr, 'codes', null, Math.ceil(limit / 2), 0.12, 'gemini')
+    )
+    providerLabels.push('codes-forced-gemini')
   }
 
   if (searchPromises.length === 0) {
@@ -863,7 +874,7 @@ export async function searchKnowledgeBaseHybrid(
 
     for (const r of resultSet) {
       // Appliquer boost aux codes forcés pour compenser l'écart sémantique
-      if (label === 'codes-forced') {
+      if (label === 'codes-forced' || label === 'codes-forced-gemini') {
         r.similarity = Math.min(1.0, r.similarity * CODE_PRIORITY_BOOST)
       }
       const key = r.chunkId || (r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
