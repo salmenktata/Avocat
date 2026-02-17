@@ -16,6 +16,7 @@
 import { db } from '@/lib/db/postgres'
 import { generateEmbedding, formatEmbeddingForPostgres } from './embeddings-service'
 import { rerankDocuments, type DocumentToRerank } from './reranker-service'
+import { getEmbeddingDimensions } from './config'
 
 // =============================================================================
 // TYPES
@@ -102,6 +103,17 @@ export async function hybridSearch(
   try {
     // 1. Générer embedding pour recherche dense
     const queryEmbedding = await generateEmbedding(query)
+    const dims = getEmbeddingDimensions()
+
+    // La fonction SQL hybrid_search() attend VECTOR(1024) (Ollama).
+    // Avec un autre provider (OpenAI 1536-dim, Gemini 768-dim), fallback vers dense uniquement.
+    if (dims !== 1024) {
+      console.warn(
+        `[Hybrid Search] hybrid_search() attend VECTOR(1024), provider actuel génère ${dims}-dim. Fallback dense uniquement.`
+      )
+      return fallbackDenseSearch(query, opts, startTime)
+    }
+
     const embeddingStr = formatEmbeddingForPostgres(queryEmbedding.embedding)
 
     // 2. Exécuter recherche hybride (BM25 + Dense + RRF) via SQL
@@ -223,6 +235,22 @@ async function fallbackDenseSearch(
   try {
     const queryEmbedding = await generateEmbedding(query)
     const embeddingStr = formatEmbeddingForPostgres(queryEmbedding.embedding)
+    const dims = getEmbeddingDimensions()
+
+    // Construire les paramètres et clauses WHERE de façon explicite
+    const params: unknown[] = [embeddingStr]
+    const whereClauses: string[] = ['embedding IS NOT NULL']
+
+    if (opts.category) {
+      params.push(opts.category)
+      whereClauses.push(`category = $${params.length}`)
+    }
+    if (opts.language) {
+      params.push(opts.language)
+      whereClauses.push(`language = $${params.length}`)
+    }
+    params.push(opts.rerankLimit)
+    const limitParam = `$${params.length}`
 
     const sqlQuery = `
       SELECT
@@ -230,19 +258,12 @@ async function fallbackDenseSearch(
         content,
         category,
         language,
-        1 - (embedding <=> $1::VECTOR(1024)) as similarity_score
+        1 - (embedding <=> $1::VECTOR(${dims})) as similarity_score
       FROM kb_chunks
-      WHERE embedding IS NOT NULL
-        ${opts.category ? 'AND category = $2' : ''}
-        ${opts.language ? `AND language = $${opts.category ? 3 : 2}` : ''}
-      ORDER BY embedding <=> $1::VECTOR(1024) ASC
-      LIMIT $${opts.category && opts.language ? 4 : opts.category || opts.language ? 3 : 2}
+      WHERE ${whereClauses.join(' AND ')}
+      ORDER BY embedding <=> $1::VECTOR(${dims}) ASC
+      LIMIT ${limitParam}
     `
-
-    const params: any[] = [embeddingStr]
-    if (opts.category) params.push(opts.category)
-    if (opts.language) params.push(opts.language)
-    params.push(opts.rerankLimit)
 
     const result = await db.query(sqlQuery, params)
 

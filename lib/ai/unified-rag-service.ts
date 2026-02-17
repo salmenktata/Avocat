@@ -19,7 +19,8 @@ import {
   generateEmbedding,
   formatEmbeddingForPostgres,
 } from './embeddings-service'
-import { aiConfig, RAG_THRESHOLDS } from './config'
+import { getCachedEmbedding } from '@/lib/cache/embedding-cache'
+import { aiConfig, RAG_THRESHOLDS, getEmbeddingProvider } from './config'
 import {
   callLLMWithFallback,
   type LLMMessage,
@@ -219,38 +220,23 @@ export interface RAGChatResponse {
   language: DetectedLanguage
 }
 
-/**
- * Options d'explication
- */
-export interface RAGExplainOptions {
-  /** Niveau de détail (simple, detailed, expert) */
-  detailLevel?: 'simple' | 'detailed' | 'expert'
-
-  /** Langue de sortie */
-  language?: SupportedLanguage
-
-  /** Mode Premium */
-  usePremiumModel?: boolean
-}
-
-/**
- * Explication RAG
- */
-export interface RAGExplanation {
-  reasoning: string
-  steps: Array<{
-    step: number
-    title: string
-    content: string
-    sources: RAGSearchResult[]
-  }>
-  confidence: number
-  tokensUsed: number
-}
-
 // =============================================================================
 // HELPERS PRIVÉS
 // =============================================================================
+
+/** Valeur nulle partagée pour les métadonnées manquantes */
+const NULL_METADATA: LegalMetadata = {
+  tribunalCode: null,
+  tribunalLabelAr: null,
+  tribunalLabelFr: null,
+  chambreCode: null,
+  chambreLabelAr: null,
+  chambreLabelFr: null,
+  decisionDate: null,
+  decisionNumber: null,
+  legalBasis: null,
+  extractionConfidence: null,
+}
 
 /**
  * Enrichit les sources avec métadonnées juridiques (batch)
@@ -311,99 +297,77 @@ async function batchEnrichSourcesWithMetadata(
     // Enrichir les sources
     return sources.map((source) => ({
       documentId: source.documentId,
-      metadata: metadataMap.get(source.documentId) || {
-        tribunalCode: null,
-        tribunalLabelAr: null,
-        tribunalLabelFr: null,
-        chambreCode: null,
-        chambreLabelAr: null,
-        chambreLabelFr: null,
-        decisionDate: null,
-        decisionNumber: null,
-        legalBasis: null,
-        extractionConfidence: null,
-        citesCount: 0,
-        citedByCount: 0,
-      },
+      metadata: metadataMap.get(source.documentId) || { ...NULL_METADATA, citesCount: 0, citedByCount: 0 },
     }))
   } catch (error) {
     console.error('[UnifiedRAG] Erreur enrichissement métadonnées batch:', error)
     // Retourner sources sans enrichissement en cas d'erreur
     return sources.map((source) => ({
       documentId: source.documentId,
-      metadata: {
-        tribunalCode: null,
-        tribunalLabelAr: null,
-        tribunalLabelFr: null,
-        chambreCode: null,
-        chambreLabelAr: null,
-        chambreLabelFr: null,
-        decisionDate: null,
-        decisionNumber: null,
-        legalBasis: null,
-        extractionConfidence: null,
-        citesCount: 0,
-        citedByCount: 0,
-      },
+      metadata: { ...NULL_METADATA, citesCount: 0, citedByCount: 0 },
     }))
   }
 }
 
 /**
- * Récupère les relations juridiques d'un document
+ * Récupère les relations juridiques de plusieurs documents en une seule requête SQL (anti N+1).
+ * Utilise UNION ALL pour capturer les relations entrantes et sortantes de tous les documents.
  */
-async function getDocumentRelations(
-  kbId: string,
+async function batchGetDocumentRelations(
+  kbIds: string[],
   includeRelations: boolean
-): Promise<RAGSearchResult['relations'] | undefined> {
-  if (!includeRelations) return undefined
+): Promise<Map<string, RAGSearchResult['relations']>> {
+  // Initialiser la map avec des relations vides pour chaque document
+  const relationsMap = new Map<string, RAGSearchResult['relations']>()
+  for (const id of kbIds) {
+    relationsMap.set(id, { cites: [], citedBy: [], supersedes: [], supersededBy: [], relatedCases: [] })
+  }
+
+  if (!includeRelations || kbIds.length === 0) return relationsMap
 
   try {
     const result = await db.query(
       `
+      -- Relations sortantes (source dans kbIds)
       SELECT
-        relation_type,
-        CASE
-          WHEN source_kb_id = $1 THEN 'outgoing'
-          ELSE 'incoming'
-        END AS direction,
-        CASE
-          WHEN source_kb_id = $1 THEN target_kb_id
-          ELSE source_kb_id
-        END AS related_kb_id,
-        CASE
-          WHEN source_kb_id = $1 THEN (SELECT title FROM knowledge_base WHERE id = target_kb_id)
-          ELSE (SELECT title FROM knowledge_base WHERE id = source_kb_id)
-        END AS related_title,
-        CASE
-          WHEN source_kb_id = $1 THEN (SELECT category FROM knowledge_base WHERE id = target_kb_id)
-          ELSE (SELECT category FROM knowledge_base WHERE id = source_kb_id)
-        END AS related_category,
-        context,
-        confidence
-      FROM kb_legal_relations
-      WHERE (source_kb_id = $1 OR target_kb_id = $1) AND validated = true
+        r.source_kb_id AS owner_kb_id,
+        'outgoing' AS direction,
+        r.relation_type,
+        r.target_kb_id AS related_kb_id,
+        kb_t.title AS related_title,
+        kb_t.category AS related_category,
+        r.context,
+        r.confidence
+      FROM kb_legal_relations r
+      JOIN knowledge_base kb_t ON r.target_kb_id = kb_t.id
+      WHERE r.source_kb_id = ANY($1) AND r.validated = true
+
+      UNION ALL
+
+      -- Relations entrantes (target dans kbIds)
+      SELECT
+        r.target_kb_id AS owner_kb_id,
+        'incoming' AS direction,
+        r.relation_type,
+        r.source_kb_id AS related_kb_id,
+        kb_s.title AS related_title,
+        kb_s.category AS related_category,
+        r.context,
+        r.confidence
+      FROM kb_legal_relations r
+      JOIN knowledge_base kb_s ON r.source_kb_id = kb_s.id
+      WHERE r.target_kb_id = ANY($1) AND r.validated = true
+
       ORDER BY confidence DESC NULLS LAST
-      LIMIT 50
+      LIMIT 500
       `,
-      [kbId]
+      [kbIds]
     )
 
-    const relations: {
-      cites: LegalRelation[]
-      citedBy: LegalRelation[]
-      supersedes: LegalRelation[]
-      supersededBy: LegalRelation[]
-      relatedCases: LegalRelation[]
-    } = {
-      cites: [],
-      citedBy: [],
-      supersedes: [],
-      supersededBy: [],
-      relatedCases: [],
-    }
-
     result.rows.forEach((row) => {
+      const relations = relationsMap.get(row.owner_kb_id)
+      if (!relations) return
+
       const relation: LegalRelation = {
         relationType: row.relation_type,
         relatedKbId: row.related_kb_id,
@@ -427,10 +391,10 @@ async function getDocumentRelations(
       }
     })
 
-    return relations
+    return relationsMap
   } catch (error) {
-    console.error('[UnifiedRAG] Erreur récupération relations:', error)
-    return undefined
+    console.error('[UnifiedRAG] Erreur batch récupération relations:', error)
+    return relationsMap
   }
 }
 
@@ -464,30 +428,106 @@ export async function search(
   filters: RAGSearchFilters = {},
   options: RAGSearchOptions = {}
 ): Promise<RAGSearchResult[]> {
+  const startTime = Date.now()
   const limit = options.limit || 10
   const offset = options.offset || 0
   const threshold = options.threshold || RAG_THRESHOLDS.minimum
   const includeRelations = options.includeRelations || false
 
-  // 2. Générer embedding de la requête
-  const embeddingResult = await generateEmbedding(query)
-  const embeddingStr = formatEmbeddingForPostgres(embeddingResult.embedding)
-
-  // 1. Vérifier le cache Redis (si userId disponible ET pas de pagination)
-  // Note: Cache désactivé si offset > 0 (pagination simplifie implémentation)
+  // 1. Vérifier le cache Redis AVANT de générer l'embedding (évite l'appel OpenAI si cache hit)
+  // Stratégie : on tente d'abord via l'embedding caché (sans appel OpenAI)
   if (process.env.ENABLE_SEARCH_CACHE !== 'false' && options.userId && offset === 0) {
-    const scope: SearchScope = {
-      userId: options.userId,
-      dossierId: filters.dossierId,
-    }
-    const cached = await getCachedSearchResults(embeddingResult.embedding, scope)
-    if (cached) {
-      console.log('[UnifiedRAG] ✓ Cache hit pour recherche:', query.substring(0, 50))
-      return cached as RAGSearchResult[]
+    const embeddingProvider = getEmbeddingProvider()
+    if (embeddingProvider) {
+      const cachedEmbedding = await getCachedEmbedding(query, embeddingProvider)
+      if (cachedEmbedding) {
+        const scope: SearchScope = {
+          userId: options.userId,
+          dossierId: filters.dossierId,
+        }
+        const cached = await getCachedSearchResults(cachedEmbedding.embedding, scope)
+        if (cached) {
+          console.log('[UnifiedRAG] ✓ Cache hit pour recherche:', query.substring(0, 50))
+          return cached as RAGSearchResult[]
+        }
+      }
     }
   }
 
-  // 3. Construire requête SQL avec filtres
+  // 2. Générer embedding (utilise le cache Redis interne, n'appelle OpenAI que si nécessaire)
+  const embeddingResult = await generateEmbedding(query)
+  const embeddingStr = formatEmbeddingForPostgres(embeddingResult.embedding)
+
+  // 3a. Recherche hybride BM25 + vectorielle (si ENABLE_HYBRID_SEARCH=true)
+  // Utilise search_knowledge_base_hybrid() qui supporte Ollama (1024-dim) et OpenAI (1536-dim).
+  // Gemini non supporté → fallback dense. Pagination (offset > 0) → fallback dense.
+  // En cas d'échec SQL → fallback dense automatique.
+  if (process.env.ENABLE_HYBRID_SEARCH === 'true' && offset === 0 && embeddingResult.provider !== 'gemini') {
+    try {
+      const useOpenAI = embeddingResult.provider === 'openai'
+      const hybridResult = await db.query(
+        `SELECT
+          knowledge_base_id AS kb_id,
+          title,
+          category,
+          similarity,
+          chunk_content,
+          chunk_index
+         FROM search_knowledge_base_hybrid($1::text, $2::vector, $3::text, $4::int, $5::float, $6::boolean)`,
+        [query, embeddingStr, filters.category || null, limit, threshold, useOpenAI]
+      )
+
+      const hKbIds = hybridResult.rows.map((r) => r.kb_id as string)
+      const [hEnriched, hRelations] = await Promise.all([
+        batchEnrichSourcesWithMetadata(hKbIds.map((id) => ({ documentId: id }))),
+        batchGetDocumentRelations(hKbIds, includeRelations),
+      ])
+
+      const hybridResults: RAGSearchResult[] = hybridResult.rows.map((row, i) => ({
+        kbId: row.kb_id,
+        title: row.title,
+        category: row.category,
+        similarity: parseFloat(row.similarity),
+        chunkContent: row.chunk_content,
+        chunkIndex: row.chunk_index,
+        metadata: hEnriched[i]?.metadata || NULL_METADATA,
+        relations: hRelations.get(row.kb_id),
+      }))
+
+      const searchTimeMs = Date.now() - startTime
+
+      if (process.env.ENABLE_SEARCH_CACHE !== 'false' && options.userId) {
+        setCachedSearchResults(embeddingResult.embedding, hybridResults, {
+          userId: options.userId,
+          dossierId: filters.dossierId,
+        }).catch((err) => console.error('[UnifiedRAG] Erreur cache hybride:', err))
+      }
+
+      recordRAGMetric({
+        searchTimeMs,
+        llmTimeMs: 0,
+        totalTimeMs: searchTimeMs,
+        inputTokens: embeddingResult.tokenCount,
+        outputTokens: 0,
+        resultsCount: hybridResults.length,
+        cacheHit: false,
+        degradedMode: false,
+        provider: embeddingResult.provider,
+      })
+
+      console.log(
+        `[UnifiedRAG] ✓ Hybrid search (${useOpenAI ? 'OpenAI' : 'Ollama'}): ${hybridResults.length} résultats`
+      )
+      return hybridResults
+    } catch (error) {
+      console.warn(
+        '[UnifiedRAG] Hybrid search échec, fallback dense:',
+        error instanceof Error ? error.message : error
+      )
+    }
+  }
+
+  // 3b. Construire requête SQL dense avec filtres
   const queryParams: unknown[] = [embeddingStr, threshold, limit]
   let paramIndex = 4
 
@@ -569,42 +609,29 @@ export async function search(
   const result = await db.query(sqlQuery, queryParams)
 
   // 4. Enrichir avec métadonnées (batch, 1 query)
+  const kbIds = result.rows.map((row) => row.kb_id)
   const enriched = await batchEnrichSourcesWithMetadata(
-    result.rows.map((row) => ({
-      documentId: row.kb_id,
-    }))
+    result.rows.map((row) => ({ documentId: row.kb_id }))
   )
 
-  // 5. Construire résultats finaux
-  const results: RAGSearchResult[] = await Promise.all(
-    result.rows.map(async (row, index) => {
-      const relations = await getDocumentRelations(row.kb_id, includeRelations)
+  // 5. Récupérer toutes les relations en une seule requête SQL (anti N+1)
+  const relationsMap = await batchGetDocumentRelations(kbIds, includeRelations)
 
-      return {
-        kbId: row.kb_id,
-        title: row.title,
-        category: row.category,
-        similarity: parseFloat(row.similarity),
-        chunkContent: row.chunk_content,
-        chunkIndex: row.chunk_index,
-        metadata: enriched[index]?.metadata || {
-          tribunalCode: null,
-          tribunalLabelAr: null,
-          tribunalLabelFr: null,
-          chambreCode: null,
-          chambreLabelAr: null,
-          chambreLabelFr: null,
-          decisionDate: null,
-          decisionNumber: null,
-          legalBasis: null,
-          extractionConfidence: null,
-        },
-        relations,
-      }
-    })
-  )
+  // 6. Construire résultats finaux
+  const results: RAGSearchResult[] = result.rows.map((row, index) => ({
+    kbId: row.kb_id,
+    title: row.title,
+    category: row.category,
+    similarity: parseFloat(row.similarity),
+    chunkContent: row.chunk_content,
+    chunkIndex: row.chunk_index,
+    metadata: enriched[index]?.metadata || NULL_METADATA,
+    relations: relationsMap.get(row.kb_id),
+  }))
 
-  // 6. Mettre en cache (async, pas bloquant) - Skip si pagination
+  const searchTimeMs = Date.now() - startTime
+
+  // 7. Mettre en cache (async, pas bloquant) - Skip si pagination
   if (process.env.ENABLE_SEARCH_CACHE !== 'false' && options.userId && offset === 0) {
     const scope: SearchScope = {
       userId: options.userId,
@@ -615,17 +642,17 @@ export async function search(
     )
   }
 
-  // 7. Enregistrer métriques (fonction sync, pas de catch)
+  // 8. Enregistrer métriques avec timing réel
   recordRAGMetric({
-    searchTimeMs: 0,
+    searchTimeMs,
     llmTimeMs: 0,
-    totalTimeMs: 0,
-    inputTokens: 0,
+    totalTimeMs: searchTimeMs,
+    inputTokens: embeddingResult.tokenCount,
     outputTokens: 0,
     resultsCount: results.length,
     cacheHit: false,
     degradedMode: false,
-    provider: 'embeddings',
+    provider: embeddingResult.provider,
   })
 
   return results
@@ -741,36 +768,5 @@ export async function chat(
   }
 }
 
-/**
- * Génère une explication détaillée du raisonnement juridique
- *
- * Utilise multi-chain reasoning pour décomposer la réponse en étapes
- *
- * @param question Question juridique
- * @param options Options d'explication
- * @returns Explication structurée avec étapes de raisonnement
- */
-export async function explain(
-  question: string,
-  options: RAGExplainOptions = {}
-): Promise<RAGExplanation> {
-  // TODO: Implémenter multi-chain reasoning
-  // Nécessite explanation-tree-builder.ts (811 lignes à wrapper)
-  throw new Error('explain() non implémenté dans Sprint 3 - Prévu Sprint 4')
-}
-
-/**
- * Détecte les contradictions juridiques dans les sources
- *
- * @param sources Résultats de recherche
- * @param options Options de détection
- * @returns Contradictions détectées avec contexte
- */
-export async function detectContradictions(
-  sources: RAGSearchResult[],
-  options: { threshold?: number; language?: SupportedLanguage } = {}
-): Promise<Array<{ source1: RAGSearchResult; source2: RAGSearchResult; conflictReason: string; severity: 'low' | 'medium' | 'high' }>> {
-  // TODO: Implémenter détection contradictions
-  // Nécessite semantic-contradiction-detector.ts (543 lignes à wrapper)
-  throw new Error('detectContradictions() non implémenté dans Sprint 3 - Prévu Sprint 4')
-}
+// explain() et detectContradictions() — à implémenter en Sprint 4
+// Voir explanation-tree-builder.ts et semantic-contradiction-detector.ts

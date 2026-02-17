@@ -274,12 +274,16 @@ async function generateEmbeddingWithGemini(text: string): Promise<EmbeddingResul
   }
 
   // Utiliser l'API REST v1beta (gemini-embedding-001, outputDimensionality=768)
+  // Clé API dans le header x-goog-api-key (évite l'exposition dans les logs HTTP/Nginx)
   const model = aiConfig.gemini.embeddingModel
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${aiConfig.gemini.apiKey}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent`
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': aiConfig.gemini.apiKey,
+    },
     body: JSON.stringify({
       model: `models/${model}`,
       content: { parts: [{ text: text.substring(0, 8000) }] },
@@ -325,8 +329,12 @@ export async function generateEmbedding(
   text: string,
   options?: EmbeddingOptions
 ): Promise<EmbeddingResult> {
-  // Tronquer si le texte dépasse la limite du modèle d'embedding (~6000 chars pour 8192 tokens arabe)
-  const MAX_EMBEDDING_CHARS = 3500
+  // Tronquer si le texte dépasse la limite du modèle d'embedding.
+  // text-embedding-3-small : 8191 tokens max (~24 000 chars arabe, ~32 000 chars français)
+  // Ollama qwen3-embedding : 6500 chars (cf. generateEmbeddingWithOllama)
+  // Gemini embedding-001 : 8000 chars (cf. generateEmbeddingWithGemini)
+  // On utilise 6000 comme dénominateur commun conservateur pour tous les providers.
+  const MAX_EMBEDDING_CHARS = 6000
   if (text.length > MAX_EMBEDDING_CHARS) {
     text = text.substring(0, MAX_EMBEDDING_CHARS)
   }

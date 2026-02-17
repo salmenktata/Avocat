@@ -2,15 +2,19 @@
  * Service de métriques RAG
  *
  * Collecte et expose des métriques pour le monitoring du système RAG:
- * - Latence (recherche, LLM, total)
+ * - Latence (recherche, LLM, total) — in-memory, fenêtre glissante 1h
  * - Tokens (input, output)
- * - Erreurs (embeddings, LLM, cache)
+ * - Erreurs (embeddings, LLM, cache) — persistées dans Redis (survive aux restarts)
  * - Cache hit rate
  * - Distribution des sources
+ * - Compteurs de requêtes totales — persistés dans Redis
  *
- * Les métriques sont stockées en mémoire avec une fenêtre glissante
- * et peuvent être exposées via API ou logs structurés.
+ * Stratégie de persistance :
+ * - Compteurs agrégés (INCR) → Redis, TTL 7 jours, survive aux redémarrages
+ * - Buffer de latence → in-memory uniquement (percentiles 1h glissante)
  */
+
+import { getRedisClient, isRedisAvailable } from '@/lib/cache/redis'
 
 // =============================================================================
 // TYPES
@@ -87,6 +91,100 @@ const errorCounters = {
 }
 
 // =============================================================================
+// PERSISTENCE REDIS — compteurs agrégés (survive aux redémarrages)
+// =============================================================================
+
+const REDIS_METRICS_PREFIX = 'rag:metrics'
+const REDIS_METRICS_TTL_S = 86400 * 7 // 7 jours
+
+/** Clés Redis pour les compteurs persistés */
+const REDIS_COUNTER_KEYS = {
+  requestsTotal: `${REDIS_METRICS_PREFIX}:requests:total`,
+  requestsSuccess: `${REDIS_METRICS_PREFIX}:requests:success`,
+  requestsFailed: `${REDIS_METRICS_PREFIX}:requests:failed`,
+  errorsEmbedding: `${REDIS_METRICS_PREFIX}:errors:embedding`,
+  errorsLlm: `${REDIS_METRICS_PREFIX}:errors:llm`,
+  errorsSearch: `${REDIS_METRICS_PREFIX}:errors:search`,
+  errorsCache: `${REDIS_METRICS_PREFIX}:errors:cache`,
+  tokensInput: `${REDIS_METRICS_PREFIX}:tokens:input`,
+  tokensOutput: `${REDIS_METRICS_PREFIX}:tokens:output`,
+}
+
+/**
+ * Incrémente des compteurs Redis de façon non-bloquante (fire-and-forget).
+ * Les erreurs sont silencieuses pour ne pas perturber le flux principal.
+ */
+function persistCountersToRedis(
+  updates: Partial<Record<keyof typeof REDIS_COUNTER_KEYS, number>>
+): void {
+  if (!isRedisAvailable()) return
+
+  getRedisClient()
+    .then(async (client) => {
+      if (!client) return
+      const pipeline = client.multi()
+      for (const [key, delta] of Object.entries(updates) as [keyof typeof REDIS_COUNTER_KEYS, number][]) {
+        if (delta > 0) {
+          pipeline.incrBy(REDIS_COUNTER_KEYS[key], delta)
+          pipeline.expire(REDIS_COUNTER_KEYS[key], REDIS_METRICS_TTL_S)
+        }
+      }
+      await pipeline.exec()
+    })
+    .catch(() => {
+      // Silent fail — les métriques Redis ne doivent jamais bloquer le service
+    })
+}
+
+/**
+ * Lit les compteurs persistés depuis Redis.
+ * Retourne des zéros si Redis indisponible.
+ */
+export async function getPersistedCounters(): Promise<{
+  requestsTotal: number
+  requestsSuccess: number
+  requestsFailed: number
+  errors: { embedding: number; llm: number; search: number; cache: number }
+  tokens: { input: number; output: number }
+}> {
+  const defaults = {
+    requestsTotal: 0,
+    requestsSuccess: 0,
+    requestsFailed: 0,
+    errors: { embedding: 0, llm: 0, search: 0, cache: 0 },
+    tokens: { input: 0, output: 0 },
+  }
+
+  if (!isRedisAvailable()) return defaults
+
+  try {
+    const client = await getRedisClient()
+    if (!client) return defaults
+
+    const values = await client.mGet(Object.values(REDIS_COUNTER_KEYS))
+    const parse = (v: string | null) => parseInt(v || '0', 10)
+
+    return {
+      requestsTotal: parse(values[0]),
+      requestsSuccess: parse(values[1]),
+      requestsFailed: parse(values[2]),
+      errors: {
+        embedding: parse(values[3]),
+        llm: parse(values[4]),
+        search: parse(values[5]),
+        cache: parse(values[6]),
+      },
+      tokens: {
+        input: parse(values[7]),
+        output: parse(values[8]),
+      },
+    }
+  } catch {
+    return defaults
+  }
+}
+
+// =============================================================================
 // COLLECTE
 // =============================================================================
 
@@ -109,39 +207,56 @@ export function recordRAGMetric(entry: Omit<RAGMetricEntry, 'timestamp'>): void 
     metricsBuffer.splice(0, metricsBuffer.length - MAX_METRICS_BUFFER)
   }
 
-  // Compter les erreurs
-  if (entry.error) {
+  // Compter les erreurs (in-memory)
+  const isError = !!entry.error
+  if (isError) {
     errorCounters.total++
-    if (entry.error.includes('embedding')) errorCounters.embedding++
-    else if (entry.error.includes('llm') || entry.error.includes('LLM')) errorCounters.llm++
-    else if (entry.error.includes('search')) errorCounters.search++
-    else if (entry.error.includes('cache')) errorCounters.cache++
+    if (entry.error!.includes('embedding')) errorCounters.embedding++
+    else if (entry.error!.includes('llm') || entry.error!.includes('LLM')) errorCounters.llm++
+    else if (entry.error!.includes('search')) errorCounters.search++
+    else if (entry.error!.includes('cache')) errorCounters.cache++
   }
+
+  // Persister les compteurs clés dans Redis (non-bloquant, fire-and-forget)
+  persistCountersToRedis({
+    requestsTotal: 1,
+    requestsSuccess: isError ? 0 : 1,
+    requestsFailed: isError ? 1 : 0,
+    tokensInput: entry.inputTokens,
+    tokensOutput: entry.outputTokens,
+  })
 }
 
 /**
- * Enregistre une erreur d'embedding
+ * Enregistre une erreur d'embedding (in-memory + Redis)
  */
 export function recordEmbeddingError(): void {
   errorCounters.embedding++
   errorCounters.total++
+  persistCountersToRedis({ errorsEmbedding: 1 })
 }
 
 /**
- * Enregistre une erreur de cache
+ * Enregistre une erreur de cache (in-memory + Redis)
  */
 export function recordCacheError(): void {
   errorCounters.cache++
   errorCounters.total++
+  persistCountersToRedis({ errorsCache: 1 })
 }
 
 /**
- * Nettoie les métriques expirées
+ * Nettoie les métriques expirées.
+ * O(n) : findIndex + splice(0, k) au lieu de k appels à shift() (O(k*n)).
  */
 function pruneOldMetrics(now: number): void {
   const cutoff = now - METRICS_RETENTION_MS
-  while (metricsBuffer.length > 0 && metricsBuffer[0].timestamp < cutoff) {
-    metricsBuffer.shift()
+  const firstValid = metricsBuffer.findIndex((m) => m.timestamp >= cutoff)
+  if (firstValid === -1) {
+    // Tout est expiré
+    metricsBuffer.length = 0
+  } else if (firstValid > 0) {
+    metricsBuffer.splice(0, firstValid)
   }
 }
 
