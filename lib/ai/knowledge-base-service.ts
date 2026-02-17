@@ -751,15 +751,30 @@ export async function searchKnowledgeBaseHybrid(
   // ✨ DUAL-PROVIDER SEARCH: Si OpenAI utilisé, chercher aussi avec Ollama pour couvrir les chunks legacy
   let results: KnowledgeBaseSearchResult[]
 
+  // ✨ OPTIMISATION (Feb 17, 2026) - Pool SQL élargi pour meilleur re-ranking
+  // Problème : avec 11k+ chunks "autre" dominant l'espace cosinus, les chunks
+  // "codes"/"legislation" n'arrivent pas dans les top-15 SQL → domain boost inefficace.
+  // Solution : tripler le pool SQL (3× limit, max 100), appliquer boost, re-slicer.
+  const sqlCandidatePool = Math.min(limit * 3, 100)
+
   if (useOpenAI) {
-    // Recherche primaire avec OpenAI (haute qualité, couverture partielle ~5% chunks)
+    // Recherche primaire avec OpenAI (haute qualité, couverture globale ~100% chunks)
     const openaiResults = await searchHybridSingle(
-      queryText, embeddingStr, category || null, singleDocType, limit, threshold, true
+      queryText, embeddingStr, category || null, singleDocType, sqlCandidatePool, threshold, true
     )
 
-    // Si couverture insuffisante, chercher aussi avec Ollama (couvre 95% chunks legacy)
-    if (openaiResults.length < 3) {
-      console.log(`[KB Hybrid Search] Couverture OpenAI insuffisante (${openaiResults.length} résultats), fallback dual-provider...`)
+    // Calcul du score max OpenAI pour détecter qualité insuffisante
+    const maxOpenAIScore = openaiResults.length > 0 ? Math.max(...openaiResults.map(r => r.similarity)) : 0
+
+    // Fallback Ollama si :
+    // 1. Couverture insuffisante (< 3 résultats) - cas des chunks sans embedding_openai
+    // 2. Qualité insuffisante (max score < 0.65) - cas des queries arabes mal servies par OpenAI
+    //    (99.8% des chunks ont embedding_openai mais OpenAI text-embedding-3-small
+    //     ne capture pas bien la sémantique légale arabe, ex. "دفاع" vs "دفع صائلا")
+    const needsOllamaFallback = openaiResults.length < 3 || maxOpenAIScore < 0.65
+
+    if (needsOllamaFallback) {
+      console.log(`[KB Hybrid Search] Qualité OpenAI insuffisante (${openaiResults.length} résultats, maxScore=${maxOpenAIScore.toFixed(3)}), fallback dual-provider...`)
 
       // Générer embedding Ollama pour couvrir les chunks legacy (1024-dim)
       const ollamaEmbedding = await generateEmbedding(query, {
@@ -768,10 +783,10 @@ export async function searchKnowledgeBaseHybrid(
       const ollamaEmbStr = formatEmbeddingForPostgres(ollamaEmbedding.embedding)
 
       const ollamaResults = await searchHybridSingle(
-        queryText, ollamaEmbStr, category || null, singleDocType, limit, threshold, false
+        queryText, ollamaEmbStr, category || null, singleDocType, sqlCandidatePool, threshold, false
       )
 
-      // Fusionner : dédupliquer par chunk_id, prioriser OpenAI
+      // Fusionner : dédupliquer par chunk_id, prioriser meilleur score (OpenAI ou Ollama)
       const seenChunks = new Set(openaiResults.map(r => r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50)))
       const mergedOllama = ollamaResults.filter(r =>
         !seenChunks.has(r.knowledgeBaseId + ':' + r.chunkContent.substring(0, 50))
@@ -779,16 +794,17 @@ export async function searchKnowledgeBaseHybrid(
 
       results = [...openaiResults, ...mergedOllama]
         .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, limit)
+        .slice(0, sqlCandidatePool) // Garder tout le pool — callers slicent après domain boost
 
-      console.log(`[KB Hybrid Search] Dual-provider: ${openaiResults.length} OpenAI + ${mergedOllama.length} Ollama → ${results.length} total`)
+      console.log(`[KB Hybrid Search] Dual-provider: ${openaiResults.length} OpenAI + ${mergedOllama.length} Ollama → ${results.length} total (pool=${sqlCandidatePool})`)
     } else {
+      // Retourner tout le pool SQL — les callers appliquent domain boost puis slicent
       results = openaiResults
     }
   } else {
     // Recherche Ollama uniquement (couverture 100% chunks legacy)
     results = await searchHybridSingle(
-      queryText, embeddingStr, category || null, singleDocType, limit, threshold, false
+      queryText, embeddingStr, category || null, singleDocType, sqlCandidatePool, threshold, false
     )
   }
 
