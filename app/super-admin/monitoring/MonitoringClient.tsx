@@ -55,7 +55,8 @@ export function MonitoringClient() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-10 lg:w-[2000px]">
+        <div className="overflow-x-auto">
+        <TabsList className="grid w-max min-w-full grid-cols-10">
           <TabsTrigger value="system-config" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
@@ -97,6 +98,7 @@ export function MonitoringClient() {
             <span className="hidden sm:inline">Impersonations</span>
           </TabsTrigger>
         </TabsList>
+        </div>
 
         {/* Tab 0: System Configuration */}
         <TabsContent value="system-config" className="space-y-6">
