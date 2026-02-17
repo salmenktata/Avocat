@@ -203,7 +203,7 @@ export async function updateTaxonomy(
   }
   if (input.parentCode !== undefined && !existing.isSystem) {
     updates.push(`parent_code = $${paramIndex++}`)
-    values.push(input.parentCode)
+    values.push(input.parentCode || null)
   }
 
   if (updates.length === 0) {

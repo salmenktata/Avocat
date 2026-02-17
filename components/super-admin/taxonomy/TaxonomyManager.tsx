@@ -470,14 +470,14 @@ export function TaxonomyManager({ taxonomy }: TaxonomyManagerProps) {
             <div>
               <Label>Parent (optionnel)</Label>
               <Select
-                value={formData.parentCode}
-                onValueChange={(value) => setFormData({ ...formData, parentCode: value })}
+                value={formData.parentCode || '__none__'}
+                onValueChange={(value) => setFormData({ ...formData, parentCode: value === '__none__' ? '' : value })}
               >
                 <SelectTrigger className="bg-slate-900 border-slate-700">
                   <SelectValue placeholder="Aucun parent" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun parent</SelectItem>
+                  <SelectItem value="__none__">Aucun parent</SelectItem>
                   {[...taxonomy.category, ...taxonomy.domain, ...taxonomy.document_type].map(item => (
                     <SelectItem key={item.code} value={item.code}>
                       {item.labelFr} ({item.type})

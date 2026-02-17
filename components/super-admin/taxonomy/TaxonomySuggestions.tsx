@@ -264,12 +264,12 @@ export function TaxonomySuggestions({ suggestions, taxonomy }: TaxonomySuggestio
             {action === 'approve' && (
               <div>
                 <Label>Parent (optionnel)</Label>
-                <Select value={parentCode} onValueChange={setParentCode}>
+                <Select value={parentCode || '__none__'} onValueChange={(value) => setParentCode(value === '__none__' ? '' : value)}>
                   <SelectTrigger className="bg-slate-900 border-slate-700">
                     <SelectValue placeholder="Aucun parent" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucun parent</SelectItem>
+                    <SelectItem value="__none__">Aucun parent</SelectItem>
                     {getAllTaxonomyItems().map(item => (
                       <SelectItem key={item.code} value={item.code}>
                         {item.labelFr} ({TYPE_LABELS[item.type]})

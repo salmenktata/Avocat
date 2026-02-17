@@ -169,6 +169,9 @@ export async function POST(request: NextRequest) {
           success: true,
           message: `Suggestion fusionnée avec ${mergeWithCode}`,
         })
+
+      default:
+        return NextResponse.json({ error: 'Action non gérée' }, { status: 400 })
     }
   } catch (error) {
     console.error('[API Taxonomy Suggestions] Erreur POST:', error)

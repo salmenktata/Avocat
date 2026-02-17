@@ -54,6 +54,13 @@ export function TaxonomyStats({ stats }: TaxonomyStatsProps) {
       bgColor: 'bg-cyan-500/10',
     },
     {
+      label: 'Chambres',
+      value: stats.chambers,
+      icon: 'scale' as const,
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-400/10',
+    },
+    {
       label: 'Suggérés par IA',
       value: stats.aiSuggested,
       icon: 'sparkles' as const,
@@ -63,7 +70,7 @@ export function TaxonomyStats({ stats }: TaxonomyStatsProps) {
   ]
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
       {statItems.map((stat) => {
         const Icon = Icons[stat.icon]
         return (
