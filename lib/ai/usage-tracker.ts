@@ -123,10 +123,10 @@ export async function logEmbeddingUsage(
 }
 
 /**
- * Log simplifié pour le chat Claude
+ * Log simplifié pour le chat
  *
  * @deprecated Février 2026 - Utiliser logUsage() avec provider dynamique.
- * Cette fonction hardcode 'anthropic' mais Groq/Gemini sont maintenant primaires.
+ * Cette fonction hardcode 'gemini' (provider primaire depuis Fév 2026).
  */
 export async function logChatUsage(
   userId: string,
@@ -138,7 +138,7 @@ export async function logChatUsage(
   await logUsage({
     userId,
     operationType: 'chat',
-    provider: 'anthropic',
+    provider: 'gemini',
     model,
     inputTokens,
     outputTokens,
@@ -150,7 +150,7 @@ export async function logChatUsage(
  * Log simplifié pour la génération de documents
  *
  * @deprecated Février 2026 - Utiliser logUsage() avec provider dynamique.
- * Cette fonction hardcode 'anthropic' mais Groq/Gemini sont maintenant primaires.
+ * Cette fonction hardcode 'gemini' (provider primaire depuis Fév 2026).
  */
 export async function logGenerationUsage(
   userId: string,
@@ -162,7 +162,7 @@ export async function logGenerationUsage(
   await logUsage({
     userId,
     operationType: 'generation',
-    provider: 'anthropic',
+    provider: 'gemini',
     model,
     inputTokens,
     outputTokens,

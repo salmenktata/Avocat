@@ -50,7 +50,7 @@ const IMPORTANT_VARS = [
 
 // Variables dépréciées — leur présence = avertissement (jaune)
 const DEPRECATED_VARS: { name: string; replacedBy: string }[] = [
-  { name: 'ANTHROPIC_API_KEY', replacedBy: 'GROQ_API_KEY' },
+  { name: 'ANTHROPIC_API_KEY', replacedBy: 'GOOGLE_API_KEY' },
   { name: 'NEXT_PUBLIC_SUPABASE_URL', replacedBy: 'DATABASE_URL' },
   { name: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', replacedBy: 'NEXTAUTH_SECRET' },
 ]
