@@ -70,11 +70,12 @@ async function connectRedis(): Promise<void> {
       socket: {
         connectTimeout: 5000,
         reconnectStrategy: (retries) => {
-          if (retries > 3) {
-            console.warn('[Redis] Abandon reconnexion après 3 tentatives')
-            return false
+          // Ne jamais abandonner — backoff exponentiel plafonné à 30s
+          const delay = Math.min(retries * 500, 30000)
+          if (retries % 5 === 0) {
+            console.warn(`[Redis] Reconnexion tentative ${retries} (prochain essai dans ${delay}ms)`)
           }
-          return Math.min(retries * 100, 3000)
+          return delay
         },
       },
     })
@@ -142,6 +143,22 @@ export async function redisHealthCheck(): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+// =============================================================================
+// UTILITAIRES
+// =============================================================================
+
+// =============================================================================
+// INITIALISATION EAGÈRE AU DÉMARRAGE (server-side uniquement)
+// =============================================================================
+
+// Déclencher la connexion Redis dès le chargement du module côté serveur
+// Sans ça, le proxy `redis` utilise redisClient=null jusqu'au 1er getRedisClient()
+if (typeof window === 'undefined') {
+  getRedisClient().catch(() => {
+    // Silencieux : connectRedis() logue déjà l'erreur
+  })
 }
 
 // =============================================================================
