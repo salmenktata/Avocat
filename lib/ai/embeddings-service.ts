@@ -273,12 +273,28 @@ async function generateEmbeddingWithGemini(text: string): Promise<EmbeddingResul
     throw new Error('Gemini API key non configurée (GOOGLE_API_KEY)')
   }
 
-  const { GoogleGenerativeAI } = await import('@google/generative-ai')
-  const client = new GoogleGenerativeAI(aiConfig.gemini.apiKey)
-  const model = client.getGenerativeModel({ model: aiConfig.gemini.embeddingModel })
+  // Utiliser l'API REST v1beta (gemini-embedding-001, outputDimensionality=768)
+  const model = aiConfig.gemini.embeddingModel
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${aiConfig.gemini.apiKey}`
 
-  const result = await model.embedContent(text.substring(0, 8000))
-  const embedding = result.embedding.values
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: `models/${model}`,
+      content: { parts: [{ text: text.substring(0, 8000) }] },
+      outputDimensionality: aiConfig.gemini.embeddingDimensions,
+    }),
+    signal: AbortSignal.timeout(30000),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Gemini embedding API error: ${response.status} — ${errorText.substring(0, 200)}`)
+  }
+
+  const data = await response.json() as { embedding: { values: number[] } }
+  const embedding = data.embedding?.values
 
   if (!embedding || !Array.isArray(embedding)) {
     throw new Error('Gemini embedContent a retourné un embedding invalide')

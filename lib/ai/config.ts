@@ -117,8 +117,8 @@ export const aiConfig: AIConfig = {
     apiKey: process.env.GOOGLE_API_KEY || '',
     model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
     maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS || '4000', 10),
-    embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'text-embedding-004',
-    embeddingDimensions: 768, // text-embedding-004 dimensions
+    embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
+    embeddingDimensions: 768, // gemini-embedding-001 avec outputDimensionality=768
   },
 
   rag: {
