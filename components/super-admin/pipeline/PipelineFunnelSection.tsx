@@ -45,6 +45,11 @@ export default function PipelineFunnelSection({ stats }: PipelineFunnelSectionPr
     }
   }
 
+  // Filtrer les nœuds sans lien (source ou target) pour éviter un Sankey cassé
+  const connectedStageIds = new Set(links.flatMap(l => [l.source, l.target]))
+  const filteredNodes = nodes.filter((n: { id: string }) => connectedStageIds.has(n.id))
+  const hasData = links.length > 0 && filteredNodes.length >= 2
+
   return (
     <div className="space-y-4">
       <Card>
@@ -55,26 +60,32 @@ export default function PipelineFunnelSection({ stats }: PipelineFunnelSectionPr
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div style={{ height: '500px' }}>
-            <ResponsiveSankey
-              data={{ nodes, links }}
-              margin={{ top: 40, right: 160, bottom: 40, left: 50 }}
-              align="justify"
-              colors={{ scheme: 'category10' }}
-              nodeOpacity={1}
-              nodeThickness={18}
-              nodeInnerPadding={3}
-              nodeSpacing={24}
-              nodeBorderWidth={0}
-              linkOpacity={0.5}
-              linkHoverOthersOpacity={0.1}
-              enableLinkGradient={true}
-              labelPosition="outside"
-              labelOrientation="horizontal"
-              labelPadding={16}
-              labelTextColor={{ from: 'color', modifiers: [['darker', 1]] }}
-            />
-          </div>
+          {hasData ? (
+            <div style={{ height: '500px' }}>
+              <ResponsiveSankey
+                data={{ nodes: filteredNodes, links }}
+                margin={{ top: 40, right: 160, bottom: 40, left: 50 }}
+                align="justify"
+                colors={{ scheme: 'category10' }}
+                nodeOpacity={1}
+                nodeThickness={18}
+                nodeInnerPadding={3}
+                nodeSpacing={24}
+                nodeBorderWidth={0}
+                linkOpacity={0.5}
+                linkHoverOthersOpacity={0.1}
+                enableLinkGradient={true}
+                labelPosition="outside"
+                labelOrientation="horizontal"
+                labelPadding={16}
+                labelTextColor={{ from: 'color', modifiers: [['darker', 1]] }}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-48 text-muted-foreground">
+              Données insuffisantes pour afficher le funnel
+            </div>
+          )}
         </CardContent>
       </Card>
 

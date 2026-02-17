@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import PipelineFunnelSection from '@/components/super-admin/pipeline/PipelineFunnelSection'
 import PipelineDocumentsTable from '@/components/super-admin/pipeline/PipelineDocumentsTable'
@@ -12,6 +12,7 @@ export default function PipelineStatusClient() {
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
 
   async function fetchStats() {
     try {
@@ -20,6 +21,7 @@ export default function PipelineStatusClient() {
       if (res.ok) {
         const data = await res.json()
         setStats(data)
+        setLastRefresh(new Date())
       } else {
         console.error('Erreur récupération stats:', res.statusText)
       }
@@ -54,20 +56,27 @@ export default function PipelineStatusClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Pipeline Documents</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Statut Pipeline</h1>
           <p className="text-muted-foreground mt-1">
             Tracking et re-trigger du pipeline de traitement KB
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchStats}
-          disabled={refreshing}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          Actualiser
-        </Button>
+        <div className="flex items-center gap-3">
+          {lastRefresh && (
+            <span className="text-xs text-muted-foreground">
+              MAJ : {lastRefresh.toLocaleTimeString()}
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchStats}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
+        </div>
       </div>
 
       {/* Stats globales */}
@@ -126,35 +135,37 @@ export default function PipelineStatusClient() {
                 Étapes avec le plus de documents en attente
               </CardDescription>
             </CardHeader>
-            {stats && stats.bottlenecks && stats.bottlenecks.length > 0 ? (
-              <div className="p-6 space-y-3">
-                {stats.bottlenecks.map((bottleneck: any) => (
-                  <div
-                    key={bottleneck.stage}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">{bottleneck.label}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {bottleneck.count} documents • Moyenne {bottleneck.avgDaysInStage.toFixed(1)} jours
-                      </p>
+            <CardContent>
+              {stats && stats.bottlenecks && stats.bottlenecks.length > 0 ? (
+                <div className="space-y-3">
+                  {stats.bottlenecks.map((bottleneck: any) => (
+                    <div
+                      key={bottleneck.stage}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium">{bottleneck.label}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {bottleneck.count} documents • Moyenne {bottleneck.avgDaysInStage.toFixed(1)} jours
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">
+                          Plus ancien :{' '}
+                          {bottleneck.oldestDocDate
+                            ? new Date(bottleneck.oldestDocDate).toLocaleDateString()
+                            : 'N/A'}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">
-                        Plus ancien :{' '}
-                        {bottleneck.oldestDocDate
-                          ? new Date(bottleneck.oldestDocDate).toLocaleDateString()
-                          : 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-6 text-center text-muted-foreground">
-                Aucun bottleneck détecté
-              </div>
-            )}
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  Aucun bottleneck détecté
+                </div>
+              )}
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
