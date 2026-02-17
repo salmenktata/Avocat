@@ -55,7 +55,7 @@ export default function PipelineDocumentsTable() {
   const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [replayingDocId, setReplayingDocId] = useState<string | null>(null)
-  const [selectedStage, setSelectedStage] = useState('indexed')
+  const [selectedStage, setSelectedStage] = useState('rag_active')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
