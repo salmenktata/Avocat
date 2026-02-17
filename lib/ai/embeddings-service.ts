@@ -315,8 +315,12 @@ export async function generateEmbedding(
     text = text.substring(0, MAX_EMBEDDING_CHARS)
   }
 
-  // Vérifier le cache
-  const cached = await getCachedEmbedding(text)
+  // Résoudre le provider AVANT la vérification cache
+  // (sinon forceOllama/forceGemini ignorés : cache retourne embedding du mauvais provider)
+  const provider = resolveEmbeddingProvider(options)
+
+  // Vérifier le cache avec le provider résolu (clé = emb:{provider}:{hash})
+  const cached = await getCachedEmbedding(text, provider)
   if (cached) {
     return {
       embedding: cached.embedding,
@@ -324,8 +328,6 @@ export async function generateEmbedding(
       provider: cached.provider as 'ollama' | 'openai' | 'gemini',
     }
   }
-
-  const provider = resolveEmbeddingProvider(options)
 
   let result: EmbeddingResult
   if (provider === 'openai') {

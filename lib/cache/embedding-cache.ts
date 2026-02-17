@@ -29,24 +29,24 @@ interface CachedEmbedding {
 // =============================================================================
 
 /**
- * Génère une clé de cache versionnée par dimensions uniquement.
- * Puisque Ollama ET OpenAI produisent tous deux des vecteurs 1024-dim,
- * un texte embeddé par l'un est réutilisable par l'autre (même espace vectoriel).
- * Le provider est stocké dans la valeur cached pour l'audit.
+ * Génère une clé de cache versionnée par provider.
+ * Chaque provider (openai 1536-dim, ollama 1024-dim, gemini 768-dim) a
+ * son propre espace de cache car les embeddings NE SONT PAS interchangeables.
+ * Un embedding OpenAI 1536-dim ne peut pas être utilisé là où 1024-dim est attendu.
  */
-function getVersionedCacheKey(textHash: string): string {
-  const dimensions = getEmbeddingDimensions()
-  return REDIS_KEYS.embedding(`${dimensions}:${textHash}`)
+function getVersionedCacheKey(textHash: string, provider: 'ollama' | 'openai' | 'gemini'): string {
+  return REDIS_KEYS.embedding(`${provider}:${textHash}`)
 }
 
 /**
- * Récupère un embedding du cache
- * Le cache est versionné par provider+dimensions pour éviter les conflits
+ * Récupère un embedding du cache pour un provider spécifique
  * @param text - Texte original
- * @returns Embedding si trouvé, null sinon
+ * @param provider - Provider requis (si null: accepte n'importe quel provider pour backward compat)
+ * @returns Embedding si trouvé pour ce provider, null sinon
  */
 export async function getCachedEmbedding(
-  text: string
+  text: string,
+  provider?: 'ollama' | 'openai' | 'gemini'
 ): Promise<CachedEmbedding | null> {
   if (!isRedisAvailable()) {
     return null
@@ -57,12 +57,26 @@ export async function getCachedEmbedding(
     if (!client) return null
 
     const hash = await hashKey(text)
-    const key = getVersionedCacheKey(hash)
-    const cached = await client.get(key)
 
-    if (cached) {
-      console.log(`[EmbeddingCache] HIT: ${hash.substring(0, 8)}...`)
-      return JSON.parse(cached) as CachedEmbedding
+    if (provider) {
+      // Clé spécifique au provider (nouveau format)
+      const key = getVersionedCacheKey(hash, provider)
+      const cached = await client.get(key)
+      if (cached) {
+        console.log(`[EmbeddingCache] HIT: ${hash.substring(0, 8)}... (${provider})`)
+        return JSON.parse(cached) as CachedEmbedding
+      }
+      return null
+    }
+
+    // Backward compat: essayer dans l'ordre openai → ollama → gemini
+    for (const p of ['openai', 'ollama', 'gemini'] as const) {
+      const key = getVersionedCacheKey(hash, p)
+      const cached = await client.get(key)
+      if (cached) {
+        console.log(`[EmbeddingCache] HIT: ${hash.substring(0, 8)}... (${p})`)
+        return JSON.parse(cached) as CachedEmbedding
+      }
     }
 
     return null
@@ -76,11 +90,10 @@ export async function getCachedEmbedding(
 }
 
 /**
- * Stocke un embedding dans le cache
- * Le cache est versionné par provider+dimensions pour éviter les conflits
+ * Stocke un embedding dans le cache avec clé spécifique au provider
  * @param text - Texte original
  * @param embedding - Vecteur embedding
- * @param provider - Provider utilisé
+ * @param provider - Provider utilisé (détermine la clé de cache)
  */
 export async function setCachedEmbedding(
   text: string,
@@ -96,7 +109,7 @@ export async function setCachedEmbedding(
     if (!client) return
 
     const hash = await hashKey(text)
-    const key = getVersionedCacheKey(hash)
+    const key = getVersionedCacheKey(hash, provider)
 
     const data: CachedEmbedding = {
       embedding,
@@ -105,7 +118,7 @@ export async function setCachedEmbedding(
     }
 
     await client.setEx(key, CACHE_TTL.embedding, JSON.stringify(data))
-    console.log(`[EmbeddingCache] SET: ${hash.substring(0, 8)}... (TTL: ${CACHE_TTL.embedding}s)`)
+    console.log(`[EmbeddingCache] SET: ${hash.substring(0, 8)}... (${provider}, TTL: ${CACHE_TTL.embedding}s)`)
   } catch (error) {
     console.warn(
       '[EmbeddingCache] Erreur écriture:',
@@ -115,7 +128,7 @@ export async function setCachedEmbedding(
 }
 
 /**
- * Invalide un embedding du cache
+ * Invalide un embedding du cache (tous providers)
  */
 export async function invalidateCachedEmbedding(text: string): Promise<void> {
   if (!isRedisAvailable()) {
@@ -127,9 +140,9 @@ export async function invalidateCachedEmbedding(text: string): Promise<void> {
     if (!client) return
 
     const hash = await hashKey(text)
-    const key = getVersionedCacheKey(hash)
-    await client.del(key)
-    console.log(`[EmbeddingCache] DEL: ${hash.substring(0, 8)}...`)
+    const keys = (['openai', 'ollama', 'gemini'] as const).map(p => getVersionedCacheKey(hash, p))
+    await client.del(keys)
+    console.log(`[EmbeddingCache] DEL: ${hash.substring(0, 8)}... (tous providers)`)
   } catch (error) {
     console.warn(
       '[EmbeddingCache] Erreur suppression:',
