@@ -23,9 +23,9 @@ LOG_FILE="/var/log/qadhya/kb-indexing.log"
 export CRON_SECRET
 export CRON_API_BASE="https://qadhya.tn"
 
-# Démarrer tracking
-cron_start "index-kb" "scheduled"
-trap 'cron_fail "Script terminé avec erreur" $?' EXIT
+# Démarrer tracking (|| true : ne pas crasher si route API 404)
+cron_start "index-kb" "scheduled" || true
+trap 'cron_fail "Script terminé avec erreur" $? || true' EXIT
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') - === Début cycle indexation ===" >> $LOG_FILE
 
@@ -90,6 +90,6 @@ OUTPUT_JSON=$(cat <<EOF
 EOF
 )
 
-cron_complete "$OUTPUT_JSON"
+cron_complete "$OUTPUT_JSON" || true
 
 exit 0

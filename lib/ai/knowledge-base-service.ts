@@ -17,6 +17,9 @@ import { LEGAL_CATEGORY_TRANSLATIONS } from '@/lib/categories/legal-categories'
 import { getChunkConfig } from './adaptive-chunking-config'
 import type { DocumentType } from '@/lib/categories/doc-types'
 import { getDocumentType } from '@/lib/categories/doc-types'
+import { normalizeArabicText } from '@/lib/web-scraper/arabic-text-utils'
+import { normalizeArticleNumbers, removeDocumentBoilerplate } from '@/lib/ai/text-normalization-service'
+import type { Chunk } from './chunking-service'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse en RSC
 async function getDocumentParser() {
@@ -252,6 +255,29 @@ export async function uploadKnowledgeDocument(
 // =============================================================================
 
 /**
+ * Construit les métadonnées riches pour un chunk, incluant article_number,
+ * book_number, section_header, etc. en plus de wordCount/charCount.
+ * Rétrocompatible : les chunks existants gardent {wordCount, charCount}.
+ */
+function buildChunkMetadata(chunk: Chunk, doc: Record<string, unknown>): Record<string, unknown> {
+  const meta: Record<string, unknown> = {
+    wordCount: chunk.metadata.wordCount,
+    charCount: chunk.metadata.charCount,
+  }
+  if (chunk.metadata.chunkingStrategy) meta.chunking_strategy = chunk.metadata.chunkingStrategy
+  if (chunk.metadata.articleNumber) meta.article_number = chunk.metadata.articleNumber
+  if ((chunk.metadata as Record<string, unknown>).bookNumber) meta.book_number = (chunk.metadata as Record<string, unknown>).bookNumber
+  if ((chunk.metadata as Record<string, unknown>).chapterNumber) meta.chapter_number = (chunk.metadata as Record<string, unknown>).chapterNumber
+  if ((chunk.metadata as Record<string, unknown>).sectionHeader) meta.section_header = (chunk.metadata as Record<string, unknown>).sectionHeader
+  if (chunk.metadata.overlapWithPrevious) meta.overlap_prev = true
+  if (chunk.metadata.overlapWithNext) meta.overlap_next = true
+  // Propagation doc-level
+  if (doc.language) meta.language = doc.language
+  if (doc.category) meta.category = doc.category
+  return meta
+}
+
+/**
  * Indexe un document de la base de connaissances (génère chunks + embeddings)
  */
 export async function indexKnowledgeDocument(
@@ -300,6 +326,14 @@ export async function indexKnowledgeDocument(
   const { chunkText, chunkTextSemantic } = await getChunkingService()
   const { generateEmbedding, generateEmbeddingsBatch, formatEmbeddingForPostgres } = await getEmbeddingsService()
 
+  // ✨ NORMALISATION: Nettoyer le texte avant chunking (Sprint 1)
+  let textToChunk = doc.full_text
+  textToChunk = removeDocumentBoilerplate(textToChunk)
+  if (doc.language === 'ar') {
+    textToChunk = normalizeArabicText(textToChunk, { stripDiacritics: true })
+  }
+  textToChunk = normalizeArticleNumbers(textToChunk)
+
   // ✨ OPTIMISATION Phase 2.3 : Chunking adaptatif par catégorie
   const category = (doc.category as KnowledgeCategory) || 'autre'
   const chunkConfig = getChunkConfig(category)
@@ -322,7 +356,7 @@ export async function indexKnowledgeDocument(
   if (SEMANTIC_CHUNKING_ENABLED) {
     try {
       chunks = await chunkTextSemantic(
-        doc.full_text,
+        textToChunk,
         chunkingOptions,
         async (texts: string[]) => {
           const results = await generateEmbeddingsBatch(texts)
@@ -332,10 +366,10 @@ export async function indexKnowledgeDocument(
       console.log(`[KB Index] Semantic chunking: ${chunks.length} chunks (catégorie=${category})`)
     } catch (error) {
       console.error('[KB Index] Semantic chunking failed, fallback classique:', error instanceof Error ? error.message : error)
-      chunks = chunkText(doc.full_text, chunkingOptions)
+      chunks = chunkText(textToChunk, chunkingOptions)
     }
   } else {
-    chunks = chunkText(doc.full_text, chunkingOptions)
+    chunks = chunkText(textToChunk, chunkingOptions)
   }
 
   console.log(
@@ -425,6 +459,8 @@ export async function indexKnowledgeDocument(
       for (let i = 0; i < batchChunks.length; i++) {
         const chunkIndex = batchStart + i
 
+        const chunkMeta = JSON.stringify(buildChunkMetadata(batchChunks[i], doc))
+
         if (hasGeminiEmbeddings) {
           // Insérer embedding primaire + Gemini ensemble
           const offset = i * 6
@@ -437,10 +473,7 @@ export async function indexKnowledgeDocument(
             batchChunks[i].content,
             formatEmbeddingForPostgres(primaryEmbeddings.embeddings[chunkIndex]),
             formatEmbeddingForPostgres(geminiEmbeddingsResult.value.embeddings[chunkIndex]),
-            JSON.stringify({
-              wordCount: batchChunks[i].metadata.wordCount,
-              charCount: batchChunks[i].metadata.charCount,
-            })
+            chunkMeta
           )
         } else {
           // Insérer uniquement embedding primaire
@@ -453,10 +486,7 @@ export async function indexKnowledgeDocument(
             batchChunks[i].index,
             batchChunks[i].content,
             formatEmbeddingForPostgres(primaryEmbeddings.embeddings[chunkIndex]),
-            JSON.stringify({
-              wordCount: batchChunks[i].metadata.wordCount,
-              charCount: batchChunks[i].metadata.charCount,
-            })
+            chunkMeta
           )
         }
       }

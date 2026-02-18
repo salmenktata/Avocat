@@ -50,6 +50,25 @@ export interface BenchmarkCase {
   }
 }
 
+export type IntentType = 'factual' | 'procedural' | 'interpretive' | 'comparative' | 'citation_lookup'
+
+/**
+ * Gold eval case — extension du BenchmarkCase avec ground-truth retrieval
+ * Utilisé pour mesurer Recall@K, Precision@K, MRR, Faithfulness
+ */
+export interface GoldEvalCase extends BenchmarkCase {
+  /** UUIDs des chunks ground truth (retrieval) */
+  goldChunkIds?: string[]
+  /** UUIDs des documents knowledge_base ground truth */
+  goldDocumentIds?: string[]
+  /** Type d'intention de la question */
+  intentType: IntentType
+  /** Articles attendus dans la réponse (ex: ['الفصل 52', 'Article 52']) */
+  expectedArticles?: string[]
+  /** Seuil minimum Recall@5 attendu pour ce cas */
+  minRecallAt5?: number
+}
+
 export interface BenchmarkResult {
   caseId: string
   passed: boolean

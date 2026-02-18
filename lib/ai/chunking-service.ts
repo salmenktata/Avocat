@@ -203,8 +203,24 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
 // STRATÉGIES DE CHUNKING
 // =============================================================================
 
+// Patterns de détection d'articles pour le tracking dans le chunking adaptatif
+const AR_ARTICLE_PATTERN = /^(?:الفصل|فصل)\s+(\d+(?:\s+مكرر)?)/
+const FR_ARTICLE_PATTERN = /^(?:Article|art\.?)\s+(\d+(?:\s*[-–]\s*\d+)?(?:\s+(?:bis|ter|quater))?)/i
+
 /**
- * Découpe en préservant les paragraphes
+ * Détecte un numéro d'article au début d'un paragraphe
+ */
+function detectArticleNumber(paragraph: string): string | undefined {
+  const trimmed = paragraph.trim()
+  const arMatch = trimmed.match(AR_ARTICLE_PATTERN)
+  if (arMatch) return arMatch[1].trim()
+  const frMatch = trimmed.match(FR_ARTICLE_PATTERN)
+  if (frMatch) return frMatch[1].trim()
+  return undefined
+}
+
+/**
+ * Découpe en préservant les paragraphes, avec tracking d'article courant
  */
 function chunkByParagraphs(
   text: string,
@@ -219,6 +235,7 @@ function chunkByParagraphs(
   let currentWordCount = 0
   let startPosition = 0
   let textPosition = 0
+  let currentArticle: string | undefined
 
   for (let i = 0; i < paragraphs.length; i++) {
     const paragraph = paragraphs[i].trim()
@@ -227,13 +244,21 @@ function chunkByParagraphs(
       continue
     }
 
+    // Détecter si ce paragraphe commence un nouvel article
+    const detectedArticle = detectArticleNumber(paragraph)
+    if (detectedArticle) {
+      currentArticle = detectedArticle
+    }
+
     const paragraphWords = paragraph.split(/\s+/).length
 
     // Si le paragraphe seul dépasse la taille, le découper
     if (paragraphWords > chunkSize) {
       // Sauvegarder le chunk actuel si non vide
       if (currentChunk) {
-        chunks.push(createChunk(currentChunk, chunks.length, startPosition))
+        const chunk = createChunk(currentChunk, chunks.length, startPosition)
+        if (currentArticle) chunk.metadata.articleNumber = currentArticle
+        chunks.push(chunk)
         currentChunk = ''
         currentWordCount = 0
       }
@@ -251,6 +276,7 @@ function chunkByParagraphs(
             ...subChunk.metadata,
             startPosition: textPosition + subChunk.metadata.startPosition,
             endPosition: textPosition + subChunk.metadata.endPosition,
+            articleNumber: currentArticle,
           },
         })
       }
@@ -263,7 +289,9 @@ function chunkByParagraphs(
     // Vérifier si ajouter ce paragraphe dépasse la taille
     if (currentWordCount + paragraphWords > chunkSize && currentChunk) {
       // Créer le chunk actuel
-      chunks.push(createChunk(currentChunk, chunks.length, startPosition))
+      const chunk = createChunk(currentChunk, chunks.length, startPosition)
+      if (currentArticle) chunk.metadata.articleNumber = currentArticle
+      chunks.push(chunk)
 
       // Overlap: reprendre les derniers mots du chunk précédent
       const overlapText = getOverlapText(currentChunk, overlap)
@@ -282,7 +310,9 @@ function chunkByParagraphs(
 
   // Dernier chunk
   if (currentChunk.trim()) {
-    chunks.push(createChunk(currentChunk, chunks.length, startPosition))
+    const chunk = createChunk(currentChunk, chunks.length, startPosition)
+    if (currentArticle) chunk.metadata.articleNumber = currentArticle
+    chunks.push(chunk)
   }
 
   return addOverlapFlags(chunks)
@@ -486,6 +516,8 @@ export function chunkWithStructure(
           charCount:
             chunk.content.length +
             (section.header ? section.header.length + 4 : 0),
+          // Stocker le header de section en metadata structurée
+          ...(section.header ? { sectionHeader: section.header.trim() } : {}),
         },
       })
     }
