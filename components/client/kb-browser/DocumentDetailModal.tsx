@@ -1,16 +1,7 @@
 'use client'
 
-/**
- * Composant DocumentDetailModal - Sprint 4
- *
- * Modal détaillée d'un document de la KB avec :
- * - Métadonnées complètes (tribunal, chambre, date, etc.)
- * - Relations juridiques (citations, supersedes, etc.)
- * - Texte complet
- * - Actions (exporter, copier, ajouter au dossier)
- */
-
-import { BookOpen, Scale, Calendar, Building2, Users, FileText, Link2, Copy, Download, FolderPlus } from 'lucide-react'
+import { useCallback } from 'react'
+import { BookOpen, Scale, Calendar, Building2, Users, FileText, Link2, Copy, Download } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -20,21 +11,39 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { RAGSearchResult } from '@/lib/ai/unified-rag-service'
+import { LEGAL_CATEGORY_TRANSLATIONS, LEGAL_CATEGORY_COLORS } from '@/lib/categories/legal-categories'
+import type { LegalCategory } from '@/lib/categories/legal-categories'
+import type { SearchResultItem } from './DocumentExplorer'
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
 interface DocumentDetailModalProps {
-  document: RAGSearchResult
+  document: SearchResultItem
   open: boolean
   onOpenChange: (open: boolean) => void
   onCopy?: () => void
   onExport?: () => void
   onAddToDossier?: () => void
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+function formatDate(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null
+  try {
+    return new Date(dateStr).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+  } catch {
+    return null
+  }
 }
 
 // =============================================================================
@@ -50,6 +59,42 @@ export function DocumentDetailModal({
   onAddToDossier,
 }: DocumentDetailModalProps) {
   const { metadata, relations } = document
+  const categoryColor = LEGAL_CATEGORY_COLORS[document.category as LegalCategory]
+  const formattedDate = formatDate(metadata.decisionDate as string | null)
+
+  const handleCopy = useCallback(() => {
+    if (onCopy) {
+      onCopy()
+    } else {
+      const text = document.chunkContent || document.title
+      navigator.clipboard.writeText(text)
+    }
+  }, [onCopy, document])
+
+  const handleExport = useCallback(() => {
+    if (onExport) {
+      onExport()
+    } else {
+      const text = [
+        document.title,
+        '',
+        `Catégorie: ${getCategoryLabel(document.category)}`,
+        metadata.tribunalLabelFr ? `Tribunal: ${metadata.tribunalLabelFr}` : null,
+        formattedDate ? `Date: ${formattedDate}` : null,
+        metadata.decisionNumber ? `N° ${metadata.decisionNumber}` : null,
+        '',
+        document.chunkContent || '',
+      ].filter(Boolean).join('\n')
+
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = globalThis.document.createElement('a')
+      a.href = url
+      a.download = `${document.title.slice(0, 60).replace(/[^a-zA-Z0-9\u0600-\u06FF ]/g, '_')}.txt`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+  }, [onExport, document, metadata, formattedDate])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -57,7 +102,9 @@ export function DocumentDetailModal({
         <DialogHeader>
           <DialogTitle className="text-xl pr-8">{document.title}</DialogTitle>
           <div className="flex flex-wrap gap-2 mt-2">
-            <Badge variant="secondary">{document.category}</Badge>
+            <Badge className={categoryColor || ''}>
+              {getCategoryLabel(document.category)}
+            </Badge>
             <Badge variant="outline">
               Pertinence: {Math.round(document.similarity * 100)}%
             </Badge>
@@ -95,13 +142,13 @@ export function DocumentDetailModal({
               </div>
             )}
 
-            {(metadata as any).solution && (
+            {typeof (metadata as Record<string, unknown>).solution === 'string' && (
               <div className="border-l-4 border-primary pl-4 py-2">
                 <div className="flex items-center gap-2 mb-2">
                   <Scale className="h-4 w-4 text-primary" />
                   <span className="font-semibold text-sm">Solution</span>
                 </div>
-                <p className="text-sm">{(metadata as any).solution}</p>
+                <p className="text-sm">{String((metadata as Record<string, unknown>).solution)}</p>
               </div>
             )}
 
@@ -123,7 +170,6 @@ export function DocumentDetailModal({
           {/* Onglet Métadonnées */}
           <TabsContent value="metadata" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Tribunal */}
               {metadata.tribunalLabelFr && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-semibold">
@@ -137,7 +183,6 @@ export function DocumentDetailModal({
                 </div>
               )}
 
-              {/* Chambre */}
               {metadata.chambreLabelFr && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-semibold">
@@ -151,24 +196,16 @@ export function DocumentDetailModal({
                 </div>
               )}
 
-              {/* Date décision */}
-              {metadata.decisionDate && (
+              {formattedDate && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-semibold">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     Date de décision
                   </div>
-                  <p className="text-sm pl-6">
-                    {metadata.decisionDate.toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                  </p>
+                  <p className="text-sm pl-6">{formattedDate}</p>
                 </div>
               )}
 
-              {/* Numéro de décision */}
               {metadata.decisionNumber && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-semibold">
@@ -179,7 +216,6 @@ export function DocumentDetailModal({
                 </div>
               )}
 
-              {/* Citations */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   <Link2 className="h-4 w-4 text-muted-foreground" />
@@ -191,8 +227,7 @@ export function DocumentDetailModal({
                 </div>
               </div>
 
-              {/* Confiance extraction */}
-              {metadata.extractionConfidence !== null && (
+              {metadata.extractionConfidence != null && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-semibold">
                     Confiance extraction
@@ -219,7 +254,6 @@ export function DocumentDetailModal({
               </p>
             ) : (
               <>
-                {/* Cite */}
                 {relations.cites && relations.cites.length > 0 && (
                   <div>
                     <h4 className="font-semibold text-sm mb-3">
@@ -233,7 +267,6 @@ export function DocumentDetailModal({
                   </div>
                 )}
 
-                {/* Cité par */}
                 {relations.citedBy && relations.citedBy.length > 0 && (
                   <div>
                     <h4 className="font-semibold text-sm mb-3">
@@ -247,7 +280,6 @@ export function DocumentDetailModal({
                   </div>
                 )}
 
-                {/* Supersedes */}
                 {relations.supersedes && relations.supersedes.length > 0 && (
                   <div>
                     <h4 className="font-semibold text-sm mb-3">
@@ -261,7 +293,6 @@ export function DocumentDetailModal({
                   </div>
                 )}
 
-                {/* Cases similaires */}
                 {relations.relatedCases && relations.relatedCases.length > 0 && (
                   <div>
                     <h4 className="font-semibold text-sm mb-3">
@@ -282,23 +313,18 @@ export function DocumentDetailModal({
         <DialogFooter className="mt-6">
           <div className="flex gap-2 w-full justify-between">
             <div className="flex gap-2">
-              {onCopy && (
-                <Button variant="outline" size="sm" onClick={onCopy}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copier
-                </Button>
-              )}
-              {onExport && (
-                <Button variant="outline" size="sm" onClick={onExport}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Exporter
-                </Button>
-              )}
+              <Button variant="outline" size="sm" onClick={handleCopy}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copier
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Exporter
+              </Button>
             </div>
 
             {onAddToDossier && (
               <Button onClick={onAddToDossier}>
-                <FolderPlus className="h-4 w-4 mr-2" />
                 Ajouter au Dossier
               </Button>
             )}
@@ -330,10 +356,10 @@ function RelationCard({ relation, type = 'default' }: RelationCardProps) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <Badge variant="outline" className="text-xs">
-              {relation.relatedCategory}
+            <Badge className={`text-xs ${LEGAL_CATEGORY_COLORS[relation.relatedCategory as LegalCategory] || ''}`}>
+              {getCategoryLabel(relation.relatedCategory)}
             </Badge>
-            {relation.confidence !== null && (
+            {relation.confidence != null && (
               <Badge variant="secondary" className="text-xs">
                 {Math.round(relation.confidence * 100)}%
               </Badge>
@@ -349,4 +375,9 @@ function RelationCard({ relation, type = 'default' }: RelationCardProps) {
       </div>
     </div>
   )
+}
+
+function getCategoryLabel(category: string): string {
+  const translations = LEGAL_CATEGORY_TRANSLATIONS[category as LegalCategory]
+  return translations?.fr || category
 }
