@@ -231,11 +231,13 @@ export function UnifiedChatPage({
 
   const handleSendMessage = useCallback((content: string, options?: { docType?: DocumentType }) => {
     setPendingUserMessage(content)
+    // Streaming SSE uniquement pour le mode 'chat' (structure/consult retournent du JSON)
+    const useStream = currentAction === 'chat'
     streamSend(
       content,
       selectedConversationId || undefined,
       undefined,
-      true,
+      useStream,
       {
         actionType: currentAction,
         ...(options?.docType ? { docType: options.docType } : {}),

@@ -92,11 +92,13 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
           throw new Error(error.error || 'Erreur réseau')
         }
 
-        if (stream && response.body) {
-          // Mode streaming
+        // Choisir mode streaming ou JSON selon Content-Type réel de la réponse
+        const isSSE = response.headers.get('Content-Type')?.includes('text/event-stream')
+        if (isSSE && response.body) {
+          // Mode streaming SSE réel
           await handleStreamResponse(response.body)
         } else {
-          // Mode non-streaming (fallback)
+          // Mode non-streaming (structure/consult ou fallback)
           const data = await response.json()
           const assistantMessage: StreamingMessage = {
             role: 'assistant',
@@ -105,8 +107,12 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
             tokensUsed: data.tokensUsed?.total,
             abrogationAlerts: data.abrogationAlerts, // Phase 3.4
           }
+          // Créer metadata à partir du JSON pour que onComplete ait le conversationId
+          const jsonMetadata: StreamMetadata | undefined = data.conversationId
+            ? { conversationId: data.conversationId, sources: data.sources || [], model: data.model || '' }
+            : undefined
           setMessages((prev) => [...prev, assistantMessage])
-          options.onComplete?.(assistantMessage)
+          options.onComplete?.(assistantMessage, jsonMetadata)
         }
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
