@@ -88,9 +88,6 @@ export async function reindexLongDocuments(
           await client.query('BEGIN')
 
           for (const section of splitResult.sections) {
-            // Générer embedding pour la section
-            const embeddingResult = await generateEmbedding(section.content)
-
             // Métadonnées de section
             const sectionMetadata = generateSectionMetadata(
               page.id,
@@ -99,19 +96,18 @@ export async function reindexLongDocuments(
               splitResult.totalSections
             )
 
-            // Insérer document KB
+            // Insérer document KB sans embedding (sera dans les chunks)
             const kbResult = await client.query(
               `INSERT INTO knowledge_base (
-                category, title, description, full_text, embedding,
+                category, title, description, full_text,
                 is_indexed, language, metadata, created_at, updated_at
-              ) VALUES ($1, $2, $3, $4, $5::vector, $6, $7, $8, NOW(), NOW())
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
               RETURNING id`,
               [
                 'google_drive',
                 `${page.title} - ${section.title}`,
                 `Section ${section.index + 1}/${splitResult.totalSections}`,
                 section.content,
-                formatEmbeddingForPostgres(embeddingResult.embedding),
                 true,
                 'ar',
                 JSON.stringify({
@@ -133,21 +129,23 @@ export async function reindexLongDocuments(
               const chunkWords = words.slice(i, i + chunkSize)
               const chunkContent = chunkWords.join(' ')
 
-              // Générer embedding pour le chunk
+              // Générer embedding pour le chunk (OpenAI = 1536-dim)
               const chunkEmbedding = await generateEmbedding(chunkContent)
+              const embeddingColumn = chunkEmbedding.provider === 'openai' ? 'embedding_openai' : 'embedding'
 
               chunks.push({
                 content: chunkContent,
                 embedding: formatEmbeddingForPostgres(chunkEmbedding.embedding),
+                embeddingColumn,
                 index: chunks.length,
               })
             }
 
-            // Insérer les chunks
+            // Insérer les chunks avec la bonne colonne selon le provider
             for (const chunk of chunks) {
               await client.query(
                 `INSERT INTO knowledge_base_chunks (
-                  knowledge_base_id, chunk_index, content, embedding, created_at
+                  knowledge_base_id, chunk_index, content, ${chunk.embeddingColumn}, created_at
                 ) VALUES ($1, $2, $3, $4::vector, NOW())`,
                 [kbId, chunk.index, chunk.content, chunk.embedding]
               )
