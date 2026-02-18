@@ -237,9 +237,19 @@ export async function enrichKBDocumentMetadata(
     throw new Error('Impossible de parser la réponse LLM pour enrichissement')
   }
 
-  if (!enriched.description || enriched.description.trim().length < 10) {
+  // Si la description générée est trop courte, utiliser le titre comme fallback minimal
+  if (!enriched.description || enriched.description.trim().length < 5) {
+    console.warn(`[KB Enrich] Description trop courte pour ${documentId} — skip enrichissement`)
     throw new Error('Description générée invalide ou trop courte')
   }
+
+  // Normaliser les tags : s'assurer que c'est bien un array JS (pas une string JSON)
+  // pg attend un array natif pour les colonnes text[]
+  const tagsArray: string[] = Array.isArray(enriched.tags)
+    ? enriched.tags
+    : typeof enriched.tags === 'string'
+      ? JSON.parse(enriched.tags as unknown as string)
+      : []
 
   // Sauvegarder les métadonnées enrichies
   await db.query(
@@ -248,7 +258,7 @@ export async function enrichKBDocumentMetadata(
       tags = $2,
       updated_at = NOW()
     WHERE id = $3`,
-    [enriched.description.trim(), JSON.stringify(enriched.tags || []), documentId]
+    [enriched.description.trim(), tagsArray, documentId]
   )
 
   console.log(`[KB Enrich] ✅ Doc ${documentId} enrichi: description ${enriched.description.length} chars, ${(enriched.tags || []).length} tags`)
