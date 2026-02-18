@@ -21,8 +21,9 @@ export async function POST(request: NextRequest) {
     const batchSize = parseInt(body.batchSize || '10', 10)
     const category = body.category || null
     const skipAnalyzed = body.skipAnalyzed !== false
+    const deactivateShortDocs = body.deactivateShortDocs === true
 
-    console.log('[KB Quality] Démarrage:', { batchSize, category, skipAnalyzed })
+    console.log('[KB Quality] Démarrage:', { batchSize, category, skipAnalyzed, deactivateShortDocs })
 
     // Identifier les documents à analyser
     let query = `
@@ -86,13 +87,28 @@ export async function POST(request: NextRequest) {
         console.log(`[KB Quality] Analysing "${doc.title}" (${doc.id})...`)
 
         if (!doc.full_text || doc.full_text.length < 100) {
-          results.push({
-            documentId: doc.id,
-            title: doc.title,
-            success: false,
-            error: 'Full text trop court ou manquant',
-            processingTimeMs: Date.now() - startTime,
-          })
+          // Si deactivateShortDocs=true et contenu < 50 chars, désactiver le doc
+          if (deactivateShortDocs && (!doc.full_text || doc.full_text.length < 50)) {
+            await db.query(
+              `UPDATE knowledge_base SET is_active = false, updated_at = NOW() WHERE id = $1`,
+              [doc.id]
+            )
+            results.push({
+              documentId: doc.id,
+              title: doc.title,
+              success: false,
+              error: `Désactivé (contenu < 50 chars: ${doc.full_text?.length || 0} chars)`,
+              processingTimeMs: Date.now() - startTime,
+            })
+          } else {
+            results.push({
+              documentId: doc.id,
+              title: doc.title,
+              success: false,
+              error: 'Full text trop court ou manquant',
+              processingTimeMs: Date.now() - startTime,
+            })
+          }
           continue
         }
 

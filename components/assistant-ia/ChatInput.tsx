@@ -17,11 +17,17 @@ import { ALL_DOC_TYPES, DOC_TYPE_TRANSLATIONS, type DocumentType } from '@/lib/c
 
 interface ChatInputProps {
   onSend: (message: string, options?: { docType?: DocumentType }) => void
+  onStop?: () => void
+  isStreaming?: boolean
   disabled?: boolean
   placeholder?: string
   modeConfig?: ModeConfig
-  showDocTypeFilter?: boolean // Nouveau prop optionnel
+  showDocTypeFilter?: boolean
+  /** Incrémentez cette valeur pour déclencher l'auto-focus du textarea */
+  focusKey?: number
 }
+
+const MAX_CHARS = 4000
 
 const DOC_TYPE_ICONS: Record<DocumentType | 'ALL', string> = {
   ALL: '📚',
@@ -34,10 +40,13 @@ const DOC_TYPE_ICONS: Record<DocumentType | 'ALL', string> = {
 
 export function ChatInput({
   onSend,
+  onStop,
+  isStreaming = false,
   disabled = false,
   placeholder,
   modeConfig,
-  showDocTypeFilter = true
+  showDocTypeFilter = true,
+  focusKey,
 }: ChatInputProps) {
   const t = useTranslations('assistantIA')
   const [message, setMessage] = useState('')
@@ -54,9 +63,16 @@ export function ChatInput({
     }
   }, [message])
 
+  // Auto-focus quand focusKey change (nouvelle conversation ou sélection)
+  useEffect(() => {
+    if (focusKey !== undefined) {
+      textareaRef.current?.focus()
+    }
+  }, [focusKey])
+
   const handleSend = () => {
     const trimmed = message.trim()
-    if (trimmed && !disabled) {
+    if (trimmed && !disabled && !isStreaming) {
       const options = selectedDocType !== 'ALL' ? { docType: selectedDocType } : undefined
       onSend(trimmed, options)
       setMessage('')
@@ -77,7 +93,10 @@ export function ChatInput({
     }
   }
 
-  const canSend = message.trim().length > 0 && !disabled
+  const charCount = message.length
+  const isNearLimit = charCount > MAX_CHARS * 0.8
+  const isOverLimit = charCount > MAX_CHARS
+  const canSend = message.trim().length > 0 && !disabled && !isStreaming && !isOverLimit
 
   return (
     <div className="p-3 md:p-4">
@@ -124,8 +143,8 @@ export function ChatInput({
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder || t('placeholder')}
-            disabled={disabled}
+            placeholder={isStreaming ? 'En cours de génération...' : (placeholder || t('placeholder'))}
+            disabled={disabled || isStreaming}
             rows={1}
             className={cn(
               'flex-1 resize-none bg-transparent px-4 py-3.5',
@@ -136,28 +155,55 @@ export function ChatInput({
             )}
           />
           <div className="flex items-center gap-1.5 pe-2 pb-2">
-            <span className="hidden sm:inline-flex text-[10px] text-muted-foreground/50 me-1">
-              <kbd className="px-1 py-0.5 rounded border border-border/50 bg-muted/30 font-sans">
-                {'\u23CE'}
-              </kbd>
-            </span>
-            <Button
-              onClick={handleSend}
-              disabled={!canSend}
-              size="icon"
-              className={cn(
-                'h-9 w-9 rounded-xl shrink-0',
-                'transition-all duration-200',
-                canSend && 'hover:scale-105 active:scale-95 shadow-sm',
-                !canSend && 'opacity-40'
-              )}
-            >
-              {disabled ? (
-                <Icons.loader className="h-4 w-4 animate-spin" />
-              ) : (
-                <Icons.arrowUp className="h-4 w-4" />
-              )}
-            </Button>
+            {/* Compteur de caractères */}
+            {(isNearLimit || charCount > 100) && (
+              <span className={cn(
+                'text-[10px] tabular-nums hidden sm:inline',
+                isOverLimit ? 'text-destructive font-medium' : isNearLimit ? 'text-amber-500' : 'text-muted-foreground/40'
+              )}>
+                {charCount}/{MAX_CHARS}
+              </span>
+            )}
+
+            {/* Hint clavier (caché pendant streaming) */}
+            {!isStreaming && (
+              <span className="hidden sm:inline-flex text-[10px] text-muted-foreground/50 me-1">
+                <kbd className="px-1 py-0.5 rounded border border-border/50 bg-muted/30 font-sans">
+                  {'\u23CE'}
+                </kbd>
+              </span>
+            )}
+
+            {/* Bouton Stop ou Envoyer */}
+            {isStreaming ? (
+              <Button
+                onClick={onStop}
+                size="icon"
+                variant="destructive"
+                className="h-9 w-9 rounded-xl shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+                title="Arrêter la génération"
+              >
+                <Icons.x className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSend}
+                disabled={!canSend}
+                size="icon"
+                className={cn(
+                  'h-9 w-9 rounded-xl shrink-0',
+                  'transition-all duration-200',
+                  canSend && 'hover:scale-105 active:scale-95 shadow-sm',
+                  !canSend && 'opacity-40'
+                )}
+              >
+                {disabled ? (
+                  <Icons.loader className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Icons.arrowUp className="h-4 w-4" />
+                )}
+              </Button>
+            )}
           </div>
         </div>
         <p className="text-[11px] text-muted-foreground/50 text-center mt-2">

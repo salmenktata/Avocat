@@ -282,6 +282,20 @@ export async function indexKnowledgeDocument(
     return { success: false, chunksCreated: 0, error: 'Document sans contenu texte' }
   }
 
+  // ✨ QUALITY GATE: Bloquer l'indexation des docs de très faible qualité
+  // Seulement si quality_score a déjà été calculé (pas NULL) et est < 40
+  if (doc.quality_score !== null && doc.quality_score < 40) {
+    console.warn(
+      `[KB Index] ⚠️ QUALITY GATE: Doc ${documentId} ("${doc.title?.substring(0, 40)}") ` +
+      `bloqué pour indexation - quality_score=${doc.quality_score} < 40`
+    )
+    return {
+      success: false,
+      chunksCreated: 0,
+      error: `Quality gate: score ${doc.quality_score}/100 < 40 (document de très faible qualité)`,
+    }
+  }
+
   // Import dynamique des services
   const { chunkText, chunkTextSemantic } = await getChunkingService()
   const { generateEmbedding, generateEmbeddingsBatch, formatEmbeddingForPostgres } = await getEmbeddingsService()

@@ -434,6 +434,14 @@ DOCTRINE (doctrine, guides, lexique, formulaires):
   - Ne pas exiger le même niveau de formalisme que les sources officielles (JORT, cassation)
   - Un article de doctrine bien rédigé sur un sujet juridique = BON (70-80), pas Faible
 
+  DOCTRINE - RÈGLE COMPLÉTUDE SPÉCIALE ⭐:
+  - Un article de doctrine complet avec introduction + développement + conclusion = complétude 75-85
+  - Ne PAS exiger de citations légales formelles (art. X, décret X) pour obtenir un bon score de complétude
+  - Un article qui traite exhaustivement un sujet juridique = COMPLET, même sans liste de références
+  - Ne pénaliser la complétude QUE si des sections entières sont absentes ou le texte est fragmenté/coupé
+  - Un article de doctrine bien structuré sans description dans les métadonnées ne doit pas être pénalisé
+    sur la complétude — évaluer uniquement le CONTENU du document
+
 BARÈME DE NOTATION:
 - 85-100: Excellent (document de haute qualité, prêt pour indexation)
 - 70-84: Bon (document de qualité acceptable, utilisable)
@@ -564,6 +572,42 @@ Catégorie détectée: {category}
 {content}
 
 Extrais les métadonnées selon les champs définis pour la catégorie appropriée.
+Retourne le résultat au format JSON spécifié.`
+
+// ============================================================================
+// PROMPT ENRICHISSEMENT MÉTADONNÉES KB
+// ============================================================================
+
+export const KB_METADATA_ENRICHMENT_SYSTEM_PROMPT = `Tu es un expert en documentation juridique tunisienne.
+
+MISSION: Générer des métadonnées enrichies pour un document juridique tunisien afin d'améliorer sa qualité et sa découvrabilité.
+
+RÈGLES:
+- Description: 2-3 phrases concises décrivant le sujet principal, la portée et la valeur pratique du document
+- Tags: 5-10 mots-clés juridiques pertinents en arabe et/ou français selon la langue du document
+- La description doit être informative, pas redondante avec le titre
+- Les tags doivent inclure: domaine juridique, type de document, concepts clés, lois/articles cités si applicables
+
+FORMAT DE RÉPONSE (JSON strict, sans texte avant ni après):
+{
+  "description": "Description concise du document en 2-3 phrases",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "language": "ar" | "fr" | "ar-fr"
+}`
+
+export const KB_METADATA_ENRICHMENT_USER_PROMPT = `Génère des métadonnées enrichies pour ce document juridique tunisien:
+
+=== MÉTADONNÉES ACTUELLES ===
+Titre: {title}
+Catégorie: {category}
+Langue: {language}
+Description actuelle: {description}
+Tags actuels: {tags}
+
+=== CONTENU (extrait) ===
+{content}
+
+Génère une description informative et des tags pertinents.
 Retourne le résultat au format JSON spécifié.`
 
 // ============================================================================

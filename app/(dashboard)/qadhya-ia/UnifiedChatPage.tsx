@@ -7,9 +7,10 @@
  * Actions contextuelles pour choisir le mode d'interaction
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { Icons } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +20,7 @@ import { useToast } from '@/lib/hooks/use-toast'
 import { FeatureErrorBoundary } from '@/components/providers/FeatureErrorBoundary'
 import { ActionButtons, type ActionType } from '@/components/qadhya-ia/ActionButtons'
 import { EnrichedMessage } from '@/components/qadhya-ia/EnrichedMessage'
+import { ChatActions } from '@/components/assistant-ia/ChatActions'
 import { MODE_CONFIGS } from './mode-config'
 import {
   ConversationsList,
@@ -34,9 +36,13 @@ import {
 import {
   useConversationList,
   useConversation,
-  useSendMessage,
   useDeleteConversation,
+  conversationKeys,
 } from '@/lib/hooks/useConversations'
+import { useStreamingChat } from '@/lib/hooks/useStreamingChat'
+import type { DocumentType } from '@/lib/categories/doc-types'
+
+const STORAGE_KEY = 'qadhya_last_conversation'
 
 interface UnifiedChatPageProps {
   userId: string
@@ -52,11 +58,31 @@ export function UnifiedChatPage({
   const t = useTranslations('qadhyaIA')
   const router = useRouter()
   const { toast } = useToast()
+  const queryClient = useQueryClient()
 
   // State
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(STORAGE_KEY)
+    }
+    return null
+  })
   const [currentAction, setCurrentAction] = useState<ActionType>(initialAction)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  // Message utilisateur en attente (affiché immédiatement avant réponse serveur)
+  const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null)
+  // Clé pour déclencher l'auto-focus du textarea
+  const [inputFocusKey, setInputFocusKey] = useState(0)
+
+  // Persistance de la conversation sélectionnée en localStorage
+  useEffect(() => {
+    if (selectedConversationId) {
+      localStorage.setItem(STORAGE_KEY, selectedConversationId)
+    } else {
+      localStorage.removeItem(STORAGE_KEY)
+    }
+  }, [selectedConversationId])
 
   // Mode config dérivée de l'action courante
   const modeConfig = useMemo(() => MODE_CONFIGS[currentAction], [currentAction])
@@ -80,20 +106,32 @@ export function UnifiedChatPage({
     enabled: !!selectedConversationId,
   })
 
-  // Mutations avec optimistic updates
-  const { mutate: sendMessage, isPending: isSending } = useSendMessage({
-    onSuccess: (data) => {
+  // Streaming chat - remplace useSendMessage pour affichage progressif
+  const {
+    isStreaming,
+    streamingContent,
+    sendMessage: streamSend,
+    stopStreaming,
+  } = useStreamingChat({
+    onComplete: (_finalMessage, metadata) => {
+      setPendingUserMessage(null)
+
       // Si nouvelle conversation, la sélectionner
-      if (!selectedConversationId && data.conversation.id) {
-        setSelectedConversationId(data.conversation.id)
+      const convId = selectedConversationId || metadata?.conversationId
+      if (!selectedConversationId && metadata?.conversationId) {
+        setSelectedConversationId(metadata.conversationId)
       }
 
-      // Si c'est une structuration avec dossierId, rediriger
-      if (currentAction === 'structure' && (data as any).dossierId) {
-        router.push(`/dossiers/${(data as any).dossierId}`)
+      // Invalider le cache pour rafraîchir depuis le serveur
+      if (convId) {
+        queryClient.invalidateQueries({
+          queryKey: conversationKeys.detail(convId),
+        })
       }
+      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
     },
     onError: (error) => {
+      setPendingUserMessage(null)
       toast({
         title: t('errors.sendFailed'),
         description: error.message,
@@ -108,7 +146,7 @@ export function UnifiedChatPage({
         title: t('success.deleted'),
       })
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: t('errors.deleteFailed'),
         variant: 'destructive',
@@ -125,11 +163,10 @@ export function UnifiedChatPage({
     [conversationsData?.conversations]
   )
 
-  const messages: ChatMessage[] = useMemo(() =>
-    (selectedConversation?.messages || [])
+  const messages: ChatMessage[] = useMemo(() => {
+    const serverMessages = (selectedConversation?.messages || [])
       .filter((m) => m.role !== 'system')
       .map((m) => {
-        // Sources directement sur m (via fetchConversation) OU dans metadata (legacy)
         const rawSources = (m as any).sources || m.metadata?.sources
         return {
           id: m.id,
@@ -144,21 +181,45 @@ export function UnifiedChatPage({
           })),
           abrogationAlerts: m.metadata?.abrogationAlerts,
           qualityIndicator: m.metadata?.qualityIndicator,
-          metadata: m.metadata, // Conserver metadata pour actionType
+          metadata: m.metadata,
         } as any
-      }),
-    [selectedConversation?.messages]
+      })
+
+    // Ajouter le message utilisateur en attente si streaming en cours
+    if (isStreaming && pendingUserMessage) {
+      const hasPending = serverMessages.some(
+        (m) => m.role === 'user' && m.content === pendingUserMessage
+      )
+      if (!hasPending) {
+        serverMessages.push({
+          id: 'pending-user',
+          role: 'user' as const,
+          content: pendingUserMessage,
+          createdAt: new Date(),
+        })
+      }
+    }
+
+    return serverMessages
+  }, [selectedConversation?.messages, isStreaming, pendingUserMessage])
+
+  // Titre de la conversation sélectionnée (pour ChatActions)
+  const selectedConvTitle = useMemo(() =>
+    conversations.find((c) => c.id === selectedConversationId)?.title || null,
+    [conversations, selectedConversationId]
   )
 
   // Handlers
   const handleSelectConversation = useCallback((id: string) => {
     setSelectedConversationId(id)
     setSidebarOpen(false)
+    setInputFocusKey((k) => k + 1)
   }, [])
 
   const handleNewConversation = useCallback(() => {
     setSelectedConversationId(null)
     setSidebarOpen(false)
+    setInputFocusKey((k) => k + 1)
   }, [])
 
   const handleDeleteConversation = useCallback((id: string) => {
@@ -168,15 +229,19 @@ export function UnifiedChatPage({
     deleteConversation(id)
   }, [selectedConversationId, deleteConversation])
 
-  const handleSendMessage = useCallback((content: string) => {
-    sendMessage({
-      conversationId: selectedConversationId || undefined,
-      message: content,
-      usePremiumModel: false,
-      // Ajout du actionType dans les metadata (sera géré par l'API)
-      actionType: currentAction,
-    } as any)
-  }, [selectedConversationId, currentAction, sendMessage])
+  const handleSendMessage = useCallback((content: string, options?: { docType?: DocumentType }) => {
+    setPendingUserMessage(content)
+    streamSend(
+      content,
+      selectedConversationId || undefined,
+      undefined,
+      true,
+      {
+        actionType: currentAction,
+        ...(options?.docType ? { docType: options.docType } : {}),
+      }
+    )
+  }, [selectedConversationId, currentAction, streamSend])
 
   const handleActionSelect = useCallback((action: ActionType) => {
     setCurrentAction(action)
@@ -199,11 +264,18 @@ export function UnifiedChatPage({
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
         <div className="flex items-center gap-2.5 mb-1">
-          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', modeConfig.iconBgClass)}>
+          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', modeConfig.iconBgClass)}>
             <ModeIcon className={cn('h-4 w-4', modeConfig.iconTextClass)} />
           </div>
-          <div>
-            <h2 className="font-semibold text-sm tracking-tight">{t('title')}</h2>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="font-semibold text-sm tracking-tight">{t('title')}</h2>
+              {/* Badge mode actif - desktop sidebar */}
+              <Badge variant="outline" className={cn('gap-1 text-[10px] h-5 hidden lg:flex', modeConfig.badgeClass)}>
+                <ModeIcon className="h-2.5 w-2.5" />
+                {t(`actions.${modeConfig.translationKey}.label`)}
+              </Badge>
+            </div>
             <p className="text-[11px] text-muted-foreground">{t(`actions.${modeConfig.translationKey}.description`)}</p>
           </div>
         </div>
@@ -230,8 +302,11 @@ export function UnifiedChatPage({
       }}
     >
       <div className={cn('h-[calc(100vh-4rem)] flex bg-gradient-to-br', modeConfig.gradientClass)}>
-        {/* Sidebar - Desktop */}
-        <aside className="hidden lg:flex lg:w-72 xl:w-80 border-r flex-col bg-background/80 backdrop-blur-sm">
+        {/* Sidebar - Desktop (collapsible) */}
+        <aside className={cn(
+          'hidden lg:flex border-r flex-col bg-background/80 backdrop-blur-sm transition-all duration-300 overflow-hidden',
+          sidebarCollapsed ? 'lg:w-0 border-0' : 'lg:w-72 xl:w-80'
+        )}>
           {SidebarContent}
         </aside>
 
@@ -256,18 +331,45 @@ export function UnifiedChatPage({
             <div className="w-9" />
           </div>
 
+          {/* Header Desktop - bouton toggle sidebar */}
+          <div className="hidden lg:flex items-center gap-2 px-3 py-2 border-b bg-background/80 backdrop-blur-sm">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setSidebarCollapsed((c) => !c)}
+              title={sidebarCollapsed ? 'Ouvrir la sidebar' : 'Réduire la sidebar'}
+            >
+              <Icons.chevronLeft className={cn(
+                'h-4 w-4 transition-transform duration-200',
+                sidebarCollapsed && 'rotate-180'
+              )} />
+            </Button>
+          </div>
+
           {/* Messages */}
           <div className="flex-1 overflow-auto">
             <div className="max-w-3xl mx-auto">
               <ChatMessages
                 messages={messages}
-                isLoading={isLoadingMessages}
+                isLoading={isLoadingMessages && !isStreaming}
+                streamingContent={isStreaming ? (streamingContent || ' ') : undefined}
                 modeConfig={modeConfig}
                 renderEnriched={(message) => <EnrichedMessage message={message} />}
-                onSendExample={handleSendMessage}
+                onSendExample={(text) => handleSendMessage(text)}
               />
             </div>
           </div>
+
+          {/* ChatActions - Exporter/Copier conversation */}
+          {messages.length > 0 && !isStreaming && (
+            <ChatActions
+              hasMessages={messages.length > 0}
+              conversationId={selectedConversationId}
+              messages={messages}
+              conversationTitle={selectedConvTitle || undefined}
+            />
+          )}
 
           {/* Zone basse : Tabs + Input */}
           <div className="border-t bg-background/80 backdrop-blur-sm">
@@ -277,7 +379,7 @@ export function UnifiedChatPage({
                 <ActionButtons
                   selected={currentAction}
                   onSelect={handleActionSelect}
-                  disabled={isSending}
+                  disabled={isStreaming}
                 />
               </div>
             )}
@@ -285,9 +387,12 @@ export function UnifiedChatPage({
             {/* Input */}
             <ChatInput
               onSend={handleSendMessage}
-              disabled={isSending}
+              disabled={false}
+              isStreaming={isStreaming}
+              onStop={stopStreaming}
               placeholder={getPlaceholder()}
               modeConfig={modeConfig}
+              focusKey={inputFocusKey}
             />
           </div>
         </main>

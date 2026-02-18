@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { SourcesPanel } from './SourcesPanel'
 import { useVirtualizedMessages } from '@/lib/hooks/useVirtualizedMessages'
 import { AbrogationAlerts } from '@/components/chat/abrogation-alert' // Phase 3.4
+import { MessageFeedback } from '@/components/chat/MessageFeedback'
 import type { AbrogationAlert } from '@/types/abrogation-alerts' // Phase 3.4
 import type { ModeConfig } from '@/app/(dashboard)/qadhya-ia/mode-config'
 
@@ -52,9 +53,10 @@ interface ChatMessagesProps {
   modeConfig?: ModeConfig
   renderEnriched?: (message: ChatMessage) => React.ReactNode
   onSendExample?: (text: string) => void
+  canProvideFeedback?: boolean
 }
 
-export function ChatMessages({ messages, isLoading, streamingContent, modeConfig, renderEnriched, onSendExample }: ChatMessagesProps) {
+export function ChatMessages({ messages, isLoading, streamingContent, modeConfig, renderEnriched, onSendExample, canProvideFeedback = false }: ChatMessagesProps) {
   const t = useTranslations('assistantIA')
   const tMode = useTranslations('qadhyaIA.modes')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -183,7 +185,7 @@ export function ChatMessages({ messages, isLoading, streamingContent, modeConfig
                 }}
                 className="pb-4"
               >
-                <MessageBubble message={message} renderEnriched={renderEnriched} />
+                <MessageBubble message={message} renderEnriched={renderEnriched} canProvideFeedback={canProvideFeedback} />
               </div>
             )
           })}
@@ -223,7 +225,7 @@ export function ChatMessages({ messages, isLoading, streamingContent, modeConfig
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
           >
-            <MessageBubble message={message} renderEnriched={renderEnriched} />
+            <MessageBubble message={message} renderEnriched={renderEnriched} canProvideFeedback={canProvideFeedback} />
           </motion.div>
         ))}
       </AnimatePresence>
@@ -352,9 +354,10 @@ function LoadingIndicator() {
 interface MessageBubbleProps {
   message: ChatMessage
   renderEnriched?: (message: ChatMessage) => React.ReactNode
+  canProvideFeedback?: boolean
 }
 
-const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: MessageBubbleProps) {
+const MessageBubble = memo(function MessageBubble({ message, renderEnriched, canProvideFeedback = false }: MessageBubbleProps) {
   const t = useTranslations('assistantIA')
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
@@ -449,23 +452,31 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
 
           {/* Barre d'actions - en bas de la carte */}
           {!message.isStreaming && (
-            <div className="flex items-center gap-0.5 px-3 py-1.5 border-t border-border/20 opacity-0 group-hover:opacity-100 transition-all duration-300">
-              <button
-                onClick={handleCopyResponse}
-                className={cn(
-                  'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] transition-all duration-200',
-                  copied
-                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                )}
-                title="Copier la réponse"
-              >
-                {copied ? (
-                  <><Icons.check className="h-3 w-3" /> <span>Copié</span></>
-                ) : (
-                  <><Icons.copy className="h-3 w-3" /> <span>Copier</span></>
-                )}
-              </button>
+            <div className="flex items-center justify-between gap-0.5 px-3 py-1.5 border-t border-border/20 opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={handleCopyResponse}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] transition-all duration-200',
+                    copied
+                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  )}
+                  title="Copier la réponse"
+                >
+                  {copied ? (
+                    <><Icons.check className="h-3 w-3" /> <span>Copié</span></>
+                  ) : (
+                    <><Icons.copy className="h-3 w-3" /> <span>Copier</span></>
+                  )}
+                </button>
+              </div>
+              {/* Feedback thumbs up/down */}
+              <MessageFeedback
+                messageId={message.id}
+                canProvideFeedback={canProvideFeedback}
+                className="shrink-0"
+              />
             </div>
           )}
         </div>
@@ -485,7 +496,8 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched }: M
     prevProps.message.content === nextProps.message.content &&
     prevProps.message.isStreaming === nextProps.message.isStreaming &&
     prevProps.message.sources?.length === nextProps.message.sources?.length &&
-    prevProps.renderEnriched === nextProps.renderEnriched
+    prevProps.renderEnriched === nextProps.renderEnriched &&
+    prevProps.canProvideFeedback === nextProps.canProvideFeedback
   )
 })
 

@@ -14,6 +14,8 @@ import { db } from '@/lib/db/postgres'
 import {
   KB_QUALITY_ANALYSIS_SYSTEM_PROMPT,
   KB_QUALITY_ANALYSIS_USER_PROMPT,
+  KB_METADATA_ENRICHMENT_SYSTEM_PROMPT,
+  KB_METADATA_ENRICHMENT_USER_PROMPT,
   formatPrompt,
   truncateContent,
 } from './prompts/legal-analysis'
@@ -155,6 +157,125 @@ export async function analyzeKBDocumentQuality(documentId: string): Promise<KBQu
   return result
 }
 
+// =============================================================================
+// ENRICHISSEMENT MÉTADONNÉES
+// =============================================================================
+
+export interface KBMetadataEnrichmentResult {
+  description: string
+  tags: string[]
+  language: string
+  documentId: string
+  previousDescription: string | null
+  qualityReanalized: boolean
+  newQualityScore?: number
+}
+
+/**
+ * Enrichit les métadonnées d'un document KB (description + tags) via LLM
+ * puis re-déclenche l'analyse qualité pour améliorer le score de complétude
+ */
+export async function enrichKBDocumentMetadata(
+  documentId: string,
+  reanalyzeAfter: boolean = true
+): Promise<KBMetadataEnrichmentResult> {
+  // Récupérer le document
+  const docResult = await db.query(
+    `SELECT id, title, description, category, language, full_text, tags, quality_completeness
+     FROM knowledge_base WHERE id = $1 AND is_active = true`,
+    [documentId]
+  )
+
+  if (docResult.rows.length === 0) {
+    throw new Error(`Document KB non trouvé: ${documentId}`)
+  }
+
+  const doc = docResult.rows[0]
+  const content = doc.full_text || ''
+
+  if (content.length < 50) {
+    throw new Error(`Contenu trop court pour enrichissement: ${content.length} chars`)
+  }
+
+  // Préparer le prompt
+  const userPrompt = formatPrompt(KB_METADATA_ENRICHMENT_USER_PROMPT, {
+    title: doc.title || 'Sans titre',
+    category: doc.category || 'autre',
+    language: doc.language || 'ar',
+    description: doc.description || 'Aucune description',
+    tags: (doc.tags || []).join(', ') || 'Aucun tag',
+    content: truncateContent(content, 6000),
+  })
+
+  const messages: LLMMessage[] = [
+    { role: 'system', content: KB_METADATA_ENRICHMENT_SYSTEM_PROMPT },
+    { role: 'user', content: userPrompt },
+  ]
+
+  const llmResult: LLMResponse = await callLLMWithFallback(messages, {
+    temperature: 0.2,
+    maxTokens: 1000,
+    operationName: 'kb-quality-analysis',
+  })
+
+  // Parser la réponse
+  let enriched: { description: string; tags: string[]; language: string } = {
+    description: '',
+    tags: [],
+    language: doc.language || 'ar',
+  }
+
+  try {
+    // Nettoyer les caractères de contrôle arabes avant parsing
+    const cleaned = llmResult.answer.replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]/g, '')
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      enriched = JSON.parse(jsonMatch[0])
+    }
+  } catch (error) {
+    console.error('[KB Enrich] Erreur parsing réponse LLM:', error)
+    throw new Error('Impossible de parser la réponse LLM pour enrichissement')
+  }
+
+  if (!enriched.description || enriched.description.trim().length < 10) {
+    throw new Error('Description générée invalide ou trop courte')
+  }
+
+  // Sauvegarder les métadonnées enrichies
+  await db.query(
+    `UPDATE knowledge_base SET
+      description = $1,
+      tags = $2,
+      updated_at = NOW()
+    WHERE id = $3`,
+    [enriched.description.trim(), JSON.stringify(enriched.tags || []), documentId]
+  )
+
+  console.log(`[KB Enrich] ✅ Doc ${documentId} enrichi: description ${enriched.description.length} chars, ${(enriched.tags || []).length} tags`)
+
+  // Optionnellement re-analyser la qualité
+  let newQualityScore: number | undefined
+  if (reanalyzeAfter) {
+    try {
+      const qualityResult = await analyzeKBDocumentQuality(documentId)
+      newQualityScore = qualityResult.qualityScore
+      console.log(`[KB Enrich] Re-analyse qualité: ${newQualityScore}/100`)
+    } catch (error) {
+      console.error('[KB Enrich] Erreur re-analyse qualité:', error)
+    }
+  }
+
+  return {
+    description: enriched.description,
+    tags: enriched.tags || [],
+    language: enriched.language || doc.language || 'ar',
+    documentId,
+    previousDescription: doc.description || null,
+    qualityReanalized: reanalyzeAfter && newQualityScore !== undefined,
+    newQualityScore,
+  }
+}
+
 /**
  * Récupère les scores qualité d'un document
  */
@@ -261,6 +382,12 @@ export function parseKBQualityResponse(content: string): LLMKBQualityResponse {
     if (anyJsonMatch) {
       jsonText = anyJsonMatch[0]
     }
+  }
+
+  // 4. Nettoyage des caractères de contrôle arabes invisibles (zero-width, BOM)
+  // Ces caractères causent des échecs silencieux de JSON.parse()
+  if (jsonText) {
+    jsonText = jsonText.replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]/g, '')
   }
 
   if (!jsonText) {

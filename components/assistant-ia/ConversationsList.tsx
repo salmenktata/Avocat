@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useMemo, memo } from 'react'
+import { useState, useRef, useMemo, memo, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { cn } from '@/lib/utils'
@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { usePrefetchConversation } from '@/lib/hooks/useConversations'
+import { usePrefetchConversation, useUpdateConversationTitle } from '@/lib/hooks/useConversations'
 
 const VIRTUALIZATION_THRESHOLD = 50
 const ITEM_HEIGHT = 68 // hauteur approximative d'un item
@@ -56,7 +56,35 @@ export function ConversationsList({
   const [searchQuery, setSearchQuery] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
+
+  const { mutate: updateTitle } = useUpdateConversationTitle()
+
+  const handleStartEdit = useCallback((id: string, currentTitle: string | null) => {
+    setEditingId(id)
+    setEditingTitle(currentTitle || '')
+  }, [])
+
+  const handleSaveEdit = useCallback(() => {
+    if (editingId && editingTitle.trim()) {
+      updateTitle({ id: editingId, title: editingTitle.trim() })
+    }
+    setEditingId(null)
+    setEditingTitle('')
+  }, [editingId, editingTitle, updateTitle])
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingId(null)
+    setEditingTitle('')
+  }, [])
+
+  // Conversation en cours de suppression (pour afficher messageCount dans le dialog)
+  const convToDelete = useMemo(
+    () => conversations.find((c) => c.id === deleteId),
+    [conversations, deleteId]
+  )
 
   const filteredConversations = useMemo(() =>
     conversations.filter((conv) => {
@@ -170,6 +198,12 @@ export function ConversationsList({
                     formatDate={formatDate}
                     t={t}
                     onPrefetch={prefetchConversation}
+                    isEditing={editingId === conv.id}
+                    editingTitle={editingTitle}
+                    onStartEdit={handleStartEdit}
+                    onEditChange={setEditingTitle}
+                    onSaveEdit={handleSaveEdit}
+                    onCancelEdit={handleCancelEdit}
                   />
                 </div>
               )
@@ -188,6 +222,12 @@ export function ConversationsList({
                 formatDate={formatDate}
                 t={t}
                 onPrefetch={prefetchConversation}
+                isEditing={editingId === conv.id}
+                editingTitle={editingTitle}
+                onStartEdit={handleStartEdit}
+                onEditChange={setEditingTitle}
+                onSaveEdit={handleSaveEdit}
+                onCancelEdit={handleCancelEdit}
               />
             ))}
           </div>
@@ -199,7 +239,14 @@ export function ConversationsList({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('deleteConfirmTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('deleteConfirmMessage')}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {t('deleteConfirmMessage')}
+              {convToDelete?.messageCount !== undefined && convToDelete.messageCount > 0 && (
+                <span className="block mt-1 text-muted-foreground">
+                  Cette conversation contient {convToDelete.messageCount} message{convToDelete.messageCount > 1 ? 's' : ''}.
+                </span>
+              )}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>{t('cancel')}</AlertDialogCancel>
@@ -226,6 +273,12 @@ interface ConversationItemProps {
   formatDate: (date: Date) => string
   t: ReturnType<typeof useTranslations>
   onPrefetch?: (id: string) => void
+  isEditing?: boolean
+  editingTitle?: string
+  onStartEdit?: (id: string, currentTitle: string | null) => void
+  onEditChange?: (value: string) => void
+  onSaveEdit?: () => void
+  onCancelEdit?: () => void
 }
 
 const ConversationItem = memo(function ConversationItem({
@@ -236,6 +289,12 @@ const ConversationItem = memo(function ConversationItem({
   formatDate,
   t,
   onPrefetch,
+  isEditing = false,
+  editingTitle = '',
+  onStartEdit,
+  onEditChange,
+  onSaveEdit,
+  onCancelEdit,
 }: ConversationItemProps) {
   return (
     <div
@@ -243,15 +302,38 @@ const ConversationItem = memo(function ConversationItem({
         'group flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors',
         isSelected && 'bg-accent'
       )}
-      onClick={() => onSelect(conv.id)}
+      onClick={() => !isEditing && onSelect(conv.id)}
       onMouseEnter={() => onPrefetch?.(conv.id)}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <Icons.messageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className="font-medium truncate text-sm">
-            {conv.title || t('newConversation')}
-          </span>
+          {isEditing ? (
+            /* Titre éditable inline */
+            <input
+              autoFocus
+              value={editingTitle}
+              onChange={(e) => onEditChange?.(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); onSaveEdit?.() }
+                if (e.key === 'Escape') { e.preventDefault(); onCancelEdit?.() }
+              }}
+              onBlur={onSaveEdit}
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 min-w-0 text-sm font-medium bg-background border border-primary/40 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary/50"
+            />
+          ) : (
+            <span
+              className="font-medium truncate text-sm flex-1 min-w-0"
+              onDoubleClick={(e) => {
+                e.stopPropagation()
+                onStartEdit?.(conv.id, conv.title)
+              }}
+              title="Double-clic pour renommer"
+            >
+              {conv.title || t('newConversation')}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
           <span>{formatDate(conv.lastMessageAt || conv.updatedAt || conv.createdAt || new Date())}</span>
@@ -261,20 +343,29 @@ const ConversationItem = memo(function ConversationItem({
               <span className="truncate">{conv.dossierNumero}</span>
             </>
           )}
+          {/* Badge nombre de messages */}
+          {conv.messageCount !== undefined && conv.messageCount > 0 && (
+            <>
+              <span>•</span>
+              <span className="tabular-nums">{conv.messageCount} msg</span>
+            </>
+          )}
         </div>
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label={t('deleteConfirmTitle')}
-        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-        onClick={(e) => {
-          e.stopPropagation()
-          onDelete(conv.id)
-        }}
-      >
-        <Icons.delete className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-      </Button>
+      {!isEditing && (
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t('deleteConfirmTitle')}
+          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete(conv.id)
+          }}
+        >
+          <Icons.delete className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+        </Button>
+      )}
     </div>
   )
 }, (prevProps, nextProps) => {
@@ -283,7 +374,10 @@ const ConversationItem = memo(function ConversationItem({
     prevProps.conv.id === nextProps.conv.id &&
     prevProps.conv.title === nextProps.conv.title &&
     prevProps.conv.dossierNumero === nextProps.conv.dossierNumero &&
+    prevProps.conv.messageCount === nextProps.conv.messageCount &&
     prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isEditing === nextProps.isEditing &&
+    prevProps.editingTitle === nextProps.editingTitle &&
     prevProps.conv.lastMessageAt === nextProps.conv.lastMessageAt &&
     prevProps.conv.updatedAt === nextProps.conv.updatedAt
   )

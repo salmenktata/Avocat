@@ -39,7 +39,7 @@ interface StreamChunk {
 
 interface UseStreamingChatOptions {
   onError?: (error: Error) => void
-  onComplete?: (message: StreamingMessage) => void
+  onComplete?: (message: StreamingMessage, metadata?: StreamMetadata) => void
 }
 
 export function useStreamingChat(options: UseStreamingChatOptions = {}) {
@@ -54,7 +54,8 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
       question: string,
       conversationId?: string,
       dossierId?: string,
-      stream: boolean = true
+      stream: boolean = true,
+      extraBody?: Record<string, unknown>
     ) => {
       // Ajouter le message utilisateur immédiatement
       const userMessage: StreamingMessage = {
@@ -81,6 +82,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
             dossierId,
             stream,
             includeJurisprudence: true,
+            ...extraBody,
           }),
           signal: abortControllerRef.current.signal,
         })
@@ -166,7 +168,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
                 setStreamingContent(fullContent)
                 break
 
-              case 'done':
+              case 'done': {
                 // Streaming terminé
                 const finalMessage: StreamingMessage = {
                   role: 'assistant',
@@ -175,8 +177,9 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
                   tokensUsed: chunk.tokensUsed?.total,
                 }
                 setMessages((prev) => [...prev, finalMessage])
-                options.onComplete?.(finalMessage)
+                options.onComplete?.(finalMessage, metadata || undefined)
                 break
+              }
 
               case 'error':
                 throw new Error(chunk.error || 'Erreur streaming')
