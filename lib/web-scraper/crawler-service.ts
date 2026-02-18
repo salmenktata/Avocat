@@ -263,7 +263,9 @@ export async function crawlSource(
       if (state.visited.has(urlHash)) continue
       if (/\.(pdf|docx?|xlsx?|pptx?|zip|rar)$/i.test(item.url)) continue
       if (excludePatterns.some((p: RegExp) => p.test(item.url))) continue
-      if (includePatterns.length > 0 && !includePatterns.some((p: RegExp) => p.test(item.url))) continue
+      // Les seed URLs et la base URL sont toujours incluses (pas de filtre includePatterns)
+      const isSeed = seedUrlSet.has(item.url) || item.url === sourceBaseUrl
+      if (!isSeed && includePatterns.length > 0 && !includePatterns.some((p: RegExp) => p.test(item.url))) continue
       state.visited.add(urlHash)
       batch.push(item)
     }
