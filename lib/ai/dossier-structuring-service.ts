@@ -94,6 +94,10 @@ export type ProcedureType =
   | 'divorce'
   | 'commercial'
   | 'refere'
+  | 'cassation'
+  | 'penal'
+  | 'administratif'
+  | 'social'
   | 'autre'
 
 export interface ExtractedParty {
@@ -1145,7 +1149,14 @@ function attemptZodBasedRepair(
   }
 
   if (fieldErrors.typeProcedure) {
-    console.log('[Réparation Zod] Ajout typeProcedure par défaut')
+    console.log('[Réparation Zod] Fix typeProcedure invalide → "autre"')
+    const validTypes = ['civil_premiere_instance', 'divorce', 'commercial', 'refere', 'cassation', 'penal', 'administratif', 'social', 'autre']
+    // Vérifier si la valeur actuelle est invalide (pas juste null)
+    const currentMatch = repaired.match(/"typeProcedure"\s*:\s*"([^"]*)"/)
+    if (currentMatch && !validTypes.includes(currentMatch[1])) {
+      repaired = repaired.replace(/"typeProcedure"\s*:\s*"[^"]*"/, '"typeProcedure": "autre"')
+    }
+    // Aussi gérer null
     repaired = repaired.replace(/"typeProcedure"\s*:\s*null/, '"typeProcedure": "autre"')
   }
 
@@ -1257,7 +1268,8 @@ ${narratif}
 """
 
 Date d'aujourd'hui: ${new Date().toISOString().split('T')[0]}
-Langue détectée: ${langue}`
+Langue détectée: ${langue}
+Valeurs autorisées pour typeProcedure: "civil_premiere_instance", "divorce", "commercial", "refere", "cassation", "penal", "administratif", "social", "autre"`
 
   if (options.forcerType) {
     userPrompt += `\n\nType de procédure forcé: ${options.forcerType}`

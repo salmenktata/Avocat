@@ -32,6 +32,26 @@ const TYPE_CONFIG: Record<
     colorClass: 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
     labelKey: 'procedureTypes.refere',
   },
+  cassation: {
+    icon: '&#9878;',
+    colorClass: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+    labelKey: 'procedureTypes.cassation',
+  },
+  penal: {
+    icon: '&#9878;',
+    colorClass: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800',
+    labelKey: 'procedureTypes.penal',
+  },
+  administratif: {
+    icon: '&#127963;',
+    colorClass: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+    labelKey: 'procedureTypes.administratif',
+  },
+  social: {
+    icon: '&#129309;',
+    colorClass: 'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800',
+    labelKey: 'procedureTypes.social',
+  },
   autre: {
     icon: '&#128209;',
     colorClass: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700',

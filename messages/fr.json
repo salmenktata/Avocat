@@ -1006,6 +1006,8 @@
       "recouvrement": "RECOUVREMENT",
       "penal": "PÉNAL",
       "administratif": "ADMINISTRATIF",
+      "social": "SOCIAL (Droit du travail)",
+      "cassation": "CASSATION",
       "autre": "AUTRE"
     },
     "parties": {

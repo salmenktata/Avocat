@@ -1006,6 +1006,8 @@
       "recouvrement": "تحصيل ديون",
       "penal": "جزائي",
       "administratif": "إداري",
+      "social": "شغلي (قانون الشغل)",
+      "cassation": "تعقيب",
       "autre": "أخرى"
     },
     "parties": {

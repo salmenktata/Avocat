@@ -21,15 +21,15 @@ export function InlineCitation({ citationNumber, source, className }: InlineCita
     const el = popoverRef.current
     if (!el) return
     const rect = el.getBoundingClientRect()
-    const padding = 8
-    let offsetX = 0
-    if (rect.right > window.innerWidth - padding) {
-      offsetX = window.innerWidth - padding - rect.right
-    } else if (rect.left < padding) {
-      offsetX = padding - rect.left
-    }
-    if (offsetX !== 0) {
-      setPopoverStyle({ transform: `translateX(calc(-50% + ${offsetX}px))` })
+    const padding = 12
+
+    // Ancrer à droite par défaut (optimal pour RTL), ajuster si déborde à gauche
+    if (rect.left < padding) {
+      // Déborde à gauche → décaler vers la droite
+      setPopoverStyle({ right: 'auto', left: '0' })
+    } else if (rect.right > window.innerWidth - padding) {
+      // Déborde à droite → ancrer à droite (défaut)
+      setPopoverStyle({})
     } else {
       setPopoverStyle({})
     }
@@ -109,13 +109,13 @@ export function InlineCitation({ citationNumber, source, className }: InlineCita
         <div
           ref={popoverRef}
           className={cn(
-            'absolute bottom-full left-1/2 mb-2 z-50',
+            'absolute bottom-full right-0 mb-2 z-50',
             'w-80 max-w-[90vw]',
             'bg-popover border rounded-lg shadow-lg p-4',
             'text-popover-foreground',
             'animate-scale-in'
           )}
-          style={{ transform: popoverStyle.transform || 'translateX(-50%)' }}
+          style={popoverStyle}
           onMouseEnter={() => setShowPopover(true)}
           onMouseLeave={() => setShowPopover(false)}
         >
@@ -176,7 +176,7 @@ export function InlineCitation({ citationNumber, source, className }: InlineCita
           )}
 
           {/* Flèche du popover */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+          <div className="absolute top-full right-3 -mt-px">
             <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-transparent border-t-border" />
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-[7px] w-0 h-0 border-l-[7px] border-r-[7px] border-t-[7px] border-transparent border-t-popover" />
           </div>
