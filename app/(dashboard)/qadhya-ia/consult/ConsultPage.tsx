@@ -90,7 +90,7 @@ export function ConsultPage() {
   )
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
+    <div className="flex h-[calc(100vh-4rem)] -mx-4 -my-6 sm:-mx-6 lg:-mx-8">
       {/* Sidebar desktop */}
       <div className="hidden lg:flex lg:w-80 lg:shrink-0 lg:flex-col border-r bg-card">
         <div className="flex items-center gap-2 border-b px-4 py-3">

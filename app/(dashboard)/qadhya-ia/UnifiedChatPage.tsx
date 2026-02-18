@@ -303,7 +303,7 @@ export function UnifiedChatPage({
         onClick: () => router.push('/dashboard'),
       }}
     >
-      <div className={cn('h-[calc(100vh-4rem)] flex bg-gradient-to-br', modeConfig.gradientClass)}>
+      <div className={cn('h-[calc(100vh-4rem)] flex bg-gradient-to-br -mx-4 -my-6 sm:-mx-6 lg:-mx-8', modeConfig.gradientClass)}>
         {/* Sidebar - Desktop (collapsible) */}
         <aside className={cn(
           'hidden lg:flex border-r flex-col bg-background/80 backdrop-blur-sm transition-all duration-300 overflow-hidden',
