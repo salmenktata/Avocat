@@ -474,6 +474,13 @@ export async function searchRelevantContext(
     includeKnowledgeBase = true, // Activé par défaut
   } = options
 
+  // ✨ FIX A (TTFT): Lancer classification en parallèle avec l'expansion/embedding
+  // classifyQuery(question) utilise la question ORIGINALE → indépendant de l'expansion
+  // En lançant maintenant, on recouvre ~2s de latence pendant les LLM calls suivants
+  const _earlyClassifyPromise = includeKnowledgeBase
+    ? import('./query-classifier-service').then(m => m.classifyQuery(question))
+    : null
+
   // ✨ OPTIMISATION RAG - Sprint 2 (Feb 2026) + Fix requêtes longues (Feb 16, 2026)
   // 1. Query Expansion pour requêtes courtes / Condensation pour requêtes longues
   let embeddingQuestion = question // Question utilisée pour l'embedding
@@ -646,10 +653,13 @@ export async function searchRelevantContext(
     try {
       // ✨ OPTIMISATION RAG - Sprint 2 (Feb 2026)
       // 2. Metadata Filtering Intelligent via classification query
-      const { classifyQuery, isClassificationConfident } = await import('./query-classifier-service')
+      // FIX A: Réutiliser le Promise lancé en début de fonction (déjà ~2s d'avance)
+      const { isClassificationConfident } = await import('./query-classifier-service')
 
-      // Classifier la query pour déterminer catégories pertinentes
-      const classification = await classifyQuery(question)
+      // Classifier la query — si lancé en avance, déjà résolu ou proche de l'être
+      const classification = _earlyClassifyPromise
+        ? await _earlyClassifyPromise
+        : await (await import('./query-classifier-service')).classifyQuery(question)
 
       let kbResults: Array<{
         knowledgeBaseId: string
@@ -717,21 +727,25 @@ export async function searchRelevantContext(
           `[RAG Search] Filtrage KB par catégories: ${[...expandedCategories].join(', ')} (classifieur: ${classification.categories.join(', ')}, domaines: ${classification.domains.join(',') || 'aucun'}, confiance: ${(classification.confidence * 100).toFixed(1)}%)`
         )
 
-        // Recherche HYBRIDE (vectoriel + BM25) dans chaque catégorie
-        for (const category of expandedCategories) {
-          // Seuil plus permissif pour l'arabe (embeddings arabes → scores systématiquement plus bas)
-          const categoryThreshold = queryLangForSearch === 'ar'
-            ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.30)
-            : RAG_THRESHOLDS.knowledgeBase
-          const categoryResults = await searchKnowledgeBaseHybrid(embeddingQuestion, {
-            category: category as any,
-            limit: Math.ceil(maxContextChunks / expandedCategories.size),
-            threshold: categoryThreshold,
-            operationName: options.operationName,
-            docType: options.docType,
-          })
-          kbResults.push(...categoryResults)
-        }
+        // ✨ FIX B (TTFT): Recherche HYBRIDE parallèle par catégorie
+        // Avant: séquentielle N×~3s (pour 3 catégories = ~9s)
+        // Après: parallèle max(~3s) quelle que soit N → gain ~4-6s
+        const categoryThreshold = queryLangForSearch === 'ar'
+          ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.30)
+          : RAG_THRESHOLDS.knowledgeBase
+        const categoryLimit = Math.ceil(maxContextChunks / expandedCategories.size)
+        const allCategoryResults = await Promise.all(
+          [...expandedCategories].map(category =>
+            searchKnowledgeBaseHybrid(embeddingQuestion, {
+              category: category as any,
+              limit: categoryLimit,
+              threshold: categoryThreshold,
+              operationName: options.operationName,
+              docType: options.docType,
+            })
+          )
+        )
+        kbResults = allCategoryResults.flat()
 
         // Re-trier par similarité globale et limiter
         kbResults.sort((a, b) => b.similarity - a.similarity)
