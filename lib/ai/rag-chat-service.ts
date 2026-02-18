@@ -2155,14 +2155,28 @@ export async function getUserConversations(
   }
 
   if (actionType) {
-    sql += ` AND EXISTS (
-      SELECT 1 FROM chat_messages cm
-      WHERE cm.conversation_id = c.id
-        AND cm.metadata->>'actionType' = $${paramIndex}
-      LIMIT 1
-    )`
-    params.push(actionType)
-    paramIndex++
+    if (actionType === 'chat') {
+      // Mode 'chat' = par défaut : inclure aussi les conversations sans actionType (historiques)
+      sql += ` AND (
+        NOT EXISTS (
+          SELECT 1 FROM chat_messages cm
+          WHERE cm.conversation_id = c.id
+            AND cm.metadata->>'actionType' IS NOT NULL
+            AND cm.metadata->>'actionType' != 'chat'
+          LIMIT 1
+        )
+      )`
+    } else {
+      // Modes 'structure'/'consult' : filtre strict
+      sql += ` AND EXISTS (
+        SELECT 1 FROM chat_messages cm
+        WHERE cm.conversation_id = c.id
+          AND cm.metadata->>'actionType' = $${paramIndex}
+        LIMIT 1
+      )`
+      params.push(actionType)
+      paramIndex++
+    }
   }
 
   sql += ` ORDER BY c.updated_at DESC LIMIT $${paramIndex}`

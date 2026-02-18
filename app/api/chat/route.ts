@@ -626,7 +626,8 @@ async function handleStreamingResponse(
               fullAnswer,
               savedSources,
               event.tokensUsed.total,
-              savedModel
+              savedModel,
+              { actionType: 'chat' } // Sauvegarder actionType pour le filtre historique
             )
 
             // Générer titre si premier échange
