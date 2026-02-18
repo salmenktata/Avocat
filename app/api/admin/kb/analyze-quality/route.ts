@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
       query += ` AND quality_score IS NULL`
     }
 
-    query += ` ORDER BY created_at DESC LIMIT $${paramIndex}`
+    // skipAnalyzed=false → pagination chronologique (oldest assessed first)
+    // skipAnalyzed=true  → docs jamais analysés en premier, puis les plus vieux
+    query += ` ORDER BY quality_assessed_at ASC NULLS FIRST LIMIT $${paramIndex}`
     params.push(batchSize)
 
     const result = await db.query<{

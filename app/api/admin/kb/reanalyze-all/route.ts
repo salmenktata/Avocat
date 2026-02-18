@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
       query += ` AND category = '${category}'`
     }
 
-    query += ` ORDER BY created_at DESC LIMIT ${batchSize}`
+    // Trier par quality_assessed_at ASC pour paginer correctement (docs les plus anciennement analysés en premier)
+    query += ` ORDER BY quality_assessed_at ASC NULLS FIRST LIMIT ${batchSize}`
 
     const result = await db.query(query)
     const documents = result.rows
