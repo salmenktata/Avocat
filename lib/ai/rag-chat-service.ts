@@ -673,9 +673,8 @@ export async function searchRelevantContext(
       // Mapping catégories classifieur → catégories réelles DB
       // Le classifieur peut retourner 'codes' mais la DB utilise 'legislation'
       const CATEGORY_DB_MAPPING: Record<string, string[]> = {
-        codes: ['legislation', 'codes', 'code'],
-        code: ['legislation', 'codes', 'code'],
-        legislation: ['legislation', 'codes', 'code'],
+        codes: ['codes'],
+        legislation: ['legislation'],
         jurisprudence: ['jurisprudence'],
         doctrine: ['doctrine'],
         modeles: ['modeles'],
@@ -733,7 +732,7 @@ export async function searchRelevantContext(
         const categoryThreshold = queryLangForSearch === 'ar'
           ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.30)
           : RAG_THRESHOLDS.knowledgeBase
-        const categoryLimit = Math.ceil(maxContextChunks / expandedCategories.size)
+        const categoryLimit = Math.max(3, Math.ceil(maxContextChunks / expandedCategories.size))
         const allCategoryResults = await Promise.all(
           [...expandedCategories].map(category =>
             searchKnowledgeBaseHybrid(embeddingQuestion, {
