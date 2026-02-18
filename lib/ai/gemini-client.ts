@@ -208,6 +208,114 @@ function parseGeminiResponse(result: GenerateContentResult): GeminiResponse {
 }
 
 // =============================================================================
+// TRACKING COÛTS REDIS
+// =============================================================================
+
+/**
+ * Incrémente les compteurs de coûts Gemini LLM dans Redis.
+ * Clés : `gemini:costs:llm:daily:{YYYY-MM-DD}` (hash: calls, tokens_in, tokens_out)
+ * TTL : 35 jours
+ */
+async function trackGeminiLLMCost(tokensIn: number, tokensOut: number): Promise<void> {
+  try {
+    const { getRedisClient } = await import('../cache/redis')
+    const client = await getRedisClient()
+    if (!client) return
+
+    const dateKey = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+    const key = `gemini:costs:llm:daily:${dateKey}`
+
+    await Promise.all([
+      client.hIncrBy(key, 'calls', 1),
+      client.hIncrBy(key, 'tokens_in', tokensIn),
+      client.hIncrBy(key, 'tokens_out', tokensOut),
+    ])
+    await client.expire(key, 35 * 24 * 3600) // TTL 35 jours
+  } catch {
+    // Fail silently — le tracking ne doit pas bloquer les appels LLM
+  }
+}
+
+/**
+ * Incrémente les compteurs de coûts Gemini embeddings dans Redis.
+ * Clés : `gemini:costs:embedding:daily:{YYYY-MM-DD}` (hash: calls, chars)
+ * TTL : 35 jours
+ */
+export async function trackGeminiEmbeddingCost(charsCount: number): Promise<void> {
+  try {
+    const { getRedisClient } = await import('../cache/redis')
+    const client = await getRedisClient()
+    if (!client) return
+
+    const dateKey = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+    const key = `gemini:costs:embedding:daily:${dateKey}`
+
+    await Promise.all([
+      client.hIncrBy(key, 'calls', 1),
+      client.hIncrBy(key, 'chars', charsCount),
+    ])
+    await client.expire(key, 35 * 24 * 3600) // TTL 35 jours
+  } catch {
+    // Fail silently
+  }
+}
+
+/**
+ * Récupère les stats de coûts Gemini des N derniers jours depuis Redis.
+ */
+export async function getGeminiDailyCosts(days = 7): Promise<{
+  llm: Array<{ date: string; calls: number; tokensIn: number; tokensOut: number; estimatedCostUSD: number }>
+  embeddings: Array<{ date: string; calls: number; chars: number; estimatedCostUSD: number }>
+  totals: { llmCalls: number; llmTokensIn: number; llmTokensOut: number; embeddingCalls: number; estimatedCostUSD: number }
+}> {
+  const llm: Array<{ date: string; calls: number; tokensIn: number; tokensOut: number; estimatedCostUSD: number }> = []
+  const embeddings: Array<{ date: string; calls: number; chars: number; estimatedCostUSD: number }> = []
+
+  try {
+    const { getRedisClient } = await import('../cache/redis')
+    const client = await getRedisClient()
+    if (!client) return { llm, embeddings, totals: { llmCalls: 0, llmTokensIn: 0, llmTokensOut: 0, embeddingCalls: 0, estimatedCostUSD: 0 } }
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      const dateKey = date.toISOString().slice(0, 10)
+
+      const [llmData, embData] = await Promise.all([
+        client.hGetAll(`gemini:costs:llm:daily:${dateKey}`),
+        client.hGetAll(`gemini:costs:embedding:daily:${dateKey}`),
+      ])
+
+      if (llmData && Object.keys(llmData).length > 0) {
+        const tokensIn = parseInt(llmData.tokens_in || '0', 10)
+        const tokensOut = parseInt(llmData.tokens_out || '0', 10)
+        const cost = (tokensIn / 1_000_000) * 0.075 + (tokensOut / 1_000_000) * 0.30
+        llm.push({ date: dateKey, calls: parseInt(llmData.calls || '0', 10), tokensIn, tokensOut, estimatedCostUSD: Math.round(cost * 10000) / 10000 })
+      }
+
+      if (embData && Object.keys(embData).length > 0) {
+        const chars = parseInt(embData.chars || '0', 10)
+        const tokens = Math.ceil(chars / 4)
+        const cost = (tokens / 1_000_000) * 0.00025 * 1000 // $0.00025/1K tokens
+        embeddings.push({ date: dateKey, calls: parseInt(embData.calls || '0', 10), chars, estimatedCostUSD: Math.round(cost * 10000) / 10000 })
+      }
+    }
+  } catch {
+    // Fail silently
+  }
+
+  const totals = {
+    llmCalls: llm.reduce((s, d) => s + d.calls, 0),
+    llmTokensIn: llm.reduce((s, d) => s + d.tokensIn, 0),
+    llmTokensOut: llm.reduce((s, d) => s + d.tokensOut, 0),
+    embeddingCalls: embeddings.reduce((s, d) => s + d.calls, 0),
+    estimatedCostUSD: Math.round((llm.reduce((s, d) => s + d.estimatedCostUSD, 0) + embeddings.reduce((s, d) => s + d.estimatedCostUSD, 0)) * 10000) / 10000,
+  }
+
+  return { llm, embeddings, totals }
+}
+
+// =============================================================================
 // FONCTIONS PRINCIPALES
 // =============================================================================
 
@@ -246,7 +354,10 @@ export async function callGemini(
       generationConfig,
     })
 
-    return parseGeminiResponse(result)
+    const parsed = parseGeminiResponse(result)
+    // Tracking coûts asynchrone (non bloquant)
+    void trackGeminiLLMCost(parsed.tokensUsed.input, parsed.tokensUsed.output)
+    return parsed
   } catch (error) {
     // Si erreur 429 (rate limit), logger pour monitoring
     if (error instanceof Error && error.message.includes('429')) {
@@ -299,12 +410,19 @@ export async function* callGeminiStream(
     },
   })
 
+  let totalOutputChars = 0
   for await (const chunk of result.stream) {
     const text = chunk.text()
     if (text) {
+      totalOutputChars += text.length
       yield text
     }
   }
+
+  // Tracking coûts après fin du stream (estimation basée sur les chars)
+  const estimatedTokensIn = contents.reduce((s, c) => s + (c.parts[0]?.text?.length || 0), 0) / 4
+  const estimatedTokensOut = Math.ceil(totalOutputChars / 4)
+  void trackGeminiLLMCost(Math.ceil(estimatedTokensIn), estimatedTokensOut)
 }
 
 /**

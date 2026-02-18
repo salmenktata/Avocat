@@ -295,7 +295,7 @@ async function generateEmbeddingWithGemini(text: string): Promise<EmbeddingResul
     throw new Error('Gemini API key non configurée (GOOGLE_API_KEY)')
   }
 
-  // Utiliser l'API REST v1beta (gemini-embedding-001, outputDimensionality=768)
+  // Utiliser l'API REST v1beta (text-embedding-004, outputDimensionality=768)
   // Clé API dans le header x-goog-api-key (évite l'exposition dans les logs HTTP/Nginx)
   const model = aiConfig.gemini.embeddingModel
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent`
@@ -330,6 +330,10 @@ async function generateEmbeddingWithGemini(text: string): Promise<EmbeddingResul
   if (!validation.valid) {
     throw new Error(`Embedding Gemini invalide: ${validation.error}`)
   }
+
+  // Tracking coûts asynchrone (non bloquant)
+  const { trackGeminiEmbeddingCost } = await import('./gemini-client')
+  void trackGeminiEmbeddingCost(Math.min(text.length, 8000))
 
   return {
     embedding,

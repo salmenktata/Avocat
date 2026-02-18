@@ -43,7 +43,7 @@ const IMPORTANT_VARS = [
   'OPENAI_API_KEY',
   'GROQ_API_KEY',
   'GOOGLE_API_KEY',
-  'GEMINI_API_KEY', // Triple embedding Gemini (gemini-embedding-001)
+  'GEMINI_API_KEY', // Triple embedding Gemini (text-embedding-004)
   'REDIS_URL',
   'ENCRYPTION_KEY',
   'NEXT_PUBLIC_APP_URL',

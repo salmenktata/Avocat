@@ -40,12 +40,24 @@ interface CostsStats {
   }>
 }
 
+interface GeminiCosts {
+  rpmStats: { requestsThisMinute: number; limit: number; availableSlots: number }
+  costs: {
+    llm: Array<{ date: string; calls: number; tokensIn: number; tokensOut: number; estimatedCostUSD: number }>
+    embeddings: Array<{ date: string; calls: number; chars: number; estimatedCostUSD: number }>
+    totals: { llmCalls: number; llmTokensIn: number; llmTokensOut: number; embeddingCalls: number; estimatedCostUSD: number }
+  }
+  thresholds: { dailyLLMCallsAlert: number; dailyCostUSDAlert: number }
+}
+
 export function AICostsTab() {
   const [stats, setStats] = useState<CostsStats | null>(null)
+  const [geminiCosts, setGeminiCosts] = useState<GeminiCosts | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchCosts()
+    fetchGeminiCosts()
   }, [])
 
   async function fetchCosts() {
@@ -59,6 +71,18 @@ export function AICostsTab() {
       console.error('Error fetching AI costs:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function fetchGeminiCosts() {
+    try {
+      const response = await fetch('/api/admin/monitoring/gemini-costs')
+      const data = await response.json()
+      if (data.status === 'ok') {
+        setGeminiCosts(data)
+      }
+    } catch (error) {
+      console.error('Error fetching Gemini costs:', error)
     }
   }
 
@@ -176,6 +200,81 @@ export function AICostsTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Gemini Costs (Redis tracking) */}
+      {geminiCosts && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold">Coûts Gemini (7 derniers jours)</h3>
+            <p className="text-sm text-muted-foreground">Tracking Redis en temps réel — LLM + Embeddings</p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">RPM actuel</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{geminiCosts.rpmStats.requestsThisMinute}/{geminiCosts.rpmStats.limit}</div>
+                <p className="text-xs text-muted-foreground">{geminiCosts.rpmStats.availableSlots} slots disponibles</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Appels LLM (7j)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{geminiCosts.costs.totals.llmCalls}</div>
+                <p className="text-xs text-muted-foreground">Seuil alerte : {geminiCosts.thresholds.dailyLLMCallsAlert}/jour</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Appels Embeddings (7j)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{geminiCosts.costs.totals.embeddingCalls}</div>
+                <p className="text-xs text-muted-foreground">text-embedding-004</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Coût estimé (7j)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${geminiCosts.costs.totals.estimatedCostUSD > geminiCosts.thresholds.dailyCostUSDAlert ? 'text-red-500' : 'text-green-500'}`}>
+                  ${geminiCosts.costs.totals.estimatedCostUSD.toFixed(4)}
+                </div>
+                <p className="text-xs text-muted-foreground">{formatTND(geminiCosts.costs.totals.estimatedCostUSD)} TND</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {geminiCosts.costs.llm.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Détail LLM par jour</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {geminiCosts.costs.llm.map((day) => (
+                    <div key={day.date} className="flex items-center justify-between border-b pb-2 last:border-0">
+                      <span className="text-sm font-medium">{new Date(day.date).toLocaleDateString('fr-FR')}</span>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span>{day.calls} appels</span>
+                        <span>{(day.tokensIn + day.tokensOut).toLocaleString()} tokens</span>
+                        <Badge variant={day.calls > geminiCosts.thresholds.dailyLLMCallsAlert ? 'destructive' : 'secondary'}>
+                          ${day.estimatedCostUSD.toFixed(4)}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Top Users & Providers */}
       <div className="grid gap-6 lg:grid-cols-2">

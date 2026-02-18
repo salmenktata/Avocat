@@ -84,7 +84,7 @@ const isDev = process.env.NODE_ENV === 'development'
  * | Opération              | Provider | Modèle                    | Coût     |
  * |------------------------|----------|---------------------------|----------|
  * | Assistant IA (chat)    | Groq     | llama-3.3-70b-versatile   | 0€       |
- * | Dossiers Assistant     | Gemini   | gemini-2.5-flash          | ~€1-2/mois |
+ * | Dossiers Assistant     | Groq     | llama-3.3-70b-versatile   | 0€         |
  * | Consultations IRAC     | Groq     | llama-3.3-70b-versatile   | 0€       |
  * | KB Quality Analysis    | Groq     | llama-3.3-70b-versatile   | 0€       |
  * | Query Classification   | Groq     | llama-3.3-70b-versatile   | 0€       |
@@ -156,7 +156,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   'dossiers-assistant': {
     model: isDev
       ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'gemini', name: 'gemini-2.5-flash' },
+      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
 
     embeddings: isDev
       ? { provider: 'ollama', model: 'qwen3-embedding:0.6b', dimensions: 1024 }
@@ -164,8 +164,8 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     timeouts: {
       embedding: 5000,
-      chat: 40000,
-      total: 60000,
+      chat: 30000,
+      total: 45000,
     },
 
     llmConfig: {
@@ -175,7 +175,7 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
     },
 
     alerts: { onFailure: 'email', severity: 'critical' },
-    description: 'Analyse approfondie dossier - Gemini (contexte 1M tokens)',
+    description: 'Analyse approfondie dossier - Groq llama-3.3-70b (gratuit, 128K ctx)',
   },
 
   // ---------------------------------------------------------------------------
