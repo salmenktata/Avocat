@@ -531,7 +531,7 @@ export async function search(
   const queryParams: unknown[] = [embeddingStr, threshold, limit]
   let paramIndex = 4
 
-  const whereClauses: string[] = [`1 - (embedding <=> $1::vector) >= $2`]
+  const whereClauses: string[] = [`1 - (c.embedding <=> $1::vector) >= $2`]
 
   if (filters.category) {
     whereClauses.push(`kb.category = $${paramIndex}`)
