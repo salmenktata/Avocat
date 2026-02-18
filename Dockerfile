@@ -115,6 +115,7 @@ RUN mkdir -p /home/nextjs/.cache && chown -R nextjs:nodejs /home/nextjs
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/data ./data
 
 # Copier les browsers Playwright depuis le builder
 COPY --from=builder /app/.playwright ./.playwright
