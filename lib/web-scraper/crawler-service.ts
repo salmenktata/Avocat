@@ -638,6 +638,7 @@ async function downloadLinkedFiles(
   const sourceId = s.id
   const sourceUserAgent = s.userAgent ?? s.user_agent ?? 'QadhyaBot/1.0'
   const sourceTimeoutMs = s.timeoutMs ?? s.timeout_ms ?? 30000
+  const allowedPdfDomains: string[] = s.allowedPdfDomains ?? s.allowed_pdf_domains ?? []
 
   const result: LinkedFile[] = []
 
@@ -646,6 +647,24 @@ async function downloadLinkedFiles(
     if (file.downloaded) {
       result.push(file)
       continue
+    }
+
+    // Filtrer par whitelist de domaines (si configurée)
+    if (allowedPdfDomains.length > 0) {
+      try {
+        const fileHost = new URL(file.url).hostname
+        const isAllowed = allowedPdfDomains.some(
+          d => fileHost === d || fileHost.endsWith('.' + d)
+        )
+        if (!isAllowed) {
+          console.log(`[Crawler] PDF ignoré (domaine non autorisé): ${fileHost} → ${file.url}`)
+          result.push({ ...file, downloaded: false })
+          continue
+        }
+      } catch {
+        result.push({ ...file, downloaded: false })
+        continue
+      }
     }
 
     try {

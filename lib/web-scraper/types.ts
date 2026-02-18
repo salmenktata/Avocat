@@ -211,6 +211,9 @@ export interface WebSource {
   // Auto-indexation des fichiers
   autoIndexFiles?: boolean           // Parser + indexer les PDFs automatiquement pendant le crawl
 
+  // Whitelist domaines pour téléchargement PDFs (vide = aucune restriction)
+  allowedPdfDomains: string[]        // Ex: ['legislation.tn', 'jort.gov.tn']
+
   // Configuration avancée pour sites dynamiques (Livewire, React, Vue, etc.)
   dynamicConfig: DynamicSiteConfig | null
 
@@ -521,6 +524,7 @@ export interface CreateWebSourceInput {
   seedUrls?: string[]
   formCrawlConfig?: FormCrawlConfig
   autoIndexFiles?: boolean
+  allowedPdfDomains?: string[]
   driveConfig?: {
     folderId: string
     recursive: boolean
@@ -558,6 +562,7 @@ export interface UpdateWebSourceInput {
   seedUrls?: string[]
   formCrawlConfig?: FormCrawlConfig | null
   autoIndexFiles?: boolean
+  allowedPdfDomains?: string[]
 }
 
 // ============================================================================
