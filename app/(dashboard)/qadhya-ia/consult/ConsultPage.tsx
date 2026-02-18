@@ -102,7 +102,7 @@ export function ConsultPage() {
 
       {/* Main content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto py-6 px-4 max-w-4xl">
+        <div className="py-6 px-4">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">

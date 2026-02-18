@@ -216,7 +216,7 @@ export function StructurePage({ clients }: StructurePageProps) {
 
   if (!hydrated) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6 pb-12">
+      <div className="space-y-6 pb-12">
         <div className="flex items-center gap-3">
           <span className="text-3xl">&#129302;</span>
           <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
@@ -227,7 +227,7 @@ export function StructurePage({ clients }: StructurePageProps) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-12">
+    <div className="space-y-6 pb-12">
       {/* Header + Step Indicator */}
       <div className="space-y-4">
         <div>
