@@ -161,9 +161,18 @@ export async function crawlSource(
 
   // Si sitemap trouvé, utiliser toutes ses URLs (priorité absolue)
   if (sitemapResult.hasSitemap && sitemapResult.pageUrls.length > 0) {
-    console.log(`[Crawler] ✓ Sitemap détecté: ${sitemapResult.totalPages} URLs ajoutées à la queue`)
-    // Ajouter toutes les URLs du sitemap avec depth=1
-    sitemapResult.pageUrls.forEach(url => {
+    // Filtrer les URLs du sitemap par domaine de la source (évite les URLs internes type pgportail.local)
+    const baseUrlHostname = new URL(sourceBaseUrl).hostname
+    const filteredSitemapUrls = sitemapResult.pageUrls.filter(url => {
+      try { return new URL(url).hostname === baseUrlHostname } catch { return false }
+    })
+    const skipped = sitemapResult.pageUrls.length - filteredSitemapUrls.length
+    if (skipped > 0) {
+      console.log(`[Crawler] ⚠️ Sitemap: ${skipped} URLs hors-domaine ignorées (domaine attendu: ${baseUrlHostname})`)
+    }
+    console.log(`[Crawler] ✓ Sitemap détecté: ${filteredSitemapUrls.length} URLs ajoutées à la queue`)
+    // Ajouter les URLs filtrées du sitemap avec depth=1
+    filteredSitemapUrls.forEach(url => {
       initialQueue.push({ url, depth: 1 })
     })
   } else {
