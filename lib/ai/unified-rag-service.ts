@@ -528,10 +528,13 @@ export async function search(
   }
 
   // 3b. Construire requête SQL dense avec filtres
+  const provider = embeddingResult.provider || 'ollama'
+  const embeddingColumn = provider === 'openai' ? 'embedding_openai' : provider === 'gemini' ? 'embedding_gemini' : 'embedding'
+
   const queryParams: unknown[] = [embeddingStr, threshold, limit]
   let paramIndex = 4
 
-  const whereClauses: string[] = [`1 - (c.embedding <=> $1::vector) >= $2`]
+  const whereClauses: string[] = [`c.${embeddingColumn} IS NOT NULL`, `1 - (c.${embeddingColumn} <=> $1::vector) >= $2`]
 
   if (filters.category) {
     whereClauses.push(`kb.category = $${paramIndex}`)
@@ -594,7 +597,7 @@ export async function search(
       kb.id AS kb_id,
       kb.title,
       kb.category,
-      1 - (c.embedding <=> $1::vector) AS similarity,
+      1 - (c.${embeddingColumn} <=> $1::vector) AS similarity,
       c.content AS chunk_content,
       c.chunk_index
     FROM knowledge_base_chunks c
