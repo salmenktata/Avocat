@@ -121,6 +121,10 @@ export const OPERATION_LABELS: Record<OperationName, { fr: string; ar: string }>
     fr: 'Consolidation documents',
     ar: 'توحيد الوثائق',
   },
+  'rag-eval-judge': {
+    fr: 'Évaluation RAG',
+    ar: 'تقييم RAG',
+  },
 }
 
 /**
@@ -135,6 +139,7 @@ export const OPERATION_DESCRIPTIONS: Record<OperationName, string> = {
   'query-classification': 'Classification automatique de la requête utilisateur',
   'query-expansion': 'Reformulation et expansion de requêtes courtes',
   'document-consolidation': 'Consolidation documents multi-pages en documents juridiques unifiés',
+  'rag-eval-judge': 'LLM judge pour évaluer la fidélité des réponses RAG',
 }
 
 /**

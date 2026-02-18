@@ -6,21 +6,27 @@
  * - Recall@K (K=1,3,5,10)
  * - Precision@5
  * - MRR (Mean Reciprocal Rank)
- * - Faithfulness (via LLM judge)
+ * - Faithfulness (via LLM judge ou keyword matching)
  * - Citation Accuracy (pattern matching)
  *
  * Usage :
  *   npx tsx scripts/run-eval-benchmark.ts              # Full benchmark
  *   npx tsx scripts/run-eval-benchmark.ts --quick       # 20 premières questions seulement
  *   npx tsx scripts/run-eval-benchmark.ts --domain=droit_civil  # Filtrer par domaine
+ *   npx tsx scripts/run-eval-benchmark.ts --llm-judge   # Utiliser LLM judge pour faithfulness
  *
  * Résultats sauvegardés dans la table rag_eval_results.
  */
+
+import dotenv from 'dotenv'
+dotenv.config({ path: '.env.local' })
 
 import { Pool } from 'pg'
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
+import { generateEmbedding, formatEmbeddingForPostgres } from '../lib/ai/embeddings-service'
+import { computeFaithfulnessLLM } from '../lib/ai/rag-eval-judge'
 
 // =============================================================================
 // CONFIG & DB
@@ -28,6 +34,8 @@ import crypto from 'crypto'
 
 const QUICK_MODE = process.argv.includes('--quick')
 const DOMAIN_FILTER = process.argv.find(a => a.startsWith('--domain='))?.split('=')[1]
+const USE_LLM_JUDGE = process.argv.includes('--llm-judge')
+const BATCH_LIMIT = parseInt(process.argv.find(a => a.startsWith('--batch='))?.split('=')[1] || '0', 10)
 const GOLD_DATASET_PATH = path.join(process.cwd(), 'data', 'gold-eval-dataset.json')
 
 const pool = new Pool({
@@ -161,33 +169,64 @@ interface SearchResult {
 }
 
 async function searchRAG(question: string, topK: number = 10): Promise<SearchResult[]> {
-  // Recherche BM25 fulltext dans les chunks (pas besoin d'embeddings pour le benchmark)
-  const result = await pool.query(
-    `SELECT
-       kbc.id as chunk_id,
-       kbc.knowledge_base_id as document_id,
-       kbc.content,
-       kb.title,
-       ts_rank(
-         to_tsvector('simple', kbc.content),
-         plainto_tsquery('simple', $1)
-       ) as similarity
-     FROM knowledge_base_chunks kbc
-     JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
-     WHERE kb.is_indexed = true
-       AND to_tsvector('simple', kbc.content) @@ plainto_tsquery('simple', $1)
-     ORDER BY similarity DESC
-     LIMIT $2`,
-    [question, topK]
-  )
+  // Vrai pipeline hybrid search : embedding vectoriel (pas BM25 seul)
+  try {
+    const embeddingResult = await generateEmbedding(question)
+    const embeddingStr = formatEmbeddingForPostgres(embeddingResult.embedding)
 
-  return result.rows.map((r: Record<string, unknown>) => ({
-    chunkId: r.chunk_id as string,
-    documentId: r.document_id as string,
-    content: (r.content as string).substring(0, 500),
-    similarity: r.similarity as number,
-    title: r.title as string,
-  }))
+    const result = await pool.query(
+      `SELECT
+         kbc.id as chunk_id,
+         kbc.knowledge_base_id as document_id,
+         kbc.content,
+         kb.title,
+         1 - (kbc.embedding_openai <=> $1::vector) as similarity
+       FROM knowledge_base_chunks kbc
+       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
+       WHERE kb.is_indexed = true
+         AND kbc.embedding_openai IS NOT NULL
+       ORDER BY kbc.embedding_openai <=> $1::vector
+       LIMIT $2`,
+      [embeddingStr, topK]
+    )
+
+    return result.rows.map((r: Record<string, unknown>) => ({
+      chunkId: r.chunk_id as string,
+      documentId: r.document_id as string,
+      content: (r.content as string).substring(0, 500),
+      similarity: parseFloat(r.similarity as string),
+      title: r.title as string,
+    }))
+  } catch (error) {
+    console.warn(`  ⚠️ Embedding échoué, fallback BM25: ${error instanceof Error ? error.message : error}`)
+    // Fallback BM25 si embedding indisponible
+    const result = await pool.query(
+      `SELECT
+         kbc.id as chunk_id,
+         kbc.knowledge_base_id as document_id,
+         kbc.content,
+         kb.title,
+         ts_rank(
+           to_tsvector('simple', kbc.content),
+           plainto_tsquery('simple', $1)
+         ) as similarity
+       FROM knowledge_base_chunks kbc
+       JOIN knowledge_base kb ON kbc.knowledge_base_id = kb.id
+       WHERE kb.is_indexed = true
+         AND to_tsvector('simple', kbc.content) @@ plainto_tsquery('simple', $1)
+       ORDER BY similarity DESC
+       LIMIT $2`,
+      [question, topK]
+    )
+
+    return result.rows.map((r: Record<string, unknown>) => ({
+      chunkId: r.chunk_id as string,
+      documentId: r.document_id as string,
+      content: (r.content as string).substring(0, 500),
+      similarity: r.similarity as number,
+      title: r.title as string,
+    }))
+  }
 }
 
 // =============================================================================
@@ -217,6 +256,15 @@ async function runEvaluation() {
     console.log(`Mode quick: ${goldCases.length} premières questions`)
   }
 
+  if (BATCH_LIMIT > 0) {
+    goldCases = goldCases.slice(0, BATCH_LIMIT)
+    console.log(`Mode batch: ${goldCases.length} questions`)
+  }
+
+  if (USE_LLM_JUDGE) {
+    console.log('Mode LLM Judge activé (faithfulness via LLM)')
+  }
+
   console.log(`Total questions: ${goldCases.length}\n`)
 
   const runId = `eval_${new Date().toISOString().replace(/[:.]/g, '-')}_${crypto.randomBytes(4).toString('hex')}`
@@ -236,6 +284,11 @@ async function runEvaluation() {
       const goldChunkIds = evalCase.goldChunkIds || []
       const goldDocIds = evalCase.goldDocumentIds || []
 
+      // Warning si pas de goldChunkIds
+      if (goldChunkIds.length === 0 && goldDocIds.length === 0) {
+        console.warn(`  ⚠️ ${evalCase.id}: goldChunkIds vide — métriques recall non fiables`)
+      }
+
       // Si pas de goldChunkIds, utiliser goldDocumentIds pour le recall
       const goldIdsForRecall = goldChunkIds.length > 0 ? goldChunkIds : goldDocIds
       const retrievedIdsForRecall = goldChunkIds.length > 0 ? retrievedChunkIds : retrievedDocIds
@@ -251,11 +304,22 @@ async function runEvaluation() {
       // Simuler answer à partir des chunks retrouvés
       const simulatedAnswer = searchResults.map(r => r.content).join('\n')
       const citationAccuracy = computeCitationAccuracy(simulatedAnswer, evalCase.expectedArticles || [])
-      const faithfulnessScore = computeFaithfulness(
-        evalCase.question,
-        simulatedAnswer,
-        evalCase.expectedAnswer.keyPoints
-      )
+
+      let faithfulnessScore: number
+      if (USE_LLM_JUDGE) {
+        const judgement = await computeFaithfulnessLLM(
+          evalCase.question,
+          simulatedAnswer,
+          evalCase.expectedAnswer.keyPoints
+        )
+        faithfulnessScore = judgement.score
+      } else {
+        faithfulnessScore = computeFaithfulness(
+          evalCase.question,
+          simulatedAnswer,
+          evalCase.expectedAnswer.keyPoints
+        )
+      }
 
       const result: EvalResult = {
         questionId: evalCase.id,

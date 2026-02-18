@@ -204,6 +204,7 @@ function estimateCost(tokens: number, operationName: OperationName): number {
     'query-classification': 0, // Groq gratuit
     'query-expansion': 0, // Groq gratuit
     'document-consolidation': 0, // Gemini gratuit
+    'rag-eval-judge': 0, // Groq gratuit
   }
 
   return tokens * pricePerToken[operationName]

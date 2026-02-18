@@ -174,6 +174,7 @@ export interface ChatResponse {
   abrogationWarnings?: import('./abrogation-detector-service').AbrogationWarning[] // Phase 2.3 - Lois abrogées
   qualityIndicator?: 'high' | 'medium' | 'low'
   averageSimilarity?: number
+  abstentionReason?: string // Sprint 1 B1 - Raison de l'abstention si sources insuffisantes
 }
 
 import type { DocumentType } from '@/lib/categories/doc-types'
@@ -1573,6 +1574,26 @@ export async function answerQuestion(
 
   // Calculer métriques qualité et injecter avertissement si nécessaire
   const qualityMetrics = computeSourceQualityMetrics(sources)
+
+  // B1: Abstention systématique — bypass complet du LLM si sources trop faibles
+  if (qualityMetrics.averageSimilarity < 0.40 && qualityMetrics.qualityLevel === 'low') {
+    const abstentionReason = `Similarité ${Math.round(qualityMetrics.averageSimilarity * 100)}% < 40%`
+    console.log(`[RAG] Abstention: ${abstentionReason}`)
+    const abstentionMsg = questionLang === 'fr'
+      ? 'Je n\'ai pas trouvé de sources suffisamment pertinentes dans la base de connaissances pour répondre à cette question de manière fiable. Je vous recommande de consulter directement les textes juridiques officiels ou un professionnel du droit.'
+      : 'لم أجد مصادر كافية في قاعدة المعرفة للإجابة على هذا السؤال بشكل موثوق. أنصحك بالرجوع مباشرة إلى النصوص القانونية الرسمية أو استشارة مختص في القانون.'
+    return {
+      answer: abstentionMsg,
+      sources: [],
+      tokensUsed: { input: 0, output: 0, total: 0 },
+      model: 'abstained',
+      conversationId: options.conversationId,
+      qualityIndicator: 'low',
+      averageSimilarity: qualityMetrics.averageSimilarity,
+      abstentionReason,
+    }
+  }
+
   let contextWithWarning = context
   if (qualityMetrics.warningMessage) {
     contextWithWarning = `${qualityMetrics.warningMessage}\n\n---\n\n${context}`
@@ -1992,6 +2013,20 @@ export async function* answerQuestionStream(
   // 2. Construire le contexte RAG
   const context = await buildContextFromSources(sources, questionLang)
   const qualityMetrics = computeSourceQualityMetrics(sources)
+
+  // B1: Abstention systématique en streaming — bypass LLM si sources trop faibles
+  if (qualityMetrics.averageSimilarity < 0.40 && qualityMetrics.qualityLevel === 'low') {
+    const abstentionReason = `Similarité ${Math.round(qualityMetrics.averageSimilarity * 100)}% < 40%`
+    console.log(`[RAG Stream] Abstention: ${abstentionReason}`)
+    const abstentionMsg = questionLang === 'fr'
+      ? 'Je n\'ai pas trouvé de sources suffisamment pertinentes dans la base de connaissances pour répondre à cette question de manière fiable. Je vous recommande de consulter directement les textes juridiques officiels ou un professionnel du droit.'
+      : 'لم أجد مصادر كافية في قاعدة المعرفة للإجابة على هذا السؤال بشكل موثوق. أنصحك بالرجوع مباشرة إلى النصوص القانونية الرسمية أو استشارة مختص في القانون.'
+    yield { type: 'metadata', sources: [], model: 'abstained', qualityIndicator: 'low', averageSimilarity: qualityMetrics.averageSimilarity }
+    yield { type: 'chunk', text: abstentionMsg }
+    yield { type: 'done', tokensUsed: { input: 0, output: 0, total: 0 } }
+    return
+  }
+
   const contextWithWarning = qualityMetrics.warningMessage
     ? `${qualityMetrics.warningMessage}\n\n---\n\n${context}`
     : context

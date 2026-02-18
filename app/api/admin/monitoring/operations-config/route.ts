@@ -34,6 +34,7 @@ const OPERATION_LABELS: Record<OperationName, string> = {
   'query-classification': 'Classification Requête',
   'query-expansion': 'Expansion Requête',
   'document-consolidation': 'Consolidation Documents',
+  'rag-eval-judge': 'Eval RAG Judge',
 }
 
 // Coût estimé par opération (en prod)
@@ -46,6 +47,7 @@ const COST_ESTIMATES: Record<OperationName, string> = {
   'query-classification': 'Gratuit',
   'query-expansion': 'Gratuit',
   'document-consolidation': 'Gratuit',
+  'rag-eval-judge': 'Gratuit',
 }
 
 // Tous les providers connus

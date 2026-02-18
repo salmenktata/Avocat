@@ -92,6 +92,7 @@ const getNavGroups = (
   {
     group: 'IA & Qualité',
     items: [
+      { href: '/super-admin/feedbacks', label: 'Feedbacks', icon: 'messageSquare' },
       { href: '/super-admin/rag-audit', label: 'Audit RAG', icon: 'checkCircle' },
       { href: '/super-admin/rag-workflow', label: 'Workflow RAG', icon: 'gitBranch' },
       { href: '/super-admin/classification', label: 'Classification', icon: 'tag' },

@@ -25,6 +25,7 @@ export type OperationName =
   | 'query-classification'
   | 'query-expansion'
   | 'document-consolidation'
+  | 'rag-eval-judge'
 
 /**
  * Sévérité d'alerte en cas d'échec
@@ -292,6 +293,28 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
 
     alerts: { onFailure: 'log', severity: 'warning' },
     description: 'Consolidation documents multi-pages - Gemini 2.5 Flash (1M ctx, idéal multi-pages)',
+  },
+
+  // ---------------------------------------------------------------------------
+  // 9. RAG EVAL JUDGE (évaluation fidélité réponses)
+  // ---------------------------------------------------------------------------
+  'rag-eval-judge': {
+    model: isDev
+      ? { provider: 'ollama', name: 'qwen3:8b' }
+      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
+
+    timeouts: {
+      chat: 15000,
+      total: 20000,
+    },
+
+    llmConfig: {
+      temperature: 0.1,
+      maxTokens: 200,
+    },
+
+    alerts: { onFailure: 'log', severity: 'info' },
+    description: 'LLM judge fidélité réponse RAG',
   },
 }
 

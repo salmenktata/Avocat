@@ -132,6 +132,7 @@ async function handleConsultAction(
     metadata: { actionType: 'consult' },
     qualityIndicator: response.qualityIndicator,
     averageSimilarity: response.averageSimilarity,
+    abstentionReason: response.abstentionReason,
   }
 }
 
@@ -164,6 +165,7 @@ async function handleChatAction(
     metadata: { actionType: 'chat' },
     qualityIndicator: response.qualityIndicator,
     averageSimilarity: response.averageSimilarity,
+    abstentionReason: response.abstentionReason,
   }
 }
 
@@ -298,6 +300,7 @@ export async function POST(
       metadata?: Record<string, any>
       qualityIndicator?: 'high' | 'medium' | 'low'
       averageSimilarity?: number
+      abstentionReason?: string
     }
 
     // Timeout global 44s (< timeout Nginx 60s) pour éviter les blocages Gemini
@@ -379,6 +382,7 @@ export async function POST(
       abrogationAlerts: abrogationAlerts.length > 0 ? abrogationAlerts : undefined,
       qualityIndicator: response.qualityIndicator,
       averageSimilarity: response.averageSimilarity,
+      abstentionReason: response.abstentionReason,
     })
   } catch (error) {
     console.error('Erreur chat:', error)
