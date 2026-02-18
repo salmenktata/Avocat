@@ -50,6 +50,26 @@ export interface QueryClassification {
 
   /** Raison de la classification (debug) */
   reasoning?: string
+
+  /** Pistes juridiques ciblées pour multi-track retrieval (Phase 1) */
+  legalTracks?: LegalTrack[]
+
+  /** Questions de clarification si query ambiguë */
+  needsClarification?: string[]
+}
+
+/**
+ * Piste juridique ciblée pour multi-track retrieval
+ */
+export interface LegalTrack {
+  /** Label de la piste (ex: "شروط التراجع في البيع عن بعد") */
+  label: string
+  /** 2-3 requêtes de recherche ciblées (arabe + français) */
+  searchQueries: string[]
+  /** Types de documents cibles */
+  targetDocTypes?: DocumentType[]
+  /** Priorité de la piste (0-1) */
+  priority: number
 }
 
 // =============================================================================

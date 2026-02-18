@@ -369,6 +369,111 @@ function translateReason(reason: CitationWarningReason): string {
 }
 
 // =============================================================================
+// FONCTION 5 : CLAIM VERIFICATION (Phase 4 RAG Pipeline v2)
+// =============================================================================
+
+export interface ClaimVerificationResult {
+  totalClaims: number
+  supportedClaims: number
+  unsupportedClaims: { claim: string; citedSource: string; issue: string }[]
+}
+
+/**
+ * Vérifie l'alignement entre les claims de la réponse et les sources citées.
+ *
+ * Pattern matching (<50ms) :
+ * 1. Split réponse en phrases contenant une citation [KB-N] ou [Source-N]
+ * 2. Pour chaque phrase citée, extraire les termes juridiques clés
+ * 3. Vérifier que le chunk source référencé contient ≥30% de ces termes
+ * 4. Vérifier que les numéros d'articles mentionnés existent dans le chunk source
+ *
+ * Feature flag : ENABLE_CLAIM_VERIFICATION=true
+ *
+ * @param answer - Réponse générée par le LLM
+ * @param sources - Sources utilisées pour générer la réponse
+ * @returns Résultat de vérification avec claims non supportées
+ */
+export function verifyClaimSourceAlignment(
+  answer: string,
+  sources: ChatSource[]
+): ClaimVerificationResult {
+  const result: ClaimVerificationResult = {
+    totalClaims: 0,
+    supportedClaims: 0,
+    unsupportedClaims: [],
+  }
+
+  if (!answer || sources.length === 0) return result
+
+  // Split en phrases contenant une citation [Source-N], [KB-N], [Juris-N]
+  const citationPattern = /\[(?:Source|KB|Juris)-?(\d+)\]/gi
+  const sentences = answer.split(/[.،。\n]/).filter(s => s.trim().length > 10)
+
+  for (const sentence of sentences) {
+    const citations = [...sentence.matchAll(citationPattern)]
+    if (citations.length === 0) continue
+
+    result.totalClaims++
+
+    // Extraire les termes juridiques clés de la phrase (mots > 3 chars)
+    const sentenceTerms = sentence
+      .replace(/\[(?:Source|KB|Juris)-?\d+\]/gi, '') // Retirer les citations
+      .replace(/[^\u0600-\u06FFa-zA-Z\s]/g, ' ') // Garder arabe + latin
+      .split(/\s+/)
+      .filter(w => w.length > 3)
+      .map(w => w.toLowerCase())
+
+    if (sentenceTerms.length === 0) {
+      result.supportedClaims++ // Phrase trop courte, pas de termes à vérifier
+      continue
+    }
+
+    // Extraire les numéros d'articles mentionnés dans la phrase
+    const articleNumbers = [...sentence.matchAll(/(?:الفصل|Article)\s+(\d+)/gi)].map(m => m[1])
+
+    // Vérifier contre chaque source citée
+    let isSupported = false
+    for (const citation of citations) {
+      const sourceIndex = parseInt(citation[1]) - 1 // [Source-1] → index 0
+      if (sourceIndex < 0 || sourceIndex >= sources.length) continue
+
+      const source = sources[sourceIndex]
+      const sourceContent = `${source.documentName} ${source.chunkContent}`.toLowerCase()
+
+      // Check 1: Overlap lexical — ≥30% des termes de la phrase trouvés dans la source
+      const matchingTerms = sentenceTerms.filter(term => sourceContent.includes(term))
+      const overlapRatio = matchingTerms.length / sentenceTerms.length
+
+      if (overlapRatio >= 0.30) {
+        isSupported = true
+        break
+      }
+
+      // Check 2: Numéros d'articles — tous les articles cités doivent exister dans la source
+      if (articleNumbers.length > 0) {
+        const allArticlesFound = articleNumbers.every(num => sourceContent.includes(num))
+        if (allArticlesFound) {
+          isSupported = true
+          break
+        }
+      }
+    }
+
+    if (isSupported) {
+      result.supportedClaims++
+    } else {
+      result.unsupportedClaims.push({
+        claim: sentence.trim().substring(0, 150),
+        citedSource: citations.map(c => c[0]).join(', '),
+        issue: 'Faible correspondance lexicale entre la phrase et la source citée',
+      })
+    }
+  }
+
+  return result
+}
+
+// =============================================================================
 // UTILITAIRES EXPORT
 // =============================================================================
 

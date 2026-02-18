@@ -274,6 +274,8 @@ function buildChunkMetadata(chunk: Chunk, doc: Record<string, unknown>): Record<
   // Propagation doc-level
   if (doc.language) meta.language = doc.language
   if (doc.category) meta.category = doc.category
+  if (doc.source_type) meta.source_type = doc.source_type
+  if (doc.source_url) meta.source_url = doc.source_url
   return meta
 }
 
@@ -378,6 +380,19 @@ export async function indexKnowledgeDocument(
 
   if (chunks.length === 0) {
     return { success: false, chunksCreated: 0, error: 'Aucun chunk généré' }
+  }
+
+  // Phase 5b: Contextual Retrieval — Préfixer chaque chunk avec contexte structuré
+  // Améliore le matching sémantique car l'embedding capture le contexte du document
+  for (const chunk of chunks) {
+    const headerParts: string[] = []
+    if (doc.title) headerParts.push(doc.title)
+    if (chunk.metadata.articleNumber) headerParts.push(`الفصل ${chunk.metadata.articleNumber}`)
+    if ((chunk.metadata as Record<string, unknown>).sectionHeader) headerParts.push((chunk.metadata as Record<string, unknown>).sectionHeader as string)
+    if (doc.category) headerParts.push(`[${doc.category}]`)
+    if (headerParts.length > 0) {
+      chunk.content = `${headerParts.join(' | ')}\n---\n${chunk.content}`
+    }
   }
 
   // Skip embeddings Gemini si déjà générés (évite re-génération lors mise à jour de métadonnées)
@@ -987,6 +1002,70 @@ export async function searchKnowledgeBaseHybrid(
   console.log(`[KB Hybrid Search] Triple-parallel: ${providerSummary} → ${results.length} total après dédup (pool=${sqlCandidatePool})`)
 
   return results
+}
+
+/**
+ * Recherche Multi-Track — Phase 1 RAG Pipeline v2
+ *
+ * Exécute plusieurs recherches ciblées en parallèle (une par query de chaque track),
+ * puis fusionne les résultats par chunk_id (meilleur score × priorité du track).
+ *
+ * @param tracks - Pistes juridiques avec queries ciblées
+ * @param options - topKPerQuery (défaut 5), threshold, operationName
+ * @returns Résultats dédupliqués et triés par score
+ */
+export async function searchMultiTrack(
+  tracks: Array<{ label: string; searchQueries: string[]; targetDocTypes?: string[]; priority: number }>,
+  options: { topKPerQuery?: number; threshold?: number; operationName?: string; limit?: number } = {}
+): Promise<KnowledgeBaseSearchResult[]> {
+  const { topKPerQuery = 5, threshold, operationName, limit = 30 } = options
+
+  // Lancer toutes les queries de tous les tracks en parallèle
+  const searchPromises: Array<{ promise: Promise<KnowledgeBaseSearchResult[]>; priority: number }> = []
+
+  for (const track of tracks) {
+    for (const query of track.searchQueries) {
+      const docType = track.targetDocTypes?.[0] as DocumentType | undefined
+      searchPromises.push({
+        promise: searchKnowledgeBaseHybrid(query, {
+          limit: topKPerQuery,
+          threshold,
+          operationName,
+          docType,
+        }),
+        priority: track.priority,
+      })
+    }
+  }
+
+  // Exécuter toutes les recherches en parallèle
+  const results = await Promise.allSettled(searchPromises.map(sp => sp.promise))
+
+  // Fusionner : dédupliquer par chunk_id, garder meilleur score × priority
+  const seen = new Map<string, KnowledgeBaseSearchResult>()
+
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i]
+    if (result.status !== 'fulfilled') continue
+
+    const priority = searchPromises[i].priority
+    for (const r of result.value) {
+      const key = r.chunkId || `${r.knowledgeBaseId}:${r.chunkContent.substring(0, 50)}`
+      const weightedScore = r.similarity * priority
+      const existing = seen.get(key)
+      if (!existing || weightedScore > existing.similarity) {
+        seen.set(key, { ...r, similarity: weightedScore })
+      }
+    }
+  }
+
+  const merged = Array.from(seen.values())
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, limit)
+
+  console.log(`[Multi-Track] ${tracks.length} tracks, ${searchPromises.length} queries → ${merged.length} résultats après dédup`)
+
+  return merged
 }
 
 /**

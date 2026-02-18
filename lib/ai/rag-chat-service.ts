@@ -77,6 +77,7 @@ import { type OperationName, getOperationProvider, getOperationModel } from './o
 import {
   validateArticleCitations,
   formatValidationWarnings,
+  verifyClaimSourceAlignment,
 } from './citation-validator-service'
 import {
   detectAbrogatedReferences,
@@ -474,11 +475,10 @@ export async function searchRelevantContext(
     includeKnowledgeBase = true, // Activé par défaut
   } = options
 
-  // ✨ FIX A (TTFT): Lancer classification en parallèle avec l'expansion/embedding
-  // classifyQuery(question) utilise la question ORIGINALE → indépendant de l'expansion
-  // En lançant maintenant, on recouvre ~2s de latence pendant les LLM calls suivants
-  const _earlyClassifyPromise = includeKnowledgeBase
-    ? import('./query-classifier-service').then(m => m.classifyQuery(question))
+  // Phase 1: Legal Router — remplace classifyQuery par routeQuery (classification + tracks en 1 appel)
+  // Lancé en parallèle avec l'expansion/embedding pour recouvrir la latence
+  const _earlyRouterPromise = includeKnowledgeBase
+    ? import('./legal-router-service').then(m => m.routeQuery(question, { maxTracks: 4 }))
     : null
 
   // ✨ OPTIMISATION RAG - Sprint 2 (Feb 2026) + Fix requêtes longues (Feb 16, 2026)
@@ -648,16 +648,17 @@ export async function searchRelevantContext(
   // Détection langue pour seuils adaptatifs (arabe → scores plus bas)
   const queryLangForSearch = detectLanguage(question)
 
+  // Résoudre le router une seule fois (hissé pour réutilisation par relevance gating + multi-track)
+  const routerResult = includeKnowledgeBase
+    ? (_earlyRouterPromise
+        ? await _earlyRouterPromise
+        : await (await import('./legal-router-service')).routeQuery(question, { maxTracks: 4 }))
+    : null
+  const classification = routerResult?.classification || null
+
   // Recherche dans la base de connaissances partagée
-  if (includeKnowledgeBase) {
+  if (includeKnowledgeBase && classification) {
     try {
-      // ✨ OPTIMISATION RAG - Sprint 2 (Feb 2026)
-      // 2. Metadata Filtering Intelligent via classification query
-      // FIX A: Réutiliser le Promise lancé en début de fonction (déjà ~2s d'avance)
-      // Classifier la query — si lancé en avance, déjà résolu ou proche de l'être
-      const classification = _earlyClassifyPromise
-        ? await _earlyClassifyPromise
-        : await (await import('./query-classifier-service')).classifyQuery(question)
 
       let kbResults: Array<{
         knowledgeBaseId: string
@@ -668,21 +669,36 @@ export async function searchRelevantContext(
         metadata: Record<string, unknown>
       }> = []
 
-      // Recherche globale hybride (sans filtrage par catégorie)
-      // Le filtrage par catégorie excluait des résultats pertinents cross-catégorie
-      // La recherche globale + codes-forced + re-ranking produit de meilleurs résultats (benchmark 100% hit@5)
+      // Recherche globale hybride + multi-track si tracks disponibles
       const globalThreshold = queryLangForSearch === 'ar'
         ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.30)
         : RAG_THRESHOLDS.knowledgeBase
-      console.log(
-        `[RAG Search] Recherche KB globale hybride (classifieur: ${classification.categories.join(', ')}, domaines: ${classification.domains.join(',') || 'aucun'}, confiance: ${(classification.confidence * 100).toFixed(1)}%, seuil: ${globalThreshold})`
-      )
-      kbResults = await searchKnowledgeBaseHybrid(embeddingQuestion, {
-        limit: maxContextChunks,
-        threshold: globalThreshold,
-        operationName: options.operationName,
-        docType: options.docType,
-      })
+
+      // Phase 1: Multi-track retrieval si le router a généré plusieurs tracks
+      const tracks = routerResult?.tracks || []
+      if (tracks.length > 1) {
+        console.log(
+          `[RAG Search] Multi-track: ${tracks.length} tracks, ${tracks.reduce((a, t) => a + t.searchQueries.length, 0)} queries (source: ${routerResult?.source}, confiance: ${(classification.confidence * 100).toFixed(1)}%)`
+        )
+        const { searchMultiTrack } = await import('./knowledge-base-service')
+        kbResults = await searchMultiTrack(tracks, {
+          topKPerQuery: 5,
+          threshold: globalThreshold,
+          operationName: options.operationName,
+          limit: maxContextChunks,
+        })
+      } else {
+        // Fallback: recherche globale hybride classique
+        console.log(
+          `[RAG Search] Recherche KB globale hybride (classifieur: ${classification.categories.join(', ')}, domaines: ${classification.domains.join(',') || 'aucun'}, confiance: ${(classification.confidence * 100).toFixed(1)}%, seuil: ${globalThreshold})`
+        )
+        kbResults = await searchKnowledgeBaseHybrid(embeddingQuestion, {
+          limit: maxContextChunks,
+          threshold: globalThreshold,
+          operationName: options.operationName,
+          docType: options.docType,
+        })
+      }
 
       // Ajouter résultats KB aux sources
       for (const result of kbResults) {
@@ -735,6 +751,20 @@ export async function searchRelevantContext(
         console.log(`[RAG Search] Seuil adaptatif: ${rerankedSources.length} → ${adaptiveResults.length} résultats (seuil ${adaptiveThreshold.toFixed(2)}, plancher ${ADAPTIVE_FLOOR})`)
         rerankedSources = await rerankSources(adaptiveResults, question)
       }
+    }
+  }
+
+  // Phase 2: Relevance Gating — bloquer sources hors-domaine
+  if (classification && classification.confidence >= 0.7 && classification.domains.length > 0) {
+    try {
+      const { gateSourceRelevance } = await import('./relevance-gate-service')
+      const gating = await gateSourceRelevance(question, rerankedSources, classification)
+      if (gating.blocked.length > 0) {
+        console.log(`[RAG Gate] Bloqué ${gating.blocked.length} sources hors-domaine`)
+        rerankedSources = gating.passed
+      }
+    } catch (error) {
+      console.error('[RAG Gate] Erreur gating, skip:', error instanceof Error ? error.message : error)
     }
   }
 
@@ -1552,6 +1582,17 @@ export async function answerQuestion(
     })
   }
 
+  // Phase 3b: Avertissement conditionnel si domaine principal non couvert par les sources
+  // Détection rapide basée sur les catégories des sources (pas d'appel LLM supplémentaire)
+  const sourceCategories = new Set(
+    sources.map(s => (s.metadata as Record<string, unknown>)?.category).filter(Boolean) as string[]
+  )
+  // Si toutes les sources proviennent d'un seul domaine et que la qualité est moyenne/basse,
+  // injecter un avertissement pour déclencher le raisonnement conditionnel
+  if (sources.length > 0 && qualityMetrics.qualityLevel !== 'high' && sourceCategories.size <= 1) {
+    contextWithWarning = `⚠️ تنبيه: المصادر المتوفرة محدودة النطاق. استخدم الرأي المشروط وقدّم افتراضات بديلة إن لزم الأمر.\n\n${contextWithWarning}`
+  }
+
   // 3. Récupérer l'historique avec résumé si conversation existante
   let conversationHistory: ConversationMessage[] = []
   let conversationSummary: string | null = null
@@ -1836,6 +1877,24 @@ export async function answerQuestion(
       count: abrogationWarnings.length,
       warnings: formatAbrogationWarnings(abrogationWarnings),
     })
+  }
+
+  // Phase 4: Claim verification — vérifier alignement claims↔sources
+  if (process.env.ENABLE_CLAIM_VERIFICATION !== 'false') {
+    try {
+      const claimResult = verifyClaimSourceAlignment(answer, sources)
+      if (claimResult.unsupportedClaims.length > 0) {
+        const ratio = claimResult.totalClaims > 0
+          ? claimResult.supportedClaims / claimResult.totalClaims
+          : 1
+        if (ratio < 0.7) {
+          answer += '\n\n⚠️ تنبيه: بعض الاستنتاجات قد لا تكون مدعومة بشكل كافٍ بالمصادر المتوفرة. يُرجى التحقق.'
+        }
+        console.log(`[Claim Verify] ${claimResult.supportedClaims}/${claimResult.totalClaims} claims supportées`)
+      }
+    } catch (error) {
+      console.error('[Claim Verify] Erreur:', error instanceof Error ? error.message : error)
+    }
   }
 
   // Log métriques finales du pipeline complet

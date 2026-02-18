@@ -34,3 +34,8 @@ CREATE TABLE IF NOT EXISTS rag_eval_results (
 
 CREATE INDEX IF NOT EXISTS idx_rag_eval_run ON rag_eval_results(run_id);
 CREATE INDEX IF NOT EXISTS idx_rag_eval_question ON rag_eval_results(question_id);
+
+-- Index fonctionnel pour recherche par catégorie dans les métadonnées chunks
+CREATE INDEX IF NOT EXISTS idx_kb_chunks_category
+ON knowledge_base_chunks ((metadata->>'category'))
+WHERE metadata->>'category' IS NOT NULL;
