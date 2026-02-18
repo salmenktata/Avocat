@@ -351,7 +351,7 @@ export function UnifiedChatPage({
 
           {/* Messages */}
           <div className="flex-1 overflow-auto">
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-4xl mx-auto">
               <ChatMessages
                 messages={messages}
                 isLoading={isLoadingMessages && !isStreaming}

@@ -295,7 +295,7 @@ function LoadingIndicator() {
         </motion.div>
       </div>
 
-      <div className="flex-1 max-w-[85%]">
+      <div className="flex-1 max-w-[95%]">
         {/* Header avec timer bien visible */}
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
@@ -401,7 +401,7 @@ const MessageBubble = memo(function MessageBubble({ message, renderEnriched, can
       </div>
 
       {/* Contenu */}
-      <div className="flex-1 min-w-0 max-w-[85%]">
+      <div className="flex-1 min-w-0 max-w-[95%]">
         {/* Header assistant */}
         <div className="flex items-center gap-1.5 mb-2">
           <span className="text-xs font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
