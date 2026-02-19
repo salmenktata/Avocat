@@ -65,6 +65,14 @@ jobs:
           echo "queue_length=$PENDING" >> $GITHUB_OUTPUT
           echo "📊 Déploiements en queue/en cours: $PENDING"
 
+          # Stratégie 0: Workflow_dispatch toujours prioritaire (jamais skip)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_skip=false" >> $GITHUB_OUTPUT
+            echo "skip_reason=manual_override" >> $GITHUB_OUTPUT
+            echo "🚀 Déploiement manuel : PRIORITAIRE (pas de skip, queue=$PENDING)"
+            exit 0
+          fi
+
           # Stratégie 1: Skip si 3+ déploiements en queue (auto-batch)
           if [ "$PENDING" -ge 3 ]; then
             echo "should_skip=true" >> $GITHUB_OUTPUT
@@ -102,14 +110,6 @@ jobs:
               echo "💡 Les changements seront inclus dans le prochain déploiement"
               exit 0
             fi
-          fi
-
-          # Stratégie 3: Workflow_dispatch toujours prioritaire (jamais skip)
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "should_skip=false" >> $GITHUB_OUTPUT
-            echo "skip_reason=manual_override" >> $GITHUB_OUTPUT
-            echo "🚀 Déploiement manuel : PRIORITAIRE (pas de skip)"
-            exit 0
           fi
 
           # Pas de raison de skip
