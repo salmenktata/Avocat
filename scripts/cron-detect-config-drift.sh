@@ -25,6 +25,11 @@ if [ -f "$SCRIPT_DIR/lib/cron-logger.sh" ]; then
   source "$SCRIPT_DIR/lib/cron-logger.sh"
 fi
 
+# Récupérer CRON_SECRET du container pour l'API tracking
+CRON_SECRET=$(docker exec qadhya-nextjs env 2>/dev/null | grep CRON_SECRET | cut -d= -f2)
+export CRON_SECRET
+export CRON_API_BASE="https://qadhya.tn"
+
 # Configuration
 API_BASE_URL="${CRON_API_BASE:-https://qadhya.tn}"
 API_ENDPOINT="/api/health/config"

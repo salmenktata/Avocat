@@ -20,6 +20,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$SCRIPT_DIR/lib/cron-logger.sh" ]; then
   source "$SCRIPT_DIR/lib/cron-logger.sh"
 fi
+
+# Récupérer CRON_SECRET du container pour l'API tracking
+CRON_SECRET=$(docker exec "$CONTAINER" env 2>/dev/null | grep CRON_SECRET | cut -d= -f2)
+export CRON_SECRET
+export CRON_API_BASE="https://qadhya.tn"
+
 cron_start "watchdog-vps" "scheduled" 2>/dev/null || true
 
 # 1. Vérifier le health status Docker
