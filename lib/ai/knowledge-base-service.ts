@@ -19,6 +19,8 @@ import type { DocumentType } from '@/lib/categories/doc-types'
 import { getDocumentType } from '@/lib/categories/doc-types'
 import { normalizeArabicText } from '@/lib/web-scraper/arabic-text-utils'
 import { normalizeArticleNumbers, removeDocumentBoilerplate } from '@/lib/ai/text-normalization-service'
+import { checkDocumentInclusion } from '@/lib/kb/inclusion-rules'
+import { trackDocumentVersion } from '@/lib/kb/document-version-tracker'
 import type { Chunk } from './chunking-service'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse en RSC
@@ -322,6 +324,35 @@ export async function indexKnowledgeDocument(
       chunksCreated: 0,
       error: `Quality gate: score ${doc.quality_score}/100 < 40 (document de très faible qualité)`,
     }
+  }
+
+  // ✨ C2: Règles d'inclusion/exclusion (Sprint 3)
+  const inclusionCheck = checkDocumentInclusion({
+    title: doc.title || '',
+    fullText: doc.full_text,
+    category: doc.category,
+    subcategory: doc.subcategory,
+    language: doc.language,
+  })
+  if (!inclusionCheck.accepted) {
+    const reason = inclusionCheck.blockers[0] || 'Règle d\'inclusion non satisfaite'
+    console.warn(`[KB Index] ⚠️ INCLUSION GATE: Doc ${documentId} bloqué — ${reason}`)
+    // Stocker la raison dans metadata pour monitoring
+    await db.query(
+      `UPDATE knowledge_base SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('exclusion_reason', $1) WHERE id = $2`,
+      [reason, documentId]
+    ).catch(() => {})
+    return { success: false, chunksCreated: 0, error: `Inclusion gate: ${reason}` }
+  }
+  if (inclusionCheck.warnings.length > 0) {
+    console.log(`[KB Index] ⚠️ Warnings pour ${documentId}: ${inclusionCheck.warnings.join(', ')}`)
+  }
+
+  // ✨ C1: Tracking version si re-indexation (Sprint 3)
+  if (doc.is_indexed) {
+    trackDocumentVersion(documentId, doc.full_text, 'system').catch(err =>
+      console.error(`[KB Index] Erreur version tracking pour ${documentId}:`, err)
+    )
   }
 
   // Import dynamique des services

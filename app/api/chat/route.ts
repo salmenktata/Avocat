@@ -29,6 +29,7 @@ import { isChatEnabled, getChatProvider } from '@/lib/ai/config'
 import { triggerSummaryGenerationIfNeeded } from '@/lib/ai/conversation-summary-service'
 import { createAIStream } from '@/lib/ai/streaming-service'
 import { scheduleHallucinationCheck } from '@/lib/ai/hallucination-monitor-service'
+import { trackConversationCost } from '@/lib/ai/conversation-cost-service'
 import { detectAbrogations, type AbrogationAlert } from '@/lib/legal/abrogation-detector-service'
 import { structurerDossier } from '@/lib/ai/dossier-structuring-service'
 
@@ -363,6 +364,19 @@ export async function POST(
       response.model
     )
 
+    // E1: Tracking coût conversation (fire-and-forget)
+    if (response.tokensUsed.total > 0 && response.model !== 'abstained') {
+      trackConversationCost({
+        conversationId: activeConversationId,
+        userId,
+        provider: (response.model?.includes('gemini') ? 'gemini' : 'groq') as any,
+        model: response.model || 'unknown',
+        inputTokens: response.tokensUsed.input,
+        outputTokens: response.tokensUsed.output,
+        operationType: 'chat',
+      }).catch(err => console.error('[Chat API] Erreur cost tracking:', err))
+    }
+
     // Générer un titre si c'est le premier échange
     const messageCount = await db.query(
       `SELECT COUNT(*) as count FROM chat_messages WHERE conversation_id = $1`,
@@ -654,6 +668,19 @@ async function handleStreamingResponse(
               savedSources,
               savedModel
             )
+
+            // E1: Tracking coût conversation (fire-and-forget)
+            if (event.tokensUsed.total > 0 && savedModel !== 'abstained') {
+              trackConversationCost({
+                conversationId,
+                userId,
+                provider: (savedModel?.includes('gemini') ? 'gemini' : 'groq') as any,
+                model: savedModel || 'unknown',
+                inputTokens: event.tokensUsed.input,
+                outputTokens: event.tokensUsed.output,
+                operationType: 'chat',
+              }).catch(err => console.error('[Stream] Erreur cost tracking:', err))
+            }
 
             // Générer titre si premier échange
             const messageCount = await db.query(
