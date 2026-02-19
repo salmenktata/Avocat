@@ -78,6 +78,7 @@ export interface IortCrawlStats {
   textType: string
   totalResults: number
   crawled: number
+  updated: number
   skipped: number
   errors: number
 }
@@ -615,14 +616,57 @@ export async function uploadIortPdf(
   pdfFilename: string,
 ): Promise<{ minioPath: string; size: number } | null> {
   try {
+    const crypto = await import('crypto')
+    const pdfHash = crypto.createHash('sha256').update(pdfBuffer).digest('hex')
+
+    // Vérifier si un PDF identique existe déjà (toutes sources confondues)
+    const existingPdf = await db.query(
+      `SELECT linked_files FROM web_pages
+       WHERE linked_files != '[]'::jsonb
+       AND linked_files @> $1::jsonb
+       LIMIT 1`,
+      [JSON.stringify([{ contentHash: pdfHash }])],
+    )
+
+    // Fallback: chercher par taille + même source (heuristique rapide si pas de contentHash stocké)
+    if (existingPdf.rows.length === 0) {
+      const sizeMatch = await db.query(
+        `SELECT id, linked_files FROM web_pages
+         WHERE web_source_id = $1
+         AND linked_files != '[]'::jsonb
+         AND EXISTS (
+           SELECT 1 FROM jsonb_array_elements(linked_files) elem
+           WHERE (elem->>'size')::int = $2
+           AND elem->>'type' = 'pdf'
+           AND elem->>'minioPath' IS NOT NULL
+         )
+         LIMIT 1`,
+        [sourceId, pdfBuffer.length],
+      )
+
+      if (sizeMatch.rows.length > 0) {
+        const files = sizeMatch.rows[0].linked_files as Array<{ minioPath?: string; size?: number }>
+        const matchingFile = files.find(f => f.size === pdfBuffer.length && f.minioPath)
+        if (matchingFile?.minioPath) {
+          console.log(`[IORT] PDF dédupliqué (taille identique): ${matchingFile.minioPath}`)
+          return { minioPath: matchingFile.minioPath, size: pdfBuffer.length }
+        }
+      }
+    } else {
+      const files = existingPdf.rows[0].linked_files as Array<{ minioPath?: string; size?: number }>
+      const matchingFile = files.find(f => f.minioPath)
+      if (matchingFile?.minioPath) {
+        console.log(`[IORT] PDF dédupliqué (hash identique): ${matchingFile.minioPath}`)
+        return { minioPath: matchingFile.minioPath, size: pdfBuffer.length }
+      }
+    }
+
     const { uploadFile } = await import('@/lib/storage/minio')
 
-    // Utiliser le titre du texte (unique) plutôt que le suggestedFilename WebDev (souvent SYNC_xxx)
     const slug = pageTitle
       .replace(/[^\w\u0600-\u06FF\s-]/g, '')
       .replace(/\s+/g, '-')
       .substring(0, 100)
-    // Ajouter un hash court pour éviter les collisions
     const hash = hashContent(pageTitle).substring(0, 8)
     const filename = `iort/${sourceId}/${slug}-${hash}.pdf`
 
@@ -650,20 +694,21 @@ export function generateIortUrl(
   textType: string,
   title: string,
 ): string {
-  const slug = title
-    .replace(/[^\w\u0600-\u06FF\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .substring(0, 100)
-  const issue = issueNumber || 'unknown'
   const typeSlug = textType.replace(/\s+/g, '-')
-  return `${IORT_BASE_URL}/jort/${year}/${issue}/${typeSlug}/${slug}`
+  if (issueNumber) {
+    // URL stable basée sur year/textType/issueNumber (pas le titre)
+    return `${IORT_BASE_URL}/jort/${year}/${typeSlug}/${issueNumber}`
+  }
+  // Fallback: hash court du titre quand issueNumber est absent
+  const titleHash = hashContent(title).substring(0, 12)
+  return `${IORT_BASE_URL}/jort/${year}/${typeSlug}/${titleHash}`
 }
 
 export async function saveIortPage(
   sourceId: string,
   extracted: IortExtractedText,
   pdfInfo: { minioPath: string; size: number } | null,
-): Promise<{ id: string; skipped: boolean }> {
+): Promise<{ id: string; skipped: boolean; updated: boolean }> {
   const url = generateIortUrl(
     extracted.year,
     extracted.issueNumber,
@@ -671,18 +716,69 @@ export async function saveIortPage(
     extracted.title,
   )
   const urlHash = hashUrl(url)
+  const contentHash = hashContent(extracted.content)
 
-  // Vérifier si déjà crawlé
+  // 1. Lookup primaire par url_hash
   const existing = await db.query(
-    'SELECT id FROM web_pages WHERE url_hash = $1',
+    'SELECT id, content_hash, url FROM web_pages WHERE url_hash = $1',
     [urlHash],
   )
 
   if (existing.rows.length > 0) {
-    return { id: existing.rows[0].id, skipped: true }
+    const row = existing.rows[0]
+    const existingContentHash = row.content_hash as string | null
+
+    if (existingContentHash === contentHash) {
+      // Contenu identique → juste mettre à jour last_crawled_at
+      await db.query(
+        'UPDATE web_pages SET last_crawled_at = NOW(), updated_at = NOW() WHERE id = $1',
+        [row.id],
+      )
+      return { id: row.id as string, skipped: true, updated: false }
+    }
+
+    // Contenu changé → créer version + mettre à jour
+    await updateIortPage(row.id as string, extracted, contentHash, pdfInfo)
+    return { id: row.id as string, skipped: false, updated: true }
   }
 
-  const contentHash = hashContent(extracted.content)
+  // 2. Lookup secondaire par structured_data (évite doublons quand le titre change)
+  if (extracted.issueNumber) {
+    const structLookup = await db.query(
+      `SELECT id, content_hash, url FROM web_pages
+       WHERE web_source_id = $1
+       AND structured_data->>'year' = $2
+       AND structured_data->>'issueNumber' = $3
+       AND structured_data->>'textType' = $4
+       AND structured_data->>'source' = 'iort'
+       LIMIT 1`,
+      [sourceId, String(extracted.year), extracted.issueNumber, extracted.textType],
+    )
+
+    if (structLookup.rows.length > 0) {
+      const row = structLookup.rows[0]
+      // Même texte juridique, URL a changé → mettre à jour URL + contenu si nécessaire
+      const needsContentUpdate = row.content_hash !== contentHash
+
+      await db.query(
+        `UPDATE web_pages SET url = $2, url_hash = $3, canonical_url = $2, updated_at = NOW() WHERE id = $1`,
+        [row.id, url, urlHash],
+      )
+
+      if (needsContentUpdate) {
+        await updateIortPage(row.id as string, extracted, contentHash, pdfInfo)
+        return { id: row.id as string, skipped: false, updated: true }
+      }
+
+      await db.query(
+        'UPDATE web_pages SET last_crawled_at = NOW(), updated_at = NOW() WHERE id = $1',
+        [row.id],
+      )
+      return { id: row.id as string, skipped: true, updated: false }
+    }
+  }
+
+  // 3. Nouveau texte → INSERT
   const wordCount = countWords(extracted.content)
   const language = detectTextLanguage(extracted.content)
 
@@ -705,7 +801,6 @@ export async function saveIortPage(
     source: 'iort',
   })
 
-  // Convertir la date arabe en ISO si possible, sinon null (la date reste dans structured_data)
   const isoDate = parseArabicDate(extracted.date)
 
   const result = await db.query(
@@ -750,7 +845,86 @@ export async function saveIortPage(
     }
   }
 
-  return { id: pageId, skipped: false }
+  return { id: pageId, skipped: false, updated: false }
+}
+
+/**
+ * Met à jour une page IORT existante dont le contenu a changé.
+ * Crée un snapshot de version, met à jour le contenu, et marque is_indexed=false.
+ */
+async function updateIortPage(
+  pageId: string,
+  extracted: IortExtractedText,
+  contentHash: string,
+  pdfInfo: { minioPath: string; size: number } | null,
+): Promise<void> {
+  // Créer un snapshot avant la mise à jour
+  try {
+    const { createWebPageVersion } = await import('./source-service')
+    await createWebPageVersion(pageId, 'content_change')
+  } catch (err) {
+    console.error('[IORT] Erreur création version:', err)
+  }
+
+  const wordCount = countWords(extracted.content)
+  const language = detectTextLanguage(extracted.content)
+  const isoDate = parseArabicDate(extracted.date)
+
+  const structuredData = JSON.stringify({
+    year: extracted.year,
+    textType: extracted.textType,
+    issueNumber: extracted.issueNumber,
+    date: extracted.date,
+    source: 'iort',
+  })
+
+  const params: unknown[] = [
+    pageId,
+    extracted.title,
+    contentHash,
+    extracted.content,
+    wordCount,
+    language,
+    `${extracted.textType} - ${extracted.title}`.substring(0, 500),
+    isoDate,
+    structuredData,
+  ]
+
+  let linkedFilesClause = ''
+  if (pdfInfo) {
+    const linkedFiles = JSON.stringify([{
+      url: generateIortUrl(extracted.year, extracted.issueNumber, extracted.textType, extracted.title),
+      type: 'pdf',
+      filename: pdfInfo.minioPath.split('/').pop(),
+      minioPath: pdfInfo.minioPath,
+      size: pdfInfo.size,
+      contentType: 'application/pdf',
+    }])
+    params.push(linkedFiles)
+    linkedFilesClause = `linked_files = $${params.length},`
+  }
+
+  await db.query(
+    `UPDATE web_pages SET
+      title = $2,
+      content_hash = $3,
+      extracted_text = $4,
+      word_count = $5,
+      language_detected = $6,
+      meta_description = $7,
+      meta_date = $8,
+      structured_data = $9,
+      ${linkedFilesClause}
+      status = 'crawled',
+      last_crawled_at = NOW(),
+      last_changed_at = NOW(),
+      is_indexed = false,
+      updated_at = NOW()
+    WHERE id = $1`,
+    params,
+  )
+
+  console.log(`[IORT] Page ${pageId} mise à jour (contenu changé, is_indexed=false)`)
 }
 
 export async function updateIortSourceStats(sourceId: string): Promise<void> {
@@ -781,6 +955,7 @@ export async function crawlYearType(
     textType: IORT_TEXT_TYPES[textType].fr,
     totalResults: 0,
     crawled: 0,
+    updated: 0,
     skipped: 0,
     errors: 0,
   }
@@ -845,10 +1020,14 @@ export async function crawlYearType(
             continue
           }
 
-          const { id: pageId, skipped } = await saveIortPage(sourceId, extracted, null)
+          const { id: pageId, skipped, updated } = await saveIortPage(sourceId, extracted, null)
 
           if (skipped) {
             stats.skipped++
+          } else if (updated) {
+            stats.updated++
+            extractedResults.push({ result, extracted, pageId })
+            console.log(`[IORT] ↻ MAJ ${result.title.substring(0, 60)}...`)
           } else {
             stats.crawled++
             extractedResults.push({ result, extracted, pageId })
@@ -997,7 +1176,7 @@ export async function crawlYearType(
 
   console.log(
     `[IORT] Terminé ${year}/${IORT_TEXT_TYPES[textType].fr}: ` +
-    `${stats.crawled} crawlés, ${stats.skipped} existants, ${stats.errors} erreurs ` +
+    `${stats.crawled} nouveaux, ${stats.updated} mis à jour, ${stats.skipped} inchangés, ${stats.errors} erreurs ` +
     `(sur ${stats.totalResults} total)`
   )
 

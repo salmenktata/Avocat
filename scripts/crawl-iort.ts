@@ -236,21 +236,23 @@ async function main() {
     console.log('═══════════════════════════════════════════════')
 
     let totalCrawled = 0
+    let totalUpdated = 0
     let totalSkipped = 0
     let totalErrors = 0
 
     for (const stats of allStats) {
       console.log(
-        `  ${stats.year}/${stats.textType}: ${stats.crawled} crawlés, ` +
-        `${stats.skipped} existants, ${stats.errors} erreurs (total: ${stats.totalResults})`
+        `  ${stats.year}/${stats.textType}: ${stats.crawled} nouveaux, ${stats.updated} mis à jour, ` +
+        `${stats.skipped} inchangés, ${stats.errors} erreurs (total: ${stats.totalResults})`
       )
       totalCrawled += stats.crawled
+      totalUpdated += stats.updated
       totalSkipped += stats.skipped
       totalErrors += stats.errors
     }
 
     console.log('───────────────────────────────────────────────')
-    console.log(`  TOTAL: ${totalCrawled} crawlés, ${totalSkipped} existants, ${totalErrors} erreurs`)
+    console.log(`  TOTAL: ${totalCrawled} nouveaux, ${totalUpdated} mis à jour, ${totalSkipped} inchangés, ${totalErrors} erreurs`)
     console.log('═══════════════════════════════════════════════\n')
 
     await closePool()
