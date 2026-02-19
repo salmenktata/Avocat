@@ -16,6 +16,18 @@ import type {
   HealthStatus,
 } from './types'
 
+/** Convert pg interval (object or string) to a plain string */
+function stringifyInterval(val: unknown): string {
+  if (typeof val === 'string') return val
+  if (val && typeof val === 'object') {
+    const iv = val as Record<string, number>
+    if (iv.days) return `${iv.days} days`
+    if (iv.hours) return iv.hours >= 24 ? `${Math.floor(iv.hours / 24)} days` : `${iv.hours} hours`
+    if (iv.minutes) return `${iv.minutes} minutes`
+  }
+  return '24 hours'
+}
+
 // =============================================================================
 // CRUD WEB SOURCES
 // =============================================================================
@@ -872,7 +884,7 @@ function mapRowToWebSource(row: Record<string, unknown>): WebSource {
     category: row.category as WebSource['category'],
     language: row.language as WebSource['language'],
     priority: row.priority as number,
-    crawlFrequency: row.crawl_frequency as string,
+    crawlFrequency: stringifyInterval(row.crawl_frequency),
     adaptiveFrequency: row.adaptive_frequency as boolean,
     cssSelectors: (row.css_selectors as CssSelectors) || {},
     urlPatterns: (row.url_patterns as string[]) || [],
