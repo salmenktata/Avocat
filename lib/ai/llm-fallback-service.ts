@@ -623,11 +623,22 @@ export const callLLM = callLLMWithFallback
 // =============================================================================
 
 /**
- * Stream Groq via OpenAI SDK compatible
+ * Résultat d'usage tokens pour le streaming (capturé depuis le dernier chunk)
+ */
+export interface StreamTokenUsage {
+  input: number
+  output: number
+  total: number
+}
+
+/**
+ * Stream Groq via OpenAI SDK compatible.
+ * Le paramètre `usageOut` permet de capturer les stats de tokens depuis le dernier chunk.
  */
 export async function* callGroqStream(
   messages: Array<{ role: string; content: string }>,
-  options: { maxTokens?: number; temperature?: number; model?: string; systemInstruction?: string }
+  options: { maxTokens?: number; temperature?: number; model?: string; systemInstruction?: string },
+  usageOut?: StreamTokenUsage
 ): AsyncGenerator<string> {
   const client = getGroqClient()
   const model = options.model ?? aiConfig.groq.model
@@ -644,6 +655,7 @@ export async function* callGroqStream(
     model,
     messages: allMessages,
     stream: true,
+    stream_options: { include_usage: true },
     max_tokens: options.maxTokens ?? 8000,
     temperature: options.temperature ?? 0.1,
   })
@@ -651,12 +663,19 @@ export async function* callGroqStream(
   for await (const chunk of stream) {
     const text = chunk.choices[0]?.delta?.content || ''
     if (text) yield text
+    // Groq envoie usage dans le dernier chunk quand stream_options.include_usage=true
+    if (chunk.usage && usageOut) {
+      usageOut.input = chunk.usage.prompt_tokens || 0
+      usageOut.output = chunk.usage.completion_tokens || 0
+      usageOut.total = chunk.usage.total_tokens || 0
+    }
   }
 }
 
 /**
  * Dispatcher streaming générique selon le provider configuré pour l'opération.
  * Supporte Groq (gratuit) et Gemini (payant) - sélection automatique via operations-config.
+ * Le paramètre `usageOut` capture les stats de tokens (Groq uniquement pour l'instant).
  */
 export async function* callLLMStream(
   messages: Array<{ role: string; content: string }>,
@@ -665,7 +684,8 @@ export async function* callLLMStream(
     temperature?: number
     operationName?: OperationName
     systemInstruction?: string
-  }
+  },
+  usageOut?: StreamTokenUsage
 ): AsyncGenerator<string> {
   const provider = options.operationName
     ? getOperationProvider(options.operationName)
@@ -673,7 +693,7 @@ export async function* callLLMStream(
 
   if (provider === 'groq') {
     const model = options.operationName ? getOperationModel(options.operationName) : undefined
-    yield* callGroqStream(messages, { ...options, model })
+    yield* callGroqStream(messages, { ...options, model }, usageOut)
   } else {
     yield* callGeminiStream(messages, {
       temperature: options.temperature,

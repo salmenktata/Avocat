@@ -17,9 +17,9 @@ import { aiConfig } from './config'
 // =============================================================================
 
 export const SUMMARY_CONFIG = {
-  triggerMessageCount: parseInt(process.env.SUMMARY_TRIGGER_COUNT || '10', 10),
+  triggerMessageCount: parseInt(process.env.SUMMARY_TRIGGER_COUNT || '6', 10),
   maxSummaryTokens: parseInt(process.env.SUMMARY_MAX_TOKENS || '500', 10),
-  recentMessagesLimit: parseInt(process.env.SUMMARY_RECENT_LIMIT || '6', 10),
+  recentMessagesLimit: parseInt(process.env.SUMMARY_RECENT_LIMIT || '4', 10),
   llmProvider: 'groq' as const,
   llmModel: process.env.SUMMARY_LLM_MODEL || 'llama-3.1-8b-instant',
 }

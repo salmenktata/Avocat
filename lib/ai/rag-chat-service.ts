@@ -72,6 +72,7 @@ import {
   callLLMStream,
   LLMMessage,
   LLMResponse,
+  type StreamTokenUsage,
 } from './llm-fallback-service'
 import { type OperationName, getOperationProvider, getOperationModel } from './operations-config'
 import {
@@ -2079,13 +2080,14 @@ export async function* answerQuestionStream(
   // 6. Stream LLM → yield chunks (Groq ou Gemini selon operations-config)
   const promptConfig = PROMPT_CONFIG[contextType]
   let fullText = ''
+  const streamUsage: StreamTokenUsage = { input: 0, output: 0, total: 0 }
   try {
     const streamGen = callLLMStream(messagesForLLM, {
       temperature: options.temperature ?? promptConfig.temperature,
       maxTokens: promptConfig.maxTokens,
       operationName: options.operationName ?? 'assistant-ia',
       systemInstruction: systemPrompt,
-    })
+    }, streamUsage)
 
     for await (const chunk of streamGen) {
       fullText += chunk
@@ -2101,10 +2103,12 @@ export async function* answerQuestionStream(
   // 7. Post-processing : sanitize citations
   fullText = sanitizeCitations(fullText, sources.length)
 
-  // Estimation tokens output (4 chars ≈ 1 token)
-  const estimatedOutputTokens = Math.ceil(fullText.length / 4)
+  // Tokens : utiliser les stats réelles Groq si disponibles, sinon estimation
+  const tokensUsed = streamUsage.total > 0
+    ? streamUsage
+    : { input: 0, output: Math.ceil(fullText.length / 4), total: Math.ceil(fullText.length / 4) }
 
-  yield { type: 'done', tokensUsed: { input: 0, output: estimatedOutputTokens, total: estimatedOutputTokens } }
+  yield { type: 'done', tokensUsed }
 }
 
 // =============================================================================

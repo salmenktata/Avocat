@@ -87,7 +87,7 @@ const isDev = process.env.NODE_ENV === 'development'
  * | Assistant IA (chat)    | Groq     | llama-3.3-70b-versatile   | 0€         | 128K     |
  * | Dossiers Assistant     | Gemini   | gemini-2.5-flash          | 0€ (free)  | 1M       |
  * | Consultations IRAC     | Gemini   | gemini-2.5-flash          | 0€ (free)  | 1M       |
- * | KB Quality Analysis    | Groq     | llama-3.3-70b-versatile   | 0€         | 128K     |
+ * | KB Quality Analysis    | Ollama   | qwen3:8b                  | 0€         | 128K     |
  * | Query Classification   | Groq     | llama-3.3-70b-versatile   | 0€         | 128K     |
  * | Query Expansion        | Groq     | llama-3.3-70b-versatile   | 0€         | 128K     |
  * | Consolidation docs     | Gemini   | gemini-2.5-flash          | 0€ (free)  | 1M       |
@@ -183,13 +183,11 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
   // 4. ANALYSE QUALITÉ KB (tous documents, courts et longs)
   // ---------------------------------------------------------------------------
   'kb-quality-analysis': {
-    model: isDev
-      ? { provider: 'ollama', name: 'qwen3:8b' }
-      : { provider: 'groq', name: 'llama-3.3-70b-versatile' },
+    model: { provider: 'ollama', name: 'qwen3:8b' }, // Ollama en dev ET prod (batch, pas temps réel)
 
     timeouts: {
-      chat: 45000,
-      total: 90000,
+      chat: 60000, // Ollama plus lent que Groq, marge élargie
+      total: 120000,
     },
 
     llmConfig: {
@@ -197,8 +195,8 @@ export const AI_OPERATIONS_CONFIG: Record<OperationName, OperationAIConfig> = {
       maxTokens: 8000,
     },
 
-    alerts: { onFailure: 'email', severity: 'warning' },
-    description: 'Analyse qualité documents KB - Groq llama-3.3-70b (gratuit)',
+    alerts: { onFailure: 'log', severity: 'warning' }, // Log seulement (batch non-critique)
+    description: 'Analyse qualité documents KB - Ollama qwen3:8b (gratuit, batch)',
   },
 
   // ---------------------------------------------------------------------------

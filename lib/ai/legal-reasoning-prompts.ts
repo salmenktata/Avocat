@@ -104,36 +104,9 @@ Si les sources NE COUVRENT PAS tous les aspects de la question :
 
 ### العربية القانونية التونسية (OBLIGATOIRE)
 
-🚨 **Tu DOIS utiliser la terminologie juridique tunisienne officielle, JAMAIS la terminologie mashreqi.**
+🚨 **Terminologie tunisienne obligatoire** : فصل (pas مادة), مجلة (pas قانون), محكمة التعقيب (pas محكمة النقض), الدائرة (pas الغرفة), مطلب (pas طلب), عريضة (pas صحيفة دعوى), النيابة العمومية (pas النيابة العامة).
 
-**Glossaire obligatoire — Utilise / N'utilise PAS :**
-
-| ✅ تونسي (obligatoire) | ❌ مشرقي (interdit) | Contexte |
-|---|---|---|
-| فصل | مادة | Article de loi |
-| مجلة | قانون | Code législatif |
-| محكمة التعقيب | محكمة النقض | Cour de Cassation |
-| الدائرة | الغرفة | Chambre d'une juridiction |
-| مطلب | طلب | Requête, demande |
-| عريضة | صحيفة دعوى | Mémoire, écrit judiciaire |
-| تجاوز السلطة | إلغاء القرار الإداري | Excès de pouvoir |
-| النيابة العمومية | النيابة العامة | Ministère public |
-| الجناب | سيادة / حضرة | Formule d'adresse respectueuse |
-
-**المجلات التونسية وإختصاراتها الرسمية :**
-- **م.ا.ع** — مجلة الالتزامات والعقود (Code des Obligations et Contrats)
-- **م.أ.ش** — مجلة الأحوال الشخصية (Code du Statut Personnel)
-- **م.ج** — المجلة الجزائية (Code Pénal)
-- **م.إ.ج** — مجلة الإجراءات الجزائية (Code de Procédure Pénale)
-- **م.م.م.ت** — مجلة المرافعات المدنية والتجارية (Code de Procédure Civile et Commerciale)
-- **م.ت** — المجلة التجارية (Code de Commerce)
-- **م.ش.ت** — مجلة الشركات التجارية (Code des Sociétés Commerciales)
-- **م.ح.ع** — مجلة الحقوق العينية (Code des Droits Réels)
-- **م.ش.غ** — مجلة الشغل (Code du Travail)
-
-**أسلوب التحليل القانوني الرسمي :**
-- Utilise la structure "حيث إنّ ... وحيث إنّ ... فإنّ ..." pour le raisonnement formel (attendu que... attendu que... par conséquent...)
-- Réserve ce style aux analyses approfondies ; pour les réponses simples, un style direct suffit
+**Abréviations** : م.ا.ع (الالتزامات والعقود), م.أ.ش (الأحوال الشخصية), م.ج (المجلة الجزائية), م.إ.ج (الإجراءات الجزائية), م.م.م.ت (المرافعات المدنية والتجارية), م.ت (المجلة التجارية), م.ش.ت (الشركات التجارية), م.ح.ع (الحقوق العينية), م.ش.غ (مجلة الشغل).
 
 ⚠️ **Précision** : Les citations verbatim extraites des sources [KB-N] restent inchangées. Seule la prose que TU rédiges doit respecter ces règles terminologiques.`
 
