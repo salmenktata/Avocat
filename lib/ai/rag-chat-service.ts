@@ -651,15 +651,22 @@ export async function searchRelevantContext(
   const queryLangForSearch = detectLanguage(question)
 
   // Résoudre le router une seule fois (hissé pour réutilisation par relevance gating + multi-track)
-  const routerResult = includeKnowledgeBase
-    ? (_earlyRouterPromise
+  // Si le routeur échoue (rate limit, timeout), on continue sans classification → recherche KB globale
+  let routerResult: Awaited<ReturnType<typeof import('./legal-router-service').routeQuery>> | null = null
+  if (includeKnowledgeBase) {
+    try {
+      routerResult = _earlyRouterPromise
         ? await _earlyRouterPromise
-        : await (await import('./legal-router-service')).routeQuery(question, { maxTracks: 4 }))
-    : null
+        : await (await import('./legal-router-service')).routeQuery(question, { maxTracks: 4 })
+    } catch (routerError) {
+      console.warn('[RAG Search] Router échoué, fallback recherche KB sans classification:', routerError instanceof Error ? routerError.message : routerError)
+    }
+  }
   const classification = routerResult?.classification || null
 
   // Recherche dans la base de connaissances partagée
-  if (includeKnowledgeBase && classification) {
+  // Note: si classification est null (routeQuery échoué/rate limited), on fait quand même une recherche globale
+  if (includeKnowledgeBase) {
     try {
 
       let kbResults: Array<{
@@ -676,9 +683,9 @@ export async function searchRelevantContext(
         ? Math.min(RAG_THRESHOLDS.knowledgeBase, 0.30)
         : RAG_THRESHOLDS.knowledgeBase
 
-      // Phase 1: Multi-track retrieval si le router a généré plusieurs tracks
+      // Phase 1: Multi-track retrieval si le router a généré plusieurs tracks ET classification disponible
       const tracks = routerResult?.tracks || []
-      if (tracks.length > 1) {
+      if (tracks.length > 1 && classification) {
         console.log(
           `[RAG Search] Multi-track: ${tracks.length} tracks, ${tracks.reduce((a, t) => a + t.searchQueries.length, 0)} queries (source: ${routerResult?.source}, confiance: ${(classification.confidence * 100).toFixed(1)}%)`
         )
@@ -690,10 +697,14 @@ export async function searchRelevantContext(
           limit: maxContextChunks,
         })
       } else {
-        // Fallback: recherche globale hybride classique
-        console.log(
-          `[RAG Search] Recherche KB globale hybride (classifieur: ${classification.categories.join(', ')}, domaines: ${classification.domains.join(',') || 'aucun'}, confiance: ${(classification.confidence * 100).toFixed(1)}%, seuil: ${globalThreshold})`
-        )
+        // Fallback: recherche globale hybride classique (aussi utilisé si classification null)
+        if (!classification) {
+          console.warn('[RAG Search] Classification null (routeQuery échoué?), fallback recherche KB globale')
+        } else {
+          console.log(
+            `[RAG Search] Recherche KB globale hybride (classifieur: ${classification.categories.join(', ')}, domaines: ${classification.domains.join(',') || 'aucun'}, confiance: ${(classification.confidence * 100).toFixed(1)}%, seuil: ${globalThreshold})`
+          )
+        }
         kbResults = await searchKnowledgeBaseHybrid(embeddingQuestion, {
           limit: maxContextChunks,
           threshold: globalThreshold,
