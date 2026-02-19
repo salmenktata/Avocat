@@ -39,12 +39,7 @@ const BATCH_LIMIT = parseInt(process.argv.find(a => a.startsWith('--batch='))?.s
 const GOLD_DATASET_PATH = path.join(process.cwd(), 'data', 'gold-eval-dataset.json')
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  host: process.env.POSTGRES_HOST || 'localhost',
-  port: parseInt(process.env.POSTGRES_PORT || '5433'),
-  database: process.env.POSTGRES_DB || 'moncabinet',
-  user: process.env.POSTGRES_USER || 'salmenktata',
-  password: process.env.POSTGRES_PASSWORD || '',
+  connectionString: process.env.DATABASE_URL || 'postgresql://moncabinet:dev_password_change_in_production@localhost:5433/qadhya',
 })
 
 // =============================================================================

@@ -36,11 +36,7 @@ const SINGLE_ID = process.argv.find(a => a.startsWith('--id='))?.split('=')[1]
 const DIFFICULTY_FILTER = process.argv.find(a => a.startsWith('--difficulty='))?.split('=')[1]?.split(',')
 
 const pool = new Pool({
-  host: process.env.POSTGRES_HOST || 'localhost',
-  port: parseInt(process.env.POSTGRES_PORT || '5433'),
-  database: process.env.POSTGRES_DB || 'moncabinet',
-  user: process.env.POSTGRES_USER || 'salmenktata',
-  password: process.env.POSTGRES_PASSWORD || '',
+  connectionString: process.env.DATABASE_URL || 'postgresql://moncabinet:dev_password_change_in_production@localhost:5433/qadhya',
 })
 
 // =============================================================================
