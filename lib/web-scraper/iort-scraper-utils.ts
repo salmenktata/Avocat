@@ -190,6 +190,27 @@ export class IortSessionManager {
     console.log('[IORT] Page de recherche atteinte')
   }
 
+  /**
+   * Récupère après un crash du browser/context.
+   * Re-crée le browser, context et page, puis re-navigue.
+   */
+  async recover(): Promise<void> {
+    console.log('[IORT] Récupération session après crash...')
+    // Fermer tout proprement
+    if (this.context) await this.context.close().catch(() => {})
+    if (this.browser) await this.browser.close().catch(() => {})
+
+    // Re-initialiser
+    const { chromium } = await import('playwright')
+    this.browser = await chromium.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    })
+    await this.createContext()
+    await this.navigateToSearch()
+    console.log('[IORT] Session récupérée')
+  }
+
   async close(): Promise<void> {
     if (this.context) await this.context.close().catch(() => {})
     if (this.browser) await this.browser.close().catch(() => {})
@@ -764,13 +785,15 @@ export async function crawlYearType(
     errors: 0,
   }
 
-  const page = session.getPage()
+  // Toujours utiliser session.getPage() pour avoir la page courante (peut changer après recover)
+  let page = session.getPage()
 
   // Vérifier session et re-naviguer si nécessaire
   const valid = await session.isSessionValid()
   if (!valid) {
     console.log('[IORT] Session expirée, re-navigation...')
     await session.navigateToSearch()
+    page = session.getPage()
   }
 
   // Effectuer la recherche
@@ -785,6 +808,7 @@ export async function crawlYearType(
   // Itérer les pages de résultats
   let hasNextPage = true
   let pageNum = 1
+  let consecutiveErrors = 0
 
   while (hasNextPage) {
     if (signal?.aborted) {
@@ -792,114 +816,183 @@ export async function crawlYearType(
       break
     }
 
-    const results = await parseSearchResults(page)
-    console.log(`[IORT] Page ${pageNum}: ${results.length} résultats à traiter`)
+    try {
+      page = session.getPage()
+      const results = await parseSearchResults(page)
+      console.log(`[IORT] Page ${pageNum}: ${results.length} résultats à traiter`)
+      consecutiveErrors = 0
 
-    // Phase 1: Extraire texte + sauvegarder (via popup A17)
-    // Phase 2: Télécharger les PDFs (via A7 sur la page de résultats)
-    // On sépare les phases car A7 pourrait perturber la page de résultats.
+      // Phase 1: Extraire texte + sauvegarder (via popup A17)
+      const extractedResults: Array<{
+        result: typeof results[0]
+        extracted: IortExtractedText
+        pageId: string
+      }> = []
 
-    const extractedResults: Array<{
-      result: typeof results[0]
-      extracted: IortExtractedText
-      pageId: string
-    }> = []
-
-    for (const result of results) {
-      if (signal?.aborted) break
-
-      try {
-        // Phase 1: Extraire le texte (ouvre dans nouvel onglet via A17)
-        const extracted = await extractTextDetail(page, result, year, textType)
-        if (!extracted) {
-          if (!result.hasFullText) {
-            stats.skipped++
-          } else {
-            stats.errors++
-          }
-          await sleep(IORT_RATE_CONFIG.minDelay)
-          continue
-        }
-
-        // Sauvegarder le texte (sans PDF pour l'instant)
-        const { id: pageId, skipped } = await saveIortPage(sourceId, extracted, null)
-
-        if (skipped) {
-          stats.skipped++
-        } else {
-          stats.crawled++
-          extractedResults.push({ result, extracted, pageId })
-          console.log(`[IORT] ✓ ${result.title.substring(0, 60)}...`)
-        }
-
-        // Rate limiting
-        await sleep(IORT_RATE_CONFIG.minDelay)
-        await session.tick()
-
-        // Pause longue périodique
-        if ((stats.crawled + stats.skipped) % IORT_RATE_CONFIG.longPauseEvery === 0 && stats.crawled > 0) {
-          console.log(`[IORT] Pause longue après ${stats.crawled + stats.skipped} pages...`)
-          await sleep(IORT_RATE_CONFIG.longPauseMs)
-        }
-      } catch (err) {
-        stats.errors++
-        console.error(`[IORT] Erreur traitement "${result.title}":`, err instanceof Error ? err.message : err)
-
-        // Fermer tout onglet popup restant
-        const ctxPages = page.context().pages()
-        for (const p of ctxPages) {
-          if (p !== page) await p.close().catch(() => {})
-        }
-
-        await sleep(IORT_RATE_CONFIG.minDelay)
-      }
-    }
-
-    // Phase 2: Télécharger les PDFs via A7 pour les résultats nouvellement crawlés
-    if (extractedResults.length > 0) {
-      console.log(`[IORT] Téléchargement PDFs pour ${extractedResults.length} résultats...`)
-
-      for (const { result, extracted, pageId } of extractedResults) {
+      for (const result of results) {
         if (signal?.aborted) break
 
         try {
-          const downloadResult = await downloadPdfViaA7(page, result.resultIndex)
-          if (downloadResult) {
-            const pdfInfo = await uploadIortPdf(sourceId, extracted.title, downloadResult.buffer, downloadResult.filename)
-            if (pdfInfo && pageId) {
-              // Mettre à jour la page avec les infos PDF
-              await db.query(
-                `UPDATE web_pages SET linked_files = $1::jsonb WHERE id = $2`,
-                [JSON.stringify([{
-                  url: generateIortUrl(extracted.year, extracted.issueNumber, extracted.textType, extracted.title),
-                  type: 'pdf',
-                  filename: downloadResult.filename,
-                  minioPath: pdfInfo.minioPath,
-                  size: pdfInfo.size,
-                  contentType: 'application/pdf',
-                }]), pageId],
-              )
+          page = session.getPage()
+          const extracted = await extractTextDetail(page, result, year, textType)
+          if (!extracted) {
+            if (!result.hasFullText) {
+              stats.skipped++
+            } else {
+              stats.errors++
             }
+            await sleep(IORT_RATE_CONFIG.minDelay)
+            continue
           }
-          await sleep(2000)
+
+          const { id: pageId, skipped } = await saveIortPage(sourceId, extracted, null)
+
+          if (skipped) {
+            stats.skipped++
+          } else {
+            stats.crawled++
+            extractedResults.push({ result, extracted, pageId })
+            console.log(`[IORT] ✓ ${result.title.substring(0, 60)}...`)
+          }
+
+          await sleep(IORT_RATE_CONFIG.minDelay)
+          await session.tick()
+
+          if ((stats.crawled + stats.skipped) % IORT_RATE_CONFIG.longPauseEvery === 0 && stats.crawled > 0) {
+            console.log(`[IORT] Pause longue après ${stats.crawled + stats.skipped} pages...`)
+            await sleep(IORT_RATE_CONFIG.longPauseMs)
+          }
         } catch (err) {
-          console.warn(`[IORT] Erreur PDF "${result.title.substring(0, 40)}":`, err instanceof Error ? err.message : err)
+          const errMsg = err instanceof Error ? err.message : String(err)
+          stats.errors++
+          console.error(`[IORT] Erreur traitement "${result.title.substring(0, 40)}":`, errMsg)
+
+          // Si le browser a crashé, récupérer et sortir de la boucle des résultats
+          if (errMsg.includes('Target page') || errMsg.includes('browser has been closed') || errMsg.includes('context has been closed')) {
+            console.log('[IORT] Browser crash détecté, recovery...')
+            await session.recover()
+            page = session.getPage()
+            await searchByYearAndType(page, year, textType)
+            // Naviguer vers la page courante
+            for (let p = 1; p < pageNum; p++) {
+              const ok = await goToNextPage(page)
+              if (!ok) break
+            }
+            break // Sortir de la boucle des résultats, recommencer cette page
+          }
+
+          // Fermer tout onglet popup restant
+          try {
+            const ctxPages = page.context().pages()
+            for (const p of ctxPages) {
+              if (p !== page) await p.close().catch(() => {})
+            }
+          } catch { /* context may be dead */ }
+
+          await sleep(IORT_RATE_CONFIG.minDelay)
         }
       }
 
-      // Vérifier si la page de résultats est toujours intacte
-      const stillOnResults = await page.$('div[id^="A4_"]')
-      if (!stillOnResults) {
-        console.log('[IORT] Page résultats perdue après PDFs, re-navigation...')
-        await session.navigateToSearch()
+      // Phase 2: Télécharger les PDFs via A7
+      if (extractedResults.length > 0) {
+        console.log(`[IORT] Téléchargement PDFs pour ${extractedResults.length} résultats...`)
+
+        for (const { result, extracted, pageId } of extractedResults) {
+          if (signal?.aborted) break
+
+          try {
+            page = session.getPage()
+            const downloadResult = await downloadPdfViaA7(page, result.resultIndex)
+            if (downloadResult) {
+              const pdfInfo = await uploadIortPdf(sourceId, extracted.title, downloadResult.buffer, downloadResult.filename)
+              if (pdfInfo && pageId) {
+                await db.query(
+                  `UPDATE web_pages SET linked_files = $1::jsonb WHERE id = $2`,
+                  [JSON.stringify([{
+                    url: generateIortUrl(extracted.year, extracted.issueNumber, extracted.textType, extracted.title),
+                    type: 'pdf',
+                    filename: downloadResult.filename,
+                    minioPath: pdfInfo.minioPath,
+                    size: pdfInfo.size,
+                    contentType: 'application/pdf',
+                  }]), pageId],
+                )
+              }
+            }
+            await sleep(2000)
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err)
+            console.warn(`[IORT] Erreur PDF "${result.title.substring(0, 40)}":`, errMsg)
+
+            // Browser crash pendant le PDF → recover et abandonner le reste des PDFs
+            if (errMsg.includes('Target page') || errMsg.includes('browser has been closed')) {
+              console.log('[IORT] Browser crash pendant PDF, recovery...')
+              await session.recover()
+              page = session.getPage()
+              break // Abandonner les PDFs restants, continuer le crawl
+            }
+          }
+        }
+
+        // Vérifier si la page de résultats est toujours intacte
+        try {
+          page = session.getPage()
+          const stillOnResults = await page.$('div[id^="A4_"]')
+          if (!stillOnResults) {
+            console.log('[IORT] Page résultats perdue après PDFs, re-navigation...')
+            await session.recover()
+            page = session.getPage()
+            await searchByYearAndType(page, year, textType)
+            // Naviguer vers la page suivante
+            for (let p = 1; p <= pageNum; p++) {
+              const ok = await goToNextPage(page)
+              if (!ok) { hasNextPage = false; break }
+            }
+            pageNum++
+            continue
+          }
+        } catch {
+          console.log('[IORT] Erreur vérification page, recovery...')
+          await session.recover()
+          page = session.getPage()
+          await searchByYearAndType(page, year, textType)
+          for (let p = 1; p <= pageNum; p++) {
+            const ok = await goToNextPage(page)
+            if (!ok) { hasNextPage = false; break }
+          }
+          pageNum++
+          continue
+        }
+      }
+
+      // Page suivante
+      hasNextPage = await goToNextPage(page)
+      pageNum++
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err)
+      console.error(`[IORT] Erreur page ${pageNum}:`, errMsg)
+      consecutiveErrors++
+
+      if (consecutiveErrors >= 3) {
+        console.error(`[IORT] ${consecutiveErrors} erreurs consécutives, abandon du combo`)
+        break
+      }
+
+      // Recovery
+      try {
+        await session.recover()
+        page = session.getPage()
         await searchByYearAndType(page, year, textType)
-        // On ne ré-itère pas cette page de résultats, on passe à la suivante
+        // Re-naviguer vers la page courante
+        for (let p = 1; p < pageNum; p++) {
+          const ok = await goToNextPage(page)
+          if (!ok) { hasNextPage = false; break }
+        }
+      } catch (recoverErr) {
+        console.error('[IORT] Échec recovery:', recoverErr instanceof Error ? recoverErr.message : recoverErr)
+        break
       }
     }
-
-    // Page suivante
-    hasNextPage = await goToNextPage(page)
-    pageNum++
   }
 
   console.log(
