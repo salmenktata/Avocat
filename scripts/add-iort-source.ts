@@ -15,7 +15,7 @@ import type { CreateWebSourceInput } from '@/lib/web-scraper'
 const IORT_SOURCE_CONFIG: CreateWebSourceInput = {
   // Identification
   name: 'IORT - Imprimerie Officielle de la République Tunisienne',
-  baseUrl: 'https://www.iort.tn',
+  baseUrl: 'http://www.iort.gov.tn',
   description: 'Site officiel de l\'Imprimerie Officielle (IORT) - Journal Officiel de la République Tunisienne (JORT)',
 
   // Classification
@@ -36,11 +36,11 @@ const IORT_SOURCE_CONFIG: CreateWebSourceInput = {
   autoIndexFiles: true, // Auto-indexer les PDFs téléchargés
 
   // Timing
-  rateLimitMs: 2000, // 2 secondes entre requêtes (respectueux)
+  rateLimitMs: 5000, // 5 secondes entre requêtes (WebDev sessions)
 
   // Dynamic Config - Optimisé pour WebDev
   dynamicConfig: {
-    waitUntil: 'networkidle',
+    waitUntil: 'load',
     postLoadDelayMs: 2000,
     waitForLoadingToDisappear: true,
     loadingIndicators: [
@@ -54,8 +54,8 @@ const IORT_SOURCE_CONFIG: CreateWebSourceInput = {
 
   // URL Patterns
   urlPatterns: [
-    'https://www.iort.tn/**',
-    'https://iort.tn/**',
+    'http://www.iort.gov.tn/**',
+    'http://iort.gov.tn/**',
   ],
 
   excludedPatterns: [
@@ -81,8 +81,13 @@ const IORT_SOURCE_CONFIG: CreateWebSourceInput = {
 
   // Seed URLs - IMPORTANT: Toujours partir de la racine pour WebDev
   seedUrls: [
-    'https://www.iort.tn', // Point d'entrée principal
+    'http://www.iort.gov.tn', // Point d'entrée principal
   ],
+
+  // Configuration formulaire WebDev
+  formCrawlConfig: {
+    type: 'webdev-iort',
+  },
 
   customHeaders: {
     'Accept-Language': 'fr-TN,fr;q=0.9,ar-TN;q=0.8,ar;q=0.7',

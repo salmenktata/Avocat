@@ -158,7 +158,7 @@ export interface DynamicSiteConfig {
  */
 export interface FormCrawlConfig {
   /** Type de formulaire/CMS (extensible) */
-  type: 'typo3-cassation'
+  type: 'typo3-cassation' | 'webdev-iort'
   /** Sous-ensemble de thèmes à crawler (tous si absent) */
   themes?: string[]
 }
