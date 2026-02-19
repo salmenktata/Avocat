@@ -15,11 +15,19 @@ CONTAINER="qadhya-nextjs"
 
 mkdir -p "$(dirname "$LOG")"
 
+# Charger cron-logger pour tracking en DB
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/lib/cron-logger.sh" ]; then
+  source "$SCRIPT_DIR/lib/cron-logger.sh"
+fi
+cron_start "watchdog-vps" "scheduled" 2>/dev/null || true
+
 # 1. Vérifier le health status Docker
 STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null)
 if [ "$STATUS" = "unhealthy" ]; then
   echo "[$TIMESTAMP] 🔴 Container $CONTAINER unhealthy → restart" >> "$LOG"
   docker restart "$CONTAINER"
+  cron_complete '{}' 2>/dev/null || true
   exit 0
 fi
 
@@ -28,6 +36,7 @@ MEM_PCT=$(free | awk 'NR==2{printf "%.0f", $3/$2*100}')
 if [ "${MEM_PCT:-0}" -gt 85 ]; then
   echo "[$TIMESTAMP] ⚠️  RAM saturée (${MEM_PCT}%) → restart Next.js" >> "$LOG"
   docker restart "$CONTAINER"
+  cron_complete '{}' 2>/dev/null || true
   exit 0
 fi
 
@@ -37,8 +46,10 @@ CPU_INT=${CPU_RAW%.*}
 if [ "${CPU_INT:-0}" -gt 300 ]; then
   echo "[$TIMESTAMP] 🔴 CPU runaway (${CPU_RAW}%) → restart $CONTAINER" >> "$LOG"
   docker restart "$CONTAINER"
+  cron_complete '{}' 2>/dev/null || true
   exit 0
 fi
 
-# Tout OK — log silencieux (décommenter pour debug)
+# Tout OK
+cron_complete '{}' 2>/dev/null || true
 # echo "[$TIMESTAMP] ✅ OK — status=$STATUS RAM=${MEM_PCT}% CPU=${CPU_RAW}%" >> "$LOG"

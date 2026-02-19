@@ -35,7 +35,7 @@ CRON_SCRIPTS = {
         "script": f"{SCRIPTS_DIR}/cron-reanalyze-kb-failures.sh",
         "description": "Réanalyse Échecs KB",
     },
-    "index-kb-progressive": {
+    "index-kb": {
         "script": f"{SCRIPTS_DIR}/index-kb-progressive.sh",
         "description": "Indexation KB Progressive",
     },
@@ -46,6 +46,58 @@ CRON_SCRIPTS = {
     "cleanup-executions": {
         "script": f"{SCRIPTS_DIR}/cron-cleanup-executions.sh",
         "description": "Nettoyage Anciennes Exécutions",
+    },
+    "analyze-kb-weekend": {
+        "script": f"{SCRIPTS_DIR}/cron-analyze-kb-weekend.sh",
+        "description": "Analyse KB Weekend (Ollama)",
+    },
+    "reindex-kb-openai": {
+        "script": f"{SCRIPTS_DIR}/cron-reindex-kb-openai.sh",
+        "description": "Réindex KB OpenAI",
+    },
+    "cleanup-orphaned-jobs": {
+        "script": f"{SCRIPTS_DIR}/cron-cleanup-orphaned-jobs.sh",
+        "description": "Nettoyage Jobs Orphelins",
+    },
+    "check-freshness": {
+        "script": f"{SCRIPTS_DIR}/cron-check-freshness.sh",
+        "description": "Vérif Fraîcheur Docs",
+    },
+    "check-impersonations": {
+        "script": f"{SCRIPTS_DIR}/cron-check-impersonations.sh",
+        "description": "Vérif Impersonations",
+    },
+    "check-rag-config": {
+        "script": f"{SCRIPTS_DIR}/cron-check-rag-config.sh",
+        "description": "Vérif Config RAG",
+    },
+    "ollama-keepalive": {
+        "script": f"{SCRIPTS_DIR}/cron-ollama-keepalive.sh",
+        "description": "Keep-Alive Ollama",
+    },
+    "pipeline-auto-advance": {
+        "script": f"{SCRIPTS_DIR}/cron-pipeline-auto-advance.sh",
+        "description": "Pipeline Auto-Advance KB",
+    },
+    "send-notifications": {
+        "script": f"{SCRIPTS_DIR}/cron-send-notifications.sh",
+        "description": "Envoi Notifications",
+    },
+    "cleanup-corrupted-kb": {
+        "script": f"{SCRIPTS_DIR}/cron-cleanup-corrupted-kb.sh",
+        "description": "Nettoyage KB Corrompue",
+    },
+    "detect-config-drift": {
+        "script": f"{SCRIPTS_DIR}/cron-detect-config-drift.sh",
+        "description": "Détection Drift Config",
+    },
+    "eval-rag-weekly": {
+        "script": "curl -s -X POST https://qadhya.tn/api/admin/eval/cron -H 'X-Cron-Secret: $CRON_SECRET'",
+        "description": "Évaluation RAG Hebdomadaire",
+    },
+    "drift-detection": {
+        "script": "curl -s -X POST https://qadhya.tn/api/admin/monitoring/drift -H 'X-Cron-Secret: $CRON_SECRET'",
+        "description": "Drift Detection RAG",
     },
 }
 
@@ -266,8 +318,15 @@ class CronTriggerHandler(BaseHTTPRequestHandler):
             log_file_path = f"{log_dir}/{cron_name}.log"
 
             with open(log_file_path, "a") as log_file:
+                # Pour les scripts .sh : bash script_path
+                # Pour les commandes (curl, cd && npx, etc.) : bash -c "commande"
+                if script.endswith(".sh"):
+                    cmd = ["bash", script]
+                else:
+                    cmd = ["bash", "-c", script]
+
                 subprocess.Popen(
-                    ["bash", script],
+                    cmd,
                     shell=False,
                     env=script_env,
                     stdout=log_file,

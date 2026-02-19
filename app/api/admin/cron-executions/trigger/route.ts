@@ -18,37 +18,102 @@ const CRON_SCRIPTS: Record<string, { script: string; description: string; estima
   'monitor-openai': {
     script: '/opt/qadhya/scripts/cron-monitor-openai.sh',
     description: 'Monitoring Budget OpenAI',
-    estimatedDuration: 5000, // 5s
+    estimatedDuration: 5000,
   },
   'check-alerts': {
     script: '/opt/qadhya/scripts/cron-check-alerts.sh',
     description: 'Vérification Alertes Système',
-    estimatedDuration: 2000, // 2s
+    estimatedDuration: 2000,
   },
   'refresh-mv-metadata': {
     script: '/opt/qadhya/scripts/cron-refresh-mv-metadata.sh',
     description: 'Rafraîchissement Vues Matérialisées',
-    estimatedDuration: 8000, // 8s
+    estimatedDuration: 8000,
   },
   'reanalyze-kb-failures': {
     script: '/opt/qadhya/scripts/cron-reanalyze-kb-failures.sh',
     description: 'Réanalyse Échecs KB',
-    estimatedDuration: 20000, // 20s
+    estimatedDuration: 20000,
   },
-  'index-kb-progressive': {
+  'index-kb': {
     script: '/opt/qadhya/scripts/index-kb-progressive.sh',
     description: 'Indexation KB Progressive',
-    estimatedDuration: 45000, // 45s
+    estimatedDuration: 45000,
   },
   'acquisition-weekly': {
     script: 'cd /opt/qadhya && npx tsx scripts/cron-acquisition-weekly.ts',
     description: 'Acquisition Hebdomadaire',
-    estimatedDuration: 30000, // 30s
+    estimatedDuration: 30000,
   },
   'cleanup-executions': {
     script: '/opt/qadhya/scripts/cron-cleanup-executions.sh',
     description: 'Nettoyage Anciennes Exécutions',
-    estimatedDuration: 1000, // 1s
+    estimatedDuration: 1000,
+  },
+  'analyze-kb-weekend': {
+    script: '/opt/qadhya/scripts/cron-analyze-kb-weekend.sh',
+    description: 'Analyse KB Weekend (Ollama)',
+    estimatedDuration: 300000,
+  },
+  'reindex-kb-openai': {
+    script: '/opt/qadhya/scripts/cron-reindex-kb-openai.sh',
+    description: 'Réindex KB OpenAI',
+    estimatedDuration: 60000,
+  },
+  'cleanup-orphaned-jobs': {
+    script: '/opt/qadhya/scripts/cron-cleanup-orphaned-jobs.sh',
+    description: 'Nettoyage Jobs Orphelins',
+    estimatedDuration: 5000,
+  },
+  'check-freshness': {
+    script: '/opt/qadhya/scripts/cron-check-freshness.sh',
+    description: 'Vérif Fraîcheur Docs',
+    estimatedDuration: 10000,
+  },
+  'check-impersonations': {
+    script: '/opt/qadhya/scripts/cron-check-impersonations.sh',
+    description: 'Vérif Impersonations',
+    estimatedDuration: 5000,
+  },
+  'check-rag-config': {
+    script: '/opt/qadhya/scripts/cron-check-rag-config.sh',
+    description: 'Vérif Config RAG',
+    estimatedDuration: 10000,
+  },
+  'ollama-keepalive': {
+    script: '/opt/qadhya/scripts/cron-ollama-keepalive.sh',
+    description: 'Keep-Alive Ollama',
+    estimatedDuration: 10000,
+  },
+  'pipeline-auto-advance': {
+    script: '/opt/qadhya/scripts/cron-pipeline-auto-advance.sh',
+    description: 'Pipeline Auto-Advance KB',
+    estimatedDuration: 300000,
+  },
+  'send-notifications': {
+    script: '/opt/qadhya/scripts/cron-send-notifications.sh',
+    description: 'Envoi Notifications',
+    estimatedDuration: 60000,
+  },
+  'cleanup-corrupted-kb': {
+    script: '/opt/qadhya/scripts/cron-cleanup-corrupted-kb.sh',
+    description: 'Nettoyage KB Corrompue',
+    estimatedDuration: 120000,
+  },
+  'detect-config-drift': {
+    script: '/opt/qadhya/scripts/cron-detect-config-drift.sh',
+    description: 'Détection Drift Config',
+    estimatedDuration: 5000,
+  },
+  'eval-rag-weekly': {
+    script: 'curl -s -X POST https://qadhya.tn/api/admin/eval/cron -H "X-Cron-Secret: $CRON_SECRET"',
+    description: 'Évaluation RAG Hebdomadaire',
+    estimatedDuration: 120000,
+  },
+  'drift-detection': {
+    script: 'curl -s -X POST https://qadhya.tn/api/admin/monitoring/drift -H "X-Cron-Secret: $CRON_SECRET"',
+    description: 'Drift Detection RAG',
+    estimatedDuration: 60000,
   },
 }
 

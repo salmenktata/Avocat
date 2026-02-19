@@ -186,6 +186,14 @@ jobs:
           npx tsx scripts/audit-env-divergences.ts || true
           echo "⚠️  Audit non-bloquant (secrets peuvent différer)"
 
+      - name: Validate cron registration
+        run: |
+          echo "🔍 Validation enregistrement crons..."
+          bash scripts/validate-cron-registration.sh --ci || {
+            echo "⚠️  Des crons ne sont pas enregistrés (non-bloquant)"
+            true
+          }
+
   # ===========================================================================
   # Job 1: Detect Changes - Choisir Tier 1 (fast) ou Tier 2 (docker)
   # ===========================================================================

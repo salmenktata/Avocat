@@ -19,8 +19,14 @@
 
 set -e
 
+# Charger cron-logger pour tracking en DB
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/lib/cron-logger.sh" ]; then
+  source "$SCRIPT_DIR/lib/cron-logger.sh"
+fi
+
 # Configuration
-API_BASE_URL="https://qadhya.tn"
+API_BASE_URL="${CRON_API_BASE:-https://qadhya.tn}"
 API_ENDPOINT="/api/health/config"
 LOG_FILE="/var/log/qadhya/config-drift.log"
 ALERT_COOLDOWN=1800  # 30min en secondes
@@ -74,12 +80,16 @@ mkdir -p "$(dirname "$LOG_FILE")"
 # Appel API health/config
 # =============================================================================
 
+# Tracker début d'exécution
+cron_start "detect-config-drift" "scheduled" 2>/dev/null || true
+
 log "🔍 Vérification configuration drift..."
 
 RESPONSE=$(curl -s "${API_BASE_URL}${API_ENDPOINT}" 2>/dev/null)
 
 if [ $? -ne 0 ] || [ -z "$RESPONSE" ]; then
   log_error "Échec appel API ${API_ENDPOINT}"
+  cron_fail "API call failed: ${API_ENDPOINT}" 1 2>/dev/null || true
   exit 1
 fi
 
@@ -91,6 +101,7 @@ EXPECTED_HASH=$(echo "$RESPONSE" | jq -r '.expectedHash' 2>/dev/null || echo "un
 
 if [ "$DRIFT_DETECTED" != "true" ]; then
   log_success "Aucun drift détecté (hash: ${CONFIG_HASH:0:8}...)"
+  cron_complete '{}' 2>/dev/null || true
   exit 0
 fi
 
@@ -242,7 +253,9 @@ log "━━━━━━━━━━━━━━━━━━━━━━━━━
 
 # Exit code non-0 si CRITICAL drift (pour alertes externes)
 if [ "$CRITICAL_DRIFT" = "true" ]; then
+  cron_fail "CRITICAL config drift detected" 1 2>/dev/null || true
   exit 1
 fi
 
+cron_complete '{}' 2>/dev/null || true
 exit 0
