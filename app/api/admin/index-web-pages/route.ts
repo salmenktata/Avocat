@@ -21,17 +21,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
+  // Paramètre optionnel sourceId pour filtrer par source
+  const sourceId = request.nextUrl.searchParams.get('sourceId') || undefined
+
   const startTime = Date.now()
   let totalIndexed = 0
   let totalFailed = 0
   const batchSize = 5 // OpenAI embeddings rapide en prod
   const maxBatches = 12 // Max 60 pages par appel (~4min pour grosses pages)
 
-  console.log(`[IndexWebPages] Démarrage indexation web_pages (batch de ${batchSize}, max ${maxBatches} batches)`)
+  console.log(`[IndexWebPages] Démarrage indexation web_pages (batch de ${batchSize}, max ${maxBatches} batches${sourceId ? `, source: ${sourceId}` : ''})`)
 
   try {
     for (let i = 0; i < maxBatches; i++) {
-      const result = await indexWebPages(batchSize)
+      const result = await indexWebPages(batchSize, sourceId)
 
       totalIndexed += result.succeeded
       totalFailed += result.failed

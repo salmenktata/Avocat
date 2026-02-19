@@ -594,31 +594,37 @@ export async function indexSourcePages(
 }
 
 /**
- * Indexe les pages web en attente (toutes sources confondues)
+ * Indexe les pages web en attente (toutes sources ou une source spécifique)
  * Utilisé par le cron d'indexation progressive
  */
 export async function indexWebPages(
-  limit: number = 10
+  limit: number = 10,
+  sourceId?: string
 ): Promise<{
   processed: number
   succeeded: number
   failed: number
   results: Array<{ pageId: string; success: boolean; error?: string }>
 }> {
-  // Récupérer les pages à indexer (toutes sources)
+  // Récupérer les pages à indexer
   // Seules les pages avec texte extrait suffisant sont indexables
   // Les pages fichiers-seuls (Google Drive sans texte) sont exclues pour éviter une boucle infinie
+  const params: (number | string)[] = [limit]
+  const sourceFilter = sourceId ? `AND web_source_id = $2` : ''
+  if (sourceId) params.push(sourceId)
+
   const sql = `
     SELECT id FROM web_pages
     WHERE status IN ('crawled', 'unchanged', 'indexed')
     AND is_indexed = false
     AND extracted_text IS NOT NULL AND LENGTH(extracted_text) >= 100
     ${KB_ARABIC_ONLY ? `AND (language_detected = 'ar' OR language_detected IS NULL)` : ''}
+    ${sourceFilter}
     ORDER BY last_crawled_at DESC
     LIMIT $1
   `
 
-  const pagesResult = await db.query(sql, [limit])
+  const pagesResult = await db.query(sql, params)
   const results: Array<{ pageId: string; success: boolean; error?: string }> = []
 
   const concurrency = EMBEDDING_TURBO_CONFIG.enabled
