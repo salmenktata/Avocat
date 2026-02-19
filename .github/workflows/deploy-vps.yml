@@ -332,6 +332,8 @@ jobs:
           echo "Deploy bundle: $SIZE"
 
       - name: Backup current code on VPS
+        timeout-minutes: 3
+        continue-on-error: true
         run: |
           ssh vps << 'BACKUP'
             mkdir -p /opt/moncabinet/rollback
