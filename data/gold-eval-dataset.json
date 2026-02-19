@@ -27,7 +27,20 @@
       "validatedAt": "2026-02-01T00:00:00.000Z",
       "consensus": 3
     },
-    "intentType": "factual"
+    "intentType": "factual",
+    "goldChunkIds": [
+      "c6a6029e-84f2-4f24-a529-1c1bd758246b",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "3f2948c4-149b-4133-90cf-8cdbb7b9cc48",
+      "a45a343c-7be1-4009-baf0-494f5e11b4ba",
+      "60b9c0e4-4032-4306-a601-aa0bd9534b32"
+    ],
+    "goldDocumentIds": [
+      "90318fed-11b9-4d23-9fb7-6366cf63b988",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "aac5ab3a-6735-43a5-8a84-0d9de60bcfbd",
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56"
+    ]
   },
   {
     "id": "civil_easy_02",
@@ -57,7 +70,20 @@
       "validatedAt": "2026-02-01T00:00:00.000Z",
       "consensus": 3
     },
-    "intentType": "factual"
+    "intentType": "factual",
+    "goldChunkIds": [
+      "a8ee827e-9114-45e4-8a88-4c250e896e7c",
+      "99a39f6c-768e-47d7-bbaf-c056841fb3f1",
+      "7e17817a-50c4-4c51-9528-61634c14ba70",
+      "031f8d6c-b67e-43b8-a856-4ac2e27cf48d",
+      "5cab4360-7b8a-422c-a720-04a1df5d464d"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
   },
   {
     "id": "penal_easy_01",
@@ -87,7 +113,19 @@
       "validatedAt": "2026-02-01T00:00:00.000Z",
       "consensus": 3
     },
-    "intentType": "factual"
+    "intentType": "factual",
+    "goldChunkIds": [
+      "00ba74df-f496-40e7-b045-0a6f1facb38d",
+      "c6a6029e-84f2-4f24-a529-1c1bd758246b",
+      "0180ac50-245e-48f2-bf79-20b81a3349ae",
+      "a2eeba05-03f2-471c-9bb1-3b42c2327b92",
+      "2501a068-9fb8-4385-9b1c-fa6bda633911"
+    ],
+    "goldDocumentIds": [
+      "70042c47-94bc-40dc-8969-6adb6bc250e5",
+      "90318fed-11b9-4d23-9fb7-6366cf63b988",
+      "47dc7fd1-2c26-4847-901c-01abe05540ed"
+    ]
   },
   {
     "id": "famille_medium_01",
@@ -122,7 +160,19 @@
       "validatedAt": "2026-02-01T00:00:00.000Z",
       "consensus": 3
     },
-    "intentType": "procedural"
+    "intentType": "procedural",
+    "goldChunkIds": [
+      "b77cb158-c6ea-409b-adec-9aa497ec0751",
+      "f9853c8e-22f7-45ed-bcd1-cd4462e814ee",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "e1686de7-aec6-45fb-9274-1b3cd2ee8cd4",
+      "9ba4121a-da34-4dec-a6cd-7589dee4b497"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
   },
   {
     "id": "travail_medium_01",
@@ -160,7 +210,17 @@
       "validatedAt": "2026-02-01T00:00:00.000Z",
       "consensus": 3
     },
-    "intentType": "procedural"
+    "intentType": "procedural",
+    "goldChunkIds": [
+      "546bd247-1328-4476-9659-861f6b7f04b4",
+      "14a6dda2-5204-4028-9c53-eab632ba73ae",
+      "acab88c4-1064-43a5-9a79-5f7217eb2744",
+      "136f668b-aa15-4289-9bd1-7fa19b769ce3",
+      "98641376-220f-4316-9944-82491366b736"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
   },
   {
     "id": "immobilier_hard_01",
@@ -193,7 +253,18 @@
       "validatedAt": "2026-02-02T00:00:00.000Z",
       "consensus": 2
     },
-    "intentType": "factual"
+    "intentType": "factual",
+    "goldChunkIds": [
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "71dc0cc2-7c90-4dab-a66d-ff23318f0632",
+      "005fedf7-0432-435e-b52d-4d8c021c80dc",
+      "6fcc099e-df15-46c6-8879-1b2ccdfa88a0",
+      "d40a21d0-885a-4a22-934b-9f85b818ead3"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "de299263-8ed3-40aa-afaf-b186f4a82b02"
+    ]
   },
   {
     "id": "procedure_expert_01",
@@ -229,12 +300,24 @@
       "validatedAt": "2026-02-02T00:00:00.000Z",
       "consensus": 3
     },
-    "intentType": "procedural"
+    "intentType": "procedural",
+    "goldChunkIds": [
+      "3a5b39f8-78ab-44b3-8751-80845afe8c1d",
+      "b5b10f56-4a3e-4f37-bea8-7cfa194cf5d3",
+      "fdddc312-6a30-4511-ba5e-7ad59df01fcc",
+      "a3f1a73a-9cf9-45ed-a4bc-00b27b1e490d",
+      "f75caeb8-5aff-4e6a-8c2f-687097a480ac"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56"
+    ]
   },
   {
-    "id": "ar_codes_01",
+    "id": "ar_civil_01",
     "domain": "droit_civil",
     "difficulty": "easy",
+    "intentType": "factual",
     "question": "ما هي شروط صحة العقد في القانون التونسي؟",
     "expectedAnswer": {
       "keyPoints": [
@@ -247,7 +330,6 @@
         "الفصل 2 من مجلة الالتزامات والعقود"
       ]
     },
-    "intentType": "factual",
     "expectedArticles": [
       "الفصل 2"
     ],
@@ -260,108 +342,26 @@
     "expertValidation": {
       "validatorId": "auto_generated",
       "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
       "consensus": 0
-    }
-  },
-  {
-    "id": "ar_codes_02",
-    "domain": "droit_penal",
-    "difficulty": "easy",
-    "question": "ما هي عقوبة السرقة في القانون الجزائي التونسي؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "السجن",
-        "خمس سنوات"
-      ],
-      "mandatoryCitations": [
-        "الفصل 264 من المجلة الجزائية"
-      ]
     },
-    "intentType": "factual",
-    "expectedArticles": [
-      "الفصل 264"
+    "goldChunkIds": [
+      "a8ee827e-9114-45e4-8a88-4c250e896e7c",
+      "99a39f6c-768e-47d7-bbaf-c056841fb3f1",
+      "759197e4-c919-47c8-a4cb-c8c2c3fa0153",
+      "84789ea2-6db4-4cb3-b833-5cd50ec986af",
+      "1aae831e-a078-4757-9ce8-7ab41875c1a1"
     ],
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
-      "consensus": 0
-    }
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
   },
   {
-    "id": "ar_codes_03",
-    "domain": "droit_famille",
-    "difficulty": "easy",
-    "question": "ما هو السن الأدنى للزواج في تونس؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "18 سنة"
-      ],
-      "mandatoryCitations": [
-        "مجلة الأحوال الشخصية"
-      ]
-    },
-    "intentType": "factual",
-    "expectedArticles": [
-      "الفصل 5"
-    ],
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
-      "consensus": 0
-    }
-  },
-  {
-    "id": "ar_codes_04",
-    "domain": "droit_commercial",
-    "difficulty": "medium",
-    "question": "ما هي شروط صحة الشيك في القانون التجاري التونسي؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "التاريخ",
-        "المبلغ",
-        "اسم المسحوب عليه",
-        "التوقيع"
-      ],
-      "mandatoryCitations": [
-        "المجلة التجارية"
-      ]
-    },
-    "intentType": "factual",
-    "expectedArticles": [
-      "الفصل 410"
-    ],
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
-      "consensus": 0
-    }
-  },
-  {
-    "id": "ar_codes_05",
+    "id": "ar_civil_02",
     "domain": "droit_civil",
-    "difficulty": "medium",
+    "difficulty": "easy",
+    "intentType": "factual",
     "question": "ما هي آجال التقادم في المادة المدنية في تونس؟",
     "expectedAnswer": {
       "keyPoints": [
@@ -372,7 +372,6 @@
         "مجلة الالتزامات والعقود"
       ]
     },
-    "intentType": "factual",
     "expectedArticles": [
       "الفصل 402"
     ],
@@ -385,259 +384,29 @@
     "expertValidation": {
       "validatorId": "auto_generated",
       "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
       "consensus": 0
-    }
-  },
-  {
-    "id": "ar_proc_01",
-    "domain": "procedure",
-    "difficulty": "medium",
-    "question": "ما هي إجراءات رفع دعوى أمام المحكمة الابتدائية في تونس؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "عريضة",
-        "محامي",
-        "كتابة ضبط",
-        "استدعاء"
-      ],
-      "mandatoryCitations": [
-        "مجلة المرافعات المدنية والتجارية"
-      ]
     },
-    "intentType": "procedural",
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
-      "consensus": 0
-    }
-  },
-  {
-    "id": "ar_proc_02",
-    "domain": "procedure",
-    "difficulty": "medium",
-    "question": "ما هي آجال الاستئناف في المادة المدنية في تونس؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "20 يوما",
-        "من تاريخ الإعلام بالحكم"
-      ],
-      "mandatoryCitations": [
-        "مجلة المرافعات المدنية والتجارية"
-      ]
-    },
-    "intentType": "procedural",
-    "expectedArticles": [
-      "الفصل 141"
+    "goldChunkIds": [
+      "3f2948c4-149b-4133-90cf-8cdbb7b9cc48",
+      "c477b81e-1fe2-422a-9330-c1926213efaa",
+      "c6a6029e-84f2-4f24-a529-1c1bd758246b",
+      "2c384b0e-0645-4c0b-a220-dd4d68221d45",
+      "1327c368-373f-4e8f-8716-86529cf67b63"
     ],
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
-      "consensus": 0
-    }
+    "goldDocumentIds": [
+      "aac5ab3a-6735-43a5-8a84-0d9de60bcfbd",
+      "770439ea-1057-4698-97c9-14e1da12c41e",
+      "90318fed-11b9-4d23-9fb7-6366cf63b988",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
   },
   {
-    "id": "ar_proc_03",
-    "domain": "droit_penal",
-    "difficulty": "hard",
-    "question": "ما هي شروط الإفراج الشرطي في القانون التونسي؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "قضاء ثلثي المدة",
-        "حسن السيرة",
-        "موافقة لجنة"
-      ],
-      "mandatoryCitations": [
-        "مجلة الإجراءات الجزائية"
-      ]
-    },
-    "intentType": "procedural",
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
-      "consensus": 0
-    }
-  },
-  {
-    "id": "ar_juris_01",
+    "id": "ar_civil_03",
     "domain": "droit_civil",
-    "difficulty": "hard",
-    "question": "ما هو موقف محكمة التعقيب من مسألة التعويض عن الضرر المعنوي؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "التعويض عن الضرر المعنوي",
-        "السلطة التقديرية للقاضي"
-      ],
-      "mandatoryCitations": [
-        "محكمة التعقيب"
-      ]
-    },
-    "intentType": "interpretive",
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
-      "consensus": 0
-    }
-  },
-  {
-    "id": "ar_juris_02",
-    "domain": "droit_travail",
-    "difficulty": "medium",
-    "question": "كيف يتم احتساب التعويض عن الطرد التعسفي في تونس؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "الأجر الشهري",
-        "الأقدمية",
-        "شهر عن كل سنة"
-      ],
-      "mandatoryCitations": [
-        "مجلة الشغل"
-      ]
-    },
-    "intentType": "factual",
-    "expectedArticles": [
-      "الفصل 23"
-    ],
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
-      "consensus": 0
-    }
-  },
-  {
-    "id": "ar_comp_01",
-    "domain": "droit_famille",
-    "difficulty": "hard",
-    "question": "ما الفرق بين الطلاق بالتراضي والطلاق للضرر في القانون التونسي؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "التراضي: اتفاق الطرفين",
-        "الضرر: إثبات الضرر",
-        "إجراءات مختلفة"
-      ],
-      "mandatoryCitations": [
-        "مجلة الأحوال الشخصية",
-        "الفصل 31"
-      ]
-    },
-    "intentType": "comparative",
-    "expectedArticles": [
-      "الفصل 29",
-      "الفصل 31"
-    ],
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
-      "consensus": 0
-    }
-  },
-  {
-    "id": "ar_comp_02",
-    "domain": "droit_commercial",
-    "difficulty": "hard",
-    "question": "ما الفرق بين التفليس والتسوية القضائية في القانون التجاري التونسي؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "التفليس: إعدام",
-        "التسوية: إنقاذ",
-        "شروط مختلفة"
-      ],
-      "mandatoryCitations": [
-        "المجلة التجارية",
-        "قانون الإنقاذ"
-      ]
-    },
-    "intentType": "comparative",
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
-      "consensus": 0
-    }
-  },
-  {
-    "id": "ar_cite_01",
-    "domain": "droit_penal",
     "difficulty": "easy",
-    "question": "ماذا ينص الفصل 217 من المجلة الجزائية؟",
-    "expectedAnswer": {
-      "keyPoints": [
-        "التحيل",
-        "العقوبة"
-      ],
-      "mandatoryCitations": [
-        "الفصل 217 من المجلة الجزائية"
-      ]
-    },
     "intentType": "citation_lookup",
-    "expectedArticles": [
-      "الفصل 217"
-    ],
-    "evaluationCriteria": {
-      "completeness": 80,
-      "accuracy": 85,
-      "citations": 80,
-      "reasoning": 80
-    },
-    "expertValidation": {
-      "validatorId": "auto_generated",
-      "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
-      "consensus": 0
-    }
-  },
-  {
-    "id": "ar_cite_02",
-    "domain": "droit_civil",
-    "difficulty": "easy",
     "question": "ماذا ينص الفصل 82 من مجلة الالتزامات والعقود؟",
     "expectedAnswer": {
       "keyPoints": [
@@ -648,7 +417,6 @@
         "الفصل 82 من مجلة الالتزامات والعقود"
       ]
     },
-    "intentType": "citation_lookup",
     "expectedArticles": [
       "الفصل 82"
     ],
@@ -661,27 +429,43 @@
     "expertValidation": {
       "validatorId": "auto_generated",
       "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
       "consensus": 0
-    }
+    },
+    "goldChunkIds": [
+      "e5e668a4-3832-48e8-828d-5014fbbd3438",
+      "ad7cd2a1-2b15-4d19-bf3d-55659bd679d6",
+      "90b5e678-e933-423e-a042-2fa1acb1a510",
+      "d89ed922-57a0-418c-9046-ef96a7c6bb00",
+      "af45ba6d-a44b-4c75-851e-a0dadc09ff00"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "de299263-8ed3-40aa-afaf-b186f4a82b02",
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30",
+      "2302ec74-3ceb-444f-9475-d0fc18e09890",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8"
+    ]
   },
   {
-    "id": "ar_cite_03",
-    "domain": "droit_famille",
-    "difficulty": "easy",
-    "question": "ماذا ينص الفصل 23 من مجلة الأحوال الشخصية بخصوص النفقة؟",
+    "id": "ar_civil_04",
+    "domain": "droit_civil",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي شروط المسؤولية التقصيرية في القانون التونسي؟",
     "expectedAnswer": {
       "keyPoints": [
-        "النفقة",
-        "واجبات الزوج"
+        "الخطأ",
+        "الضرر",
+        "العلاقة السببية"
       ],
       "mandatoryCitations": [
-        "الفصل 23 من مجلة الأحوال الشخصية"
+        "الفصل 83 مجلة الالتزامات والعقود"
       ]
     },
-    "intentType": "citation_lookup",
     "expectedArticles": [
-      "الفصل 23"
+      "الفصل 82",
+      "الفصل 83"
     ],
     "evaluationCriteria": {
       "completeness": 80,
@@ -692,26 +476,82 @@
     "expertValidation": {
       "validatorId": "auto_generated",
       "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
       "consensus": 0
-    }
+    },
+    "goldChunkIds": [
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "f4ab4881-8319-4c3b-8198-a33133a33b90",
+      "055a5c00-3ab0-4e43-ad02-eb478d1238e9",
+      "7bff7908-1753-460d-89a1-cb5c212641bc",
+      "d01145b8-9362-4aba-ace6-717f5b8dbafb"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "1ccc0064-e50b-4957-91c4-51b11a4b7aa8",
+      "6584113b-7e95-4f0d-ba58-d06ac8c82457"
+    ]
   },
   {
-    "id": "ar_immo_01",
-    "domain": "droit_immobilier",
+    "id": "ar_civil_05",
+    "domain": "droit_civil",
     "difficulty": "medium",
-    "question": "ما هي إجراءات تسجيل عقار في تونس؟",
+    "intentType": "factual",
+    "question": "ما هي أنواع الضمان في العقود المدنية التونسية؟",
     "expectedAnswer": {
       "keyPoints": [
-        "إدارة الملكية العقارية",
-        "رسم عقاري",
-        "عقد بيع"
+        "ضمان العيوب الخفية",
+        "ضمان الاستحقاق",
+        "ضمان التعرض"
       ],
       "mandatoryCitations": [
-        "مجلة الحقوق العينية"
+        "مجلة الالتزامات والعقود"
       ]
     },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "ae9748a1-b5ba-4e0a-b1ce-bad5cb7fd8d1",
+      "5938db62-d9ee-49bb-b7a0-161f360c1335",
+      "2649ed3e-0ded-40cd-8a5b-9d8122a03fe8",
+      "246828d1-6917-425b-bcaf-be84e78ecafe",
+      "5d31baff-f58a-4e8a-9075-e5fde2f0ea52"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "770439ea-1057-4698-97c9-14e1da12c41e",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8"
+    ]
+  },
+  {
+    "id": "ar_civil_06",
+    "domain": "droit_civil",
+    "difficulty": "medium",
     "intentType": "procedural",
+    "question": "كيف يتم إثبات الالتزامات في القانون المدني التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الكتابة",
+        "الشهادة",
+        "القرائن",
+        "الإقرار",
+        "اليمين"
+      ],
+      "mandatoryCitations": [
+        "مجلة الالتزامات والعقود"
+      ]
+    },
     "evaluationCriteria": {
       "completeness": 80,
       "accuracy": 85,
@@ -721,26 +561,38 @@
     "expertValidation": {
       "validatorId": "auto_generated",
       "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
       "consensus": 0
-    }
+    },
+    "goldChunkIds": [
+      "cff43df1-4a24-4761-9e92-d0bc577e36c3",
+      "8313a99c-7f7a-40ec-a63d-23c91e14efad",
+      "2ac66b70-e2c1-45a2-b076-9d4875544a55",
+      "1884c4fe-afec-47e5-9533-e0f94df67cd6",
+      "3137a1ae-38ad-4e5f-96aa-1600f445efa2"
+    ],
+    "goldDocumentIds": [
+      "7dca6f4b-b772-41f1-b210-788fa322136a",
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25"
+    ]
   },
   {
-    "id": "ar_immo_02",
-    "domain": "droit_immobilier",
+    "id": "ar_civil_07",
+    "domain": "droit_civil",
     "difficulty": "hard",
-    "question": "ما هي حقوق المستأجر عند انتهاء عقد الكراء في تونس؟",
+    "intentType": "interpretive",
+    "question": "ما هو موقف محكمة التعقيب من مسألة التعويض عن الضرر المعنوي؟",
     "expectedAnswer": {
       "keyPoints": [
-        "حق البقاء",
-        "التعويض",
-        "إنذار"
+        "التعويض عن الضرر المعنوي",
+        "السلطة التقديرية للقاضي"
       ],
       "mandatoryCitations": [
-        "قانون الكراءات"
+        "محكمة التعقيب"
       ]
     },
-    "intentType": "factual",
     "evaluationCriteria": {
       "completeness": 80,
       "accuracy": 85,
@@ -750,25 +602,119 @@
     "expertValidation": {
       "validatorId": "auto_generated",
       "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
       "consensus": 0
-    }
+    },
+    "goldChunkIds": [
+      "4ea59fc4-7d38-4723-a2d9-250a94332e31",
+      "06572fa6-9ab8-400e-9270-4f8a0c0e4815",
+      "dfa98142-b3cf-459b-b583-9fe35b805b9b",
+      "5d7a0d38-e835-44f5-9321-613c784e9a33",
+      "5fa5c53f-6d6f-49de-b236-eec3c8170d4e"
+    ],
+    "goldDocumentIds": [
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "47dc7fd1-2c26-4847-901c-01abe05540ed",
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
+    ]
   },
   {
-    "id": "ar_travail_01",
-    "domain": "droit_travail",
+    "id": "ar_civil_08",
+    "domain": "droit_civil",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "ما هي شروط فسخ العقد في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "إخلال جوهري",
+        "إعذار",
+        "حكم قضائي أو شرط فاسخ"
+      ],
+      "mandatoryCitations": [
+        "مجلة الالتزامات والعقود"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "720fee6f-02e8-4ea8-b4c4-497e43eecf24",
+      "12809574-d610-4990-addd-86b66f7c98a0",
+      "01b50aac-77b8-4c6f-83d1-607e4c34136f",
+      "89b56277-fd72-4eaa-8800-bd2aaea7670c",
+      "e8b1fe78-ed2c-4408-9a17-4a71a75934f9"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
+  },
+  {
+    "id": "ar_civil_09",
+    "domain": "droit_civil",
+    "difficulty": "hard",
+    "intentType": "comparative",
+    "question": "ما الفرق بين البطلان المطلق والبطلان النسبي للعقد في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "المطلق: مخالفة النظام العام",
+        "النسبي: حماية مصلحة خاصة",
+        "التقادم مختلف"
+      ],
+      "mandatoryCitations": [
+        "مجلة الالتزامات والعقود"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "0c40efbc-9880-4af9-a804-5e01ef96e0bf",
+      "759197e4-c919-47c8-a4cb-c8c2c3fa0153",
+      "84789ea2-6db4-4cb3-b833-5cd50ec986af",
+      "d418789d-52f6-4ac4-b1c0-3f1d13e2afc4",
+      "4e5a2e00-e3eb-4136-9e8f-4268beee8523"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25"
+    ]
+  },
+  {
+    "id": "fr_civil_01",
+    "domain": "droit_civil",
     "difficulty": "easy",
-    "question": "ما هي مدة فترة التجربة في عقد الشغل في تونس؟",
+    "intentType": "factual",
+    "question": "Quels sont les modes d'extinction des obligations en droit tunisien ?",
     "expectedAnswer": {
       "keyPoints": [
-        "6 أشهر",
-        "قابلة للتجديد مرة واحدة"
+        "paiement",
+        "compensation",
+        "novation",
+        "remise de dette",
+        "prescription"
       ],
       "mandatoryCitations": [
-        "مجلة الشغل"
+        "COC"
       ]
     },
-    "intentType": "factual",
     "evaluationCriteria": {
       "completeness": 80,
       "accuracy": 85,
@@ -778,26 +724,41 @@
     "expertValidation": {
       "validatorId": "auto_generated",
       "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
       "consensus": 0
-    }
+    },
+    "goldChunkIds": [
+      "7b54c197-e4c8-47c2-9bce-8ef616fb0db9",
+      "641706bd-d028-418f-a75f-8b02dd29d22c",
+      "a7b44e02-b220-4441-9dc7-0fa3ce564a78",
+      "e3a7ca07-6928-4e65-90ac-b25d646a29c1",
+      "43e65a5e-80a3-4ce9-a9c7-a175e2b83569"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "770439ea-1057-4698-97c9-14e1da12c41e"
+    ]
   },
   {
-    "id": "ar_travail_02",
-    "domain": "droit_travail",
+    "id": "fr_civil_02",
+    "domain": "droit_civil",
     "difficulty": "medium",
-    "question": "ما هي حقوق المرأة العاملة الحامل في القانون التونسي؟",
+    "intentType": "factual",
+    "question": "Quelles sont les conditions de la responsabilité du fait des choses en droit tunisien ?",
     "expectedAnswer": {
       "keyPoints": [
-        "عطلة أمومة",
-        "30 يوما",
-        "حماية من الطرد"
+        "garde de la chose",
+        "fait de la chose",
+        "dommage",
+        "lien de causalité"
       ],
       "mandatoryCitations": [
-        "مجلة الشغل"
+        "Article 96 COC"
       ]
     },
-    "intentType": "factual",
+    "expectedArticles": [
+      "Article 96"
+    ],
     "evaluationCriteria": {
       "completeness": 80,
       "accuracy": 85,
@@ -807,14 +768,536 @@
     "expertValidation": {
       "validatorId": "auto_generated",
       "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
       "consensus": 0
-    }
+    },
+    "goldChunkIds": [
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "6fcc099e-df15-46c6-8879-1b2ccdfa88a0",
+      "5d8f757e-7fdd-4482-b917-ca55cad5bcf3",
+      "d6f39f19-0ba1-4cff-b025-a82498d4504a",
+      "33a38312-fc64-40f9-944f-73c94d999425"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "9eb741d8-0d26-4ffa-a9a3-410dbdf22f74",
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
   },
   {
-    "id": "ar_expert_01",
+    "id": "fr_civil_03",
+    "domain": "droit_civil",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les règles de la mise en demeure en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "interpellation",
+        "forme écrite",
+        "délai raisonnable"
+      ],
+      "mandatoryCitations": [
+        "COC"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "60b9c0e4-4032-4306-a601-aa0bd9534b32",
+      "0d658c18-342e-47ee-b71f-fad793739af4",
+      "7d217d28-4939-4d49-96fa-a1c853410fd5",
+      "6d5e0398-0036-49b1-afe2-7fff05b90637",
+      "8a818805-f55d-4cec-bda4-448ed24ac7c7"
+    ],
+    "goldDocumentIds": [
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "70042c47-94bc-40dc-8969-6adb6bc250e5",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8"
+    ]
+  },
+  {
+    "id": "fr_civil_04",
+    "domain": "droit_civil",
+    "difficulty": "hard",
+    "intentType": "interpretive",
+    "question": "Comment la jurisprudence tunisienne interprète-t-elle la force majeure comme cause d'exonération ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "imprévisibilité",
+        "irrésistibilité",
+        "extériorité"
+      ],
+      "mandatoryCitations": [
+        "COC",
+        "Cour de cassation"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "0e99cfe7-a668-4a79-8536-1cf985618e00",
+      "6c486bd1-cdfa-4402-afcb-fe646a3a64be",
+      "50cee366-0f17-4cbe-aaa6-b438b7d68173",
+      "fe8692d6-1492-4cae-8c1d-18685db6ce8d",
+      "97e4ad90-7e4e-4a4c-a3f6-07ad063ee3cb"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "68fc22cb-0c26-4a91-b7cf-42de68c57dd7",
+      "81975fe9-9296-40fd-8bfa-334848b76f9e",
+      "de299263-8ed3-40aa-afaf-b186f4a82b02"
+    ]
+  },
+  {
+    "id": "fr_civil_05",
+    "domain": "droit_civil",
+    "difficulty": "expert",
+    "intentType": "interpretive",
+    "question": "Comment s'articule la responsabilité contractuelle et la responsabilité délictuelle en droit tunisien ? Peut-on cumuler les deux ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "non-cumul",
+        "option impossible",
+        "responsabilité contractuelle prime"
+      ],
+      "mandatoryCitations": [
+        "COC",
+        "jurisprudence"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "fa38ef03-b00d-4ebe-a228-a74ca3175ec9",
+      "949b3856-619d-4eeb-a425-9b7ded48bba9",
+      "f4ab4881-8319-4c3b-8198-a33133a33b90",
+      "af49e096-2115-41c8-b78f-c29f72240a0a"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "2302ec74-3ceb-444f-9475-d0fc18e09890",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25"
+    ]
+  },
+  {
+    "id": "ar_penal_01",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي عقوبة السرقة في القانون الجزائي التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "السجن",
+        "خمس سنوات"
+      ],
+      "mandatoryCitations": [
+        "الفصل 264 من المجلة الجزائية"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 264"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "a83c099d-cfb4-41fe-95da-dd2560a2e64b",
+      "e23682f4-9d67-4bf6-838d-1e5ca0919457",
+      "04c61755-fa5c-4cd4-b2f7-b82fda7cd5ef",
+      "145cc12c-c7a5-4e4c-8f77-2e187ce83805",
+      "dc424a3e-3093-40dd-8ccb-70bdd49760fd"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
+    ]
+  },
+  {
+    "id": "ar_penal_02",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "intentType": "citation_lookup",
+    "question": "ماذا ينص الفصل 217 من المجلة الجزائية؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "التحيل",
+        "العقوبة"
+      ],
+      "mandatoryCitations": [
+        "الفصل 217 من المجلة الجزائية"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 217"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4a9849a7-a9fe-4837-b376-69905583c55b",
+      "ee56b2ce-d472-420b-b969-d6547f4c280b",
+      "6655a305-bd18-4f6e-af50-d9969b33e2fb",
+      "8357cf18-daae-4f66-b092-7878343ba76f",
+      "108ba9d3-e5bc-4d6f-a7ca-2d2332e18f1a"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "770439ea-1057-4698-97c9-14e1da12c41e",
+      "47dc7fd1-2c26-4847-901c-01abe05540ed",
+      "77cb05ac-1db3-4f5f-a776-9fbbd0417e0b"
+    ]
+  },
+  {
+    "id": "ar_penal_03",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي أنواع العقوبات الجزائية في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الإعدام",
+        "السجن",
+        "الخطية",
+        "العقوبات التكميلية"
+      ],
+      "mandatoryCitations": [
+        "المجلة الجزائية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "10370dfe-9d6a-443f-a0e9-f856a2225fde",
+      "58b6c46c-e9d5-4ebb-ac1e-9a1d4a8d116c",
+      "0ae7ae86-99ed-455c-91e1-0c0108f91b41",
+      "ea42a71b-27bc-4199-930b-1b87db449733",
+      "8eb0bfbe-6c51-4962-9232-31b2a07f766d"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "d1fb363e-c6fe-4523-b972-c45e5be3688d",
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
+    ]
+  },
+  {
+    "id": "ar_penal_04",
+    "domain": "droit_penal",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي عقوبة إصدار شيك بدون رصيد في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "السجن خمس سنوات",
+        "الخطية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 411 من المجلة التجارية"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 411"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "6513d5e5-eb43-45e7-8f2d-59af24c5b9d3",
+      "77472891-9c9b-45e9-ae9c-a675c50193f3",
+      "cf40799b-b11f-400a-844e-4d8f79bf15f8",
+      "f0b9bbee-1198-48ce-9bb4-78400e40b016",
+      "810e0cc3-d18e-4422-9f0d-190566d04966"
+    ],
+    "goldDocumentIds": [
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "aac5ab3a-6735-43a5-8a84-0d9de60bcfbd"
+    ]
+  },
+  {
+    "id": "ar_penal_05",
+    "domain": "droit_penal",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي ظروف التشديد في جريمة السرقة في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الليل",
+        "التسلق",
+        "الكسر",
+        "حمل السلاح",
+        "التعدد"
+      ],
+      "mandatoryCitations": [
+        "المجلة الجزائية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "a32f0583-cb6f-4c45-8b75-e7250f7b7958",
+      "04c61755-fa5c-4cd4-b2f7-b82fda7cd5ef",
+      "e23682f4-9d67-4bf6-838d-1e5ca0919457",
+      "acaf5114-ce50-4c0b-ab3e-dd0f2975787d",
+      "145cc12c-c7a5-4e4c-8f77-2e187ce83805"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "d1fb363e-c6fe-4523-b972-c45e5be3688d",
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
+    ]
+  },
+  {
+    "id": "ar_penal_06",
+    "domain": "droit_penal",
+    "difficulty": "medium",
+    "intentType": "procedural",
+    "question": "ما هي إجراءات الإيقاف التحفظي في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "قاضي التحقيق",
+        "جنحة أو جناية",
+        "مدة محددة",
+        "التمديد"
+      ],
+      "mandatoryCitations": [
+        "مجلة الإجراءات الجزائية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "45ed94ab-2ee9-4c7b-abe3-af2e98f60a34",
+      "de01a965-5fce-4d01-aaf0-48e494fabff2",
+      "476d0661-34e2-49f5-8115-c61abbdd25d0",
+      "d36e8c8b-e42d-4475-b305-18b53731cdb9",
+      "61d4c9bb-12e9-44b1-8b36-610fde669fdf"
+    ],
+    "goldDocumentIds": [
+      "47dc7fd1-2c26-4847-901c-01abe05540ed",
+      "abc08b11-4eb6-4e26-8af9-0b73297da3a7",
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "6584113b-7e95-4f0d-ba58-d06ac8c82457"
+    ]
+  },
+  {
+    "id": "ar_penal_07",
+    "domain": "droit_penal",
+    "difficulty": "hard",
+    "intentType": "procedural",
+    "question": "ما هي شروط الإفراج الشرطي في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "قضاء ثلثي المدة",
+        "حسن السيرة",
+        "موافقة لجنة"
+      ],
+      "mandatoryCitations": [
+        "مجلة الإجراءات الجزائية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "9f10e2fb-330e-45bd-b302-334f44c7dc2e",
+      "c5275cbc-e1b6-4a55-8d0b-d2dea70d8c55",
+      "ce15a7ae-8f6d-4e8e-93bc-dab6df79c6c0",
+      "e97086be-0404-4c74-b943-dd4ccd280308",
+      "1e7fbbbc-1ee3-4b5a-9578-03c2d77472ad"
+    ],
+    "goldDocumentIds": [
+      "47dc7fd1-2c26-4847-901c-01abe05540ed"
+    ]
+  },
+  {
+    "id": "ar_penal_08",
+    "domain": "droit_penal",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "ما هي أركان جريمة التحيل في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الاحتيال",
+        "استعمال طرق تدليسية",
+        "الاستيلاء على مال الغير"
+      ],
+      "mandatoryCitations": [
+        "الفصل 291 المجلة الجزائية"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 291"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "0c9ce2d8-3296-45ca-8ed9-c5c7fe3698cd",
+      "8c9e83fd-2ab3-4a4a-85da-a9e37ddc801d",
+      "91e4e990-5b9c-42ba-b5dc-da8a8622e20f",
+      "b1b87991-8247-4203-a189-2851d5c0e3d2",
+      "f91f8d5d-437d-42e7-a0f8-0aa88c18340e"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "ar_penal_09",
+    "domain": "droit_penal",
+    "difficulty": "hard",
+    "intentType": "comparative",
+    "question": "ما الفرق بين الجناية والجنحة والمخالفة في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الجناية: أكثر من 5 سنوات",
+        "الجنحة: 16 يوم إلى 5 سنوات",
+        "المخالفة: أقل من 16 يوم"
+      ],
+      "mandatoryCitations": [
+        "المجلة الجزائية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "7dbd78c9-ceb2-42a8-9b9e-6da3dc330b13",
+      "f8c43b53-eee4-4499-8c45-2e520af2309b",
+      "b9edab05-6e50-4f30-aa6d-e54e0a054c67",
+      "d1a53050-0d2f-4573-b01f-65b69cdb2d1f",
+      "fcd4ca2f-0c2b-4e97-9c8b-8bba589224a4"
+    ],
+    "goldDocumentIds": [
+      "6584113b-7e95-4f0d-ba58-d06ac8c82457",
+      "47dc7fd1-2c26-4847-901c-01abe05540ed",
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "d1fb363e-c6fe-4523-b972-c45e5be3688d"
+    ]
+  },
+  {
+    "id": "ar_penal_10",
     "domain": "droit_penal",
     "difficulty": "expert",
+    "intentType": "interpretive",
     "question": "ما هي شروط قيام حالة الدفاع الشرعي في القانون الجزائي التونسي وما هي حدودها؟",
     "expectedAnswer": {
       "keyPoints": [
@@ -826,7 +1309,6 @@
         "المجلة الجزائية"
       ]
     },
-    "intentType": "interpretive",
     "expectedArticles": [
       "الفصل 39",
       "الفصل 40"
@@ -840,14 +1322,1540 @@
     "expertValidation": {
       "validatorId": "auto_generated",
       "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
       "consensus": 0
-    }
+    },
+    "goldChunkIds": [
+      "c598c2a1-dfff-45f5-9322-45e7a94dbc68",
+      "3a959772-f645-454f-8b14-795ad0fc5e3a",
+      "2f4ac4ac-671a-4315-8b03-1b1682b4d514",
+      "92634039-6ba2-4d77-bae7-509409da4dfd",
+      "9e95830c-def2-4c00-9dfd-19f96547d700"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25"
+    ]
   },
   {
-    "id": "ar_expert_02",
+    "id": "fr_penal_01",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "Quelles sont les causes d'irresponsabilité pénale en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "démence",
+        "contrainte",
+        "minorité",
+        "légitime défense"
+      ],
+      "mandatoryCitations": [
+        "Code pénal"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "91a8d48c-db3c-4f65-998c-e2794126ccf7",
+      "c598c2a1-dfff-45f5-9322-45e7a94dbc68",
+      "85faafab-57f6-44cb-9939-960266db1771",
+      "12431b56-2405-4a0b-9324-4f3d07cad0de",
+      "8354a3b1-f4ad-4eaa-9ffd-8086180d802e"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ]
+  },
+  {
+    "id": "fr_penal_02",
+    "domain": "droit_penal",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les conditions de la récidive en droit pénal tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "condamnation antérieure définitive",
+        "nouvelle infraction",
+        "délai"
+      ],
+      "mandatoryCitations": [
+        "Code pénal"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "33ef88e6-69cb-4fb2-8f10-360745964cff",
+      "c207d064-5498-488d-a38a-82ddaea36b53",
+      "04a25194-02a4-4e43-9d1a-4206b19c69b0",
+      "0309eeca-d898-4ab0-aded-bdf5435813fa",
+      "bbfb2545-0b38-4095-abaf-d7740cd1f473"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ]
+  },
+  {
+    "id": "fr_penal_03",
+    "domain": "droit_penal",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quel est le régime juridique du sursis en droit pénal tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "sursis simple",
+        "conditions",
+        "révocation"
+      ],
+      "mandatoryCitations": [
+        "Code pénal"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "0a44fe32-9308-47c2-b77a-dfa0655005c9",
+      "589c09b1-9b75-405f-ab60-edef9a6b93ca",
+      "58b6c46c-e9d5-4ebb-ac1e-9a1d4a8d116c",
+      "f444f783-65dc-45f3-b98a-c4bcf5024c86",
+      "aa8f4ecf-1c10-4cb5-bdd8-43da3e66dfa5"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ]
+  },
+  {
+    "id": "fr_penal_04",
+    "domain": "droit_penal",
+    "difficulty": "hard",
+    "intentType": "interpretive",
+    "question": "Comment la jurisprudence tunisienne interprète-t-elle la complicité en matière pénale ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "aide ou assistance",
+        "instigation",
+        "acte positif",
+        "connaissance de l'infraction"
+      ],
+      "mandatoryCitations": [
+        "Code pénal"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4a7dc100-08e1-4025-ab28-22abf3748d49",
+      "7a455478-6e9e-44cb-91dd-11a8b1ea9255",
+      "742feb17-3323-4191-8282-60b68113ae55",
+      "42884747-e45a-49a5-9a46-ab9de8a5f9ba",
+      "0180ac50-245e-48f2-bf79-20b81a3349ae"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "47dc7fd1-2c26-4847-901c-01abe05540ed"
+    ]
+  },
+  {
+    "id": "fr_penal_05",
+    "domain": "droit_penal",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quels sont les délais de prescription de l'action publique selon la nature de l'infraction en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "10 ans crime",
+        "3 ans délit",
+        "1 an contravention"
+      ],
+      "mandatoryCitations": [
+        "Code de procédure pénale"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "c6a6029e-84f2-4f24-a529-1c1bd758246b",
+      "00ba74df-f496-40e7-b045-0a6f1facb38d",
+      "a2eeba05-03f2-471c-9bb1-3b42c2327b92",
+      "0180ac50-245e-48f2-bf79-20b81a3349ae",
+      "abbe9a2d-6f82-441c-a165-12f5e6a1b763"
+    ],
+    "goldDocumentIds": [
+      "90318fed-11b9-4d23-9fb7-6366cf63b988",
+      "70042c47-94bc-40dc-8969-6adb6bc250e5",
+      "47dc7fd1-2c26-4847-901c-01abe05540ed"
+    ]
+  },
+  {
+    "id": "ar_famille_01",
+    "domain": "droit_famille",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هو السن الأدنى للزواج في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "18 سنة"
+      ],
+      "mandatoryCitations": [
+        "مجلة الأحوال الشخصية"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 5"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "9b30f821-69d1-4343-a2cf-4b72c70b2650",
+      "d9646b71-498d-43f7-8be7-debfb25559f0",
+      "e5209b7e-b81e-492d-a626-699d6a32ffe5",
+      "d2011dec-9cd5-450e-9cd6-f00e9cf5c3d9",
+      "833802bc-df52-4ed3-8f44-04347926b600"
+    ],
+    "goldDocumentIds": [
+      "7dca6f4b-b772-41f1-b210-788fa322136a",
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7"
+    ]
+  },
+  {
+    "id": "ar_famille_02",
+    "domain": "droit_famille",
+    "difficulty": "easy",
+    "intentType": "citation_lookup",
+    "question": "ماذا ينص الفصل 23 من مجلة الأحوال الشخصية بخصوص النفقة؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "النفقة",
+        "واجبات الزوج"
+      ],
+      "mandatoryCitations": [
+        "الفصل 23 من مجلة الأحوال الشخصية"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 23"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "ffa095c4-d545-4f80-9844-4e8cf73313ca",
+      "69a087b2-63b0-49fb-8d7e-489790dbf1bf",
+      "f8543ef6-92a6-4725-942d-4a1fe0f8b7bb",
+      "4a7f3f47-514f-454f-bc4e-2c70125d9f90",
+      "d6f71357-bb90-47b0-9f83-71e1ce5ce62b"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "3177bb95-1068-43ee-82ae-54bc0e2aa741"
+    ]
+  },
+  {
+    "id": "ar_famille_03",
+    "domain": "droit_famille",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "هل يجوز تعدد الزوجات في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "محرم",
+        "ممنوع بالقانون",
+        "عقوبة جزائية"
+      ],
+      "mandatoryCitations": [
+        "الفصل 18 مجلة الأحوال الشخصية"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 18"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "aa1bc997-2e7e-4210-a087-a40b58fc1d8b",
+      "c17017e7-2106-496d-9f5d-b0634f989c5f",
+      "833802bc-df52-4ed3-8f44-04347926b600",
+      "f6eaf0da-048d-4131-9097-bd61a0af0f33",
+      "9b30f821-69d1-4343-a2cf-4b72c70b2650"
+    ],
+    "goldDocumentIds": [
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
+  },
+  {
+    "id": "ar_famille_04",
+    "domain": "droit_famille",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "كيف يتم تقدير النفقة الزوجية في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "حال الزوج",
+        "حال الزوجة",
+        "المستوى المعيشي"
+      ],
+      "mandatoryCitations": [
+        "مجلة الأحوال الشخصية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4a7f3f47-514f-454f-bc4e-2c70125d9f90",
+      "69a087b2-63b0-49fb-8d7e-489790dbf1bf",
+      "ffa095c4-d545-4f80-9844-4e8cf73313ca",
+      "0ed3558b-ee34-4eac-a472-e8633e64513d",
+      "5b0db2be-8d3f-4964-bfc2-affaac9aba1a"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7"
+    ]
+  },
+  {
+    "id": "ar_famille_05",
+    "domain": "droit_famille",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي شروط الحضانة في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الأمانة",
+        "القدرة",
+        "مصلحة الطفل الفضلى"
+      ],
+      "mandatoryCitations": [
+        "مجلة الأحوال الشخصية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "c9a324f8-83af-4820-a114-156725aebe13",
+      "9b30f821-69d1-4343-a2cf-4b72c70b2650",
+      "54263623-9b75-4b50-9537-bcb2e7ae03fb",
+      "73644210-9233-41dc-b728-7edbd80762ef",
+      "94bae7eb-53d5-4de7-af96-20b1ced6467a"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
+  },
+  {
+    "id": "ar_famille_06",
+    "domain": "droit_famille",
+    "difficulty": "medium",
+    "intentType": "procedural",
+    "question": "ما هي إجراءات الطلاق بالتراضي في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "اتفاق الطرفين",
+        "محكمة",
+        "محاولة صلح",
+        "تسوية آثار الطلاق"
+      ],
+      "mandatoryCitations": [
+        "الفصل 29 مجلة الأحوال الشخصية"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 29"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "f9853c8e-22f7-45ed-bcd1-cd4462e814ee",
+      "b77cb158-c6ea-409b-adec-9aa497ec0751",
+      "00b70828-6557-440e-858e-a361d26f1cf9",
+      "3740a1ed-3e96-4d4a-b4eb-54add5743dc4",
+      "26869962-77c1-40ab-ae0a-9db931a6bb84"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "6131613d-b17f-496c-9ee7-3859462b44ea"
+    ]
+  },
+  {
+    "id": "ar_famille_07",
+    "domain": "droit_famille",
+    "difficulty": "hard",
+    "intentType": "comparative",
+    "question": "ما الفرق بين الطلاق بالتراضي والطلاق للضرر في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "التراضي: اتفاق الطرفين",
+        "الضرر: إثبات الضرر",
+        "إجراءات مختلفة"
+      ],
+      "mandatoryCitations": [
+        "مجلة الأحوال الشخصية",
+        "الفصل 31"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 29",
+      "الفصل 31"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "b77cb158-c6ea-409b-adec-9aa497ec0751",
+      "f9853c8e-22f7-45ed-bcd1-cd4462e814ee",
+      "00b70828-6557-440e-858e-a361d26f1cf9",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "6fcc099e-df15-46c6-8879-1b2ccdfa88a0"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "ar_famille_08",
+    "domain": "droit_famille",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "ما هي حقوق المرأة في الميراث حسب القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الإرث حسب الأحكام الشرعية",
+        "الثلث",
+        "النصف",
+        "الربع"
+      ],
+      "mandatoryCitations": [
+        "مجلة الأحوال الشخصية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "0106197d-5f1a-48ab-af73-0a6ef5912710",
+      "833802bc-df52-4ed3-8f44-04347926b600",
+      "c17017e7-2106-496d-9f5d-b0634f989c5f",
+      "cf6b6701-0fe6-465d-9fab-61f6b398f51a",
+      "c147bdc1-fb47-4fd8-8412-0027c504c760"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "7dca6f4b-b772-41f1-b210-788fa322136a",
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7"
+    ]
+  },
+  {
+    "id": "ar_famille_09",
+    "domain": "droit_famille",
+    "difficulty": "hard",
+    "intentType": "interpretive",
+    "question": "كيف يتعامل القضاء التونسي مع مسألة نقل الحضانة من الأم إلى الأب؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "مصلحة الطفل الفضلى",
+        "أسباب جدية",
+        "السلطة التقديرية للقاضي"
+      ],
+      "mandatoryCitations": [
+        "مجلة الأحوال الشخصية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "73644210-9233-41dc-b728-7edbd80762ef",
+      "c9a324f8-83af-4820-a114-156725aebe13",
+      "72d10de9-df37-4ba8-963e-bb685420ef15",
+      "94bae7eb-53d5-4de7-af96-20b1ced6467a",
+      "9b30f821-69d1-4343-a2cf-4b72c70b2650"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
+  },
+  {
+    "id": "fr_famille_01",
+    "domain": "droit_famille",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "Quels sont les empêchements au mariage en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "parenté",
+        "alliance",
+        "mariage existant",
+        "idda"
+      ],
+      "mandatoryCitations": [
+        "CSP"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "d9646b71-498d-43f7-8be7-debfb25559f0",
+      "85af2bce-8d5c-4b3b-8a48-4687011c7dcd",
+      "a259ecf4-95c1-4106-8d6a-80a8d24ba6fd",
+      "aa1bc997-2e7e-4210-a087-a40b58fc1d8b",
+      "4f4262f3-deaf-459e-b839-5fdd8d38bdc5"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
+  },
+  {
+    "id": "fr_famille_02",
+    "domain": "droit_famille",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les obligations alimentaires entre époux en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "obligation du mari",
+        "proportionnalité",
+        "subsistance pendant mariage"
+      ],
+      "mandatoryCitations": [
+        "CSP",
+        "Article 23"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4a7f3f47-514f-454f-bc4e-2c70125d9f90",
+      "5b0db2be-8d3f-4964-bfc2-affaac9aba1a",
+      "69a087b2-63b0-49fb-8d7e-489790dbf1bf",
+      "0ed3558b-ee34-4eac-a472-e8633e64513d",
+      "c17017e7-2106-496d-9f5d-b0634f989c5f"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
+  },
+  {
+    "id": "fr_famille_03",
+    "domain": "droit_famille",
+    "difficulty": "medium",
+    "intentType": "procedural",
+    "question": "Comment se déroule la tentative de conciliation en matière de divorce en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "obligatoire",
+        "juge de la famille",
+        "trois séances maximum",
+        "délai"
+      ],
+      "mandatoryCitations": [
+        "CSP"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "00b70828-6557-440e-858e-a361d26f1cf9",
+      "f9853c8e-22f7-45ed-bcd1-cd4462e814ee",
+      "9ad486b5-212e-448e-93de-e87dc88c8ece",
+      "9678659b-7bbe-441d-9770-158b46b1741b",
+      "6fcc099e-df15-46c6-8879-1b2ccdfa88a0"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56"
+    ]
+  },
+  {
+    "id": "fr_famille_04",
+    "domain": "droit_famille",
+    "difficulty": "expert",
+    "intentType": "interpretive",
+    "question": "Comment la jurisprudence tunisienne traite-t-elle le droit de visite du parent non gardien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "intérêt supérieur de l'enfant",
+        "droit fondamental",
+        "aménagement judiciaire"
+      ],
+      "mandatoryCitations": [
+        "CSP",
+        "Convention droits enfant"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "21f1f44d-d38a-4fac-953d-4ba99bd56adb",
+      "73644210-9233-41dc-b728-7edbd80762ef",
+      "f9853c8e-22f7-45ed-bcd1-cd4462e814ee",
+      "8ea5f5ea-a422-4ccb-8605-50f47b1c60ea",
+      "3293ac59-7eb3-4312-937b-dbd89444fb9c"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "3177bb95-1068-43ee-82ae-54bc0e2aa741"
+    ]
+  },
+  {
+    "id": "ar_travail_01",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي مدة فترة التجربة في عقد الشغل في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "6 أشهر",
+        "قابلة للتجديد مرة واحدة"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشغل"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "c63dc198-b748-4654-806a-fd84043564c0",
+      "59a07f23-dc77-4b7b-88e4-23717eb84e23",
+      "36352af6-2b2a-4ad4-951e-693149c0e7dc",
+      "5cab4360-7b8a-422c-a720-04a1df5d464d",
+      "81f09b12-f2c3-473a-bb6e-bfa77a4701fd"
+    ],
+    "goldDocumentIds": [
+      "897cbfdc-edbf-4e17-9959-125a40a0c0be",
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
+  },
+  {
+    "id": "ar_travail_02",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي مدة العمل القانونية الأسبوعية في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "48 ساعة",
+        "القطاع غير الفلاحي"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشغل"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "45e866e5-c489-4a3f-a253-4f87d92e511c",
+      "5cab4360-7b8a-422c-a720-04a1df5d464d",
+      "d42983e7-90ad-46f1-9471-42129b8d0505",
+      "b6a96ede-a433-4c95-96f4-edf153407184",
+      "fa24b7a5-e19a-42bd-9850-78ce62577024"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
+  },
+  {
+    "id": "ar_travail_03",
+    "domain": "droit_travail",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "كيف يتم احتساب التعويض عن الطرد التعسفي في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الأجر الشهري",
+        "الأقدمية",
+        "شهر عن كل سنة"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشغل"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 23"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "546bd247-1328-4476-9659-861f6b7f04b4",
+      "14a6dda2-5204-4028-9c53-eab632ba73ae",
+      "acab88c4-1064-43a5-9a79-5f7217eb2744",
+      "1fad2233-dc5e-4ff2-80bd-9efd3030f303",
+      "2a8c4e9b-6a72-4384-8b27-31aa13dbf96c"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
+  },
+  {
+    "id": "ar_travail_04",
+    "domain": "droit_travail",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي حقوق المرأة العاملة الحامل في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "عطلة أمومة",
+        "30 يوما",
+        "حماية من الطرد"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشغل"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "da346634-2fda-42f1-a5ca-f5b954e97590",
+      "2a113d95-d39a-40b0-b7bd-b399c4259291",
+      "4dddee5c-1c08-412e-84df-0fac257315bd",
+      "cadeab8a-0ffa-4baa-b945-6a2bd33a6a42",
+      "0cd19d12-5b8a-4182-b2df-7a67ed58f42f"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
+  },
+  {
+    "id": "ar_travail_05",
+    "domain": "droit_travail",
+    "difficulty": "medium",
+    "intentType": "procedural",
+    "question": "ما هي إجراءات الطرد التأديبي للعامل في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الإنذار",
+        "مجلس التأديب",
+        "حق الدفاع",
+        "القرار المعلل"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشغل"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "1fad2233-dc5e-4ff2-80bd-9efd3030f303",
+      "252f0c0f-3ac3-4946-a00b-d7974295249b",
+      "2a8c4e9b-6a72-4384-8b27-31aa13dbf96c",
+      "c4730c3d-d2e9-4ccf-b468-767a7c3cd7a4",
+      "546bd247-1328-4476-9659-861f6b7f04b4"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
+  },
+  {
+    "id": "ar_travail_06",
+    "domain": "droit_travail",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "ما هي حقوق العامل في حالة الطرد لأسباب اقتصادية في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "إعلام مسبق",
+        "تعويض",
+        "أولوية إعادة التشغيل",
+        "تفتيش الشغل"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشغل"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "894db95c-0b03-4365-bd82-6ceb009fafe2",
+      "de1ded55-82ca-42dd-afec-0b442fbd8fd5",
+      "cbe0c344-2599-414c-b306-409cb8f41498",
+      "14a6dda2-5204-4028-9c53-eab632ba73ae",
+      "c4730c3d-d2e9-4ccf-b468-767a7c3cd7a4"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
+  },
+  {
+    "id": "ar_travail_07",
+    "domain": "droit_travail",
+    "difficulty": "hard",
+    "intentType": "comparative",
+    "question": "ما الفرق بين عقد الشغل محدد المدة وعقد الشغل غير محدد المدة في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "المدة",
+        "التجديد",
+        "إنهاء العقد",
+        "التعويض"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشغل"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "389d5978-be08-40b0-bdcb-9f9fcb05f291",
+      "36352af6-2b2a-4ad4-951e-693149c0e7dc",
+      "5cab4360-7b8a-422c-a720-04a1df5d464d",
+      "4e2ed253-a232-4f58-beda-9329a5967adc",
+      "e8b1fe78-ed2c-4408-9a17-4a71a75934f9"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352",
+      "897cbfdc-edbf-4e17-9959-125a40a0c0be"
+    ]
+  },
+  {
+    "id": "fr_travail_01",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "Quels sont les droits du travailleur en matière de congé annuel en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "un jour par mois",
+        "18 jours minimum",
+        "congé payé"
+      ],
+      "mandatoryCitations": [
+        "Code du travail"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "fb91774a-d20b-442f-811f-998000b0882e",
+      "8d2dd345-7f7e-4f38-883e-8e5323e8096c",
+      "18d99e14-f86a-49ae-bdfd-8407a53f409c",
+      "98c278a7-49be-4035-ad03-8cc05d96c42d",
+      "9e3b3f30-1c73-4ebb-8cc3-c2dd52a53d0b"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
+  },
+  {
+    "id": "fr_travail_02",
+    "domain": "droit_travail",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les conditions de validité d'une clause de non-concurrence en droit du travail tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "limitée dans le temps",
+        "limitée dans l'espace",
+        "contrepartie",
+        "intérêt légitime"
+      ],
+      "mandatoryCitations": [
+        "Code du travail",
+        "jurisprudence"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "5cab4360-7b8a-422c-a720-04a1df5d464d",
+      "9fbcb593-b5e7-4bf9-a2fa-23fc0c50d838",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "2528ed14-c188-473c-8dec-a23b097365d4",
+      "b302ff11-5122-4166-899e-e13231c681f2"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "abc08b11-4eb6-4e26-8af9-0b73297da3a7"
+    ]
+  },
+  {
+    "id": "fr_travail_03",
+    "domain": "droit_travail",
+    "difficulty": "medium",
+    "intentType": "procedural",
+    "question": "Quelle est la procédure de règlement des conflits collectifs du travail en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "conciliation",
+        "médiation",
+        "arbitrage",
+        "inspection du travail"
+      ],
+      "mandatoryCitations": [
+        "Code du travail"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "8fc05b48-8c4a-4853-9f72-5f925026a324",
+      "a976cb9c-7b6c-4c70-bc49-9619566e232c",
+      "4c3f3c83-c000-4fd0-b7ab-12f565516500",
+      "cd4e3222-c010-4659-8dbd-92a40f45ee19",
+      "48c13dde-40fb-4ad1-94f2-13d71ec99021"
+    ],
+    "goldDocumentIds": [
+      "abc08b11-4eb6-4e26-8af9-0b73297da3a7",
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
+  },
+  {
+    "id": "fr_travail_04",
+    "domain": "droit_travail",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "Quelles sont les règles relatives aux accidents du travail et maladies professionnelles en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "déclaration obligatoire",
+        "indemnisation",
+        "présomption d'imputabilité",
+        "CNSS"
+      ],
+      "mandatoryCitations": [
+        "Loi 94-28"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "c3f5c6d5-62f2-41bd-9455-4d69aa05a5db",
+      "b302ff11-5122-4166-899e-e13231c681f2",
+      "0041743d-ee96-4a2e-ab78-edac571441ff",
+      "3d09213e-4df5-4886-95ac-022007665f0f",
+      "1327c368-373f-4e8f-8716-86529cf67b63"
+    ],
+    "goldDocumentIds": [
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352",
+      "015de809-0609-4127-a722-19be9ee8dbc7",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "fr_travail_05",
+    "domain": "droit_travail",
+    "difficulty": "expert",
+    "intentType": "interpretive",
+    "question": "Comment la jurisprudence tunisienne qualifie-t-elle la faute grave justifiant le licenciement immédiat ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "violation grave",
+        "impossible maintenir relation",
+        "appréciation souveraine"
+      ],
+      "mandatoryCitations": [
+        "Code du travail",
+        "Cour de cassation"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "d5d523e5-1245-4109-8ccd-3872cc27081f",
+      "595c870c-1913-4f4b-b798-0a15a6be063d",
+      "546bd247-1328-4476-9659-861f6b7f04b4",
+      "be54198c-fd79-4be3-93f9-c7c4df7a309c",
+      "3f0f0700-84e9-43af-b017-db09e0580cbb"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352",
+      "d1fb363e-c6fe-4523-b972-c45e5be3688d",
+      "7dca6f4b-b772-41f1-b210-788fa322136a",
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
+    ]
+  },
+  {
+    "id": "fr_travail_06",
+    "domain": "droit_travail",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "Quel est le régime juridique du travail intérimaire en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "entreprise de travail temporaire",
+        "contrat de mise à disposition",
+        "durée limitée"
+      ],
+      "mandatoryCitations": [
+        "Code du travail"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "5cab4360-7b8a-422c-a720-04a1df5d464d",
+      "3d09213e-4df5-4886-95ac-022007665f0f",
+      "b302ff11-5122-4166-899e-e13231c681f2",
+      "36352af6-2b2a-4ad4-951e-693149c0e7dc",
+      "acbab1c8-c693-4f52-8409-fc460c18be7c"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352",
+      "897cbfdc-edbf-4e17-9959-125a40a0c0be"
+    ]
+  },
+  {
+    "id": "ar_comm_01",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي شروط صحة الشيك في القانون التجاري التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "التاريخ",
+        "المبلغ",
+        "اسم المسحوب عليه",
+        "التوقيع"
+      ],
+      "mandatoryCitations": [
+        "المجلة التجارية"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 410"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "6513d5e5-eb43-45e7-8f2d-59af24c5b9d3",
+      "cf40799b-b11f-400a-844e-4d8f79bf15f8",
+      "73174935-bc75-4f76-ab27-8f4e688d1e10",
+      "810e0cc3-d18e-4422-9f0d-190566d04966",
+      "2b13df4b-c8a0-4bf4-9c27-ff32a771a0a2"
+    ],
+    "goldDocumentIds": [
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "aac5ab3a-6735-43a5-8a84-0d9de60bcfbd"
+    ]
+  },
+  {
+    "id": "ar_comm_02",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي أنواع الشركات التجارية في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "شركة ذات مسؤولية محدودة",
+        "شركة خفية الاسم",
+        "شركة التضامن"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشركات التجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "9f5b6182-23c4-4791-97f7-491c6c100971",
+      "db94fec4-938f-4caf-9c81-eb7bb5dac210",
+      "42750173-2ede-4f06-ba7d-f1579100629c",
+      "e9428fce-10c9-486c-8e54-53ca0dd96266",
+      "a40a713a-e33e-400b-ae6f-0d15e8c2b7e0"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30",
+      "015de809-0609-4127-a722-19be9ee8dbc7"
+    ]
+  },
+  {
+    "id": "ar_comm_03",
+    "domain": "droit_commercial",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هو الحد الأدنى لرأس المال في الشركة ذات المسؤولية المحدودة في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "ألف دينار",
+        "رأس مال"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشركات التجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "7a980709-67b2-4f07-aa10-9ce7234ef28a",
+      "9b285869-4c69-489c-aca6-94d120bac48f",
+      "4a7c0317-172f-4a6b-a70c-6494ea3dd70a",
+      "765e35a4-903b-43d6-95ad-29073e00e0cd",
+      "ce4fbf38-2b42-40bd-8d8b-5c4ba147db1a"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30",
+      "9eb741d8-0d26-4ffa-a9a3-410dbdf22f74"
+    ]
+  },
+  {
+    "id": "ar_comm_04",
+    "domain": "droit_commercial",
+    "difficulty": "medium",
+    "intentType": "procedural",
+    "question": "ما هي إجراءات تسجيل شركة تجارية في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "السجل التجاري",
+        "الإشهار",
+        "الترقيم الجبائي",
+        "النشر"
+      ],
+      "mandatoryCitations": [
+        "المجلة التجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "a79abe95-5b62-41e8-9fe9-e3465779973e",
+      "b19cec24-3a8f-49a2-a8fd-821e81513f65",
+      "a40a713a-e33e-400b-ae6f-0d15e8c2b7e0",
+      "db94fec4-938f-4caf-9c81-eb7bb5dac210",
+      "122b29b0-b44a-4523-9d48-61ef1960869b"
+    ],
+    "goldDocumentIds": [
+      "81975fe9-9296-40fd-8bfa-334848b76f9e",
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30"
+    ]
+  },
+  {
+    "id": "ar_comm_05",
+    "domain": "droit_commercial",
+    "difficulty": "hard",
+    "intentType": "comparative",
+    "question": "ما الفرق بين التفليس والتسوية القضائية في القانون التجاري التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "التفليس: إعدام",
+        "التسوية: إنقاذ",
+        "شروط مختلفة"
+      ],
+      "mandatoryCitations": [
+        "المجلة التجارية",
+        "قانون الإنقاذ"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "0e8a31a3-43c7-4c76-9e7b-3ce166c8d28e",
+      "47aa39d1-4fea-4218-aa59-7f3b96bbb908",
+      "5ed2549c-f74a-44a1-a189-c12b5e1ecd4d",
+      "3f88a547-5da7-480a-94c0-0ac7b9d0abdd",
+      "fd28cd88-a96d-4568-ba81-4300e9131c4d"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30"
+    ]
+  },
+  {
+    "id": "ar_comm_06",
+    "domain": "droit_commercial",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "ما هي مسؤولية الشريك في شركة التضامن في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "مسؤولية تضامنية",
+        "مسؤولية غير محدودة",
+        "في ذمته المالية الشخصية"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشركات التجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "fcce391d-f9fe-432f-a56b-7babb366c99a",
+      "db156390-c2af-482e-8858-617fd4727369",
+      "36e2cb9b-2146-4eed-8642-e0d7ca92ec3a",
+      "8a3e9ad7-ed0e-439e-b670-263c9be08a2c",
+      "59e8bb74-f11f-464a-89cd-845ddd4a856c"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30",
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
+  },
+  {
+    "id": "ar_comm_07",
     "domain": "droit_commercial",
     "difficulty": "expert",
+    "intentType": "interpretive",
     "question": "ما هي المسؤولية الجزائية للمسير في الشركات التجارية التونسية؟",
     "expectedAnswer": {
       "keyPoints": [
@@ -860,7 +2868,6 @@
         "المجلة التجارية"
       ]
     },
-    "intentType": "interpretive",
     "evaluationCriteria": {
       "completeness": 80,
       "accuracy": 85,
@@ -870,8 +2877,3370 @@
     "expertValidation": {
       "validatorId": "auto_generated",
       "credentials": "Auto-generated gold eval case",
-      "validatedAt": "2026-02-18T21:22:09.727Z",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
       "consensus": 0
-    }
+    },
+    "goldChunkIds": [
+      "e87a3a81-7480-46c9-b70c-5d3f49612219",
+      "63a263af-077a-44da-a7d8-225a28f7b8fa",
+      "940decd5-935e-47eb-bc0f-030f1d7b241d",
+      "3da76ce1-97cb-4b83-9cf2-05da027cf7f1",
+      "db94fec4-938f-4caf-9c81-eb7bb5dac210"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30"
+    ]
+  },
+  {
+    "id": "fr_comm_01",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "Quels sont les actes de commerce par nature en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "achat pour revendre",
+        "opérations de banque",
+        "opérations de change",
+        "courtage"
+      ],
+      "mandatoryCitations": [
+        "Code de commerce"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "0d803f6b-48f5-4f96-889b-0f0a09284bd6",
+      "73558c85-1f78-4bd5-b00e-986e546a3434",
+      "0d28bc3e-ec8b-4904-a51c-971c3e9c1d22",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "e9428fce-10c9-486c-8e54-53ca0dd96266"
+    ],
+    "goldDocumentIds": [
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "015de809-0609-4127-a722-19be9ee8dbc7"
+    ]
+  },
+  {
+    "id": "fr_comm_02",
+    "domain": "droit_commercial",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les obligations du commerçant en matière de tenue de livres comptables en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "livre journal",
+        "livre d'inventaire",
+        "conservation 10 ans"
+      ],
+      "mandatoryCitations": [
+        "Code de commerce"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "eb32ce2a-6b30-4c3f-a17c-fae7bc27e40a",
+      "1d88c2a9-cffe-423b-a9ea-117f5498141b",
+      "f34746b9-6348-4904-b218-b286692df405",
+      "1e8c1205-dd4a-4e59-a32b-a9b997c4d7f6",
+      "3c1532a2-6e1b-4258-9f4a-b00405306c0b"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "015de809-0609-4127-a722-19be9ee8dbc7"
+    ]
+  },
+  {
+    "id": "fr_comm_03",
+    "domain": "droit_commercial",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les conditions de validité d'une lettre de change en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "dénomination",
+        "mandat de payer",
+        "nom du tiré",
+        "échéance",
+        "lieu de paiement"
+      ],
+      "mandatoryCitations": [
+        "Code de commerce"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "db3ad1a5-f682-4f7e-9392-b38e5f6fc6a3",
+      "6513d5e5-eb43-45e7-8f2d-59af24c5b9d3",
+      "eb2d406b-4b28-4a4c-9426-dd7c955f9ea4",
+      "cf40799b-b11f-400a-844e-4d8f79bf15f8",
+      "c7c26848-8da7-4df8-af80-20926a93a5a6"
+    ],
+    "goldDocumentIds": [
+      "70042c47-94bc-40dc-8969-6adb6bc250e5",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8"
+    ]
+  },
+  {
+    "id": "fr_comm_04",
+    "domain": "droit_commercial",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "Quel est le régime juridique du fonds de commerce en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "éléments corporels",
+        "éléments incorporels",
+        "clientèle",
+        "droit au bail"
+      ],
+      "mandatoryCitations": [
+        "Code de commerce"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "db94fec4-938f-4caf-9c81-eb7bb5dac210",
+      "23b7c09e-3d27-4fb0-8be0-f887107f6a00",
+      "3b8335e4-0da1-4626-b4a1-98c522f648d3",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "86c6c208-052f-4e5c-92c9-f99cdeaa2f88"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30",
+      "9eb741d8-0d26-4ffa-a9a3-410dbdf22f74",
+      "90318fed-11b9-4d23-9fb7-6366cf63b988",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "fr_comm_05",
+    "domain": "droit_commercial",
+    "difficulty": "hard",
+    "intentType": "procedural",
+    "question": "Comment se déroule la procédure de redressement judiciaire en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "cessation de paiements",
+        "plan de redressement",
+        "période d'observation",
+        "créanciers"
+      ],
+      "mandatoryCitations": [
+        "Loi 2016-36"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "005fedf7-0432-435e-b52d-4d8c021c80dc",
+      "47aa39d1-4fea-4218-aa59-7f3b96bbb908",
+      "3f88a547-5da7-480a-94c0-0ac7b9d0abdd",
+      "f52261f4-4558-4f71-aa8c-8e1f6ec230c7",
+      "e244fb32-7d54-450c-8002-db2360c710b0"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30",
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
+    ]
+  },
+  {
+    "id": "fr_comm_06",
+    "domain": "droit_commercial",
+    "difficulty": "expert",
+    "intentType": "interpretive",
+    "question": "Comment la jurisprudence tunisienne traite-t-elle la responsabilité des dirigeants sociaux pour insuffisance d'actif ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "faute de gestion",
+        "action en comblement de passif",
+        "responsabilité personnelle"
+      ],
+      "mandatoryCitations": [
+        "Loi sur les sociétés commerciales"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "07acd156-8cbb-4681-853a-c5c2434f554a",
+      "5c08bd93-3293-4c2b-933f-a2f23c2f921d",
+      "0e8a31a3-43c7-4c76-9e7b-3ce166c8d28e",
+      "b5d89f6d-292b-48d5-a161-90ec0a34dfd3",
+      "3f88a547-5da7-480a-94c0-0ac7b9d0abdd"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30"
+    ]
+  },
+  {
+    "id": "ar_immo_01",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هو الرسم العقاري في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "وثيقة رسمية",
+        "إدارة الملكية العقارية",
+        "إثبات الملكية"
+      ],
+      "mandatoryCitations": [
+        "مجلة الحقوق العينية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4ab7e058-f0f9-493c-b9f1-d5481d9327c7",
+      "d75baa59-d33c-4c68-9458-8dec99fa6ed4",
+      "f4564b6b-718a-4fba-af49-d54ef993fdbc",
+      "ef7e9039-6e83-49ce-9899-f01e05ab5c7a",
+      "958011be-802d-45f9-a059-ac23c65cbd58"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "015de809-0609-4127-a722-19be9ee8dbc7"
+    ]
+  },
+  {
+    "id": "ar_immo_02",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي أنواع العقارات في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "عقار مسجل",
+        "عقار غير مسجل",
+        "أراضي دولية"
+      ],
+      "mandatoryCitations": [
+        "مجلة الحقوق العينية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "6710ceb8-a746-4a14-a62d-61e18a698fcb",
+      "32d79541-f0ab-49e5-8dff-459d2f134fdb",
+      "7d935863-64ee-425a-9c5c-6284d34bab04",
+      "95de5ebd-0817-4a52-be8d-e094628760da",
+      "3417b7e8-be7b-4032-9f8e-ba46d7fbc6b3"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "42b0fa56-12ac-4576-8885-ae091b7857e8"
+    ]
+  },
+  {
+    "id": "ar_immo_03",
+    "domain": "droit_immobilier",
+    "difficulty": "medium",
+    "intentType": "procedural",
+    "question": "ما هي إجراءات تسجيل عقار في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "إدارة الملكية العقارية",
+        "رسم عقاري",
+        "عقد بيع"
+      ],
+      "mandatoryCitations": [
+        "مجلة الحقوق العينية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "a79abe95-5b62-41e8-9fe9-e3465779973e",
+      "9355c552-037b-4e47-b61d-d4824ab6229f",
+      "b1316f9d-4fe1-487b-8257-83aea9133fcf",
+      "3294b5d3-f18e-4472-992b-7f68d5ba7af8",
+      "f4564b6b-718a-4fba-af49-d54ef993fdbc"
+    ],
+    "goldDocumentIds": [
+      "81975fe9-9296-40fd-8bfa-334848b76f9e",
+      "52d0fe51-b24f-4199-9ada-23ab34028927"
+    ]
+  },
+  {
+    "id": "ar_immo_04",
+    "domain": "droit_immobilier",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي شروط بيع العقار المسجل في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "عقد رسمي",
+        "ترسيم بالسجل العقاري",
+        "شهادة ملكية"
+      ],
+      "mandatoryCitations": [
+        "مجلة الحقوق العينية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "9355c552-037b-4e47-b61d-d4824ab6229f",
+      "4585cdf2-949d-4a0d-ab20-a92dcb763f07",
+      "22016c92-6746-4144-a29d-a28376f914bf",
+      "02f91ed0-899a-4918-986f-7ce62509119b",
+      "7bc6c1ee-1d97-4713-b75f-df76ed286bed"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "be35f782-98a2-4f4c-9acc-d093973491c2",
+      "81975fe9-9296-40fd-8bfa-334848b76f9e",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8"
+    ]
+  },
+  {
+    "id": "ar_immo_05",
+    "domain": "droit_immobilier",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "ما هي حقوق المستأجر عند انتهاء عقد الكراء في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "حق البقاء",
+        "التعويض",
+        "إنذار"
+      ],
+      "mandatoryCitations": [
+        "قانون الكراءات"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "c525460e-2c24-470b-aa5c-99f56e055a08",
+      "be4baf3c-777a-4503-877d-76a669949184",
+      "34ca6a76-d695-41e4-88d9-cd0712ff01c3",
+      "22c0f4e1-256f-4df2-8cc3-1d219b075ada",
+      "c262854c-4810-4acd-b4c0-7a47e3f38ce0"
+    ],
+    "goldDocumentIds": [
+      "be35f782-98a2-4f4c-9acc-d093973491c2",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "68fc22cb-0c26-4a91-b7cf-42de68c57dd7",
+      "abc08b11-4eb6-4e26-8af9-0b73297da3a7"
+    ]
+  },
+  {
+    "id": "ar_immo_06",
+    "domain": "droit_immobilier",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "ما هي قواعد الشفعة في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "حق الأولوية",
+        "الشريك على الشياع",
+        "أجل سنة"
+      ],
+      "mandatoryCitations": [
+        "مجلة الحقوق العينية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "b52d9407-4968-46d5-82bb-0417274ecb83",
+      "9bdd358f-93a9-44e2-bdeb-e30626499c2d",
+      "d759cd02-f5a1-488d-b828-87aedac9d205",
+      "0a074164-40e9-4d98-a3fe-2e144d32e138",
+      "852f2465-add5-4ee3-bee8-6cb33f33403a"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927"
+    ]
+  },
+  {
+    "id": "fr_immo_01",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "Qu'est-ce que la copropriété en droit tunisien et comment est-elle organisée ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "parties communes",
+        "parties privatives",
+        "syndic",
+        "règlement de copropriété"
+      ],
+      "mandatoryCitations": [
+        "Loi copropriété"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "8d2ca05f-dde2-420f-94b6-9949a27f7f5b",
+      "741d8d7b-9da1-49be-be8b-84cb9124b07d",
+      "40348eec-5269-450a-b067-932ebfb5042f",
+      "265f92a9-e2bf-4150-8a41-f6ac802b2dea",
+      "9327f22a-9c2e-4e26-b931-3868922e1f42"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "be35f782-98a2-4f4c-9acc-d093973491c2"
+    ]
+  },
+  {
+    "id": "fr_immo_02",
+    "domain": "droit_immobilier",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les servitudes légales en droit immobilier tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "passage",
+        "vue",
+        "écoulement des eaux",
+        "mitoyenneté"
+      ],
+      "mandatoryCitations": [
+        "COC",
+        "Code des droits réels"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4585cdf2-949d-4a0d-ab20-a92dcb763f07",
+      "3417b7e8-be7b-4032-9f8e-ba46d7fbc6b3",
+      "f4564b6b-718a-4fba-af49-d54ef993fdbc",
+      "005fedf7-0432-435e-b52d-4d8c021c80dc",
+      "d40a21d0-885a-4a22-934b-9f85b818ead3"
+    ],
+    "goldDocumentIds": [
+      "be35f782-98a2-4f4c-9acc-d093973491c2",
+      "42b0fa56-12ac-4576-8885-ae091b7857e8",
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "fr_immo_03",
+    "domain": "droit_immobilier",
+    "difficulty": "medium",
+    "intentType": "procedural",
+    "question": "Comment se déroule la procédure d'immatriculation foncière en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "réquisition",
+        "bornage",
+        "publication",
+        "jugement",
+        "inscription"
+      ],
+      "mandatoryCitations": [
+        "Code des droits réels"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "3294b5d3-f18e-4472-992b-7f68d5ba7af8",
+      "9355c552-037b-4e47-b61d-d4824ab6229f",
+      "b1316f9d-4fe1-487b-8257-83aea9133fcf",
+      "f4564b6b-718a-4fba-af49-d54ef993fdbc",
+      "5f957ce2-7f65-4441-97a8-9ff6e3f14d59"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "be35f782-98a2-4f4c-9acc-d093973491c2"
+    ]
+  },
+  {
+    "id": "fr_immo_04",
+    "domain": "droit_immobilier",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "Quel est le régime juridique de l'hypothèque en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "sûreté réelle",
+        "inscription",
+        "droit de préférence",
+        "droit de suite"
+      ],
+      "mandatoryCitations": [
+        "Code des droits réels"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4ab7e058-f0f9-493c-b9f1-d5481d9327c7",
+      "d0982675-9cdb-4979-9cee-c9a2bb923a4c",
+      "7046d70c-c533-4a7a-b6cb-08f59cc8143a",
+      "145e64f5-5db6-4034-9f9c-7b6b2362a96f",
+      "910b4a8d-ddca-43a6-a340-7a21cc8b66ac"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8"
+    ]
+  },
+  {
+    "id": "fr_immo_05",
+    "domain": "droit_immobilier",
+    "difficulty": "expert",
+    "intentType": "interpretive",
+    "question": "Comment la jurisprudence traite-t-elle les conflits entre propriétaires d'immeubles non immatriculés en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "possession",
+        "preuve testimoniale",
+        "actes notariés",
+        "prescription acquisitive"
+      ],
+      "mandatoryCitations": [
+        "COC",
+        "Code des droits réels"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "6fcc099e-df15-46c6-8879-1b2ccdfa88a0",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "ef7e9039-6e83-49ce-9899-f01e05ab5c7a",
+      "d8b4ca47-73bb-4bba-8de4-ec3ecb5910c8",
+      "a45a343c-7be1-4009-baf0-494f5e11b4ba"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56"
+    ]
+  },
+  {
+    "id": "fr_immo_06",
+    "domain": "droit_immobilier",
+    "difficulty": "medium",
+    "intentType": "comparative",
+    "question": "Quelle est la différence entre le bail d'habitation et le bail commercial en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "durée",
+        "renouvellement",
+        "loyer",
+        "indemnité d'éviction"
+      ],
+      "mandatoryCitations": [
+        "Loi baux",
+        "Code de commerce"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "d8b4ca47-73bb-4bba-8de4-ec3ecb5910c8",
+      "be4baf3c-777a-4503-877d-76a669949184",
+      "a45a343c-7be1-4009-baf0-494f5e11b4ba",
+      "34ca6a76-d695-41e4-88d9-cd0712ff01c3",
+      "61b9edc0-2da8-458e-8b35-c38274d1e2c1"
+    ],
+    "goldDocumentIds": [
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "be35f782-98a2-4f4c-9acc-d093973491c2"
+    ]
+  },
+  {
+    "id": "ar_proc_01",
+    "domain": "procedure",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي اختصاصات محكمة الناحية في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "القضايا المدنية الصغيرة",
+        "الجنح والمخالفات البسيطة"
+      ],
+      "mandatoryCitations": [
+        "مجلة المرافعات المدنية والتجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "d43efc15-53ce-4f14-9a20-ad690df3d9de",
+      "67d7c2f2-e81c-46b1-8c0b-91c4a99eeb0a",
+      "a7adbb1b-3052-4634-9cf3-5f1a46b43a67",
+      "4a0ba96c-2363-4b07-ad1d-0ad28d3d76ff",
+      "005fedf7-0432-435e-b52d-4d8c021c80dc"
+    ],
+    "goldDocumentIds": [
+      "47dc7fd1-2c26-4847-901c-01abe05540ed",
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "7dca6f4b-b772-41f1-b210-788fa322136a",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "ar_proc_02",
+    "domain": "procedure",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي درجات التقاضي في النظام القضائي التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "ابتدائي",
+        "استئنافي",
+        "تعقيبي"
+      ],
+      "mandatoryCitations": [
+        "مجلة المرافعات المدنية والتجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "95f76a19-33a6-45fd-914c-96aaeb2c4518",
+      "1a62a53c-a6ed-4ab5-812e-d5b7eec095f1",
+      "4d51f221-04b0-4525-ac38-0d67ce81bd58",
+      "005fedf7-0432-435e-b52d-4d8c021c80dc",
+      "a45a343c-7be1-4009-baf0-494f5e11b4ba"
+    ],
+    "goldDocumentIds": [
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "ar_proc_03",
+    "domain": "procedure",
+    "difficulty": "medium",
+    "intentType": "procedural",
+    "question": "ما هي إجراءات رفع دعوى أمام المحكمة الابتدائية في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "عريضة",
+        "محامي",
+        "كتابة ضبط",
+        "استدعاء"
+      ],
+      "mandatoryCitations": [
+        "مجلة المرافعات المدنية والتجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "92e8a8b4-60ee-4284-87b6-959e3d0ba117",
+      "6c80ea03-7b1f-48fd-9dd3-4af2526f7118",
+      "1aa49072-a0d2-4b82-8c20-f7da25e66925",
+      "e244fb32-7d54-450c-8002-db2360c710b0",
+      "d5a89ee1-8605-4dcd-bd07-be4f7b412019"
+    ],
+    "goldDocumentIds": [
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "ar_proc_04",
+    "domain": "procedure",
+    "difficulty": "medium",
+    "intentType": "procedural",
+    "question": "ما هي آجال الاستئناف في المادة المدنية في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "20 يوما",
+        "من تاريخ الإعلام بالحكم"
+      ],
+      "mandatoryCitations": [
+        "مجلة المرافعات المدنية والتجارية"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 141"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "31f0c692-2219-4c13-bf29-223a3b295413",
+      "9e31fb74-58fb-4193-9763-1dee8c94abb5",
+      "7dc24207-1fe4-4289-af95-cf7c32378034",
+      "8347a722-cd76-42c5-b66c-5681441844fe",
+      "459ea76f-90e9-40cd-8ca0-ebb82faff776"
+    ],
+    "goldDocumentIds": [
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "47dc7fd1-2c26-4847-901c-01abe05540ed"
+    ]
+  },
+  {
+    "id": "ar_proc_05",
+    "domain": "procedure",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي شروط قبول الدعوى في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الصفة",
+        "المصلحة",
+        "الأهلية"
+      ],
+      "mandatoryCitations": [
+        "مجلة المرافعات المدنية والتجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "6fcc099e-df15-46c6-8879-1b2ccdfa88a0",
+      "e244fb32-7d54-450c-8002-db2360c710b0",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "a45a343c-7be1-4009-baf0-494f5e11b4ba",
+      "9ba4121a-da34-4dec-a6cd-7589dee4b497"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "ar_proc_06",
+    "domain": "procedure",
+    "difficulty": "hard",
+    "intentType": "procedural",
+    "question": "ما هي إجراءات التنفيذ الجبري للأحكام المدنية في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "صيغة تنفيذية",
+        "عدل منفذ",
+        "إعلام",
+        "حجز"
+      ],
+      "mandatoryCitations": [
+        "مجلة المرافعات المدنية والتجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "84f7edbb-d315-47fd-999b-7261b57c26ca",
+      "897c2bea-c0be-47e8-bc84-68523164f541",
+      "aff1348a-6e06-43bd-8f3a-f9a624d3638f",
+      "1e076291-82a3-48cb-a820-731dc449323b",
+      "6900c2a6-f237-4b53-b248-75c12cb150e6"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "aac5ab3a-6735-43a5-8a84-0d9de60bcfbd"
+    ]
+  },
+  {
+    "id": "ar_proc_07",
+    "domain": "procedure",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "ما هي حالات الطعن بالتعقيب في المادة المدنية في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "خرق القانون",
+        "تجاوز السلطة",
+        "انعدام التعليل"
+      ],
+      "mandatoryCitations": [
+        "مجلة المرافعات المدنية والتجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "ad180736-e1a9-4bae-bea3-dec98847f503",
+      "7957eadc-f196-42f5-82d4-62a9e39bbcab",
+      "094a2a3d-ed45-425e-b4cc-c71670e44373",
+      "5fa5c53f-6d6f-49de-b236-eec3c8170d4e",
+      "329af8c9-5d96-474f-8ed1-8e58c797fff6"
+    ],
+    "goldDocumentIds": [
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "52d0fe51-b24f-4199-9ada-23ab34028927"
+    ]
+  },
+  {
+    "id": "fr_proc_01",
+    "domain": "procedure",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "Quelle est la compétence du juge cantonal en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "litiges inférieurs à 7000 dinars",
+        "infractions mineures"
+      ],
+      "mandatoryCitations": [
+        "CPCC"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "d8b4ca47-73bb-4bba-8de4-ec3ecb5910c8",
+      "005fedf7-0432-435e-b52d-4d8c021c80dc",
+      "a45a343c-7be1-4009-baf0-494f5e11b4ba",
+      "e244fb32-7d54-450c-8002-db2360c710b0"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56"
+    ]
+  },
+  {
+    "id": "fr_proc_02",
+    "domain": "procedure",
+    "difficulty": "medium",
+    "intentType": "procedural",
+    "question": "Comment se déroule la procédure de référé en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "urgence",
+        "mesures provisoires",
+        "pas de préjudice au fond",
+        "exécutoire"
+      ],
+      "mandatoryCitations": [
+        "CPCC"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "6fcc099e-df15-46c6-8879-1b2ccdfa88a0",
+      "6c80ea03-7b1f-48fd-9dd3-4af2526f7118",
+      "3740a1ed-3e96-4d4a-b4eb-54add5743dc4",
+      "b6811e7a-0ef4-4066-85d4-fd5d94d286df",
+      "9ba4121a-da34-4dec-a6cd-7589dee4b497"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "6131613d-b17f-496c-9ee7-3859462b44ea"
+    ]
+  },
+  {
+    "id": "fr_proc_03",
+    "domain": "procedure",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les voies de recours ordinaires et extraordinaires en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "appel",
+        "opposition",
+        "cassation",
+        "tierce opposition",
+        "requête civile"
+      ],
+      "mandatoryCitations": [
+        "CPCC"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "3a5b39f8-78ab-44b3-8751-80845afe8c1d",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "1a62a53c-a6ed-4ab5-812e-d5b7eec095f1",
+      "95f76a19-33a6-45fd-914c-96aaeb2c4518",
+      "005fedf7-0432-435e-b52d-4d8c021c80dc"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
+    ]
+  },
+  {
+    "id": "fr_proc_04",
+    "domain": "procedure",
+    "difficulty": "hard",
+    "intentType": "procedural",
+    "question": "Comment fonctionne l'aide juridictionnelle en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "condition de ressources",
+        "commission spéciale",
+        "désignation avocat",
+        "exonération frais"
+      ],
+      "mandatoryCitations": [
+        "Loi aide juridictionnelle"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "8155d651-9c49-4838-9ae2-e557835da76d",
+      "1879eeb2-eafa-45df-a231-133cd3fa3e10",
+      "a45a343c-7be1-4009-baf0-494f5e11b4ba",
+      "3293ac59-7eb3-4312-937b-dbd89444fb9c",
+      "005fedf7-0432-435e-b52d-4d8c021c80dc"
+    ],
+    "goldDocumentIds": [
+      "7dca6f4b-b772-41f1-b210-788fa322136a",
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "fr_proc_05",
+    "domain": "procedure",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "Quelles sont les conditions de recevabilité de la tierce opposition en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "tiers au procès",
+        "préjudice",
+        "jugement leur portant grief"
+      ],
+      "mandatoryCitations": [
+        "CPCC"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "a45a343c-7be1-4009-baf0-494f5e11b4ba",
+      "9ba4121a-da34-4dec-a6cd-7589dee4b497",
+      "408a57c6-7f3e-41af-9e80-4f5cfb088e88",
+      "068c292e-eef7-4544-b990-16862b3acec3",
+      "b59ba3d6-8f19-4c25-a835-01331630bf4c"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "6131613d-b17f-496c-9ee7-3859462b44ea",
+      "52d0fe51-b24f-4199-9ada-23ab34028927"
+    ]
+  },
+  {
+    "id": "fr_proc_06",
+    "domain": "procedure",
+    "difficulty": "expert",
+    "intentType": "interpretive",
+    "question": "Comment la Cour de cassation tunisienne contrôle-t-elle la motivation des décisions de justice ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "contrôle de légalité",
+        "insuffisance de motifs",
+        "contradiction de motifs",
+        "dénaturation"
+      ],
+      "mandatoryCitations": [
+        "CPCC"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "06572fa6-9ab8-400e-9270-4f8a0c0e4815",
+      "0ea5c9a1-c90e-47a4-b420-3335a53613e9",
+      "ad180736-e1a9-4bae-bea3-dec98847f503",
+      "3a5b39f8-78ab-44b3-8751-80845afe8c1d",
+      "dfa98142-b3cf-459b-b583-9fe35b805b9b"
+    ],
+    "goldDocumentIds": [
+      "47dc7fd1-2c26-4847-901c-01abe05540ed",
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "52d0fe51-b24f-4199-9ada-23ab34028927"
+    ]
+  },
+  {
+    "id": "ar_mixed_01",
+    "domain": "droit_civil",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي شروط صحة الوكالة في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الأهلية",
+        "المحل المحدد",
+        "الشكل الكتابي للوكالة الخاصة"
+      ],
+      "mandatoryCitations": [
+        "مجلة الالتزامات والعقود"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "93c01646-74da-49cb-ad97-fc39d0d4c59e",
+      "bfb3fd3d-6683-45ef-9d13-4867a1adf8e5",
+      "42c986ea-53a2-4613-bdc2-90b3ae02858b",
+      "2f395c2d-e5e1-480c-9f3b-8b0e4a5d8f57",
+      "ccab08a0-8a93-4e60-a2f6-0ca99ef0413a"
+    ],
+    "goldDocumentIds": [
+      "770439ea-1057-4698-97c9-14e1da12c41e",
+      "9eb741d8-0d26-4ffa-a9a3-410dbdf22f74",
+      "90318fed-11b9-4d23-9fb7-6366cf63b988",
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30",
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
+  },
+  {
+    "id": "ar_mixed_02",
+    "domain": "droit_civil",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي قواعد التعويض عن حوادث المرور في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "التأمين الإجباري",
+        "المسؤولية الموضوعية",
+        "صندوق الضمان"
+      ],
+      "mandatoryCitations": [
+        "قانون التأمين"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "d263a14d-672d-4767-9493-f9127928380d",
+      "04f8d580-a007-4045-87bf-27f6c3220494",
+      "5afc0eb7-15d4-4699-9849-d8e6e5d098a6",
+      "d6f39f19-0ba1-4cff-b025-a82498d4504a",
+      "e385f3ef-10b7-4e2a-869d-e206fb33d6f0"
+    ],
+    "goldDocumentIds": [
+      "9eb741d8-0d26-4ffa-a9a3-410dbdf22f74"
+    ]
+  },
+  {
+    "id": "ar_mixed_03",
+    "domain": "droit_penal",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي عقوبة العنف ضد المرأة في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "قانون 2017",
+        "تشديد العقوبة",
+        "حماية الضحية"
+      ],
+      "mandatoryCitations": [
+        "القانون الأساسي عدد 58 لسنة 2017"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "57cab053-87eb-408a-829a-27fedfc6434c",
+      "7e14c947-3b93-4d1c-8c23-86af166fab77",
+      "4e3b803c-844a-4e9d-95ea-2d2be445fc51",
+      "a17786ea-aede-45c3-bebb-4ab01f179f26",
+      "8084d46c-4ddc-4715-895e-9bc2bfc32e61"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "d1fb363e-c6fe-4523-b972-c45e5be3688d"
+    ]
+  },
+  {
+    "id": "ar_mixed_04",
+    "domain": "droit_commercial",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هو نظام الكمبيالة في القانون التجاري التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "سند لأمر",
+        "التظهير",
+        "الاحتجاج",
+        "التقادم"
+      ],
+      "mandatoryCitations": [
+        "المجلة التجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "c7c26848-8da7-4df8-af80-20926a93a5a6",
+      "7c4d4e7c-2edb-46be-a0b9-51f96b1fd3a5",
+      "f4cf70d7-4468-4e0d-8c97-a10fcbaa4e7f",
+      "8b9a99c5-94cf-4f5b-8477-229c951f6e7c",
+      "a4482465-4012-477e-918d-6944475b1025"
+    ],
+    "goldDocumentIds": [
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25"
+    ]
+  },
+  {
+    "id": "ar_mixed_05",
+    "domain": "droit_famille",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي شروط التبني في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "التبني مسموح",
+        "مصلحة الطفل",
+        "موافقة قضائية",
+        "شروط عمرية"
+      ],
+      "mandatoryCitations": [
+        "قانون كفالة الأطفال مجهولي النسب"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "9b30f821-69d1-4343-a2cf-4b72c70b2650",
+      "d2011dec-9cd5-450e-9cd6-f00e9cf5c3d9",
+      "54263623-9b75-4b50-9537-bcb2e7ae03fb",
+      "4c49d446-3064-4694-bdf1-888d2f2a0b76",
+      "aa1bc997-2e7e-4210-a087-a40b58fc1d8b"
+    ],
+    "goldDocumentIds": [
+      "7dca6f4b-b772-41f1-b210-788fa322136a",
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7"
+    ]
+  },
+  {
+    "id": "fr_mixed_01",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "Quelles sont les conditions de validité du cautionnement en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "consentement",
+        "obligation principale valable",
+        "forme écrite",
+        "montant déterminé"
+      ],
+      "mandatoryCitations": [
+        "COC"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "7f551465-2dd9-4c72-b2ec-97095a630ca2",
+      "2aef1217-1393-4cd2-bed7-cad4eac279c2",
+      "2940df3c-9db9-440e-b367-65c52e98b3bb",
+      "ccab08a0-8a93-4e60-a2f6-0ca99ef0413a",
+      "ae9748a1-b5ba-4e0a-b1ce-bad5cb7fd8d1"
+    ],
+    "goldDocumentIds": [
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
+  },
+  {
+    "id": "fr_mixed_02",
+    "domain": "droit_civil",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quel est le régime juridique de l'abus de droit en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "exercice du droit dans intention de nuire",
+        "disproportion",
+        "indemnisation"
+      ],
+      "mandatoryCitations": [
+        "Article 103 COC"
+      ]
+    },
+    "expectedArticles": [
+      "Article 103"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "b3389a1d-f74a-43b6-b85f-10221f98c5c7",
+      "9ba4121a-da34-4dec-a6cd-7589dee4b497",
+      "8c9e83fd-2ab3-4a4a-85da-a9e37ddc801d",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "9fbcb593-b5e7-4bf9-a2fa-23fc0c50d838"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "fr_mixed_03",
+    "domain": "droit_penal",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quel est le régime des infractions informatiques en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "accès frauduleux",
+        "atteinte aux données",
+        "peines spécifiques"
+      ],
+      "mandatoryCitations": [
+        "Code pénal",
+        "Loi télécommunications"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4b63da0c-9ff2-4d2c-8569-603a2ad19422",
+      "90afd9c8-10ca-4968-8e5c-4d32cf296133",
+      "c7c85722-ccaa-4fb4-b590-4c6f47251ac8",
+      "c559159a-f967-473a-acdd-8f2a613ecabf",
+      "48ad6cc1-fa4b-41e8-a81b-2d4aa2bf172f"
+    ],
+    "goldDocumentIds": [
+      "1ccc0064-e50b-4957-91c4-51b11a4b7aa8",
+      "70042c47-94bc-40dc-8969-6adb6bc250e5",
+      "d1fb363e-c6fe-4523-b972-c45e5be3688d"
+    ]
+  },
+  {
+    "id": "fr_mixed_04",
+    "domain": "droit_commercial",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les obligations du transporteur en droit commercial tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "obligation de résultat",
+        "livraison en bon état",
+        "délai",
+        "responsabilité"
+      ],
+      "mandatoryCitations": [
+        "Code de commerce"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "a3aab942-713e-4fdd-8163-e7f3b5bf1b48",
+      "fa38ef03-b00d-4ebe-a228-a74ca3175ec9",
+      "4e4e55d0-8136-4bae-af84-e53f1f8e1334",
+      "ddf62c52-1efc-4a81-a21a-28efca0001bc",
+      "a1d9b59f-e357-4e2a-96af-56a85b9c20ca"
+    ],
+    "goldDocumentIds": [
+      "81975fe9-9296-40fd-8bfa-334848b76f9e",
+      "2302ec74-3ceb-444f-9475-d0fc18e09890"
+    ]
+  },
+  {
+    "id": "fr_mixed_05",
+    "domain": "droit_travail",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quel est le rôle de l'inspection du travail en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "contrôle application loi",
+        "médiation",
+        "procès-verbal",
+        "conseil"
+      ],
+      "mandatoryCitations": [
+        "Code du travail"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "d1410903-b552-467c-960a-e9bd85b65b18",
+      "244dbf97-ebe2-499d-88b8-c9c10df8ad51",
+      "7ae2aea7-7afb-47cf-8eed-a5f0df9951c8",
+      "fb9ba2b6-6f3d-4885-ae07-9ee82ffacc4b",
+      "d17a27d4-d094-48fc-b161-2530771a5f31"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352",
+      "70042c47-94bc-40dc-8969-6adb6bc250e5"
+    ]
+  },
+  {
+    "id": "ar_mixed_06",
+    "domain": "droit_civil",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "ما هي قواعد الإثراء بلا سبب في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "إثراء",
+        "افتقار",
+        "انعدام السبب القانوني",
+        "التعويض"
+      ],
+      "mandatoryCitations": [
+        "مجلة الالتزامات والعقود"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "7e5cbfb4-7704-40e2-a03f-592c729b94ca",
+      "38bd7684-57ff-4851-b357-7fa0c6166f8f",
+      "0bbb1e19-191d-4625-9f06-f2d0773242ff",
+      "70d4c9b1-3ece-4eb6-b0c9-844d7490d87e",
+      "d40a21d0-885a-4a22-934b-9f85b818ead3"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "ar_mixed_07",
+    "domain": "droit_penal",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "ما هي جريمة خيانة الأمانة في القانون التونسي وما عقوبتها؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "تبديد",
+        "أمانة",
+        "السجن"
+      ],
+      "mandatoryCitations": [
+        "المجلة الجزائية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "51f06f64-2921-47e8-b63a-ab1679c5c726",
+      "92634039-6ba2-4d77-bae7-509409da4dfd",
+      "cf68d1f1-59ac-4239-8f00-8e45f7f31a7e",
+      "5c59f31e-6d84-4355-9da2-742fed876056",
+      "c3e63333-95e0-4cb5-8776-7059550e9c7e"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "bdf88a8d-e4d7-4004-9dc0-ce14a3dd71e1"
+    ]
+  },
+  {
+    "id": "ar_mixed_08",
+    "domain": "droit_commercial",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "ما هي حقوق الدائنين في حالة التفليس في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "التصريح بالديون",
+        "الترتيب",
+        "الامتياز",
+        "التوزيع"
+      ],
+      "mandatoryCitations": [
+        "المجلة التجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "3f88a547-5da7-480a-94c0-0ac7b9d0abdd",
+      "7642bff2-69d0-4fee-a53f-214dea2e2562",
+      "5c6996f2-6832-4819-9bde-81db39e2adcb",
+      "4ca693d8-db8b-4a57-857b-98f006f38ecc",
+      "b8eb04d8-b17d-459d-bfc0-5fbe07a78702"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8"
+    ]
+  },
+  {
+    "id": "fr_mixed_06",
+    "domain": "procedure",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les règles de compétence territoriale des tribunaux en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "domicile du défendeur",
+        "lieu d'exécution",
+        "lieu de situation immeuble"
+      ],
+      "mandatoryCitations": [
+        "CPCC"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "a45a343c-7be1-4009-baf0-494f5e11b4ba",
+      "e244fb32-7d54-450c-8002-db2360c710b0",
+      "6fcc099e-df15-46c6-8879-1b2ccdfa88a0",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "1aa49072-a0d2-4b82-8c20-f7da25e66925"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "fr_mixed_07",
+    "domain": "droit_famille",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "Quel est le régime juridique de la kafala (recueil légal) en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "enfant abandonné",
+        "autorisation judiciaire",
+        "obligations du kafil",
+        "différent de l'adoption"
+      ],
+      "mandatoryCitations": [
+        "Loi kafala"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "7f551465-2dd9-4c72-b2ec-97095a630ca2",
+      "0c9c3daf-ba43-49ba-a3e9-8d54c1b19ca0",
+      "d46fc921-e0b9-49f1-8b73-a219c572994a",
+      "ac8aa62d-6f1f-4810-b740-a2cca4b8109c",
+      "9b30f821-69d1-4343-a2cf-4b72c70b2650"
+    ],
+    "goldDocumentIds": [
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "3177bb95-1068-43ee-82ae-54bc0e2aa741",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
+  },
+  {
+    "id": "fr_mixed_08",
+    "domain": "droit_immobilier",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les règles de la vente d'immeuble à construire en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "contrat préliminaire",
+        "garantie d'achèvement",
+        "paiement échelonné",
+        "permis de bâtir"
+      ],
+      "mandatoryCitations": [
+        "Loi VEFA"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4585cdf2-949d-4a0d-ab20-a92dcb763f07",
+      "c6b2fee1-f989-4fd8-934c-f928913f49ee",
+      "9c57a6ff-3026-4bfc-a6f9-ceb62ae47f9d",
+      "e7b86ec8-b03c-404f-ab1c-8c12ed78ad61",
+      "02f91ed0-899a-4918-986f-7ce62509119b"
+    ],
+    "goldDocumentIds": [
+      "be35f782-98a2-4f4c-9acc-d093973491c2",
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8"
+    ]
+  },
+  {
+    "id": "ar_mixed_09",
+    "domain": "droit_civil",
+    "difficulty": "expert",
+    "intentType": "interpretive",
+    "question": "كيف يتعامل القضاء التونسي مع مسألة تنازع القوانين في العقود الدولية؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "قانون الإرادة",
+        "القانون الأوثق صلة",
+        "النظام العام"
+      ],
+      "mandatoryCitations": [
+        "مجلة القانون الدولي الخاص"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "a45a343c-7be1-4009-baf0-494f5e11b4ba",
+      "af49e096-2115-41c8-b78f-c29f72240a0a",
+      "e244fb32-7d54-450c-8002-db2360c710b0",
+      "22f5af32-3703-4233-bfd1-6e657a4a2e7f",
+      "3086fbc7-d480-41c8-bb2f-87477f32adf6"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "fr_mixed_09",
+    "domain": "droit_commercial",
+    "difficulty": "expert",
+    "intentType": "interpretive",
+    "question": "Comment le droit tunisien régit-il l'arbitrage commercial international ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "code d'arbitrage",
+        "autonomie de la clause",
+        "exequatur",
+        "recours en annulation"
+      ],
+      "mandatoryCitations": [
+        "Code d'arbitrage"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "9f95862d-388a-44c3-8bdd-a13aa567e8c2",
+      "7c63f0e3-e2d0-4d6b-8efc-16599c78cdab",
+      "a45a343c-7be1-4009-baf0-494f5e11b4ba",
+      "84f7edbb-d315-47fd-999b-7261b57c26ca",
+      "6fcc099e-df15-46c6-8879-1b2ccdfa88a0"
+    ],
+    "goldDocumentIds": [
+      "6131613d-b17f-496c-9ee7-3859462b44ea",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "fr_mixed_10",
+    "domain": "droit_civil",
+    "difficulty": "expert",
+    "intentType": "interpretive",
+    "question": "Comment la jurisprudence tunisienne traite-t-elle la théorie de l'imprévision dans les contrats de longue durée ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "pas de consécration légale expresse",
+        "bonne foi",
+        "renégociation",
+        "intervention judiciaire"
+      ],
+      "mandatoryCitations": [
+        "COC",
+        "jurisprudence"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "6c486bd1-cdfa-4402-afcb-fe646a3a64be",
+      "9f874d55-d9ab-4f67-a535-0562f9f8870e",
+      "3e8e9d9e-7800-42aa-b1de-4c7dbbdbefb6",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "3086fbc7-d480-41c8-bb2f-87477f32adf6"
+    ],
+    "goldDocumentIds": [
+      "68fc22cb-0c26-4a91-b7cf-42de68c57dd7",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "ar_mixed_10",
+    "domain": "droit_travail",
+    "difficulty": "expert",
+    "intentType": "interpretive",
+    "question": "كيف يتعامل القضاء التونسي مع مسألة التحرش المعنوي في العمل؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "إثبات التحرش",
+        "حماية الضحية",
+        "التعويض",
+        "المسؤولية"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشغل",
+        "القانون عدد 58 لسنة 2017"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "660dd623-d847-485f-b3e7-a48b95b2664c",
+      "1327c368-373f-4e8f-8716-86529cf67b63",
+      "e244fb32-7d54-450c-8002-db2360c710b0",
+      "a45a343c-7be1-4009-baf0-494f5e11b4ba",
+      "8fc05b48-8c4a-4853-9f72-5f925026a324"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "abc08b11-4eb6-4e26-8af9-0b73297da3a7"
+    ]
+  },
+  {
+    "id": "ar_supp_01",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي شروط صحة الهبة في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الرضا",
+        "الأهلية",
+        "الشكل الرسمي"
+      ],
+      "mandatoryCitations": [
+        "مجلة الالتزامات والعقود"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "0cd5dab1-5500-4cd8-83a8-ed6845548583",
+      "58f41150-3c56-4ee9-a596-c8561014d5aa",
+      "ddc6e94f-98ff-4de0-8804-bab0e6265fc7",
+      "67e8991b-d6b0-4bc1-8a8d-59c83b7cafba",
+      "0695e38e-8b18-4bc7-9a4c-e9d4cdd34130"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7"
+    ]
+  },
+  {
+    "id": "ar_supp_02",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي شروط الكفالة في القانون المدني التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "التزام تبعي",
+        "التزام أصلي صحيح",
+        "كتابة"
+      ],
+      "mandatoryCitations": [
+        "مجلة الالتزامات والعقود"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "7f551465-2dd9-4c72-b2ec-97095a630ca2",
+      "0c9c3daf-ba43-49ba-a3e9-8d54c1b19ca0",
+      "9b30f821-69d1-4343-a2cf-4b72c70b2650",
+      "37982533-1f52-4364-8613-a2f4fc0c6b43",
+      "ccab08a0-8a93-4e60-a2f6-0ca99ef0413a"
+    ],
+    "goldDocumentIds": [
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
+  },
+  {
+    "id": "ar_supp_03",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي عقوبة التهديد بالعنف في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "السجن",
+        "الخطية"
+      ],
+      "mandatoryCitations": [
+        "المجلة الجزائية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "12361005-d261-42ec-b930-63245c4104e0",
+      "c3b412ab-c5af-4fbd-a636-3049ee42ca9b",
+      "57cab053-87eb-408a-829a-27fedfc6434c",
+      "4e3b803c-844a-4e9d-95ea-2d2be445fc51",
+      "c1de840f-874c-491d-a600-6cc03ca6588b"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ]
+  },
+  {
+    "id": "ar_supp_04",
+    "domain": "droit_penal",
+    "difficulty": "medium",
+    "intentType": "citation_lookup",
+    "question": "ماذا ينص الفصل 53 من المجلة الجزائية بخصوص ظروف التخفيف؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "ظروف التخفيف",
+        "تنزيل العقوبة"
+      ],
+      "mandatoryCitations": [
+        "الفصل 53 من المجلة الجزائية"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 53"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "589c09b1-9b75-405f-ab60-edef9a6b93ca",
+      "aa8f4ecf-1c10-4cb5-bdd8-43da3e66dfa5",
+      "b5082c92-9640-4cdf-911f-3ff136741a7f",
+      "0a44fe32-9308-47c2-b77a-dfa0655005c9",
+      "2a1d2a3e-d4c8-41ce-8474-68a6d1d754ee"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30"
+    ]
+  },
+  {
+    "id": "ar_supp_05",
+    "domain": "droit_famille",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي واجبات الزوجين المتبادلة في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "حسن المعاملة",
+        "المساكنة",
+        "المعاضدة"
+      ],
+      "mandatoryCitations": [
+        "مجلة الأحوال الشخصية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "833802bc-df52-4ed3-8f44-04347926b600",
+      "c17017e7-2106-496d-9f5d-b0634f989c5f",
+      "4a7f3f47-514f-454f-bc4e-2c70125d9f90",
+      "f9853c8e-22f7-45ed-bcd1-cd4462e814ee",
+      "f6eaf0da-048d-4131-9097-bd61a0af0f33"
+    ],
+    "goldDocumentIds": [
+      "7dca6f4b-b772-41f1-b210-788fa322136a",
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "ar_supp_06",
+    "domain": "droit_famille",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي شروط إسناد اللقب العائلي للطفل في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الزواج",
+        "الإقرار بالأبوة",
+        "حكم قضائي"
+      ],
+      "mandatoryCitations": [
+        "مجلة الأحوال الشخصية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "9b30f821-69d1-4343-a2cf-4b72c70b2650",
+      "72d10de9-df37-4ba8-963e-bb685420ef15",
+      "54263623-9b75-4b50-9537-bcb2e7ae03fb",
+      "4c49d446-3064-4694-bdf1-888d2f2a0b76",
+      "cf88c35f-79f5-4565-afe8-a46ce1d91646"
+    ],
+    "goldDocumentIds": [
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
+  },
+  {
+    "id": "ar_supp_07",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي مدة الإعلام المسبق قبل إنهاء عقد الشغل في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "شهر واحد",
+        "حسب الاتفاقية",
+        "الأقدمية"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشغل"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "0550def9-91f6-4ffc-85da-cc05e07234e1",
+      "cbe0c344-2599-414c-b306-409cb8f41498",
+      "5cab4360-7b8a-422c-a720-04a1df5d464d",
+      "e8b1fe78-ed2c-4408-9a17-4a71a75934f9",
+      "4470d5c3-fcd8-41bb-996f-842502338ee9"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352",
+      "897cbfdc-edbf-4e17-9959-125a40a0c0be"
+    ]
+  },
+  {
+    "id": "ar_supp_08",
+    "domain": "droit_travail",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي قواعد العمل الإضافي في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "أجر إضافي",
+        "الحد الأقصى",
+        "موافقة تفتيش الشغل"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشغل"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "7de459be-0a7a-4ec9-bf4d-694974988737",
+      "a6a0f595-fb17-4180-84ef-32c57d6ee0b0",
+      "a3586413-29df-4d32-a6b2-d5067562da46",
+      "250e1355-ac80-4c8c-97df-78745e496a58",
+      "f96163b8-a6bd-4d00-966c-79f5ac346ab6"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352"
+    ]
+  },
+  {
+    "id": "ar_supp_09",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي شروط اكتساب صفة التاجر في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "ممارسة أعمال تجارية",
+        "الاعتياد",
+        "الاحتراف",
+        "السجل التجاري"
+      ],
+      "mandatoryCitations": [
+        "المجلة التجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4c5b3cd6-6292-4a2e-b195-9f023a853a79",
+      "0d803f6b-48f5-4f96-889b-0f0a09284bd6",
+      "be4baf3c-777a-4503-877d-76a669949184",
+      "bfb3fd3d-6683-45ef-9d13-4867a1adf8e5",
+      "9aa47ed2-4d12-4162-928f-85cf78f3034b"
+    ],
+    "goldDocumentIds": [
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "9eb741d8-0d26-4ffa-a9a3-410dbdf22f74"
+    ]
+  },
+  {
+    "id": "ar_supp_10",
+    "domain": "droit_commercial",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي إجراءات حل الشركة ذات المسؤولية المحدودة في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "قرار جماعة الشركاء",
+        "تعيين مصف",
+        "نشر",
+        "شطب"
+      ],
+      "mandatoryCitations": [
+        "مجلة الشركات التجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "fd28cd88-a96d-4568-ba81-4300e9131c4d",
+      "5ed2549c-f74a-44a1-a189-c12b5e1ecd4d",
+      "82916ee0-009b-4b5f-bfee-b9b80e395b09",
+      "cc03bfcb-21d5-4846-94a4-6588bc6b5a97",
+      "beeda149-51af-4bb1-9746-88a502c262cb"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30"
+    ]
+  },
+  {
+    "id": "ar_supp_11",
+    "domain": "droit_immobilier",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي أنواع الحقوق العينية في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الملكية",
+        "الانتفاع",
+        "الارتفاق",
+        "الرهن العقاري"
+      ],
+      "mandatoryCitations": [
+        "مجلة الحقوق العينية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "b9e6d8af-ac33-4938-a803-ef4e7d4f2def",
+      "6710ceb8-a746-4a14-a62d-61e18a698fcb",
+      "911d3ad5-ba0c-4e4e-915e-5cb3a55a995c",
+      "7d935863-64ee-425a-9c5c-6284d34bab04",
+      "1327c368-373f-4e8f-8716-86529cf67b63"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "485f7370-2107-407a-b61c-d0a535847541"
+    ]
+  },
+  {
+    "id": "ar_supp_12",
+    "domain": "droit_immobilier",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي شروط الحيازة المكسبة للملكية العقارية في تونس؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "حيازة هادئة",
+        "علنية",
+        "مستمرة",
+        "15 سنة"
+      ],
+      "mandatoryCitations": [
+        "مجلة الحقوق العينية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "adf0388b-891c-498e-9e1c-9adff20ef26b",
+      "b782c9e3-380e-4967-8c78-2e8b4b40e08c",
+      "4585cdf2-949d-4a0d-ab20-a92dcb763f07",
+      "54263623-9b75-4b50-9537-bcb2e7ae03fb",
+      "a78f0075-69ad-48a5-9942-a8a73c5b2821"
+    ],
+    "goldDocumentIds": [
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "be35f782-98a2-4f4c-9acc-d093973491c2",
+      "7dca6f4b-b772-41f1-b210-788fa322136a",
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56"
+    ]
+  },
+  {
+    "id": "ar_supp_13",
+    "domain": "procedure",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "ما هي شروط صحة الاستدعاء في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "بيانات المدعي",
+        "بيانات المدعى عليه",
+        "موضوع الدعوى",
+        "المحكمة المختصة"
+      ],
+      "mandatoryCitations": [
+        "مجلة المرافعات المدنية والتجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "5612dc2d-87d9-4ece-97ef-dc23c0cba001",
+      "150be9f3-6b98-41f0-b89f-7c98799b564c",
+      "378ed5aa-6d2c-4c06-bb90-1f29dc6ca021",
+      "13cb0c97-9c26-4729-9974-d7b5b0af5f01",
+      "0fcea28b-9911-4b69-ac04-90498c30a7d2"
+    ],
+    "goldDocumentIds": [
+      "47dc7fd1-2c26-4847-901c-01abe05540ed",
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352",
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56"
+    ]
+  },
+  {
+    "id": "ar_supp_14",
+    "domain": "procedure",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي حالات رد القاضي في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "القرابة",
+        "المصلحة",
+        "العداوة",
+        "سبق إبداء الرأي"
+      ],
+      "mandatoryCitations": [
+        "مجلة المرافعات المدنية والتجارية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "9fbcb593-b5e7-4bf9-a2fa-23fc0c50d838",
+      "408a57c6-7f3e-41af-9e80-4f5cfb088e88",
+      "d636683d-30bb-495e-9091-6e46932348bd",
+      "9ba4121a-da34-4dec-a6cd-7589dee4b497",
+      "b3389a1d-f74a-43b6-b85f-10221f98c5c7"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56"
+    ]
+  },
+  {
+    "id": "fr_supp_01",
+    "domain": "droit_civil",
+    "difficulty": "easy",
+    "intentType": "citation_lookup",
+    "question": "Que prévoit l'article 243 du COC en matière de dommages-intérêts ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "dommages-intérêts",
+        "perte subie",
+        "gain manqué"
+      ],
+      "mandatoryCitations": [
+        "Article 243 COC"
+      ]
+    },
+    "expectedArticles": [
+      "Article 243"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "05b47c95-2db8-4467-94b0-c16910c79ddf",
+      "b7aee753-fde1-45aa-9a0b-a88122160b1b",
+      "b5a88b2e-9b51-43d9-9b95-08ddae919ef5",
+      "eb244e88-82ee-43b5-9626-8748f203c517",
+      "dc5311e1-0756-4550-a830-3e353d72e8e0"
+    ],
+    "goldDocumentIds": [
+      "81975fe9-9296-40fd-8bfa-334848b76f9e",
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "47dc7fd1-2c26-4847-901c-01abe05540ed",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30"
+    ]
+  },
+  {
+    "id": "fr_supp_02",
+    "domain": "droit_civil",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les règles de la subrogation en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "subrogation légale",
+        "subrogation conventionnelle",
+        "transfert des droits"
+      ],
+      "mandatoryCitations": [
+        "COC"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "bb21d859-a0f9-43b3-a79a-72b30a3f1fb1",
+      "089bfe9f-ecfa-410f-89c1-f30ac33b2d11",
+      "70db4b55-8ee2-4d95-a594-5ea8c07c5867",
+      "6bc4ecb4-2423-4aac-90ce-761608d1e979",
+      "33a38312-fc64-40f9-944f-73c94d999425"
+    ],
+    "goldDocumentIds": [
+      "9eb741d8-0d26-4ffa-a9a3-410dbdf22f74",
+      "68fc22cb-0c26-4a91-b7cf-42de68c57dd7",
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
+  },
+  {
+    "id": "fr_supp_03",
+    "domain": "droit_penal",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "Quelle est la majorité pénale en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "13 ans",
+        "discernement",
+        "tribunal pour enfants"
+      ],
+      "mandatoryCitations": [
+        "Code pénal",
+        "Code de la protection de l'enfant"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "e5209b7e-b81e-492d-a626-699d6a32ffe5",
+      "82a072bb-72ca-4e11-9b2a-4f40941c4607",
+      "91a8d48c-db3c-4f65-998c-e2794126ccf7",
+      "9b30f821-69d1-4343-a2cf-4b72c70b2650",
+      "a14ac5fc-3c0a-4a40-b52d-523967c17f94"
+    ],
+    "goldDocumentIds": [
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622",
+      "7dca6f4b-b772-41f1-b210-788fa322136a"
+    ]
+  },
+  {
+    "id": "fr_supp_04",
+    "domain": "droit_famille",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "Quel est le régime successoral en droit tunisien pour les descendants ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "fils double de fille",
+        "fardh",
+        "asaba",
+        "réserve héréditaire"
+      ],
+      "mandatoryCitations": [
+        "CSP"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "0106197d-5f1a-48ab-af73-0a6ef5912710",
+      "4c49d446-3064-4694-bdf1-888d2f2a0b76",
+      "72d10de9-df37-4ba8-963e-bb685420ef15",
+      "94bae7eb-53d5-4de7-af96-20b1ced6467a",
+      "65766a2a-12b1-40d0-ba67-811d44e8af79"
+    ],
+    "goldDocumentIds": [
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "7dca6f4b-b772-41f1-b210-788fa322136a",
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7"
+    ]
+  },
+  {
+    "id": "fr_supp_05",
+    "domain": "droit_travail",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "Quel est le salaire minimum en Tunisie (SMIG) ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "régime 48h",
+        "régime 40h",
+        "SMAG agricole"
+      ],
+      "mandatoryCitations": [
+        "décret"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "5ea6e04e-99a3-415f-9257-86093b8b2eab",
+      "6e820a22-344c-4c8a-931a-6f0193a44561",
+      "10c79696-35fa-4243-a417-6d2b5036bfb2",
+      "5cab4360-7b8a-422c-a720-04a1df5d464d",
+      "b713caa0-6ddc-4520-92ef-2929aca74a46"
+    ],
+    "goldDocumentIds": [
+      "679e7e8e-6a14-4ffd-bf59-9daddeb3e352",
+      "015de809-0609-4127-a722-19be9ee8dbc7",
+      "de299263-8ed3-40aa-afaf-b186f4a82b02"
+    ]
+  },
+  {
+    "id": "fr_supp_06",
+    "domain": "droit_commercial",
+    "difficulty": "easy",
+    "intentType": "factual",
+    "question": "Qu'est-ce que le registre du commerce en Tunisie et qui doit s'y inscrire ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "commerçants",
+        "sociétés commerciales",
+        "obligation légale",
+        "publicité"
+      ],
+      "mandatoryCitations": [
+        "Code de commerce"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "a79abe95-5b62-41e8-9fe9-e3465779973e",
+      "be4baf3c-777a-4503-877d-76a669949184",
+      "122b29b0-b44a-4523-9d48-61ef1960869b",
+      "db94fec4-938f-4caf-9c81-eb7bb5dac210",
+      "4c5b3cd6-6292-4a2e-b195-9f023a853a79"
+    ],
+    "goldDocumentIds": [
+      "81975fe9-9296-40fd-8bfa-334848b76f9e",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30"
+    ]
+  },
+  {
+    "id": "fr_supp_07",
+    "domain": "droit_immobilier",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "Quelles sont les règles de l'expropriation pour cause d'utilité publique en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "déclaration d'utilité publique",
+        "indemnisation préalable",
+        "juste et équitable",
+        "procédure judiciaire"
+      ],
+      "mandatoryCitations": [
+        "Loi expropriation"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4585cdf2-949d-4a0d-ab20-a92dcb763f07",
+      "3ee080fb-6a6c-4c9b-b5dd-e3e810946a8a",
+      "71dc0cc2-7c90-4dab-a66d-ff23318f0632",
+      "e43afcf9-f45b-43cb-afa8-5422084a64e3",
+      "2357000f-bca7-482b-86bb-1b70a3d4d67f"
+    ],
+    "goldDocumentIds": [
+      "be35f782-98a2-4f4c-9acc-d093973491c2",
+      "68fc22cb-0c26-4a91-b7cf-42de68c57dd7",
+      "de299263-8ed3-40aa-afaf-b186f4a82b02"
+    ]
+  },
+  {
+    "id": "fr_supp_08",
+    "domain": "procedure",
+    "difficulty": "hard",
+    "intentType": "procedural",
+    "question": "Comment se déroule la procédure de saisie immobilière en Tunisie ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "commandement",
+        "transcription",
+        "cahier des charges",
+        "adjudication"
+      ],
+      "mandatoryCitations": [
+        "CPCC"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4585cdf2-949d-4a0d-ab20-a92dcb763f07",
+      "005fedf7-0432-435e-b52d-4d8c021c80dc",
+      "4bc38a5e-98e1-4178-9eaa-2ae164dbb1ad",
+      "476d0661-34e2-49f5-8115-c61abbdd25d0",
+      "eb489ba7-85a7-4750-a65c-d7a265885fd4"
+    ],
+    "goldDocumentIds": [
+      "be35f782-98a2-4f4c-9acc-d093973491c2",
+      "485f7370-2107-407a-b61c-d0a535847541",
+      "81975fe9-9296-40fd-8bfa-334848b76f9e",
+      "abc08b11-4eb6-4e26-8af9-0b73297da3a7",
+      "2302ec74-3ceb-444f-9475-d0fc18e09890"
+    ]
+  },
+  {
+    "id": "ar_supp_15",
+    "domain": "droit_civil",
+    "difficulty": "medium",
+    "intentType": "citation_lookup",
+    "question": "ماذا ينص الفصل 242 من مجلة الالتزامات والعقود بخصوص تنفيذ العقد؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "التنفيذ بحسن نية",
+        "الالتزام"
+      ],
+      "mandatoryCitations": [
+        "الفصل 242 مجلة الالتزامات والعقود"
+      ]
+    },
+    "expectedArticles": [
+      "الفصل 242"
+    ],
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "84789ea2-6db4-4cb3-b833-5cd50ec986af",
+      "58d86f85-3a46-4ab3-b7ad-a9f37811600f",
+      "57e0744b-5e55-4689-b010-05a7ae241c6c",
+      "6fdd0c3c-3d39-4602-81b5-5f2cf4eb39ef",
+      "de2a18b1-979c-422c-83fe-23fd4864fe66"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25",
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30",
+      "770439ea-1057-4698-97c9-14e1da12c41e",
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8"
+    ]
+  },
+  {
+    "id": "ar_supp_16",
+    "domain": "droit_penal",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي عقوبة الرشوة في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "السجن",
+        "الخطية",
+        "الموظف العمومي"
+      ],
+      "mandatoryCitations": [
+        "المجلة الجزائية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "b6dc02a6-02f7-4c76-be74-1f369e0016a0",
+      "0f927e18-ea49-4960-8c73-7b6c2435f44e",
+      "e598dcaf-7f91-43a9-9d14-a6a6d0691676",
+      "334910f5-be2c-476b-ad51-9498af4ffc69",
+      "55a26871-0227-456b-8529-17cfb045ada3"
+    ],
+    "goldDocumentIds": [
+      "11769aec-edb3-4c5f-a8d8-65e4e6320622"
+    ]
+  },
+  {
+    "id": "fr_supp_09",
+    "domain": "droit_civil",
+    "difficulty": "hard",
+    "intentType": "comparative",
+    "question": "Quelle est la différence entre la prescription extinctive et la prescription acquisitive en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "extinctive: perte du droit d'agir",
+        "acquisitive: acquisition de la propriété",
+        "délais différents"
+      ],
+      "mandatoryCitations": [
+        "COC",
+        "Code des droits réels"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "33a38312-fc64-40f9-944f-73c94d999425",
+      "92407f82-759f-4f95-8ef8-47d90fff771e",
+      "b782c9e3-380e-4967-8c78-2e8b4b40e08c",
+      "4585cdf2-949d-4a0d-ab20-a92dcb763f07",
+      "c6a6029e-84f2-4f24-a529-1c1bd758246b"
+    ],
+    "goldDocumentIds": [
+      "7dca6f4b-b772-41f1-b210-788fa322136a",
+      "70042c47-94bc-40dc-8969-6adb6bc250e5",
+      "52d0fe51-b24f-4199-9ada-23ab34028927",
+      "be35f782-98a2-4f4c-9acc-d093973491c2",
+      "90318fed-11b9-4d23-9fb7-6366cf63b988"
+    ]
+  },
+  {
+    "id": "fr_supp_10",
+    "domain": "droit_commercial",
+    "difficulty": "medium",
+    "intentType": "comparative",
+    "question": "Quelle est la différence entre la SARL et la SA en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "capital minimum",
+        "nombre d'associés",
+        "organes de gestion",
+        "cession de parts"
+      ],
+      "mandatoryCitations": [
+        "Code des sociétés commerciales"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "db94fec4-938f-4caf-9c81-eb7bb5dac210",
+      "fcce391d-f9fe-432f-a56b-7babb366c99a",
+      "7a980709-67b2-4f07-aa10-9ce7234ef28a",
+      "a40a713a-e33e-400b-ae6f-0d15e8c2b7e0",
+      "545464c7-a506-42fc-afdb-1478861d2f22"
+    ],
+    "goldDocumentIds": [
+      "3a9dfead-3c4d-47e9-bbe0-24dda2ccbd30",
+      "de299263-8ed3-40aa-afaf-b186f4a82b02"
+    ]
+  },
+  {
+    "id": "ar_supp_17",
+    "domain": "droit_famille",
+    "difficulty": "hard",
+    "intentType": "factual",
+    "question": "ما هي شروط الوصية في القانون التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "الثلث كحد أقصى",
+        "لغير وارث",
+        "الشكل الكتابي"
+      ],
+      "mandatoryCitations": [
+        "مجلة الأحوال الشخصية"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "ccab08a0-8a93-4e60-a2f6-0ca99ef0413a",
+      "055a5c00-3ab0-4e43-ad02-eb478d1238e9",
+      "2c711651-f4b1-4910-8511-f9cefaf61769",
+      "42c986ea-53a2-4613-bdc2-90b3ae02858b",
+      "130675bf-eb96-41c9-8dbf-d704adaca9a7"
+    ],
+    "goldDocumentIds": [
+      "7dca6f4b-b772-41f1-b210-788fa322136a",
+      "1ccc0064-e50b-4957-91c4-51b11a4b7aa8",
+      "2d26ba94-1d31-46ae-abe5-4a02033c2be7",
+      "90318fed-11b9-4d23-9fb7-6366cf63b988"
+    ]
+  },
+  {
+    "id": "ar_supp_18",
+    "domain": "droit_civil",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "ما هي قواعد المقاصة في القانون المدني التونسي؟",
+    "expectedAnswer": {
+      "keyPoints": [
+        "دينان متقابلان",
+        "من نفس النوع",
+        "حالان",
+        "انقضاء بقدر الأقل"
+      ],
+      "mandatoryCitations": [
+        "مجلة الالتزامات والعقود"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "2ed6fd2f-2934-469f-a832-55aa993f5620",
+      "0fcacd9c-d6ab-463f-a96d-0a3bed833084",
+      "12dbb06f-f40e-45ee-94fe-463ba676b89d",
+      "fa670e14-2725-4ef5-a4a4-9b9fde0b0ae0",
+      "5dccf4e5-d80c-4c46-839c-94840e1bbf89"
+    ],
+    "goldDocumentIds": [
+      "764fb3c5-f671-4c52-8183-8897d5b23c25"
+    ]
+  },
+  {
+    "id": "fr_supp_11",
+    "domain": "procedure",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quels sont les effets de l'appel en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "effet suspensif",
+        "effet dévolutif",
+        "interdiction de demandes nouvelles"
+      ],
+      "mandatoryCitations": [
+        "CPCC"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "31f0c692-2219-4c13-bf29-223a3b295413",
+      "ebb9c2b6-fe83-40c0-8a5b-19eb7411bca4",
+      "ad180736-e1a9-4bae-bea3-dec98847f503",
+      "bd3659c0-135a-43dd-9a1c-f3e4993dee7a",
+      "f75caeb8-5aff-4e6a-8c2f-687097a480ac"
+    ],
+    "goldDocumentIds": [
+      "637a0376-ace3-40ef-a3dc-663ef4e8ce56",
+      "47dc7fd1-2c26-4847-901c-01abe05540ed"
+    ]
+  },
+  {
+    "id": "fr_supp_12",
+    "domain": "droit_immobilier",
+    "difficulty": "medium",
+    "intentType": "factual",
+    "question": "Quelles sont les conditions de la vente immobilière en droit tunisien ?",
+    "expectedAnswer": {
+      "keyPoints": [
+        "consentement",
+        "acte authentique",
+        "inscription au registre foncier",
+        "certificat de propriété"
+      ],
+      "mandatoryCitations": [
+        "Code des droits réels"
+      ]
+    },
+    "evaluationCriteria": {
+      "completeness": 80,
+      "accuracy": 85,
+      "citations": 80,
+      "reasoning": 80
+    },
+    "expertValidation": {
+      "validatorId": "auto_generated",
+      "credentials": "Auto-generated gold eval case",
+      "validatedAt": "2026-02-18T21:32:54.162Z",
+      "consensus": 0
+    },
+    "goldChunkIds": [
+      "4585cdf2-949d-4a0d-ab20-a92dcb763f07",
+      "22016c92-6746-4144-a29d-a28376f914bf",
+      "02f91ed0-899a-4918-986f-7ce62509119b",
+      "79483f6b-a487-4c8e-9047-9c1458c7f594",
+      "9c57a6ff-3026-4bfc-a6f9-ceb62ae47f9d"
+    ],
+    "goldDocumentIds": [
+      "be35f782-98a2-4f4c-9acc-d093973491c2",
+      "81975fe9-9296-40fd-8bfa-334848b76f9e",
+      "768c4bc6-ad0b-4e29-8d12-116b7ac45ac8",
+      "2302ec74-3ceb-444f-9475-d0fc18e09890",
+      "52d0fe51-b24f-4199-9ada-23ab34028927"
+    ]
   }
 ]

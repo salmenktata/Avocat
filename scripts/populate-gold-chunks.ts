@@ -10,11 +10,16 @@
  * @module scripts/populate-gold-chunks
  */
 
+import dotenv from 'dotenv'
+dotenv.config({ path: '.env.local' })
+
 import fs from 'fs'
 import path from 'path'
 import readline from 'readline'
-import { searchKnowledgeBaseHybrid } from '../lib/ai/knowledge-base-service'
 import type { GoldEvalCase } from '../lib/ai/rag-eval-types'
+
+// Import dynamique pour que dotenv soit chargé avant l'init du module config
+let searchKnowledgeBaseHybrid: typeof import('../lib/ai/knowledge-base-service').searchKnowledgeBaseHybrid
 
 // =============================================================================
 // CLI ARGS
@@ -24,7 +29,8 @@ const args = process.argv.slice(2)
 const isAuto = args.includes('--auto')
 const isInteractive = args.includes('--interactive')
 const skipDone = args.includes('--skip-done')
-const domainArg = args.find(a => a.startsWith('--domain='))?.split('=')[1] || args[args.indexOf('--domain') + 1]
+const domainIdx = args.indexOf('--domain')
+const domainArg = args.find(a => a.startsWith('--domain='))?.split('=')[1] || (domainIdx >= 0 ? args[domainIdx + 1] : undefined)
 const thresholdArg = args.find(a => a.startsWith('--threshold='))?.split('=')[1]
 const threshold = thresholdArg ? parseFloat(thresholdArg) : 0.70
 const limitArg = args.find(a => a.startsWith('--limit='))?.split('=')[1]
@@ -51,6 +57,10 @@ Options:
 const GOLD_PATH = path.join(process.cwd(), 'data', 'gold-eval-dataset.json')
 
 async function main() {
+  // Import dynamique APRÈS dotenv pour que les env vars soient disponibles
+  const kbModule = await import('../lib/ai/knowledge-base-service')
+  searchKnowledgeBaseHybrid = kbModule.searchKnowledgeBaseHybrid
+
   if (!fs.existsSync(GOLD_PATH)) {
     console.error('Gold dataset non trouvé:', GOLD_PATH)
     process.exit(1)
