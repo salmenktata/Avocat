@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { AlertCircle, CheckCircle, XCircle, Database, Cpu, Cloud, HardDrive, ShieldCheck } from 'lucide-react'
+import { AlertCircle, CheckCircle, XCircle, Database, Cpu, Cloud, HardDrive, ShieldCheck, Power, Loader2 } from 'lucide-react'
 
 interface EnvVarConfig {
   status: 'ok' | 'warning' | 'critical'
@@ -64,6 +64,15 @@ export default function SystemConfigTab() {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
+  // Ollama control state
+  const [ollamaStatus, setOllamaStatus] = useState<{
+    running: boolean
+    status: string
+    memoryMB: number | null
+  }>({ running: false, status: 'unknown', memoryMB: null })
+  const [ollamaLoading, setOllamaLoading] = useState(false)
+  const [ollamaActionPending, setOllamaActionPending] = useState(false)
+
   // Fetch health check data
   const fetchHealthCheck = async () => {
     try {
@@ -97,15 +106,63 @@ export default function SystemConfigTab() {
     }
   }
 
-  // Initial load + auto-refresh every 60s
+  // Fetch Ollama real status from trigger server
+  const fetchOllamaStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/ollama')
+      if (!response.ok) return
+      const data = await response.json()
+      setOllamaStatus({
+        running: data.running ?? false,
+        status: data.status ?? 'unknown',
+        memoryMB: data.memoryMB ?? null,
+      })
+    } catch {
+      // Silencieux — le statut reste "unknown"
+    }
+  }
+
+  // Start or stop Ollama
+  const handleOllamaAction = async (action: 'start' | 'stop') => {
+    const label = action === 'start' ? 'Démarrer' : 'Arrêter'
+    if (!confirm(`${label} Ollama ?`)) return
+
+    setOllamaActionPending(true)
+    try {
+      const response = await fetch('/api/admin/ollama', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const data = await response.json()
+      if (data.running !== undefined) {
+        setOllamaStatus({
+          running: data.running,
+          status: data.status ?? (data.running ? 'active' : 'inactive'),
+          memoryMB: null,
+        })
+      }
+      // Re-fetch pour avoir la RAM
+      setTimeout(fetchOllamaStatus, 3000)
+    } catch {
+      // Silencieux
+    } finally {
+      setOllamaActionPending(false)
+    }
+  }
+
+  // Initial load + auto-refresh
   useEffect(() => {
     fetchHealthCheck()
     fetchEnvVarConfig()
+    fetchOllamaStatus()
     const healthInterval = setInterval(fetchHealthCheck, 30000)
     const envInterval = setInterval(fetchEnvVarConfig, 60000)
+    const ollamaInterval = setInterval(fetchOllamaStatus, 30000)
     return () => {
       clearInterval(healthInterval)
       clearInterval(envInterval)
+      clearInterval(ollamaInterval)
     }
   }, [])
 
@@ -262,13 +319,54 @@ export default function SystemConfigTab() {
               icon={ragConfig.semanticSearchEnabled ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
             />
 
-            {/* Ollama */}
-            <ConfigItem
-              label="Ollama (Local)"
-              value={ragConfig.ollamaEnabled ? 'Actif' : 'Inactif'}
-              status={ragConfig.ollamaEnabled ? 'ok' : 'neutral'}
-              icon={ragConfig.ollamaEnabled ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-            />
+            {/* Ollama — Carte interactive avec Start/Stop */}
+            <div className={`rounded-lg border p-4 ${
+              ollamaStatus.running
+                ? 'bg-green-50 border-green-200'
+                : ollamaStatus.status === 'unknown'
+                  ? 'bg-muted border-border'
+                  : 'bg-gray-50 border-gray-200'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                {/* Pastille de statut */}
+                <span className={`inline-block w-2.5 h-2.5 rounded-full ${
+                  ollamaStatus.running
+                    ? 'bg-green-500 animate-pulse'
+                    : ollamaStatus.status === 'unknown'
+                      ? 'bg-gray-400'
+                      : 'bg-gray-400'
+                }`} />
+                <span className="text-xs font-semibold text-foreground">Ollama (Local)</span>
+              </div>
+              <div className="text-sm font-bold mb-1">
+                {ollamaStatus.running ? 'En cours' : ollamaStatus.status === 'unknown' ? 'Inconnu' : 'Arrêté'}
+              </div>
+              {ollamaStatus.running && ollamaStatus.memoryMB != null && (
+                <div className="text-xs text-muted-foreground mb-2">
+                  RAM : {ollamaStatus.memoryMB} MB
+                </div>
+              )}
+              <button
+                onClick={() => handleOllamaAction(ollamaStatus.running ? 'stop' : 'start')}
+                disabled={ollamaActionPending || ollamaStatus.status === 'unknown'}
+                className={`mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  ollamaStatus.running
+                    ? 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-300'
+                    : 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
+                }`}
+              >
+                {ollamaActionPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Power className="w-3.5 h-3.5" />
+                )}
+                {ollamaActionPending
+                  ? 'En cours...'
+                  : ollamaStatus.running
+                    ? 'Arrêter'
+                    : 'Démarrer'}
+              </button>
+            </div>
 
             {/* OpenAI */}
             <ConfigItem

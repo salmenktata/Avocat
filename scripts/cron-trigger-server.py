@@ -8,6 +8,7 @@ HTTP server qui permet de déclencher les crons manuellement
 import subprocess
 import json
 import os
+import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime
 
@@ -67,7 +68,7 @@ class CronTriggerHandler(BaseHTTPRequestHandler):
         log_message(f"{self.address_string()} - {format % args}")
 
     def do_GET(self):
-        """Health check endpoint"""
+        """Health check and status endpoints"""
         if self.path == "/health":
             self.send_response(200)
             self.send_header("Content-type", "application/json")
@@ -79,11 +80,125 @@ class CronTriggerHandler(BaseHTTPRequestHandler):
                 "available_crons": len(CRON_SCRIPTS),
             }
             self.wfile.write(json.dumps(response).encode())
+        elif self.path == "/ollama-status":
+            self._handle_ollama_status()
         else:
             self.send_error(404, "Not Found")
 
+    def _handle_ollama_status(self):
+        """Retourne le statut d'Ollama (systemd)"""
+        try:
+            result = subprocess.run(
+                ["systemctl", "is-active", "ollama"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            is_running = result.stdout.strip() == "active"
+            status_text = result.stdout.strip()
+
+            memory_mb = None
+            if is_running:
+                try:
+                    ps_result = subprocess.run(
+                        ["bash", "-c", "ps -C ollama -o rss= | awk '{sum+=$1} END {print sum}'"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    )
+                    rss_kb = ps_result.stdout.strip()
+                    if rss_kb and rss_kb.isdigit():
+                        memory_mb = int(rss_kb) // 1024
+                except Exception:
+                    pass
+
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            response = {
+                "running": is_running,
+                "status": status_text,
+                "memoryMB": memory_mb,
+            }
+            self.wfile.write(json.dumps(response).encode())
+        except Exception as e:
+            log_message(f"❌ Error checking Ollama status: {str(e)}")
+            self.send_response(500)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+    def _handle_ollama_control(self):
+        """Démarrer ou arrêter Ollama via systemctl"""
+        try:
+            content_length = int(self.headers["Content-Length"])
+            body = self.rfile.read(content_length)
+            data = json.loads(body.decode())
+
+            action = data.get("action")
+            if action not in ("start", "stop"):
+                self.send_error(400, "action must be 'start' or 'stop'")
+                return
+
+            log_message(f"🔧 Ollama control: {action}")
+
+            result = subprocess.run(
+                ["systemctl", action, "ollama"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+            if result.returncode != 0:
+                log_message(f"❌ systemctl {action} ollama failed: {result.stderr}")
+                self.send_response(500)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": False,
+                    "error": result.stderr.strip(),
+                }).encode())
+                return
+
+            # Attendre 2s que le service démarre/s'arrête
+            time.sleep(2)
+
+            # Vérifier le statut après l'action
+            check = subprocess.run(
+                ["systemctl", "is-active", "ollama"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            is_running = check.stdout.strip() == "active"
+
+            log_message(f"✅ Ollama {action} → running={is_running}")
+
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "success": True,
+                "action": action,
+                "running": is_running,
+                "status": check.stdout.strip(),
+            }).encode())
+
+        except json.JSONDecodeError:
+            self.send_error(400, "Invalid JSON")
+        except Exception as e:
+            log_message(f"❌ Error controlling Ollama: {str(e)}")
+            self.send_response(500)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
+
     def do_POST(self):
-        """Trigger cron execution"""
+        """Trigger cron execution or Ollama control"""
+        if self.path == "/ollama-control":
+            self._handle_ollama_control()
+            return
+
         if self.path != "/trigger":
             self.send_error(404, "Not Found")
             return
