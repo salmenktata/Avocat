@@ -176,8 +176,8 @@ export default function SystemConfigTab() {
 
   if (error || !healthData) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <div className="flex items-center gap-3 text-red-800">
+      <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-6">
+        <div className="flex items-center gap-3 text-red-800 dark:text-red-300">
           <XCircle className="w-6 h-6" />
           <div>
             <h3 className="font-semibold">Erreur Health Check</h3>
@@ -207,14 +207,14 @@ export default function SystemConfigTab() {
           </div>
           <div className="flex items-center gap-3">
             {hasIssue ? (
-              <div className="flex items-center gap-2 px-4 py-2 bg-red-100 border border-red-300 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-red-600" />
-                <span className="text-sm font-semibold text-red-800">Problème Détecté</span>
+              <div className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-950/40 border border-red-300 dark:border-red-800 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <span className="text-sm font-semibold text-red-800 dark:text-red-300">Problème Détecté</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <span className="text-sm font-semibold text-green-800">Configuration OK</span>
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-950/40 border border-green-300 dark:border-green-800 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <span className="text-sm font-semibold text-green-800 dark:text-green-300">Configuration OK</span>
               </div>
             )}
           </div>
@@ -223,28 +223,28 @@ export default function SystemConfigTab() {
 
       {/* Alerte Misconfiguration RAG */}
       {isMisconfigured && (
-        <div className="bg-red-50 border-l-4 border-red-600 p-6 rounded-r-lg">
+        <div className="bg-red-50 dark:bg-red-950/30 border-l-4 border-red-600 dark:border-red-500 p-6 rounded-r-lg">
           <div className="flex items-start gap-4">
-            <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-1" />
+            <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-1" />
             <div className="flex-1">
-              <h3 className="text-lg font-bold text-red-900 mb-2">
+              <h3 className="text-lg font-bold text-red-900 dark:text-red-200 mb-2">
                 🚨 Configuration RAG Invalide
               </h3>
-              <p className="text-red-800 mb-4">
+              <p className="text-red-800 dark:text-red-300 mb-4">
                 RAG activé mais aucun provider embeddings disponible. L&apos;assistant IA ne fonctionne pas.
               </p>
-              <div className="bg-card border border-red-200 rounded-lg p-4 mb-4">
-                <p className="font-semibold text-red-900 mb-2">Solutions :</p>
-                <ol className="list-decimal list-inside space-y-2 text-sm text-red-800">
+              <div className="bg-card border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+                <p className="font-semibold text-red-900 dark:text-red-200 mb-2">Solutions :</p>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-red-800 dark:text-red-300">
                   <li>
                     <strong>Activer Ollama</strong> (gratuit, local) :
-                    <code className="block ml-6 mt-1 bg-red-100 px-2 py-1 rounded text-xs">
+                    <code className="block ml-6 mt-1 bg-red-100 dark:bg-red-900/40 px-2 py-1 rounded text-xs">
                       OLLAMA_ENABLED=true
                     </code>
                   </li>
                   <li>
                     <strong>Configurer OpenAI</strong> (payant, cloud) :
-                    <code className="block ml-6 mt-1 bg-red-100 px-2 py-1 rounded text-xs">
+                    <code className="block ml-6 mt-1 bg-red-100 dark:bg-red-900/40 px-2 py-1 rounded text-xs">
                       OPENAI_API_KEY=sk-proj-...
                     </code>
                   </li>
@@ -322,10 +322,10 @@ export default function SystemConfigTab() {
             {/* Ollama — Carte interactive avec Start/Stop */}
             <div className={`rounded-lg border p-4 ${
               ollamaStatus.running
-                ? 'bg-green-50 border-green-200'
+                ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800'
                 : ollamaStatus.status === 'unknown'
                   ? 'bg-muted border-border'
-                  : 'bg-gray-50 border-gray-200'
+                  : 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700'
             }`}>
               <div className="flex items-center gap-2 mb-2">
                 {/* Pastille de statut */}
@@ -351,8 +351,8 @@ export default function SystemConfigTab() {
                 disabled={ollamaActionPending || ollamaStatus.status === 'unknown'}
                 className={`mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   ollamaStatus.running
-                    ? 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-300'
-                    : 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
+                    ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/60 border border-red-300 dark:border-red-700'
+                    : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/60 border border-green-300 dark:border-green-700'
                 }`}
               >
                 {ollamaActionPending ? (
@@ -381,17 +381,17 @@ export default function SystemConfigTab() {
           <div className="mt-6 pt-6 border-t border-border">
             <h4 className="text-sm font-semibold text-foreground mb-4">Statistiques Knowledge Base</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="text-3xl font-bold text-blue-900">
+              <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4">
+                <div className="text-3xl font-bold text-blue-900 dark:text-blue-200">
                   {ragConfig.kbDocsIndexed.toLocaleString()}
                 </div>
-                <div className="text-sm text-blue-700 mt-1">Documents indexés</div>
+                <div className="text-sm text-blue-700 dark:text-blue-400 mt-1">Documents indexés</div>
               </div>
-              <div className="bg-green-50 rounded-lg p-4">
-                <div className="text-3xl font-bold text-green-900">
+              <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4">
+                <div className="text-3xl font-bold text-green-900 dark:text-green-200">
                   {ragConfig.kbChunksAvailable.toLocaleString()}
                 </div>
-                <div className="text-sm text-green-700 mt-1">Chunks disponibles</div>
+                <div className="text-sm text-green-700 dark:text-green-400 mt-1">Chunks disponibles</div>
               </div>
             </div>
           </div>
@@ -416,10 +416,10 @@ export default function SystemConfigTab() {
             </div>
             <div className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
               envVarData.status === 'critical'
-                ? 'bg-red-100 border-red-300 text-red-800'
+                ? 'bg-red-100 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-800 dark:text-red-300'
                 : envVarData.status === 'warning'
-                  ? 'bg-yellow-100 border-yellow-300 text-yellow-800'
-                  : 'bg-green-100 border-green-300 text-green-800'
+                  ? 'bg-yellow-100 dark:bg-yellow-950/40 border-yellow-300 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300'
+                  : 'bg-green-100 dark:bg-green-950/40 border-green-300 dark:border-green-800 text-green-800 dark:text-green-300'
             }`}>
               {envVarData.status === 'critical' ? 'CRITIQUE' :
                envVarData.status === 'warning' ? 'AVERTISSEMENT' : 'OK'}
@@ -429,16 +429,16 @@ export default function SystemConfigTab() {
           <div className="space-y-4">
             {/* Variables REQUIRED manquantes → rouge */}
             {envVarData.missing.length > 0 && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+              <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <XCircle className="w-4 h-4 text-red-600" />
-                  <h4 className="text-sm font-semibold text-red-900">
+                  <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  <h4 className="text-sm font-semibold text-red-900 dark:text-red-200">
                     Variables obligatoires manquantes ({envVarData.missing.length})
                   </h4>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {envVarData.missing.map((v) => (
-                    <code key={v} className="px-2 py-1 bg-red-100 border border-red-300 rounded text-xs font-mono text-red-800">
+                    <code key={v} className="px-2 py-1 bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-700 rounded text-xs font-mono text-red-800 dark:text-red-300">
                       {v}
                     </code>
                   ))}
@@ -448,16 +448,16 @@ export default function SystemConfigTab() {
 
             {/* Variables IMPORTANT manquantes → jaune */}
             {envVarData.importantMissing.length > 0 && (
-              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+              <div className="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/30 p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <AlertCircle className="w-4 h-4 text-yellow-600" />
-                  <h4 className="text-sm font-semibold text-yellow-900">
+                  <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                  <h4 className="text-sm font-semibold text-yellow-900 dark:text-yellow-200">
                     Variables importantes manquantes ({envVarData.importantMissing.length})
                   </h4>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {envVarData.importantMissing.map((v) => (
-                    <code key={v} className="px-2 py-1 bg-yellow-100 border border-yellow-300 rounded text-xs font-mono text-yellow-800">
+                    <code key={v} className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-300 dark:border-yellow-700 rounded text-xs font-mono text-yellow-800 dark:text-yellow-300">
                       {v}
                     </code>
                   ))}
@@ -467,21 +467,21 @@ export default function SystemConfigTab() {
 
             {/* Variables DEPRECATED présentes → jaune */}
             {envVarData.deprecated.length > 0 && (
-              <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+              <div className="rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/30 p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <AlertCircle className="w-4 h-4 text-orange-600" />
-                  <h4 className="text-sm font-semibold text-orange-900">
+                  <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                  <h4 className="text-sm font-semibold text-orange-900 dark:text-orange-200">
                     Variables dépréciées présentes ({envVarData.deprecated.length})
                   </h4>
                 </div>
                 <div className="space-y-1.5">
                   {envVarData.deprecated.map((d) => (
                     <div key={d.name} className="flex items-center gap-2 text-xs">
-                      <code className="px-2 py-1 bg-orange-100 border border-orange-300 rounded font-mono text-orange-800">
+                      <code className="px-2 py-1 bg-orange-100 dark:bg-orange-900/40 border border-orange-300 dark:border-orange-700 rounded font-mono text-orange-800 dark:text-orange-300">
                         {d.name}
                       </code>
-                      <span className="text-orange-600">→ remplacer par</span>
-                      <code className="px-2 py-1 bg-orange-100 border border-orange-300 rounded font-mono text-orange-800">
+                      <span className="text-orange-600 dark:text-orange-400">→ remplacer par</span>
+                      <code className="px-2 py-1 bg-orange-100 dark:bg-orange-900/40 border border-orange-300 dark:border-orange-700 rounded font-mono text-orange-800 dark:text-orange-300">
                         {d.replacedBy}
                       </code>
                     </div>
@@ -492,16 +492,16 @@ export default function SystemConfigTab() {
 
             {/* Variables REQUIRED présentes → vert */}
             {envVarData.present.length > 0 && (
-              <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+              <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <h4 className="text-sm font-semibold text-green-900">
+                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <h4 className="text-sm font-semibold text-green-900 dark:text-green-200">
                     Variables obligatoires configurées ({envVarData.present.length}/{envVarData.present.length + envVarData.missing.length})
                   </h4>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {envVarData.present.map((v) => (
-                    <code key={v} className="px-2 py-1 bg-green-100 border border-green-300 rounded text-xs font-mono text-green-800">
+                    <code key={v} className="px-2 py-1 bg-green-100 dark:bg-green-900/40 border border-green-300 dark:border-green-700 rounded text-xs font-mono text-green-800 dark:text-green-300">
                       {v}
                     </code>
                   ))}
@@ -552,22 +552,22 @@ function ServiceCard({
 
   return (
     <div className={`rounded-lg border p-6 ${
-      isHealthy ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+      isHealthy ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
     }`}>
       <div className="flex items-center gap-3 mb-4">
-        <div className={isHealthy ? 'text-green-600' : 'text-red-600'}>
+        <div className={isHealthy ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
           {icon}
         </div>
         <h3 className="font-semibold text-foreground">{title}</h3>
       </div>
       <div className="flex items-center gap-2 mb-3">
         {isHealthy ? (
-          <CheckCircle className="w-4 h-4 text-green-600" />
+          <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
         ) : (
-          <XCircle className="w-4 h-4 text-red-600" />
+          <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
         )}
         <span className={`text-sm font-medium ${
-          isHealthy ? 'text-green-800' : 'text-red-800'
+          isHealthy ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'
         }`}>
           {status}
         </span>
@@ -596,16 +596,16 @@ function ConfigItem({
   icon: React.ReactNode
 }) {
   const colors = {
-    ok: 'bg-green-50 border-green-200 text-green-800',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    error: 'bg-red-50 border-red-200 text-red-800',
+    ok: 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300',
+    warning: 'bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300',
+    error: 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300',
     neutral: 'bg-muted border-border text-foreground',
   }
 
   const iconColors = {
-    ok: 'text-green-600',
-    warning: 'text-yellow-600',
-    error: 'text-red-600',
+    ok: 'text-green-600 dark:text-green-400',
+    warning: 'text-yellow-600 dark:text-yellow-400',
+    error: 'text-red-600 dark:text-red-400',
     neutral: 'text-muted-foreground',
   }
 
