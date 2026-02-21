@@ -1966,6 +1966,14 @@ export async function answerQuestion(
     citationWarnings = citationResult.warnings.map(w => w.citation)
   }
 
+  // Sprint 4: logger les sources sans citation_locator (non auditables)
+  if (citationResult?.locatorsMissing && citationResult.locatorsMissing.length > 0) {
+    logger.warn('filter', 'Sources sans citation_locator (non auditables)', {
+      count: citationResult.locatorsMissing.length,
+      sources: citationResult.locatorsMissing,
+    })
+  }
+
   abrogationWarnings = abrogationResult || []
   if (abrogationWarnings.length > 0) {
     logger.warn('abrogation', 'Lois abrogées détectées dans la réponse', {

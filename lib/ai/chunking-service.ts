@@ -203,6 +203,38 @@ export function chunkText(text: string, options: ChunkingOptions = {}): Chunk[] 
     return []
   }
 
+  // ── SPRINT 3 : Pré-traitement des blocs TABLE ──
+  // Si le texte contient des blocs [TABLE]...[/TABLE], on les extrait séparément
+  // pour créer des chunks de type 'table' (non splittés)
+  if (TABLE_BLOCK_REGEX.test(text)) {
+    TABLE_BLOCK_REGEX.lastIndex = 0  // Reset après le test
+    const segments = splitTextSegments(text)
+    const allChunks: Chunk[] = []
+
+    for (const segment of segments) {
+      if (segment.isTable) {
+        // Créer un chunk TABLE non-splittable
+        allChunks.push(createTableChunk(segment, allChunks.length))
+      } else if (segment.content.trim().length > 0) {
+        // Chunker le texte normal normalement
+        const subChunks = chunkText(segment.content, options)
+        for (const sub of subChunks) {
+          allChunks.push({
+            ...sub,
+            index: allChunks.length,
+            metadata: {
+              ...sub.metadata,
+              startPosition: segment.startPosition + sub.metadata.startPosition,
+              endPosition: segment.startPosition + sub.metadata.endPosition,
+            },
+          })
+        }
+      }
+    }
+
+    return allChunks.map((c, i) => ({ ...c, index: i }))
+  }
+
   // Nettoyer le texte
   const cleanedText = text.trim()
 

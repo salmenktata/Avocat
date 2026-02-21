@@ -49,6 +49,8 @@ export interface ValidationResult {
   invalidCitations: CitationValidation[]
   warnings: CitationWarning[]
   validationTimeMs: number
+  /** Sprint 4: Citations sans citation_locator (non auditables) */
+  locatorsMissing?: string[]
 }
 
 // =============================================================================
@@ -317,12 +319,16 @@ export function validateArticleCitations(
     suggestion: 'Vérifier que cette référence est présente dans les sources',
   }))
 
+  // Sprint 4: Vérifier citation locators
+  const locatorsMissing = validateCitationLocators(sources)
+
   return {
     totalCitations: referencesToValidate.length,
     validCitations: validations.filter(v => v.isValid).length,
     invalidCitations,
     warnings,
     validationTimeMs: Date.now() - startTime,
+    locatorsMissing: locatorsMissing.length > 0 ? locatorsMissing : undefined,
   }
 }
 
@@ -523,6 +529,29 @@ export function verifyBranchAlignment(
     violatingCount: violatingSources.length,
     violatingSources,
   }
+}
+
+// =============================================================================
+// SPRINT 4 : VALIDATION CITATION LOCATORS
+// =============================================================================
+
+/**
+ * Vérifie que les sources citées ont un citation_locator dans leurs métadonnées.
+ * Les citations sans locator sont "non auditables" — elles ont été générées mais
+ * on ne peut pas retracer leur position exacte dans le document source.
+ *
+ * @param sources - Sources retournées par le RAG
+ * @returns Liste des documentNames sans citation_locator
+ */
+export function validateCitationLocators(sources: ChatSource[]): string[] {
+  const missing: string[] = []
+  for (const source of sources) {
+    const meta = source.metadata as Record<string, unknown> | undefined
+    if (!meta?.citation_locator) {
+      missing.push(source.documentName)
+    }
+  }
+  return missing
 }
 
 // =============================================================================
