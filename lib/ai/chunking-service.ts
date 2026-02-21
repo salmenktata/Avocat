@@ -47,6 +47,8 @@ export interface Chunk {
   metadata: ChunkMetadata
 }
 
+export type ChunkType = 'text' | 'table' | 'article' | 'header'
+
 export interface ChunkMetadata {
   wordCount: number
   charCount: number
@@ -56,6 +58,7 @@ export interface ChunkMetadata {
   overlapWithNext: boolean
   articleNumber?: string  // Phase 3: numéro d'article si applicable
   chunkingStrategy?: ChunkingStrategy  // Phase 3: stratégie utilisée
+  chunkType?: ChunkType  // Sprint 3: type de chunk (text, table, article, header)
   [key: string]: any  // Permettre métadonnées additionnelles
 }
 
@@ -74,6 +77,100 @@ export interface ChunkingOptions {
   strategy?: ChunkingStrategy
   /** Phase 3: Langue du document (pour détection articles) */
   language?: 'fr' | 'ar'
+}
+
+// =============================================================================
+// SPRINT 3 : GESTION BLOCS TABLE
+// =============================================================================
+
+/** Taille maximale d'un chunk TABLE en caractères (pas de split au-delà) */
+const MAX_TABLE_CHUNK_SIZE = 2000
+
+/**
+ * Regex pour détecter les blocs TABLE dans le texte.
+ * Un bloc TABLE est délimité par [TABLE] et [/TABLE].
+ */
+const TABLE_BLOCK_REGEX = /\[TABLE\]([\s\S]*?)\[\/TABLE\]/g
+
+/**
+ * Représente un segment du texte (texte normal ou bloc TABLE)
+ */
+interface TextSegment {
+  content: string
+  isTable: boolean
+  startPosition: number
+}
+
+/**
+ * Divise un texte en segments (texte normal et blocs TABLE intercalés).
+ * Préserve les positions absolues pour que les chunks aient les bons startPosition/endPosition.
+ */
+function splitTextSegments(text: string): TextSegment[] {
+  const segments: TextSegment[] = []
+  let lastIndex = 0
+
+  for (const match of text.matchAll(TABLE_BLOCK_REGEX)) {
+    const matchStart = match.index!
+    const matchEnd = matchStart + match[0].length
+
+    // Texte avant le bloc TABLE
+    if (matchStart > lastIndex) {
+      segments.push({
+        content: text.slice(lastIndex, matchStart),
+        isTable: false,
+        startPosition: lastIndex,
+      })
+    }
+
+    // Bloc TABLE (contenu interne sans les marqueurs)
+    const tableContent = match[1].trim()
+    if (tableContent.length > 0) {
+      segments.push({
+        content: tableContent,
+        isTable: true,
+        startPosition: matchStart,
+      })
+    }
+
+    lastIndex = matchEnd
+  }
+
+  // Texte restant après le dernier bloc TABLE
+  if (lastIndex < text.length) {
+    segments.push({
+      content: text.slice(lastIndex),
+      isTable: false,
+      startPosition: lastIndex,
+    })
+  }
+
+  return segments
+}
+
+/**
+ * Crée un chunk de type 'table' depuis un segment TABLE.
+ * Si le contenu dépasse MAX_TABLE_CHUNK_SIZE, le tronque avec avertissement.
+ */
+function createTableChunk(segment: TextSegment, index: number): Chunk {
+  let content = segment.content
+  if (content.length > MAX_TABLE_CHUNK_SIZE) {
+    console.log(`[Chunking] Table chunk tronqué: ${content.length} > ${MAX_TABLE_CHUNK_SIZE} chars`)
+    content = content.slice(0, MAX_TABLE_CHUNK_SIZE)
+  }
+  return {
+    content,
+    index,
+    metadata: {
+      wordCount: countWords(content),
+      charCount: content.length,
+      startPosition: segment.startPosition,
+      endPosition: segment.startPosition + content.length,
+      overlapWithPrevious: false,
+      overlapWithNext: false,
+      chunkType: 'table',
+      chunkingStrategy: 'adaptive',
+    },
+  }
 }
 
 // =============================================================================

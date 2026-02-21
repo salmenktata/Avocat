@@ -1324,20 +1324,67 @@ export function extractStructuredLegalContent(
 }
 
 /**
- * Convertit les tableaux HTML en texte structuré pipe-delimited
- * Les textes juridiques contiennent souvent des tableaux (barèmes, juridictions)
+ * Convertit les tableaux HTML en Markdown table avec marqueurs spéciaux.
+ *
+ * Les marqueurs [TABLE]...[/TABLE] permettent au chunking service de :
+ * - Créer des chunks distincts de type 'table' (non splittés)
+ * - Conserver la structure tabulaire pour le LLM
+ *
+ * Format de sortie pour chaque tableau :
+ *   [TABLE]
+ *   | col1 | col2 | ... |
+ *   |------|------|-----|
+ *   | val1 | val2 | ... |
+ *   [/TABLE]
  */
 function convertTablesToText(element: Cheerio<Element>): void {
   const $ = cheerio.load(element.html() || '')
   $('table').each((_, table) => {
-    const rows: string[] = []
+    const rows: string[][] = []
+    let hasHeader = false
+
+    // Extraire les lignes header (th)
+    const headerRow: string[] = []
+    $(table).find('thead tr, tr:first-child').first().find('th').each((_, th) => {
+      headerRow.push($(th).text().trim())
+    })
+    if (headerRow.length > 0) {
+      hasHeader = true
+    }
+
+    // Extraire toutes les lignes (tr)
     $(table).find('tr').each((_, tr) => {
       const cells: string[] = []
-      $(tr).find('th, td').each((_, cell) => { cells.push($(cell).text().trim()) })
-      if (cells.length) rows.push(cells.join(' | '))
+      $(tr).find('th, td').each((_, cell) => {
+        // Nettoyer le contenu de la cellule (inline seulement)
+        cells.push($(cell).text().trim().replace(/\|/g, '\\|').replace(/\n/g, ' '))
+      })
+      if (cells.length) rows.push(cells)
     })
-    $(table).replaceWith('\n' + rows.join('\n') + '\n')
+
+    if (rows.length === 0) {
+      $(table).replaceWith('')
+      return
+    }
+
+    // Construire tableau Markdown
+    const colCount = Math.max(...rows.map(r => r.length))
+    const mdRows: string[] = []
+
+    for (let i = 0; i < rows.length; i++) {
+      // Padder les cellules manquantes
+      while (rows[i].length < colCount) rows[i].push('')
+      mdRows.push('| ' + rows[i].join(' | ') + ' |')
+      // Ajouter séparateur header après la 1ère ligne (si th ou 1ère ligne)
+      if (i === 0 && (hasHeader || rows[0].some(c => c.length > 0))) {
+        mdRows.push('|' + Array(colCount).fill('------').join('|') + '|')
+      }
+    }
+
+    const tableMarkdown = '\n[TABLE]\n' + mdRows.join('\n') + '\n[/TABLE]\n'
+    $(table).replaceWith(tableMarkdown)
   })
+
   // Réécrire le HTML modifié dans l'élément
   const updatedHtml = $.html()
   const parent$ = cheerio.load('<div>' + updatedHtml + '</div>')

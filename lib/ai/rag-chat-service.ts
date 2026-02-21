@@ -79,6 +79,7 @@ import {
   validateArticleCitations,
   formatValidationWarnings,
   verifyClaimSourceAlignment,
+  verifyBranchAlignment,
 } from './citation-validator-service'
 import {
   detectAbrogatedReferences,
@@ -176,6 +177,10 @@ export interface ChatResponse {
   qualityIndicator?: 'high' | 'medium' | 'low'
   averageSimilarity?: number
   abstentionReason?: string // Sprint 1 B1 - Raison de l'abstention si sources insuffisantes
+  /** Sprint 3 RAG Audit-Proof : true si la réponse a été régénérée après détection cross-domaine */
+  wasRegenerated?: boolean
+  /** Sprint 3 : statut de validation des sources après génération */
+  validationStatus?: 'passed' | 'regenerated' | 'insufficient_sources'
 }
 
 import type { DocumentType } from '@/lib/categories/doc-types'
@@ -328,7 +333,8 @@ function detectDomainBoost(query: string): { pattern: string; factor: number }[]
 async function rerankSources(
   sources: ChatSource[],
   query?: string,
-  boostFactors?: Record<string, number>
+  boostFactors?: Record<string, number>,
+  branchOptions?: { forbiddenBranches?: string[]; allowedBranches?: string[] }
 ): Promise<ChatSource[]> {
   if (sources.length === 0) return sources
 
@@ -358,6 +364,15 @@ async function rerankSources(
           boost *= factor
           break
         }
+      }
+    }
+
+    // Sprint 1 RAG Audit-Proof: pénalité forte pour branches hors-scope (×0.05 ≈ élimination)
+    if (branchOptions?.forbiddenBranches && branchOptions.forbiddenBranches.length > 0) {
+      const branch = s.metadata?.branch as string | undefined
+      if (branch && branch !== 'autre' && branchOptions.forbiddenBranches.includes(branch)) {
+        boost *= 0.05
+        console.log(`[RAG Branch] Pénalité 0.05× sur "${s.documentName}" (branch=${branch}, forbidden=[${branchOptions.forbiddenBranches.join(',')}])`)
       }
     }
 
@@ -753,8 +768,13 @@ export async function searchRelevantContext(
     (s) => s.similarity >= effectiveMinimum
   )
 
+  // Sprint 1 RAG Audit-Proof: branches issues du routeur pour pénaliser sources hors-domaine
+  const branchOptions = routerResult
+    ? { forbiddenBranches: routerResult.forbiddenBranches, allowedBranches: routerResult.allowedBranches }
+    : undefined
+
   // Appliquer re-ranking avec boost dynamique, cross-encoder et diversité
-  let rerankedSources = await rerankSources(aboveThreshold, question)
+  let rerankedSources = await rerankSources(aboveThreshold, question, undefined, branchOptions)
 
   // Seuils adaptatifs: si moins de 3 résultats, baisser le seuil de 20% (une seule fois)
   // Plancher plus bas pour l'arabe (embeddings arabes produisent des scores plus faibles)
@@ -768,7 +788,7 @@ export async function searchRelevantContext(
       )
       if (adaptiveResults.length > rerankedSources.length) {
         console.log(`[RAG Search] Seuil adaptatif: ${rerankedSources.length} → ${adaptiveResults.length} résultats (seuil ${adaptiveThreshold.toFixed(2)}, plancher ${ADAPTIVE_FLOOR})`)
-        rerankedSources = await rerankSources(adaptiveResults, question)
+        rerankedSources = await rerankSources(adaptiveResults, question, undefined, branchOptions)
       }
     }
   }
@@ -1358,6 +1378,20 @@ export async function buildContextFromSources(sources: ChatSource[], questionLan
       part = enrichedHeader + '\n' + source.chunkContent
     } else {
       part = `[Source-${i + 1}] ${source.documentName} (${relevanceLabel} - ${relevancePct})\n\n` + source.chunkContent
+    }
+
+    // ── SPRINT 2 : Avertissement OCR faible confiance ──
+    if (meta?.ocr_low_confidence === true) {
+      const ocrConf = meta.ocr_page_confidence as number | undefined
+      const ocrWarning = lang === 'ar'
+        ? `⚠️ مصدر OCR (موثوقية منخفضة${ocrConf !== undefined ? ` - ${ocrConf.toFixed(0)}%` : ''} - يُرجى التحقق من الأصل)\n`
+        : `⚠️ Source OCR (fiabilité faible${ocrConf !== undefined ? ` - ${ocrConf.toFixed(0)}%` : ''} - à vérifier sur original)\n`
+      part = ocrWarning + part
+    }
+
+    // ── SPRINT 3 : Préfixe pour chunks TABLE ──
+    if (meta?.chunk_type === 'table') {
+      part = `[TABLE]\n${part}`
     }
 
     const partTokens = countTokens(part)
@@ -1958,6 +1992,63 @@ export async function answerQuestion(
     }
   }
 
+  // Sprint 3 RAG Audit-Proof : détection cross-domaine + régénération automatique (1 tentative)
+  let wasRegenerated = false
+  let validationStatus: 'passed' | 'regenerated' | 'insufficient_sources' = 'passed'
+
+  if (process.env.ENABLE_BRANCH_REGENERATION !== 'false') {
+    try {
+      // Le router est déjà appelé dans searchRelevantContext — cache Redis hit ici (~0ms)
+      const { routeQuery } = await import('./legal-router-service')
+      const routerForValidation = await routeQuery(question, { maxTracks: 1 })
+      const allowedBranches = routerForValidation.allowedBranches
+
+      if (allowedBranches && allowedBranches.length > 0) {
+        const branchCheck = verifyBranchAlignment(sources, allowedBranches)
+
+        if (branchCheck.violatingCount > 0) {
+          console.warn(
+            `[RAG Sprint3] ${branchCheck.violatingCount}/${branchCheck.totalSources} sources hors-domaine détectées:`,
+            branchCheck.violatingSources.map(v => `${v.documentName} (branch=${v.branch})`).join(', ')
+          )
+
+          // Filtrer pour ne garder que sources dans le domaine autorisé
+          const alignedSources = sources.filter(s => {
+            const branch = s.metadata?.branch as string | undefined
+            if (!branch || branch === 'autre') return true // pas de branch = on garde
+            return allowedBranches.includes(branch)
+          })
+
+          if (alignedSources.length >= 2) {
+            // Régénérer avec sources filtrées (appel LLM synchrone, 1 tentative max)
+            const filteredContext = await buildContextFromSources(alignedSources, questionLang)
+            const regenMessages: LLMMessage[] = [
+              {
+                role: 'user',
+                content: `${msgTemplate.prefix}\n\n[تنبيه: تم استبعاد المصادر خارج النطاق القانوني للسؤال]\n\n${filteredContext}\n${analysisLine}\n---\n\n${msgTemplate.questionLabel} ${question}`,
+              },
+            ]
+            const regenResponse = await callLLMWithFallback(regenMessages, {
+              systemPrompt: systemPromptWithSummary,
+              operationName: options.operationName,
+            })
+            answer = sanitizeCitations(regenResponse.answer, alignedSources.length)
+            sources = alignedSources
+            wasRegenerated = true
+            validationStatus = 'regenerated'
+            console.log('[RAG Sprint3] ✅ Réponse régénérée avec sources filtrées par domaine')
+          } else {
+            validationStatus = 'insufficient_sources'
+            console.warn('[RAG Sprint3] Sources filtrées insuffisantes (<2) — pas de régénération')
+          }
+        }
+      }
+    } catch (error) {
+      // Non-bloquant : si la régénération échoue, on garde la réponse originale
+      console.error('[RAG Sprint3] Erreur validation branche:', error instanceof Error ? error.message : error)
+    }
+  }
+
   // Log métriques finales du pipeline complet
   logger.metrics({
     totalTimeMs: Date.now() - startTotal,
@@ -1984,6 +2075,8 @@ export async function answerQuestion(
     abrogationWarnings: abrogationWarnings.length > 0 ? abrogationWarnings : undefined,
     qualityIndicator: qualityMetrics.qualityLevel,
     averageSimilarity: qualityMetrics.averageSimilarity,
+    wasRegenerated: wasRegenerated || undefined,
+    validationStatus: validationStatus !== 'passed' ? validationStatus : undefined,
   }
 }
 

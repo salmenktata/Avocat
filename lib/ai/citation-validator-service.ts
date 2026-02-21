@@ -474,6 +474,58 @@ export function verifyClaimSourceAlignment(
 }
 
 // =============================================================================
+// FONCTION 6 : VÉRIFICATION ALIGNEMENT BRANCHE (Sprint 1 RAG Audit-Proof)
+// =============================================================================
+
+export interface BranchAlignmentResult {
+  totalSources: number
+  violatingCount: number
+  violatingSources: Array<{
+    documentName: string
+    branch: string
+    allowedBranches: string[]
+  }>
+}
+
+/**
+ * Vérifie que les sources utilisées appartiennent aux branches juridiques autorisées.
+ *
+ * Utilisé post-génération pour détecter les citations cross-domaine.
+ * Ex: question marchés_publics → source مجلة الشغل (branch='travail') = violation.
+ *
+ * @param sources - Sources retournées par le RAG
+ * @param allowedBranches - Branches autorisées pour la query (du RouterResult)
+ * @returns Résultat avec nombre et liste des sources hors-domaine
+ */
+export function verifyBranchAlignment(
+  sources: ChatSource[],
+  allowedBranches: string[]
+): BranchAlignmentResult {
+  if (!allowedBranches || allowedBranches.length === 0) {
+    return { totalSources: sources.length, violatingCount: 0, violatingSources: [] }
+  }
+
+  const violatingSources = sources
+    .filter(s => {
+      const branch = s.metadata?.branch as string | undefined
+      // Pas de branch définie ou 'autre' → on garde (pas de restriction)
+      if (!branch || branch === 'autre') return false
+      return !allowedBranches.includes(branch)
+    })
+    .map(s => ({
+      documentName: s.documentName,
+      branch: s.metadata?.branch as string,
+      allowedBranches,
+    }))
+
+  return {
+    totalSources: sources.length,
+    violatingCount: violatingSources.length,
+    violatingSources,
+  }
+}
+
+// =============================================================================
 // UTILITAIRES EXPORT
 // =============================================================================
 

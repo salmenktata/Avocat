@@ -184,6 +184,18 @@ async function convertDocToDocxInternal(buffer: Buffer): Promise<Buffer> {
 // TYPES
 // =============================================================================
 
+/**
+ * Map des pages : position de chaque page dans le texte assemblé.
+ * Construit à partir des marqueurs "--- Page N ---" générés par l'OCR,
+ * ou des informations de page extraites de pdf-parse.
+ */
+export interface PageMapEntry {
+  pageNum: number
+  startChar: number       // Position de début dans le texte complet (inclusive)
+  endChar: number         // Position de fin (exclusive)
+  confidence_ocr?: number // Confiance OCR pour cette page (0-100), seulement pour PDF OCR
+}
+
 export interface ParsedFile {
   success: boolean
   text: string
@@ -197,10 +209,78 @@ export interface ParsedFile {
     ocrPagesProcessed?: number
     ocrConfidence?: number
   }
+  /** Map des pages pour construire les citation_locator des chunks */
+  pageMap?: PageMapEntry[]
   error?: string
 }
 
 export type SupportedFileType = 'pdf' | 'docx' | 'doc' | 'txt'
+
+// =============================================================================
+// UTILITAIRE : CONSTRUCTION PAGE MAP
+// =============================================================================
+
+/**
+ * Construit le page map à partir du texte assemblé contenant les marqueurs "--- Page N ---".
+ * Ces marqueurs sont insérés par le pipeline OCR lors de l'assemblage du texte.
+ *
+ * @param text - Texte complet avec marqueurs de page
+ * @param pageConfidences - Tableau de confidences OCR indexé par pageNum-1 (optionnel)
+ * @returns Page map avec positions de début/fin pour chaque page
+ */
+export function buildPageMapFromText(
+  text: string,
+  pageConfidences?: number[]
+): PageMapEntry[] {
+  const pageMap: PageMapEntry[] = []
+  // Regex pour détecter les marqueurs "--- Page N ---"
+  const pageMarkerRegex = /--- Page (\d+) ---\n?/g
+  let match: RegExpExecArray | null
+  let lastPageNum: number | null = null
+  let lastPageStart = 0
+
+  while ((match = pageMarkerRegex.exec(text)) !== null) {
+    const pageNum = parseInt(match[1], 10)
+    const markerEnd = match.index + match[0].length
+
+    // Clore la page précédente
+    if (lastPageNum !== null) {
+      pageMap.push({
+        pageNum: lastPageNum,
+        startChar: lastPageStart,
+        endChar: match.index,
+        confidence_ocr: pageConfidences ? pageConfidences[lastPageNum - 1] : undefined,
+      })
+    }
+
+    lastPageNum = pageNum
+    lastPageStart = markerEnd
+  }
+
+  // Clore la dernière page
+  if (lastPageNum !== null) {
+    pageMap.push({
+      pageNum: lastPageNum,
+      startChar: lastPageStart,
+      endChar: text.length,
+      confidence_ocr: pageConfidences ? pageConfidences[lastPageNum - 1] : undefined,
+    })
+  }
+
+  return pageMap
+}
+
+/**
+ * Retrouve le numéro de page d'une position dans le texte, en utilisant le page map.
+ * @returns Numéro de page (1-based) ou undefined si pas de page map
+ */
+export function getPageForPosition(
+  position: number,
+  pageMap: PageMapEntry[]
+): PageMapEntry | undefined {
+  return pageMap.find(p => position >= p.startChar && position < p.endChar)
+    ?? (pageMap.length > 0 ? pageMap[pageMap.length - 1] : undefined)
+}
 
 // =============================================================================
 // PARSING PDF
@@ -273,6 +353,7 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
     let ocrApplied = false
     let ocrPagesProcessed = 0
     let ocrConfidence: number | undefined
+    let ocrPageConfidences: number[] | undefined
 
     if (needsOcr && ocrEnabled) {
       const reason = forcedOcr
@@ -290,6 +371,9 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
           ocrApplied = true
           ocrPagesProcessed = ocrResult.pagesProcessed
           ocrConfidence = ocrResult.avgConfidence
+          if ('pageConfidences' in ocrResult && Array.isArray((ocrResult as { pageConfidences?: unknown }).pageConfidences)) {
+            ocrPageConfidences = (ocrResult as { pageConfidences: number[] }).pageConfidences
+          }
           console.log(
             `[FileParser] OCR terminé: ${ocrPagesProcessed} pages, ${wordCount} mots, confiance: ${ocrConfidence?.toFixed(1)}%`
           )
@@ -301,6 +385,9 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
         console.error('[FileParser] Erreur OCR (fallback au texte original):', errorMsg)
       }
     }
+
+    // Construire le page map à partir des marqueurs "--- Page N ---"
+    const pageMap = buildPageMapFromText(text, ocrApplied ? ocrPageConfidences : undefined)
 
     return {
       success: true,
@@ -317,6 +404,7 @@ export async function parsePdf(buffer: Buffer): Promise<ParsedFile> {
         ocrPagesProcessed: ocrApplied ? ocrPagesProcessed : undefined,
         ocrConfidence: ocrApplied ? ocrConfidence : undefined,
       },
+      pageMap: pageMap.length > 0 ? pageMap : undefined,
     }
   } catch (error) {
     const errorMsg = getErrorMessage(error) || 'Erreur parsing PDF inconnue'
@@ -439,9 +527,11 @@ async function extractTextWithOcr(
 async function extractTextWithOcrPdfToImg(
   buffer: Buffer,
   pagesToProcess: number
-): Promise<{ text: string; pagesProcessed: number; avgConfidence: number }> {
+): Promise<{ text: string; pagesProcessed: number; avgConfidence: number; pageConfidences: number[] }> {
   const textParts: string[] = []
   const confidences: number[] = []
+  // pageConfidences indexé par numéro de page réel (pageIndex → confidence)
+  const pageConfidences: number[] = []
   const { cleanArabicOcrText } = await import('./arabic-text-utils')
   const { pdf } = await loadPdfToImg()
   const worker = await getOrCreateWorker()
@@ -459,6 +549,7 @@ async function extractTextWithOcrPdfToImg(
         console.warn(`[FileParser] OCR page ${pageIndex + 1} faible confiance: ${data.confidence}%`)
       }
       confidences.push(data.confidence)
+      pageConfidences[pageIndex] = data.confidence
       let pageText = cleanText(data.text)
       pageText = cleanArabicOcrText(pageText)
       if (pageText.length > 0) {
@@ -466,6 +557,7 @@ async function extractTextWithOcrPdfToImg(
       }
     } catch (pageError) {
       console.error(`[FileParser] Erreur OCR page ${pageIndex + 1}:`, pageError)
+      pageConfidences[pageIndex] = 0
     }
     pageIndex++
     if (pageIndex % 25 === 0) {
@@ -479,7 +571,7 @@ async function extractTextWithOcrPdfToImg(
     ? confidences.reduce((a, b) => a + b, 0) / confidences.length
     : 0
 
-  return { text: textParts.join('\n\n'), pagesProcessed: textParts.length, avgConfidence }
+  return { text: textParts.join('\n\n'), pagesProcessed: textParts.length, avgConfidence, pageConfidences }
 }
 
 /**

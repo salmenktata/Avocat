@@ -22,6 +22,10 @@ import { normalizeArticleNumbers, removeDocumentBoilerplate } from '@/lib/ai/tex
 import { checkDocumentInclusion } from '@/lib/kb/inclusion-rules'
 import { trackDocumentVersion } from '@/lib/kb/document-version-tracker'
 import type { Chunk } from './chunking-service'
+import { buildPageMapFromText, getPageForPosition } from '@/lib/web-scraper/file-parser-service'
+import type { PageMapEntry } from '@/lib/web-scraper/file-parser-service'
+import { OCR_CONFIDENCE_WARN_THRESHOLD } from '@/lib/types/citation-locator'
+import type { CitationLocator } from '@/lib/types/citation-locator'
 
 // Import dynamique pour éviter les problèmes avec pdf-parse en RSC
 async function getDocumentParser() {
@@ -258,10 +262,18 @@ export async function uploadKnowledgeDocument(
 
 /**
  * Construit les métadonnées riches pour un chunk, incluant article_number,
- * book_number, section_header, etc. en plus de wordCount/charCount.
+ * book_number, section_header, citation_locator, etc. en plus de wordCount/charCount.
  * Rétrocompatible : les chunks existants gardent {wordCount, charCount}.
+ *
+ * @param chunk - Chunk à indexer
+ * @param doc - Ligne knowledge_base depuis la DB
+ * @param pageMap - Map des pages construite depuis le full_text (optionnel)
  */
-function buildChunkMetadata(chunk: Chunk, doc: Record<string, unknown>): Record<string, unknown> {
+function buildChunkMetadata(
+  chunk: Chunk,
+  doc: Record<string, unknown>,
+  pageMap?: PageMapEntry[]
+): Record<string, unknown> {
   const meta: Record<string, unknown> = {
     wordCount: chunk.metadata.wordCount,
     charCount: chunk.metadata.charCount,
@@ -273,12 +285,96 @@ function buildChunkMetadata(chunk: Chunk, doc: Record<string, unknown>): Record<
   if ((chunk.metadata as Record<string, unknown>).sectionHeader) meta.section_header = (chunk.metadata as Record<string, unknown>).sectionHeader
   if (chunk.metadata.overlapWithPrevious) meta.overlap_prev = true
   if (chunk.metadata.overlapWithNext) meta.overlap_next = true
+  // chunk_type (ex: 'table' pour les chunks tableaux)
+  if ((chunk.metadata as Record<string, unknown>).chunkType) {
+    meta.chunk_type = (chunk.metadata as Record<string, unknown>).chunkType
+  }
   // Propagation doc-level
   if (doc.language) meta.language = doc.language
   if (doc.category) meta.category = doc.category
   if (doc.source_type) meta.source_type = doc.source_type
   if (doc.source_url) meta.source_url = doc.source_url
+
+  // ── SPRINT 1 : Citation Locator ──
+  // Construire citation_locator selon le type de source
+  const citationLocator = buildCitationLocator(chunk, doc, pageMap)
+  if (citationLocator) {
+    meta.citation_locator = citationLocator
+  }
+
+  // ── SPRINT 2 : OCR Low Confidence Flag ──
+  if (pageMap && pageMap.length > 0) {
+    const pageEntry = getPageForPosition(chunk.metadata.startPosition, pageMap)
+    if (
+      pageEntry?.confidence_ocr !== undefined &&
+      pageEntry.confidence_ocr < OCR_CONFIDENCE_WARN_THRESHOLD
+    ) {
+      meta.ocr_low_confidence = true
+      meta.ocr_page_confidence = pageEntry.confidence_ocr
+    }
+  }
+
   return meta
+}
+
+/**
+ * Construit un CitationLocator adapté selon le type de document source.
+ * Utilise :
+ *  - source_file extension pour détecter PDF/DOCX
+ *  - présence de marqueurs "--- Page N ---" dans full_text pour détecter PDF OCR
+ *  - source_url pour les pages web
+ */
+function buildCitationLocator(
+  chunk: Chunk,
+  doc: Record<string, unknown>,
+  pageMap?: PageMapEntry[]
+): CitationLocator | null {
+  const sourceUrl = doc.source_url as string | undefined
+  const sourceFile = doc.source_file as string | undefined
+
+  // Détecter le type de fichier depuis source_file
+  const fileExt = sourceFile
+    ? sourceFile.toLowerCase().split('.').pop() || ''
+    : ''
+
+  // Cas 1 : Page web crawlée (source_url défini, pas de source_file)
+  if (sourceUrl && !sourceFile) {
+    return { type: 'web', url: sourceUrl }
+  }
+
+  // Cas 2 : PDF avec page map (OCR ou texte)
+  if (fileExt === 'pdf' || (pageMap && pageMap.length > 0)) {
+    if (pageMap && pageMap.length > 0) {
+      const pageEntry = getPageForPosition(chunk.metadata.startPosition, pageMap)
+      if (pageEntry) {
+        if (pageEntry.confidence_ocr !== undefined) {
+          // PDF OCR : inclure la confiance OCR
+          return {
+            type: 'pdf_ocr',
+            page: pageEntry.pageNum,
+            confidence_ocr: pageEntry.confidence_ocr,
+          }
+        } else {
+          return { type: 'pdf_text', page: pageEntry.pageNum }
+        }
+      }
+    }
+    // PDF sans page map : page inconnue
+    return { type: 'pdf_text', page: 0 }
+  }
+
+  // Cas 3 : DOCX — on ne peut pas déduire le paragraph_index ici
+  // (serait disponible si parsé par file-parser-service avec custom handler)
+  if (fileExt === 'docx' || fileExt === 'doc') {
+    return { type: 'docx', paragraph_index: 0 }
+  }
+
+  // Cas 4 : Source URL disponible (web page avec source_file aussi)
+  if (sourceUrl) {
+    return { type: 'web', url: sourceUrl }
+  }
+
+  return null
 }
 
 /**
@@ -366,6 +462,11 @@ export async function indexKnowledgeDocument(
     textToChunk = normalizeArabicText(textToChunk, { stripDiacritics: true })
   }
   textToChunk = normalizeArticleNumbers(textToChunk)
+
+  // ── SPRINT 1+2 : Construire le page map APRÈS normalisation
+  // Les marqueurs "--- Page N ---" survivent à la normalisation (texte anglais)
+  // Les positions dans le page map correspondent aux positions des chunks (dans textToChunk)
+  const pageMap = buildPageMapFromText(textToChunk)
 
   // ✨ OPTIMISATION Phase 2.3 : Chunking adaptatif par catégorie
   const category = (doc.category as KnowledgeCategory) || 'autre'
@@ -505,7 +606,7 @@ export async function indexKnowledgeDocument(
       for (let i = 0; i < batchChunks.length; i++) {
         const chunkIndex = batchStart + i
 
-        const chunkMeta = JSON.stringify(buildChunkMetadata(batchChunks[i], doc))
+        const chunkMeta = JSON.stringify(buildChunkMetadata(batchChunks[i], doc, pageMap))
 
         if (hasGeminiEmbeddings) {
           // Insérer embedding primaire + Gemini ensemble

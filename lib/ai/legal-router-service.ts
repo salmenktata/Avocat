@@ -29,6 +29,112 @@ export interface RouterResult {
   tracks: LegalTrack[]
   /** Source du routing (llm, heuristic, fallback) */
   source: 'llm' | 'heuristic' | 'fallback'
+  /**
+   * Branches juridiques autorisées pour cette query (Sprint 1 RAG Audit-Proof).
+   * Si défini et non-vide, les sources d'autres branches reçoivent une pénalité ×0.05.
+   * Exemple: question marchés_publics → ['marchés_publics', 'administratif', 'procédure']
+   */
+  allowedBranches?: string[]
+  /**
+   * Branches explicitement interdites pour cette query.
+   * Sources avec ces branches sont pratiquement éliminées du ranking (×0.05).
+   */
+  forbiddenBranches?: string[]
+}
+
+// =============================================================================
+// MAPPING DOMAINES → BRANCHES JURIDIQUES
+// =============================================================================
+
+const ALL_BRANCHES = [
+  'administratif', 'civil', 'commercial', 'pénal', 'travail',
+  'fiscal', 'procédure', 'marchés_publics', 'bancaire', 'immobilier', 'famille',
+]
+
+// Branches transversales (ne jamais exclure — applicables à tous les domaines)
+const UNIVERSAL_BRANCHES = new Set(['procédure', 'autre'])
+
+const DOMAIN_TO_BRANCHES: Array<{ keywords: string[]; branches: string[] }> = [
+  {
+    keywords: ['marchés publics', 'صفقات عمومية', 'صفقات', 'commande publique', 'appel d\'offres', 'مناقصة'],
+    branches: ['marchés_publics', 'administratif'],
+  },
+  {
+    keywords: ['travail', 'droit du travail', 'شغل', 'عمال', 'عمل', 'licenciement', 'إضراب', 'طرد تعسفي', 'عامل'],
+    branches: ['travail'],
+  },
+  {
+    keywords: ['pénal', 'droit pénal', 'جزائي', 'جنائي', 'عقوبات', 'جريمة', 'criminel', 'قضاء جزائي'],
+    branches: ['pénal'],
+  },
+  {
+    keywords: ['civil', 'droit civil', 'مدني', 'التزامات', 'عقود', 'مسؤولية مدنية', 'responsabilité civile'],
+    branches: ['civil'],
+  },
+  {
+    keywords: ['famille', 'droit de la famille', 'أحوال شخصية', 'statut personnel', 'طلاق', 'زواج', 'حضانة', 'نفقة', 'ميراث'],
+    branches: ['famille'],
+  },
+  {
+    keywords: ['commercial', 'droit commercial', 'تجاري', 'شركة', 'إفلاس', 'تفليس', 'شيك', 'كمبيالة'],
+    branches: ['commercial'],
+  },
+  {
+    keywords: ['fiscal', 'droit fiscal', 'ضريبي', 'جبائي', 'ضريبة', 'أداء', 'impôt', 'TVA', 'جباية'],
+    branches: ['fiscal'],
+  },
+  {
+    keywords: ['administratif', 'droit administratif', 'إداري', 'administration', 'المحكمة الإدارية'],
+    branches: ['administratif'],
+  },
+  {
+    keywords: ['bancaire', 'droit bancaire', 'بنك', 'مصرف', 'قرض', 'crédit', 'banque'],
+    branches: ['bancaire'],
+  },
+  {
+    keywords: ['immobilier', 'droit immobilier', 'عقار', 'عقارات', 'immobilier', 'عقد بيع'],
+    branches: ['immobilier'],
+  },
+]
+
+/**
+ * Calcule les branches autorisées/interdites à partir des domaines classifiés.
+ * Retourne {} si les domaines sont trop généraux (pas de restriction).
+ */
+export function computeBranchesFromDomains(domains: string[]): {
+  allowedBranches: string[] | undefined
+  forbiddenBranches: string[] | undefined
+} {
+  if (domains.length === 0) return { allowedBranches: undefined, forbiddenBranches: undefined }
+
+  const allowed = new Set<string>()
+
+  for (const domain of domains) {
+    const domainLower = domain.toLowerCase()
+    for (const entry of DOMAIN_TO_BRANCHES) {
+      const match = entry.keywords.some(kw =>
+        domainLower.includes(kw.toLowerCase()) || kw.toLowerCase().includes(domainLower)
+      )
+      if (match) {
+        entry.branches.forEach(b => allowed.add(b))
+      }
+    }
+  }
+
+  // Toujours inclure 'procédure' (transversal)
+  allowed.add('procédure')
+
+  if (allowed.size <= 1) {
+    // Trop générique — pas de restriction
+    return { allowedBranches: undefined, forbiddenBranches: undefined }
+  }
+
+  const forbidden = ALL_BRANCHES.filter(b => !allowed.has(b) && !UNIVERSAL_BRANCHES.has(b))
+
+  return {
+    allowedBranches: Array.from(allowed),
+    forbiddenBranches: forbidden.length > 0 ? forbidden : undefined,
+  }
 }
 
 // =============================================================================
@@ -172,13 +278,24 @@ export async function routeQuery(
     // Attacher tracks à la classification
     classification.legalTracks = tracks
 
-    const result: RouterResult = { classification, tracks, source: 'llm' }
+    // Sprint 1 RAG Audit-Proof : calculer branches depuis domaines classifiés
+    const { allowedBranches, forbiddenBranches } = computeBranchesFromDomains(classification.domains)
+
+    const result: RouterResult = {
+      classification,
+      tracks,
+      source: 'llm',
+      allowedBranches,
+      forbiddenBranches,
+    }
 
     console.log('[Legal Router] Routing:', {
       query: query.substring(0, 50),
       domains: classification.domains,
       tracksCount: tracks.length,
       confidence: classification.confidence,
+      allowedBranches: allowedBranches || 'unrestricted',
+      forbiddenBranches: forbiddenBranches || 'none',
     })
 
     // Cache Redis
@@ -192,10 +309,13 @@ export async function routeQuery(
 
     // Fallback heuristique
     const classification = classifyQueryKeywords(query)
+    const { allowedBranches, forbiddenBranches } = computeBranchesFromDomains(classification.domains)
     return {
       classification,
       tracks: routeQueryFromClassification(classification, query),
       source: 'heuristic',
+      allowedBranches,
+      forbiddenBranches,
     }
   }
 }
