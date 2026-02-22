@@ -69,7 +69,7 @@ export function UnifiedChatPage({
     return null
   })
   const [currentAction, setCurrentAction] = useState<ActionType>(initialAction)
-  const [stance, setStance] = useState<LegalStance>('neutral')
+  const [stance, setStance] = useState<LegalStance>('defense')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   // Message utilisateur en attente (affiché immédiatement avant réponse serveur)

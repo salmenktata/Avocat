@@ -381,14 +381,24 @@ async function rerankSources(
     }
 
     // Boost stance-aware : favoriser les types de documents pertinents à la posture
-    if (stance === 'defense') {
-      const docType = s.metadata?.doc_type as string | undefined
-      if (docType === 'JURIS') boost *= 1.3
-      if (docType === 'PROC') boost *= 1.2
-    } else if (stance === 'attack') {
-      const docType = s.metadata?.doc_type as string | undefined
-      if (docType === 'TEXTES') boost *= 1.3
-      if (docType === 'JURIS') boost *= 1.2
+    // Fix 4 : fallback sur category si doc_type absent (évite boost nul silencieux)
+    if (stance === 'defense' || stance === 'attack') {
+      const CATEGORY_TO_DOCTYPE: Record<string, string> = {
+        codes: 'TEXTES', legislation: 'TEXTES', lois: 'TEXTES',
+        jurisprudence: 'JURIS', cassation: 'JURIS',
+        procedure: 'PROC', modeles: 'TEMPLATES', doctrine: 'DOCTRINE',
+      }
+      const rawDocType = s.metadata?.doc_type as string | undefined
+      const rawCategory = s.metadata?.category as string | undefined
+      const docType = rawDocType ?? (rawCategory ? CATEGORY_TO_DOCTYPE[rawCategory] : undefined)
+
+      if (stance === 'defense') {
+        if (docType === 'JURIS') boost *= 1.3
+        if (docType === 'PROC') boost *= 1.2
+      } else {
+        if (docType === 'TEXTES') boost *= 1.3
+        if (docType === 'JURIS') boost *= 1.2
+      }
     }
 
     return {
@@ -560,12 +570,16 @@ export async function searchRelevantContext(
   }
 
   // Enrichissement stance-aware : ajout de termes spécifiques à la posture juridique
+  // Fix 2 : uniquement pour les requêtes arabes (évite pollution embedding FR)
   const stanceTerms: Record<string, string> = {
     defense: 'بطلان دفع رفض عدم قبول تقادم عدم الاختصاص',
     attack: 'مسؤولية تعويض إخلال التزام ضرر مطالبة',
   }
   if (options.stance && options.stance !== 'neutral' && stanceTerms[options.stance]) {
-    embeddingQuestion = `${embeddingQuestion} ${stanceTerms[options.stance]}`
+    const embeddingLang = detectLanguage(embeddingQuestion)
+    if (embeddingLang === 'ar') {
+      embeddingQuestion = `${embeddingQuestion} ${stanceTerms[options.stance]}`
+    }
   }
 
   // Générer l'embedding de la question transformée (expandée ou condensée)
@@ -1731,7 +1745,7 @@ export async function answerQuestion(
   // Par défaut: 'chat' si conversation, 'consultation' sinon
   const contextType: PromptContextType = options.contextType || (options.conversationId ? 'chat' : 'consultation')
   const supportedLang: SupportedLanguage = questionLang === 'fr' ? 'fr' : 'ar'
-  const stance = options.stance ?? 'neutral'
+  const stance = options.stance ?? 'defense'
   const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang, stance)
 
   // 4. Construire les messages (format OpenAI-compatible pour Ollama/Groq)
@@ -2212,7 +2226,7 @@ export async function* answerQuestionStream(
   // 4. Construire messages
   const contextType: PromptContextType = options.contextType || (options.conversationId ? 'chat' : 'consultation')
   const supportedLang: SupportedLanguage = questionLang === 'fr' ? 'fr' : 'ar'
-  const stance = options.stance ?? 'neutral'
+  const stance = options.stance ?? 'defense'
   const baseSystemPrompt = getSystemPromptForContext(contextType, supportedLang, stance)
   const systemPrompt = conversationSummary
     ? `${baseSystemPrompt}\n\n[Résumé de la conversation précédente]\n${conversationSummary}`

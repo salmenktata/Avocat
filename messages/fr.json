@@ -825,7 +825,7 @@
     "deleting": "Suppression...",
     "placeholder": "Décrivez votre cas juridique ou posez une question...",
     "enterToSend": "Entrée",
-    "disclaimer": "L'IA peut faire des erreurs. Vérifiez les informations importantes.",
+    "disclaimer": "Qadhya est un outil d'aide à la recherche. Les réponses sont générées par IA et ne constituent pas un avis juridique engageant la responsabilité. Vérification impérative par un avocat.",
     "welcomeTitle": "Bienvenue sur Qadhya Chat",
     "welcomeMessage": "Posez vos questions juridiques et obtenez des réponses contextualisées basées sur vos documents et la jurisprudence tunisienne.",
     "exampleQuestions": "Exemples de questions :",
