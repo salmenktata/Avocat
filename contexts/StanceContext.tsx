@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState } from 'react'
 import type { LegalStance } from '@/lib/ai/legal-reasoning-prompts'
 
 const STORAGE_KEY = 'qadhya_stance'
@@ -15,16 +15,17 @@ export const StanceContext = createContext<StanceContextValue>({
   setStance: () => {},
 })
 
-export function StanceProvider({ children }: { children: React.ReactNode }) {
-  const [stance, setStanceState] = useState<LegalStance>('defense')
+function readStoredStance(): LegalStance {
+  const stored = localStorage.getItem(STORAGE_KEY)
+  if (stored === 'defense' || stored === 'attack' || stored === 'neutral') {
+    return stored
+  }
+  return 'defense'
+}
 
-  // Initialisation depuis localStorage (client uniquement)
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as LegalStance | null
-    if (stored === 'defense' || stored === 'attack' || stored === 'neutral') {
-      setStanceState(stored)
-    }
-  }, [])
+export function StanceProvider({ children }: { children: React.ReactNode }) {
+  // Lazy initializer : lit localStorage dès le premier rendu (pas de flash)
+  const [stance, setStanceState] = useState<LegalStance>(readStoredStance)
 
   const setStance = (s: LegalStance) => {
     setStanceState(s)
