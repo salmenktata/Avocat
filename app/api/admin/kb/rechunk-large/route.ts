@@ -16,7 +16,7 @@ import { NextResponse } from 'next/server'
 import { withAdminApiAuth } from '@/lib/auth/with-admin-api-auth'
 import { db } from '@/lib/db/postgres'
 import { chunkText } from '@/lib/ai/chunking-service'
-import { generateEmbedding } from '@/lib/ai/embeddings-service'
+import { generateEmbedding, formatEmbeddingForPostgres } from '@/lib/ai/embeddings-service'
 import { getErrorMessage } from '@/lib/utils/error-utils'
 
 export const dynamic = 'force-dynamic'
@@ -116,7 +116,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
         // 4. Générer embeddings et insérer
         let insertedCount = 0
         for (const [index, chunk] of newChunks.entries()) {
-          const embedding = await generateEmbedding(chunk.content)
+          const embResult = await generateEmbedding(chunk.content)
           await db.query(`
             INSERT INTO knowledge_base_chunks (
               knowledge_base_id, chunk_index, content, embedding
@@ -125,7 +125,7 @@ export const POST = withAdminApiAuth(async (request, _ctx, _session) => {
             doc.doc_id,
             index,
             chunk.content,
-            JSON.stringify(embedding),
+            formatEmbeddingForPostgres(embResult.embedding),
           ])
           insertedCount++
         }
