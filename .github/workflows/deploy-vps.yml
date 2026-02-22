@@ -324,6 +324,7 @@ jobs:
           RESEND_API_KEY: "re_build_placeholder"
           OPENAI_API_KEY: "sk-build-placeholder"
           NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_BUILD_SHA: ${{ github.sha }}
 
       - name: Prepare deploy bundle
         run: |
